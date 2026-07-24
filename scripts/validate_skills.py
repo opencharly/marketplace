@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import pathlib
 import re
+import subprocess
 import sys
 
 import yaml
@@ -32,6 +33,15 @@ def frontmatter(path: pathlib.Path) -> dict[str, object]:
 
 def main() -> int:
     errors: list[str] = []
+    squash_body_test = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "squash_body.py"), "--self-test"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if squash_body_test.returncode != 0:
+        detail = (squash_body_test.stderr or squash_body_test.stdout).strip()
+        errors.append(f"squash body contract self-test failed: {detail}")
     skills: dict[tuple[str, str], pathlib.Path] = {}
     raw_names: dict[str, pathlib.Path] = {}
     skill_files = sorted(ROOT.glob("*/skills/*/SKILL.md"))

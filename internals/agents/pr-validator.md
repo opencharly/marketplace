@@ -716,12 +716,32 @@ stamps collide and mis-order across concurrent PRs). Operate on the feat branch:
    - any other embedded release-version string.
 4. **Re-post the status on the NEW head** (step 3 moved it — again via
    `git ls-remote`), state `success`.
-5. **Merge:** stream the full squash-commit body with real newlines on standard
-   input, ending with the author's `Assisted-by: <Harness> <Provider Full
-   Model Name> (<confidence>)` trailer, then run `gh pr merge <N> --repo <owner>/<repo>
-   --squash --delete-branch --subject "<the cutover's conventional-commit
-   subject>" --body-file -`. This creates no validator-local body file. SQUASH,
-   so `main` gains exactly
+5. **Construct, parse, and merge one byte sequence.** Set `AUTHOR_TRAILER` to
+   the validated concrete
+   `Assisted-by: <Harness> <Provider Full Model Name> (<confidence>)` line and
+   `SQUASH_PROSE` to the complete prose body, with no attribution text. Use the
+   canonical helper from the literal superproject path supplied by W0:
+
+   ```bash
+   SQUASH_BODY="$(printf '%s' "$SQUASH_PROSE" |
+     python3 <absolute-superproject-root>/plugins/scripts/squash_body.py \
+       --trailer "$AUTHOR_TRAILER")" || exit 1
+   printf '%s' "$SQUASH_BODY" |
+     python3 <absolute-superproject-root>/plugins/scripts/squash_body.py \
+       --check --trailer "$AUTHOR_TRAILER"
+   PARSED_TRAILER="$(printf '%s' "$SQUASH_BODY" |
+     git interpret-trailers --parse)"
+   test "$PARSED_TRAILER" = "$AUTHOR_TRAILER"
+   printf '%s\n' "$PARSED_TRAILER"
+   printf '%s' "$SQUASH_BODY" |
+     gh pr merge <N> --repo <owner>/<repo> --squash --delete-branch \
+       --subject "<the cutover's conventional-commit subject>" --body-file -
+   ```
+
+   The helper inserts exactly one blank line before the standalone trailer and
+   rejects same-line, single-newline, duplicate, placeholder, or otherwise
+   non-parseable attribution. The pre-merge transcript MUST show the exact
+   parser output. This creates no validator-local body file. SQUASH, so `main` gains exactly
    ONE commit no matter how many fix commits the review rounds added. You compose the
    squash message: never let `gh` default it to the concatenated commit list, and never
    drop the attribution trailer.
@@ -739,9 +759,26 @@ stamps collide and mis-order across concurrent PRs). Operate on the feat branch:
    If it fails "not mergeable / base branch policy" because another PR merged in
    between (branch went `BEHIND` again) → GOTO step 1. This loop keeps every
    version monotonic with real merge order.
-6. **Tag** (EVERY repo — `plugins` and `pkg/*` included; `sdk` substitutes its
-   `v0.<…>` form from step 2): `git fetch`; `git tag -a v$VER -m "<subject>"
-   <merged-main-HEAD>`; `git push origin refs/tags/v$VER` (a tag push — allowed by
+6. **Verify the emitted merge object, then tag.** Resolve the merge SHA from
+   GitHub, fetch that exact object and current protected branch without
+   submodule recursion, and run:
+
+   ```bash
+   MERGED_TRAILER="$(git -C <absolute-target-path> show -s --format=%B \
+     "$MERGED_SHA" | git interpret-trailers --parse)"
+   test "$MERGED_TRAILER" = "$AUTHOR_TRAILER"
+   printf '%s\n' "$MERGED_TRAILER"
+   ```
+
+   The fetched merge object, not the submitted input or a plain-text substring,
+   is the emitted-artifact boundary. An empty, extra, folded, or different
+   parser result revokes PASS: do not tag or report completion, record the
+   anomaly, and run R1. The post-merge transcript MUST name `MERGED_SHA` and
+   show the exact parser output.
+
+   Only after that proof, tag EVERY repo (`plugins` and `pkg/*` included; `sdk`
+   substitutes its `v0.<…>` form from step 2): `git tag -a v$VER -m "<subject>"
+   "$MERGED_SHA"`; `git push origin refs/tags/v$VER` (a tag push — allowed by
    the pre-push-gate). Only a SUPERPROJECT `v*` tag triggers `release-packages.yml`;
    a `plugins` / `pkg/*` tag fires NO workflow, so tagging them is harmless.
    **SKIPPING any repo's tag is a DEFECT** — the pre-unification `plugins`/`pkg`
@@ -798,6 +835,7 @@ Cross-PR interactions considered: <one line per interaction found across the
 
 Status posted: charly/pr-validator = <success|failure> on <sha>
 PR comment posted: yes (ends with *Assisted-by: <Harness> <Provider Full Model Name> (<confidence>)*)
+Squash trailer proof: pre-merge parse = <exact trailer>; merged <merge-sha> parse = <exact trailer>
 Verdict: PASS → merged (squash) as <merge-sha>, tagged v<VER>
    OR    FAIL → not merged; blocking: <findings>
 ```
