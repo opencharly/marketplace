@@ -97,6 +97,7 @@ def self_test() -> None:
     malformed = (
         f"Explain the completed cutover.  {trailer}".encode(),
         f"Explain the completed cutover.\n{trailer}".encode(),
+        f"Explain the completed cutover.\n\n{trailer}\n{trailer}".encode(),
     )
     for candidate in malformed:
         try:
