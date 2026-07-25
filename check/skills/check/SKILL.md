@@ -508,10 +508,11 @@ verb. Operators with legacy YAML run `charly migrate`. See
 "Deploy fetches NOTHING speculative".
 
 Lives in `charly/check_image_preflight.go`
-(`EnsureImagePresent`, `ensureScoreImages` — the "preflight" mode body); reached
-via the `host_build_check_run.go` "preflight" seam, which the `command:check`
-plugin (`candy/plugin-check`) drives for the host-target run (the former
-`case TargetKindHost:` arm). Pod / VM / k8s
+(`ensureScoreImages` — the "preflight" mode body, which in turn calls
+`dispatchBuildEnsure` — core-min wave 3, the compiled-in candy/plugin-build
+build:ensure word); reached via the `host_build_check_run.go` "preflight"
+seam, which the `command:check` plugin (`candy/plugin-check`) drives for the
+host-target run (the former `case TargetKindHost:` arm). Pod / VM / k8s
 targets carry their own image inside their respective deploy schema
 and never trigger the preflight.
 
