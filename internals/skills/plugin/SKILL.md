@@ -487,9 +487,13 @@ four kind-AGNOSTIC things —
 - **(M) Mechanism** — a generic engine that transports / renders / validates / re-materializes an
   envelope, dispatched **by word against a data table, never branching on a concrete kind** — and the
   ONLY M-mechanisms that live in `charly/` are plugin loading (the provider registry + transports +
-  reverse-channel legs), prescan-dispatch, the kind-decode MATERIALIZE (folding plugin-parsed config
-  into the typed project view — the dispatch half of loading), and the wire broker. Every OTHER
-  kind-blind mechanism (parse, render, resolve, walk, engine) lives in an sdk KIT consumed by plugins:
+  reverse-channel legs), prescan-dispatch (the SAME registry resolve+invoke a per-node kind-decode
+  reaches, e.g. `provider_kind_invoke.go`'s `runPluginKind`/`foldSubstrateKind`/`foldCandyKind` — an
+  elaborated CONSUMER of this mechanism, not a distinct one), and the wire broker. The FOLD/ORCHESTRATION
+  half of kind-decode MATERIALIZE — deciding what to do with a resolved-or-unresolved node, the
+  not-found policy — is NOT this mechanism: it moved to `candy/plugin-loader`'s `Materializer` seam
+  (K1 unit 1, mirroring `ProjectWalker`/`DocParser`), so the in-core M set is now THREE, not four. Every
+  OTHER kind-blind mechanism (parse, render, resolve, walk, engine) lives in an sdk KIT consumed by plugins:
   the config PARSE is `sdk/loaderkit` (plugin-served via the `DocParser` seam); the build engine, the
   deploy walk, the CUE-unify check, and the ledger currently in `charly/` are TRACKED MIGRATION
   INVENTORY with named K-wave exits (K3/K4/K5), never permanent M-residue. Canonical illustration:
@@ -512,7 +516,7 @@ four kind-AGNOSTIC things —
   by **resolving** its config into an E-envelope that a Mechanism consumes.
 
 **The decision procedure.** For any construct ask: generic Envelope (E)? a kind-blind Mechanism that is
-plugin loading / dispatch / the kind-decode materialize / the wire broker (M — nothing else in core)?
+plugin loading / prescan-dispatch / the wire broker (M — nothing else in core)?
 the Bootstrap root (B)? kind-recognition Data (D)? If none → it is a plugin (R). Placement
 is decided ONLY by this test; **difficulty NEVER enters it** (the project rulebook forbidden-excuse catalog) — a
 thing stays kernel only because it is E/M/B/D, never because moving it is hard.
@@ -545,11 +549,15 @@ tracked K-wave residue, not permanent core). Full three-role breakdown: `/charly
 
 **The defines-vs-calls test — the concrete grep that makes E/M/B/D un-mis-applicable.** To decide whether
 a file is a genuine M-mechanism (kernel) or an R-item (moves), grep for where the mechanism is DEFINED —
-the registry in `provider_registry.go`, the kind-decode fold in `materialize.go`, the reverse-channel
-broker/`InvokeProvider` in `plugin_inproc*.go`/`plugin_dispatch_reverse.go`. A file that only CALLS one of
-those — dispatches through `providerRegistry.ResolveVerb`, composes a live executor, reads resolved
-config — is a CAPABILITY that USES the mechanism, not the mechanism itself: an R-item, it moves. **A
-capability that uses M1–M4 is not thereby M1–M4.**
+the registry in `provider_registry.go`, the resolve+dispatch invocation in `provider_kind_invoke.go`, the
+reverse-channel broker/`InvokeProvider` in `plugin_inproc*.go`/`plugin_dispatch_reverse.go`. A file that
+only CALLS one of those — dispatches through `providerRegistry.ResolveVerb`, composes a live executor,
+reads resolved config — is a CAPABILITY that USES the mechanism, not the mechanism itself: an R-item, it
+moves. **This is the exact test that caught `materialize.go`'s own former "stays core, clause M"
+self-classification (K1 unit 1): it never DEFINED the registry/dispatch mechanism, it only CALLED
+`providerRegistry.ResolveKind` transitively — an R-item that self-misclassified. Its per-node NOT-FOUND
+policy moved to `candy/plugin-loader`'s `Materializer` seam; only the TRUE mechanism it called
+(`provider_kind_invoke.go`) stays core. A capability that uses M1–M4 is not thereby M1–M4.**
 
 **Alias-is-always-residue — an alias is NEVER permanent, regardless of what it aliases.** A `type X =
 spec.X` / `var y = spec.Y` re-export in `charly/` is ALWAYS an R-item under the ZERO-ALIASES v2 target,
@@ -570,8 +578,8 @@ an auditor counted `layers.go`'s `Candy` struct (grep-verified: 60+ accessor met
 kind-specific) as E because it "carries data," then self-corrected.
 
 **The practical audit framing — invert the default.** Every file is an R-item (it moves to a plugin)
-UNLESS it is LITERALLY one of the tiny kernel whitelist: the four in-core M-mechanisms (plugin loading /
-prescan-dispatch / kind-decode materialize / the wire broker), the B bootstrap root, D kind-recognition
+UNLESS it is LITERALLY one of the tiny kernel whitelist: the three in-core M-mechanisms (plugin loading /
+prescan-dispatch / the wire broker), the B bootstrap root, D kind-recognition
 data, or an E generic envelope. Auditing a cone by asking "is this hard to move" instead of "is this one
 of E/M/B/D" is the exact failure this framing forecloses: the bed runner, the check/ADE harness, the build
 engine, the deploy walk, and the VM engine are ALL R-items (the v2 ledger already names them plugins) —
@@ -616,8 +624,8 @@ map, a substrate-word `switch` — that is a known **incomplete seam** being clo
 under this law; the active inventory + sequence live in the cutover plan + each repo's `CHANGELOG/`, never
 as a snapshot here.
 
-**Whole subsystems obey the same law.** A generic subsystem is kernel ONLY as one of the four in-core
-M-mechanisms (plugin loading / dispatch / the kind-decode materialize / the wire broker); every other
+**Whole subsystems obey the same law.** A generic subsystem is kernel ONLY as one of the three in-core
+M-mechanisms (plugin loading / prescan-dispatch / the wire broker); every other
 kind-blind mechanism is an sdk kit consumed by plugins. The subsystems still carrying non-trivial core
 weight — the build engine, the deploy walk, the OCI `registry.go`+`merge.go` (go-containerregistry), the
 status subsystem, the LoadUnified orchestration, every `*_aliases.go` — are v2 migration INVENTORY, each
@@ -639,8 +647,9 @@ it does not consume the sdk mechanism libraries, and it contains ZERO aliases/sh
 1. **Everything is a plugin.** Every capability — INCLUDING the project loader, the deploy walk, the
    build engine, and the bed runner — lives in a plugin candy. Core's only jobs: discover/load plugins
    (compiled-in registry + go-plugin gRPC), prescan the CLI grammar from plugin-declared words, dispatch
-   words→plugins + fold the kind-decode materialize, and broker the reverse channel (venue executors +
-   `InvokeProvider`). → P16 gate (a): the file allowlist (~4k floor).
+   words→plugins (INCLUDING the per-node kind-decode resolve+invoke a plugin's `Materializer` seam calls
+   back into — the FOLD/not-found POLICY itself lives in `candy/plugin-loader`, K1 unit 1), and broker
+   the reverse channel (venue executors + `InvokeProvider`). → P16 gate (a): the file allowlist (~4k floor).
 2. **Core does not import the sdk mechanism layer.** Core imports ONLY the protocol contract — `sdk/spec`
    (wire types) + the proto/go-plugin packages + the Provider/Op vocabulary. `sdk/{kit,deploykit,
    buildkit,loaderkit,vmshared,…}` are for PLUGINS. → P16 gate (b): import-purity (`charly/` has zero
@@ -665,7 +674,7 @@ plugins do directly via sdk libs.
 | `charly/` keeps | ~LOC |
 |---|---|
 | `main()` bootstrap + compiled-in plugin registry + plugin cache/loading | ~1k |
-| provider registry + in-proc/gRPC transports + prescan (CLI words, kinds) + the kind-decode materialize | ~2k |
+| provider registry + in-proc/gRPC transports + prescan (CLI words, kinds) + the per-node kind-decode resolve+invoke (the Materializer seam's DecodeEntity/BuildBundleEntity callbacks reach into) | ~2k |
 | reverse-channel broker (executor re-materialization + `InvokeProvider`) | ~1–1.5k |
 | **Total** | **~3.5–4.5k** |
 
@@ -679,7 +688,7 @@ wave leaves is tracked "until-K<n>", never permanent.
 
 | Wave | What | ~LOC out |
 |---|---|---:|
-| **K1-proper** | the LoadUnified ORCHESTRATION (import queue / discover / namespace / merge) → `sdk/loaderkit`. **Keystone RETIRED** — the kind-blind PARSE (P6, `ParseDoc` → `spec.ParsedProject`, cycle broken via the `loaderkit.Threaded` clause-D DATA snapshot + the swappable `DocParser` seam) + the refs FETCH (P7, `kit.RefsDownloader`) are ALREADY LANDED and compile today; K1-proper is the mechanical relocation of the orchestration. The registry-coupled MATERIALIZE/fold STAYS host (it IS the kind-decode dispatch, v2-consistent). | ~2–2.5k |
+| **K1-proper** | the LoadUnified ORCHESTRATION (import queue / discover / namespace / merge) → `sdk/loaderkit`. **Keystone RETIRED** — the kind-blind PARSE (P6, `ParseDoc` → `spec.ParsedProject`, cycle broken via the `loaderkit.Threaded` clause-D DATA snapshot + the swappable `DocParser` seam) + the refs FETCH (P7, `kit.RefsDownloader`) + the per-node kind-decode NOT-FOUND policy (K1 unit 1, the `Materializer` seam — `materialize.go`'s own former "stays core, clause M" self-classification was an incomplete-seam misclassification the defines-vs-calls test caught) are ALREADY LANDED and compile today; K1-proper's remainder is the mechanical relocation of the document/namespace orchestration (`materializeLoadedProject` et al., which decides WHICH node to fold, never HOW — a legitimate host-side ORCHESTRATION, not itself clause-M). The TRUE registry resolve + provider dispatch (`provider_kind_invoke.go`) STAYS host (it IS the mechanism, v2-consistent). | ~1.5–2k |
 | **K2** | engine-client → `sdk/enginekit`; ledger + flock: DELIVERED in `sdk/kit` (filelock / install_ledger / deployconfig, P4/C9) — the residual host state code is loader-coupled (K5 seam-death) or lifecycle-body (K4-A), not a statekit item | ~1k |
 | **K3** | the build ENGINE (generate / layers / build / labels / intermediates / localpkg) → `buildkit` + `plugin-build` | ~7.6k |
 | **K4** | deploy + config resolution (config_image / deploy / bundle-walk / enc / secrets / network / start / shell / data) → `deploykit` + the deploy/bundle plugins — the CALL SITES move, the aliases die | ~13k |

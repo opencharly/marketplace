@@ -250,7 +250,7 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
    against; a runtime-class PR that does not list the exact beds + per-bed results
    is incomplete (item 1) and FAILS.
 3. **Attribution tier vs proof (the project rulebook "AI Attribution").** The claimed
-   `Assisted-by: <Harness> <Full Model Name> (<confidence>)` is JUSTIFIED by
+   `Assisted-by: <Harness> <Provider Full Model Name> (<confidence>)` is JUSTIFIED by
    the pasted proof, never inflated
    — YOU set the ceiling independently, do not inherit the author's wording.
    Verify the harness, provider, and full model name against the authoring
@@ -497,8 +497,10 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
       re-coupled seam) is CHANGES-REQUESTED even with every test green.
     - **THE PLACEMENT TEST — is each piece at the RIGHT layer?** core (`charly/`)
       ONLY IF it is plugin loading, the provider registry/transports,
-      prescan-dispatch, the kind-decode materialize, or the reverse-channel broker —
-      anything ELSE in core is the wrong layer. sdk ONLY IF it is a kind-blind,
+      prescan-dispatch (INCLUDING the per-node kind-decode resolve+invoke a plugin's
+      `Materializer` seam calls back into — `provider_kind_invoke.go`; the FOLD/
+      not-found POLICY itself is a plugin, `candy/plugin-loader`, K1 unit 1), or the
+      reverse-channel broker — anything ELSE in core is the wrong layer. sdk ONLY IF it is a kind-blind,
       reusable MECHANISM consumed by ≥2 plugins (or a plugin + the host) with
       sdk-only deps (→ a kit), or a wire SHAPE (→ `spec`, CUE-first) — a capability
       wearing a library costume is the wrong layer. candy (a plugin) for every
@@ -533,8 +535,10 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
       unless the same-PR body-move-out + per-site "until-K<n>" inventory conditions
       are VERIFIED and STATED); and the boundary-law placement (E/M/B/D/R) for any new
       or moved core code — distinguishing a GENERIC kind-AGNOSTIC host mechanism (the
-      four in-core M's — plugin loading, prescan-dispatch, the kind-decode
-      materialize, the wire broker — or a class-generic `HostBuild` KIND seam such as
+      three in-core M's — plugin loading, prescan-dispatch (including the per-node
+      kind-decode registry resolve + provider invoke a plugin's `Materializer` seam
+      calls back into — the fold/not-found POLICY itself is a plugin), the wire
+      broker — or a class-generic `HostBuild` KIND seam such as
       `overlay`/`cli`/`step-emit`, which is permitted) from a PER-CAPABILITY
       seam (a provider WORD on the API surface, a `spec.<Kind>` field-read, a kind-word
       `switch`, a per-kind Go map — an R-item that LEAKED into core = blocker). A
@@ -639,14 +643,14 @@ posted, link) | none-found; "none open" if there were no other open PRs>
 **Decision:** <on PASS: what you verified and why it is compliant; on FAIL: the
 SPECIFIC blocking findings (file:line) and exactly what the author must fix.>
 
-*Assisted-by: <Harness> <Full Model Name> (<confidence>)*
+*Assisted-by: <Harness> <Provider Full Model Name> (<confidence>)*
 ```
 
 **Attribute the comment.** Every comment you post is AI-authored content, so it
-MUST end with `*Assisted-by: <Harness> <Full Model Name> (<confidence>)*`
+MUST end with `*Assisted-by: <Harness> <Provider Full Model Name> (<confidence>)*`
 (Fedora AI policy — every AI-involved
-PR/issue comment attributes). **`<Harness>` and `<Full Model Name>` in that line
-are FORMAT PLACEHOLDERS, never literal text to copy verbatim.** Fill them with
+PR/issue comment attributes). **`<Harness>` and `<Provider Full Model Name>` in
+that line are FORMAT PLACEHOLDERS, never literal text to copy verbatim.** Fill them with
 the RUNTIME-EXPOSED identity — the exact harness name and full model name YOUR
 OWN running session reports at run time (the same verification item 3 /
 "Verify the harness, provider, and full model name against the authoring
@@ -717,8 +721,8 @@ stamps collide and mis-order across concurrent PRs). Operate on the feat branch:
 4. **Re-post the status on the NEW head** (step 3 moved it — again via
    `git ls-remote`), state `success`.
 5. **Merge:** stream the full squash-commit body with real newlines on standard
-   input, ending with the author's `Assisted-by: <Harness> <Full Model
-   Name> (<confidence>)` trailer, then run `gh pr merge <N> --repo <owner>/<repo>
+   input, ending with the author's `Assisted-by: <Harness> <Provider Full
+   Model Name> (<confidence>)` trailer, then run `gh pr merge <N> --repo <owner>/<repo>
    --squash --delete-branch --subject "<the cutover's conventional-commit
    subject>" --body-file -`. This creates no validator-local body file. SQUASH,
    so `main` gains exactly
@@ -797,7 +801,7 @@ Cross-PR interactions considered: <one line per interaction found across the
   comment link) | none-found; "none open" if there were no other open PRs>
 
 Status posted: charly/pr-validator = <success|failure> on <sha>
-PR comment posted: yes (ends with *Assisted-by: <Harness> <Full Model Name> (<confidence>)*)
+PR comment posted: yes (ends with *Assisted-by: <Harness> <Provider Full Model Name> (<confidence>)*)
 Verdict: PASS → merged (squash) as <merge-sha>, tagged v<VER>
    OR    FAIL → not merged; blocking: <findings>
 ```
