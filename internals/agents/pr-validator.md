@@ -497,8 +497,10 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
       re-coupled seam) is CHANGES-REQUESTED even with every test green.
     - **THE PLACEMENT TEST — is each piece at the RIGHT layer?** core (`charly/`)
       ONLY IF it is plugin loading, the provider registry/transports,
-      prescan-dispatch, the kind-decode materialize, or the reverse-channel broker —
-      anything ELSE in core is the wrong layer. sdk ONLY IF it is a kind-blind,
+      prescan-dispatch (INCLUDING the per-node kind-decode resolve+invoke a plugin's
+      `Materializer` seam calls back into — `provider_kind_invoke.go`; the FOLD/
+      not-found POLICY itself is a plugin, `candy/plugin-loader`, K1 unit 1), or the
+      reverse-channel broker — anything ELSE in core is the wrong layer. sdk ONLY IF it is a kind-blind,
       reusable MECHANISM consumed by ≥2 plugins (or a plugin + the host) with
       sdk-only deps (→ a kit), or a wire SHAPE (→ `spec`, CUE-first) — a capability
       wearing a library costume is the wrong layer. candy (a plugin) for every
@@ -533,8 +535,10 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
       unless the same-PR body-move-out + per-site "until-K<n>" inventory conditions
       are VERIFIED and STATED); and the boundary-law placement (E/M/B/D/R) for any new
       or moved core code — distinguishing a GENERIC kind-AGNOSTIC host mechanism (the
-      four in-core M's — plugin loading, prescan-dispatch, the kind-decode
-      materialize, the wire broker — or a class-generic `HostBuild` KIND seam such as
+      three in-core M's — plugin loading, prescan-dispatch (including the per-node
+      kind-decode registry resolve + provider invoke a plugin's `Materializer` seam
+      calls back into — the fold/not-found POLICY itself is a plugin), the wire
+      broker — or a class-generic `HostBuild` KIND seam such as
       `overlay`/`cli`/`step-emit`, which is permitted) from a PER-CAPABILITY
       seam (a provider WORD on the API surface, a `spec.<Kind>` field-read, a kind-word
       `switch`, a per-kind Go map — an R-item that LEAKED into core = blocker). A
