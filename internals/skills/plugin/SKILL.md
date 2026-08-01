@@ -51,17 +51,16 @@ calling `NewGenerator` inline. The plugin's Invoke (op `sdk.OpBuild`) **OWNS the
 build-order loop, per-image build lock via `kit.AcquireImageBuildLock`, `podman build`, push, and the
 inline-merge gate) IN the candy — it imports only the sdk module. It reaches the host for what a sdk-only
 candy cannot do: the loader + build PREP + the resolved-project ENVELOPE via
-`Executor.HostBuild("build-prep", …)` (→ the envelope + a serializable drive-model), the Containerfile
-RENDER's host-coupled seams (RenderService, the builder resolves, ValidateEgress, EmitPluginOp, localpkg,
-bake-plugins) via `HostBuild("render-seam", …)`. The layer merge is externalized to `verb:oci`
+`Executor.HostBuild("buildengine-prep", …)` (→ the envelope + a serializable drive-model), the Containerfile
+RENDER's host-coupled seams (RenderService, the builder resolves, ValidateEgress, EmitPluginOp, localpkg) via `HostBuild("render-seam", …)`, and `bake_plugin:` binary baking INLINE via `deploykit.EmitBakedPlugins` (no HostBuild). The layer merge is externalized to `verb:oci`
 (candy/plugin-oci — no `HostBuild("merge")` seam). `build:box` runs the full drive; `build:generate` calls
-`HostBuild("build-prep")` with `GenerateOnly`, renders the Containerfiles itself via `sdk/deploykit.Generator`
+`HostBuild("buildengine-prep")` with `GenerateOnly`, renders the Containerfiles itself via `sdk/deploykit.Generator`
 (#67 render-DRIVE move — the host no longer renders), and returns the written paths (no podman).
-The host-builder KINDS (`build-prep`, `render-seam`, `bake-plugins`) are class-generic action nouns, never the provider
-WORDS (the F11 uniform-API gate `TestNoSinglePluginAPISurface` forbids a provider word on that surface). The
+The host-builder KINDS (`buildengine-prep`, `render-seam`) are class-generic action nouns, never the provider
+WORDS (the F11 uniform-API gate `TestNoSinglePluginAPISurface` forbids a provider word on that surface); `bake_plugin:` baking is inline (`deploykit.EmitBakedPlugins`), so it has NO host-builder kind. The
 Containerfile RENDER DRIVE (`Generate` / `generateContainerfile`) is in `sdk/deploykit` (#67 — driven by
-plugin-build over the envelope + the `render-seam` reverse legs); the host keeps ONLY the loader + build-prep +
-the resolve-project envelope projection (a kernel M/B Mechanism + the build-prep seam — K3 build-engine
+plugin-build over the envelope + the `render-seam` reverse legs); the host keeps ONLY the loader + buildengine-prep +
+the resolve-project envelope projection (a kernel M/B Mechanism + the buildengine-prep seam — K3 build-engine
 migration INVENTORY, the host render-leg is DELETED). See `/charly-build:build` +
 `/charly-build:generate`.
 
@@ -182,16 +181,15 @@ See "Authoring an external COMMAND plugin" below.
   host-side build, via the `sdk.Executor`: `InvokeProvider(class, word, op, params, env)` — the host resolves
   the peer in the registry and Invokes it on the caller's behalf (threading the SAME venue executor into an
   out-of-process target over a nested broker — the host is the dispatch broker, since it owns the registry);
-  and `HostBuild(kind, spec)` — the host runs the registered host-builder for `kind` — 24 registered kinds
-  today. The build/render-relevant ones: `build-prep` (the box-build loader + build-prep + resolved-project
-  envelope seam the candy drive calls), `render-seam` (the #67 render's host-coupled seams: RenderService,
-  builder resolves, ValidateEgress, EmitPluginOp, localpkg), `bake-plugins` (#67 — bake `bake_plugin:`
-  binaries into the final image). The rest: `overlay`
-  (the pod overlay build), `step-emit` (host-coupled step fragments), `cli` (run-any-charly-command
-  reentry), `hostprobe` (doctor's raw host facts), `feature`, `settings`, `retention`, `plugin-binary`
-  (the F10 plugin host build), `vm-build`, `resolved-project`, `validate-project`, `config-resolve` +
-  `config-persist`, `deploy-add` + `deploy-config` + `deploy-del` + `deploy-from-box`, `status-substrate`,
-  `pod-disposable`, `check-bed`, `check-run`. The build engine is in core TODAY — K3 build-engine
+  and `HostBuild(kind, spec)` — the host runs the registered host-builder for `kind` — ~54 registered kinds
+  today (the count drifts per cone; `git grep 'registerHostBuilder(' charly/*.go` resolving the `*BuilderKind` constants is the authoritative list). The build/render-relevant ones: the 8 `buildengine-*` kinds (`buildengine-prep` et al. — the box-build loader + prep + resolved-project
+  envelope seam the candy drive calls, REPLACING the former fat `build-prep`/`build_resolve_host.go` seam, DELETED), `render-seam` (the #67 render's host-coupled seams: RenderService,
+  builder resolves, ValidateEgress, EmitPluginOp, localpkg). `bake_plugin:` baking is INLINE via `deploykit.EmitBakedPlugins` (the former `bake-plugins` host-builder is DELETED — no HostBuild). The rest: `overlay`
+  (the pod overlay build), `step-emit` (host-coupled step fragments), `plugin-binary`
+  (the F10 plugin host build), `cli` (run-any-charly-command
+  reentry), `hostprobe` (doctor's raw host facts), `feature`, `render-service`, `retention-defaults`, `raw-project`, `validate-project-checks`, `remote-image-resolve`, `box-fetch-resolve`, `config-resolve`
+  (config-persist is DELETED — persist moved plugin-side to candy/plugin-vm/vm_host_persist.go), the `deploy-*-resolve` / `deploy-members-*` / `resolve-target-add` / `deploy-node-del-dispatch` / `deploy-plugins-connect` / `deploy-from-box` family, the `loader-*` and `pod-*` (lifecycle verbs) and `pod-config-*` families, `arbiter-bracket-acquire` + `-release`, `construct-step`, `check-load-plugins`,
+  `check-bed`, `check-run`. The build engine is in core TODAY — K3 build-engine
   migration inventory, not permanent core — the box-build podman DRIVE moved to candy/plugin-build in
   P8b, and the Containerfile RENDER DRIVE moved to `sdk/deploykit` (#67, driven by plugin-build over the
   envelope + the `render-seam` reverse legs; the host render-leg is DELETED). This is the shared-capability
