@@ -104,7 +104,7 @@ lifecycle is IMPLEMENTED IN THE PLUGIN — NOT in core, and NOT a hollow forward
     `kit.EnsureSshConfigInclude`), the guest-readiness waits (`kit.WaitForSSH` /
     `kit.WaitForCloudInit` / `kit.WaitForPackageLock`, host-surface ssh with an
     injected poll), and charly delivery (`kit.EnsureCharlyInGuest` /
-    `kit.EnsureCharlyInVenue`).
+    `kit.EnsureCharlyInDeployVenue`, re-exports of `spec/exec/charly_install.go`).
   - **`HostBuild("cli")`** — the generic "cli" host-builder that runs
     `charly vm build/create/start/stop/console/ssh/destroy` and
     `charly box build` / `charly vm cp-box` on the host (auto-boot,

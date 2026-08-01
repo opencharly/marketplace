@@ -19,7 +19,7 @@ The `charly` binary inside containers provides the full charly CLI for in-venue
 scripting, service management, and automation. **The box need NOT bake the `charly`
 candy for charly to run inside a venue:** when a flow needs `charly` present and the
 venue lacks it (nested from-image delegation), the generic copy-`charly`-into-a-running-venue
-mechanism (`EnsureCharlyInVenue` over `DeployExecutor.PutFile` — `podman cp` for a
+mechanism (`EnsureCharlyInDeployVenue` over `DeployExecutor.PutFile` — `podman cp` for a
 container, `scp` for a VM/host) copies the host's own binary in on demand and invokes
 the delivered copy. Baking the candy only pre-stages the binary so the first such call
 skips the copy.

@@ -23,7 +23,7 @@ provider (`candy/plugin-substrate`), served on its kind-provider `Invoke` as
 interface or `init()`-time registry left in core (both were deleted once the
 last substrate, android, moved out). `Collector.collectFlat` (core) calls each
 word over the registry + reaches the reverse-channel executor so the plugin can
-call back (`HostBuild("resolved-project")` for vm/k8s, `InvokeProvider`
+call back (`InvokeProvider("build","project", OpResolve)` for the resolved-project envelope for vm/k8s — the former `HostBuild("resolved-project")` seam is DELETED, `InvokeProvider`
 for vm→libvirt), merges the rows, applies the DEPLOY-CONE enrichment core alone
 can still do (pod tunnel/volume/port fallback, vm SSH-port/network), and sorts
 by `(Kind, image)`. The pod collector still does the batched `podman ps` +
