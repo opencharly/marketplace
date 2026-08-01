@@ -145,7 +145,8 @@ git switch -c feat/<slug>            # slug = kebab summary of the change
 # write the cutover narrative to CHANGELOG/<placeholder>.md — a PLACEHOLDER CalVer
 #   (any valid YYYY.DDD.HHMM; the evaluator OVERWRITES it with the merge-time VER).
 git add <only the cutover's files> CHANGELOG/<placeholder>.md
-git commit -m "<conventional commit> ...  Assisted-by: <Harness> <Provider Full Model Name> (<confidence>)"
+git commit -m "<conventional commit>" \
+  -m "Assisted-by: <Harness> <Provider Full Model Name> (<confidence>)"
 git push origin feat/<slug>                       # feat push — allowed by the gate
 gh pr create --base main --head feat/<slug> \     # fill the PR template completely (single org source: opencharly/.github/.github/PULL_REQUEST_TEMPLATE.md — no per-repo copy)
   --title "<subject>" \
@@ -849,9 +850,23 @@ Assisted-by: <Harness> <Provider Full Model Name> (fully tested and validated)
 For every harness, the enforced trailer form is exactly
 `Assisted-by: <Harness> <Provider Full Model Name> (<confidence>)`. A validator
 composing a squash-merge trailer preserves the authoring harness, full provider
-model name, and proof-supported confidence. Commit-time checks are an advisory
-mechanical backstop only; the fresh PR validator independently verifies the
-trailer on every repository, including a submodule checkout or standalone clone.
+model name, and proof-supported confidence.
+
+The canonical constructor is `plugins/scripts/squash_body.py` in the
+superproject. It receives prose on standard input plus the concrete trailer via
+`--trailer`, inserts the required blank line, and refuses output unless
+`git interpret-trailers --parse` returns exactly that trailer. The validator
+holds the returned bytes in one shell variable, passes the same bytes through
+`--check`, and streams those exact bytes to `gh pr merge --body-file -`. It
+then parses the fetched merge object and requires the same exact trailer before
+tagging or reporting completion. Same-line attribution and a trailer separated
+from prose by only one newline are both invalid, even when a plain-text search
+finds the expected words. The parser output and merge SHA are mandatory
+validator evidence.
+
+Commit-time checks are an advisory mechanical backstop only; the fresh PR
+validator independently verifies the trailer on every repository, including a
+submodule checkout or standalone clone.
 
 ## If validation FAILS or R10 fails
 
