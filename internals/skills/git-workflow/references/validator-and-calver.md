@@ -201,16 +201,15 @@ filenames and tags sort chronologically under a plain alphanumeric sort.
   --squash --delete-branch`; then tag the merged HEAD — `git tag -a v$VER -m
   "<subject>" <merged-HEAD>` and `git push origin refs/tags/v$VER` (every repo;
   `sdk` substitutes its Go-module `v0.<…>` form).
-- **Guard the `git mv` stale-pathspec footgun.** `git mv CHANGELOG/<placeholder>.md
-  CHANGELOG/$VER.md` stages the rename, but a follow-up `git add <old-path>
-  <new-path>` naming the now-nonexistent old path fails and silently drops
-  staging any content edit made in the same step (e.g. rewriting the H1 heading
-  to the final CalVer) — landing a rename-only commit that misses the edit.
-  After the `mv` plus any content edit, verify `git show HEAD:<new-path> | head
-  -1` (or `git diff --cached`) matches the intended content before committing
-  or posting the status. This has recurred three times (across separate repos and
-  a plugins CalVer finalization), caught pre-push each time only because the
-  `git show HEAD:… | head -1` self-verify this bullet prescribes was actually run.
+- **Guard the `git mv` stale-pathspec footgun** — this flow's instance of the
+  all-or-nothing `git add` invariant in `SKILL.md` (see "never name a path that no
+  longer exists" for the mechanism and its tells). Here it lands as: `git mv
+  CHANGELOG/<placeholder>.md CHANGELOG/$VER.md` followed by `git add <old-path>
+  <new-path>` silently drops the H1-heading rewrite, leaving a rename-only commit
+  whose filename and heading disagree. Stage with `git add <new-path>` alone, then
+  verify `git show HEAD:<new-path> | head -1` (or `git diff --cached`) matches the
+  intended content BEFORE committing or posting the status. The most common
+  recurrence in this repo, and the one this step exists to stop.
 
 One fresh stamp per merge, immutable (only ever added), independent of `charly.yml`
 `version:` (the schema version, bumped only by a cutover raising `#SchemaVersion`).
