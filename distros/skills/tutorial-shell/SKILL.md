@@ -3,7 +3,7 @@ name: tutorial-shell
 description: |
   The teaching box quoted end to end by opencharly.ai — a minimal, real dev shell
   composing one tool candy, one service candy, and the container init.
-  MUST be invoked before editing the tutorial-shell box, the tutorial-shell-dev bed,
+  MUST be invoked before editing the tutorial-shell box, the check-tutorial-shell bed,
   or any documentation page that excerpts them.
 ---
 
@@ -19,7 +19,7 @@ candies are pulled by `@github` reference.
 
 ```bash
 charly -C box/fedora box build tutorial-shell
-charly -C box/fedora check run tutorial-shell-dev
+charly -C box/fedora check run check-tutorial-shell
 ```
 
 ## Box Properties
@@ -30,7 +30,7 @@ charly -C box/fedora check run tutorial-shell-dev
 | Candies | supervisord, ripgrep, sshd |
 | Ports | 2222 (tcp, from the sshd candy) |
 | Init | supervisord |
-| Bed | `tutorial-shell-dev` (`disposable: true`, pod) |
+| Bed | `check-tutorial-shell` (`disposable: true`, pod) |
 
 ## Why these three candies
 
@@ -46,19 +46,25 @@ when quoted in full on a documentation page:
 Together they cover the whole shape of a box without any of them being a fixture: a reader can
 build this, shell into it, and use it.
 
-## What the box's own plan asserts
+## What the box's own plan asserts — and what it deliberately does not
 
-The box carries two `check:` steps, and both assert **cross-candy invariants the composed candies
-cannot assert individually**:
+The box carries **one** `check:` step, `tutorial-shell-service-wired-into-init`: the assembled
+`/etc/supervisord.conf` contains a `[program:sshd]` block.
 
-- `tutorial-shell-composition` — `rg` and `sshd` are on PATH *together*. Neither candy's own plan
-  can prove this: ripgrep's checks pass in any image containing ripgrep, sshd's in any image
-  containing sshd. Only the composing box can prove they arrived in one image.
-- `tutorial-shell-search-works` — the composed tool really searches on this base, rather than
-  merely being present.
+That is the only claim composition itself produces. `supervisord`'s plan proves the init is
+installed; `sshd`'s proves the daemon is installed; **neither proves sshd became a supervisord
+program**. Drop either candy and the check fails — regenerating without `sshd` emits no
+`supervisor/` fragment directory at all.
 
-The `tutorial-shell-dev` bed adds the two claims only a live deployment can settle: the sshd
-service came up under supervisord, and the tool is usable inside the running pod.
+**Co-residence is NOT checked here, on purpose.** Every composed candy's plan runs against *this*
+image, so ripgrep's probes and sshd's probes both passing already proves both landed. A box-level
+`command -v rg && command -v sshd` would duplicate them (R3), and it would pass for the wrong
+reason — testing the candies rather than the composition. The same applies to the bed, which
+carries no `plan:` of its own.
+
+This distinction is the reason the box exists in its current shape, and it is worth preserving: a
+teaching example that restates a candy's own probe in the composing box teaches the opposite of
+the rule the site's own "the spec is the test" page states.
 
 ## Editing rule — the site quotes this file verbatim
 
@@ -85,7 +91,7 @@ consequences:
 
 ## When to Use This Skill
 
-**MUST be invoked** when editing the `tutorial-shell` box, the `tutorial-shell-dev` bed, or any
+**MUST be invoked** when editing the `tutorial-shell` box, the `check-tutorial-shell` bed, or any
 opencharly.ai page that quotes them.
 
 ## Related
