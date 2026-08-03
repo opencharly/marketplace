@@ -38,9 +38,14 @@ still cannot read it. Both escapes are closed by design:
 Cloning the published repo is the schema-legal path, and it tests the more useful thing: the
 exact source Cloudflare builds.
 
-**Ordering consequence.** The candy builds against the docs repo's `main`, so documentation
-content must be merged there before this box — and the `check-docs` bed above it — can go green.
-Set `DOCS_REF` to build a different ref.
+**Ordering consequence.** The candy fetches an IMMUTABLE COMMIT, never a branch, so `DOCS_REF`
+must be re-pinned to each new docs merge before this box — and the `check-docs` bed above it —
+prove the new content. `task docs:pin` fails if it drifts from the `docs` gitlink.
+
+A branch name here is a correctness bug, not a convenience: `var:` values are emitted as `ENV`
+above the steps, so with `main` the clone layer's cache key never moves and the bed silently
+rebuilds whatever commit that layer first captured. That shipped once, and four consecutive PASS
+runs proved stale content before it was caught.
 
 | Var | Default |
 |---|---|
@@ -90,7 +95,9 @@ The generator's own cross-reference integrity gate (an unresolvable
 
 | Symptom | Cause |
 |---|---|
-| clone fails with "Remote branch main not found" | docs content not merged to the docs repo's `main` yet |
+| `docs-site-pinned-commit` FAILS | the clone layer is stale, or `DOCS_REF` was re-pinned without rebuilding |
+| `task docs:pin` fails | `DOCS_REF` (or the check's literal sha) drifted from the `docs` gitlink |
+| fetch fails with "couldn't find remote ref" | `DOCS_REF` names a commit that is not on the docs repo's `main` |
 | `npm ci` fails on a lockfile mismatch | `package.json` and `package-lock.json` disagree — regenerate the lockfile in the docs repo |
 | a shape check fails but `index.html` exists | the generator emitted a different tree layout; re-run `task docs:sync` and check the diff |
 
