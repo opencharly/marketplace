@@ -98,7 +98,7 @@ The generator's own cross-reference integrity gate (an unresolvable
 | `docs-site-pinned-commit` FAILS | the clone layer is stale, or `DOCS_REF` was re-pinned without rebuilding |
 | `task docs:pin` fails | `DOCS_REF` (or the check's literal sha) drifted from the `docs` gitlink |
 | fetch fails `upload-pack: not our ref <sha>` | `DOCS_REF` names a commit not reachable from ANY ref in the docs repo — never pushed, or garbage-collected |
-| fetch fails `couldn't find remote ref <name>` | `DOCS_REF` holds a ref NAME rather than a sha, which the pinned-commit contract forbids |
+| fetch fails `couldn't find remote ref <x>` | `DOCS_REF` is not a FULL 40-hex sha — either a ref name (which the pinned-commit contract forbids) or an abbreviated sha, which `git fetch` rejects even when the commit exists |
 | `npm ci` fails on a lockfile mismatch | `package.json` and `package-lock.json` disagree — regenerate the lockfile in the docs repo |
 | a shape check fails but `index.html` exists | the generator emitted a different tree layout; re-run `task docs:sync` and check the diff |
 
