@@ -253,6 +253,46 @@ repo want this?* Yes → committed skill, now. Only you → memory. (Skills also
 survive context compaction — conversation context does not — which is the same
 reason insights can't live only in the transcript.)
 
+## The replacement claim carries the removal's burden of proof
+
+When a doc/skill/comment is found false, the fix is TWO claims, not one: the deletion, and
+whatever is written in its place. Both need evidence. The failure mode is applying rigor to the
+deletion and a plausible guess to the successor — the false claim is gone, a new one ships, and
+the sweep that would have caught it already passed.
+
+This is recorded because it happened four times in one cutover, across three repos. Two of the four
+were corrections to a stale `directory:` claim (charly, sdk); the other two were corrections to the
+cross-reference rewriter's own documentation (plugins). What they share is not the subject but the
+mistake:
+
+| Replacement written | Why it was also false |
+|---|---|
+| "inline entries have no source directory of their own" | `ScanInlineCandy` is passed `rootDir`; an inline candy's SourceDir always equals its declaring file's dir |
+| "the branch fires for a remote (`@github`) or submodule-vendored candy" | `CandyCopySource` early-returns on `GetRemote()` as its FIRST statement — a remote candy can never reach that branch |
+| "the 11 frontmatter refs are published as plain subtitle text" | `firstLine` truncates the description to its first sentence; all 11 sit past the cut and are published nowhere |
+| "3665 references … every reference is rewritten" | 3654 are rewritten; the count was taken whole-file and described as body-scope |
+
+Every one shares a root cause: **measuring or reasoning at one scope, then describing another.**
+
+Practical rules:
+
+- **Trace the successor before writing it.** A claim about which branch runs needs the early
+  returns above it read; a claim about what is published needs the emitter read, not the producer.
+- **State a partial enumeration as partial.** "an inline candy … and a `discover:` entry can point
+  elsewhere" is honest; an implied-complete list you cannot defend is not.
+- **Re-derive figures at the scope the sentence names**, with the code's own matching rules where
+  one exists — not an approximation of them.
+- **A correction is a new claim, not a cleanup**, and gets the same gate the original edit would.
+- **Sweep the claim, not the sentence — and defeat line wrapping.** A claim-keyed `git grep` of the
+  phrase *as written* silently misses a copy whose text wraps mid-phrase: `… four consecutive PASS`
+  / `runs proved …` matches neither `"four consecutive PASS runs"` nor a line-scoped regex. Grep the
+  shortest distinctive fragment that cannot straddle a line break, or normalize first
+  (`git grep -h '' -- '*.md' | tr '\n' ' '`). This bit twice in one PR: once as string-keyed vs
+  claim-keyed (a table row restating corrected prose), once as a wrapped sentence reported clean.
+- **Count the surfaces before declaring a sweep done.** The same claim routinely lives in a skill, a
+  CHANGELOG, a candy comment and a PR body. Fixing the history and leaving the guidance is the worst
+  outcome: a skill is what the next session loads, a CHANGELOG is what nobody reads for advice.
+
 ## Skill↔code source-map sync audit
 
 Many skills carry a *source map* of the Go code — `Source:` frontmatter, file-listing
