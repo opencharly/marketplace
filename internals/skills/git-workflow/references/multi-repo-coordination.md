@@ -1,0 +1,279 @@
+## B2 — multi-repo / multi-worktree coordination
+
+One logical change spanning several repos uses the **same `feat/<slug>` in each**
+(main, `sdk`, `plugins`, `box/<distro>`), so the branches correlate. R10 runs
+against the **assembled superproject** (submodule pointers at the `feat/` commits)
+— the whole change is verified before any PR is opened. Then land in **dependency
+order**, each repo as its OWN two-step PR (author opens; fresh `pr-validator`
+merges + tags):
+
+0. the **sdk contract repo** (`github.com/opencharly/sdk`, submodule `sdk/`) — PR →
+   evaluator merges → tag `v0.<YYYYDDD>.<HHMM leading-zeros-stripped>` (its
+   Go-module tag scheme; the superproject `vYYYY.DDD.HHMM` form is not a valid Go
+   module version — e.g. superproject `v2026.185.0751` ⇄ sdk `v0.2026185.751`) —
+   whenever the cutover touched sdk content;
+1. each `box/<distro>` submodule — PR → evaluator merges + tags (it has `charly.yml`);
+2. `plugins` — PR → evaluator merges **+ tags `v<YYYY.DDD.HHMM>`** (no `charly.yml`,
+   so no schema `version:` bump — but the tag marks the merge, same as every repo);
+3. the superproject — stage the now-MERGED submodule pointers (a touched sdk: the
+   `sdk` gitlink bump PLUS the `charly/go.mod` require version — in-tree resolution
+   rides `replace github.com/opencharly/sdk => ../sdk`, so the require version
+   matters only for out-of-tree consumers, but it is staged here) → PR → evaluator
+   merges + tags `main`.
+
+A producer PR must be **merged** (not merely green) before the consumer's pointer
+bump — the superproject pointer must reference a commit that is on the submodule's
+real `main`, which only the merge produces.
+
+**A valid base is an ASSEMBLED PAIR, not a lone submodule advance.** A new consumer
+cutover branches from a base that is valid only once BOTH halves have merged: an `sdk`
+`main` advance is a valid consumer base ONLY after its superproject adaptation (the
+gitlink bump + any `charly/go.mod` require) has ALSO merged. Branch a consumer off a bare
+`sdk` main advance whose super side is still open and you pin a superproject state no
+`main` records — the consumer's R10 builds against a half-assembled base and its pointer
+bump references a commit `main` has never seen. Wait for the pair before treating a
+producer advance as a base.
+
+**Submodule-pointer-bump safety (step 3) — bump AFTER the switch, then stage AND
+verify.** A `git switch` / `git checkout` re-materializes each submodule at the
+gitlink the *target branch* records, silently discarding an **unstaged**
+working-tree pointer bump (it happens even with `submodule.recurse` unset — an
+unstaged gitlink is not carried across the switch). So bumping the pointer *before*
+`git switch -c feat/<slug>` — or merely `git -C <sub> checkout <new>` without
+`git add` — drops it from the commit, and a `git add <sub>; git commit` afterward
+stages nothing because the working tree was reset to the old pointer. Always, in
+order: (a) create/switch to the landing branch FIRST; (b) THEN `git -C <sub>
+checkout <new-commit>` + `git add <sub>`; (c) VERIFY it is staged — `git diff
+--cached --submodule=short <sub>` must print `<old>...<new>`; (d) after committing,
+confirm the commit records it — `git show --stat` lists `<sub>` and `git ls-tree
+HEAD <sub>` shows `<new>`. A pointer-bump commit whose `--stat` omits the submodule
+is the silent-drop failure.
+
+**Attribution of the pointer-bump commit — derived from what it points at.** When
+the bumped submodule commit is itself all-documentation (a skill / `*.md` edit),
+the superproject pointer-bump commit IS the Documentation-only change class and
+lands at `documentation reviewed`: the fresh validator inspects the submodule's
+own `old..new` diff to certify it. A bump that integrates submodule CODE is a
+code class and takes a runtime tier, the docs riding along. So a docs-only skill
+cutover lands `plugins` (the `*.md`) at `documentation reviewed`, then the
+superproject pointer bump at `documentation reviewed` too — both halves honest.
+
+**For the full multi-worktree end-to-end — the doc-tier `git -C` literal-path
+rule, and the mandatory post-landing worktree refresh — see B7.**
+
+### Per-module verification — verify by MODULE CLASS, and prove the fix is in the BINARY
+
+Two mechanics that bite every cross-repo landing:
+
+**Verify each Go module by its CLASS, always with `GOWORK=off`** (the repo is a Go
+workspace, so module-level checks must disable it or they pull the workspace's transitive
+requires):
+
+- **`sdk` is a STANDALONE-CONSUMED contract module** (out-of-tree consumers import it
+  directly), so it earns the full standalone battery: `GOWORK=off go mod tidy && go mod
+  verify && go build ./... && go test ./...`. It MUST tidy and build cleanly on its own.
+- **`charly` is a WORKSPACE MEMBER**, not a standalone module: verify it with `GOWORK=off
+  go mod verify` + the WORKSPACE build. A full standalone `go mod tidy` on `charly`
+  POLLUTES its `go.mod` with `candy/plugin-*` pseudo-requires (they resolve through the
+  workspace, not the module graph), and a standalone `go build` that fails ONLY on
+  `candy/plugin-*` imports is an ARCHITECTURAL fact (the plugins are workspace siblings),
+  never a defect to "fix" by hand-editing `go.mod`.
+- **`plugins` candies tidy PER-MODULE** — each candy is its own module; tidy/verify them
+  individually, never as one tree.
+
+**Prove a fix is in the BUILT BINARY by a content marker, NOT by the version stamp.**
+`pkg/arch/calver.sh` derives the CalVer from the HEAD commit's UTC time (`git log -1
+--format=%cd`), so the stamp identifies the SOURCE COMMIT, never the build moment — a
+`task build:binary` on a DIRTY working tree reports the IDENTICAL version as the clean
+commit under it. So `charly version` matching the expected CalVer does NOT prove your
+uncommitted fix compiled in. Prove fix-presence by a content marker instead: `strings
+bin/charly | grep '<a string unique to the fix>'` (a new error message, flag name, or
+symbol). The stamp answers "which commit"; the `strings` marker answers "is my change
+actually in this binary".
+
+## B3 — agent teams on ONE shared tree (no worktree)
+
+When an agent team parallelizes work, **the check bed is the unit of isolation, not
+a worktree**. Each teammate owns a disjoint check bed's SOURCE files; distinct beds
+get distinct `charly-<bed>` container/VM/domain names, and a bed run tags every
+fixture IMAGE it builds with a per-run `<bed-root>-<runCalver>` tag (#75) so two beds
+building the SAME fixture image name never race the store-global tag namespace; the
+lead assigns each disjoint host ports too (the loader does NOT check ports — an
+overlap fails the second bed at deploy),
+and a bed pins an image → layers → files, so bed-ownership already isolates the
+source files each teammate edits. **Teammates edit; a PERSISTENT owner runs every
+full `charly check run <bed>`** as a `run_in_background` task — the lead's
+persistent session, a background agent, or (interactive tmux) a split-pane
+teammate; an in-process teammate CANNOT (its bg dies on yield). Teammates share ONE
+working tree on ONE `feat/<slug>` branch:
+
+- Teammates edit their bed-scoped files + run short foreground checks (`charly check
+  box`) — never the full `charly check run`, and **never commit, push, or open a
+  PR**. The lead runs the full beds and, on R10 PASS, opens the SINGLE PR for the
+  cutover (B1 step 1); a FRESH `pr-validator` (never a teammate that authored code)
+  merges it.
+- Reserve a real `git worktree` (per `isolation: worktree`) only for genuine
+  **same-file** concurrency that bed-ownership does not separate.
+- **Schedule longest-pole-first.** `charly check run` has no bed-level concurrency
+  and no `charly` cap — the limit is host CPU/RAM/podman. Run ALL full beds as
+  concurrent background tasks; order by expected DURATION, not bed count: launch the
+  slow VM/desktop beds first and overlap the cheap pod beds, so wall-clock ≈ the
+  slowest single bed, not the sum.
+- **Freeze `charly/*.go` during the bed phase.** `charly`'s stale-binary freshness
+  guard gates every heavy verb the instant any `charly/*.go` is newer than the
+  INVOKED binary, so a teammate editing Go mid-bed-run aborts every other agent's
+  next build/deploy/check. For a SHARED-CORE (Go) cutover the lead lands the core
+  first, runs ONE `task build:binary` in the shared checkout, then fans out beds
+  with Go frozen — the bed set must actually invoke `./bin/charly` (explicitly, or
+  with the shared tree's `bin/` prepended onto `$PATH`), since a bed shelling to
+  bare `charly` otherwise resolves whatever the HOST has installed, never the
+  freshly-rebuilt shared binary; a BED-LOCAL (YAML/candy/skills) cutover has no
+  shared binary and needs no barrier.
+  **This freeze applies ONLY to the SHARED-TREE model** (one checkout, one shared
+  binary) — a MULTI-WORKTREE team needs no such barrier, since each worktree carries
+  its own `bin/charly` and its own freshness-guard scope; see
+  `/charly-internals:agents` "The charly binary in a multi-teammate /
+  multi-worktree setup" for the full host-vs-worktree-binary discipline — never
+  conflate the two models.
+
+## B6 — cross-repo landing when a change is referenced via `@github`
+
+The resolver (`EnsureRepoDownloaded`) fetches a producer repo from the REMOTE at
+the pinned ref, so a producer change on a local `feat/` branch — or an OPEN,
+unmerged PR — is invisible to a consumer's R10. **The producer PR must be MERGED
+first.** Staged landing:
+
+1. Develop producer (A) + consumer (B) on the same `feat/<slug>`.
+2. **Land the producer FIRST:** A's own R10 PASS → open A's PR → fresh
+   `pr-validator` validates, **merges, and tags A `v<CalVer_A>`** — now an
+   immutable, fetchable remote tag on A's real `main`.
+3. **Repoint the consumer:** `charly box reconcile` rewrites B's `@github.../A:...`
+   pins to `v<CalVer_A>` (see `/charly-build:reconcile`).
+4. **Authoritative consumer R10 against the real tag:** B's R10 now fetches A from
+   the pushed `v<CalVer_A>` — verified against exactly what shipped.
+5. **Land the consumer:** open B's PR → fresh `pr-validator` validates, merges, tags.
+6. **New candy:** a new candy has no standalone R10 — its gate is the consuming
+   image's build. A lands a **provisional** `v<CalVer_A>` (layer + `go test` /
+   `charly box generate` smoke); step 4 (B's image R10 against that tag) is the real
+   gate. On failure, fix A, land a **new** tag (immutable + accumulate — never move
+   the old one), re-reconcile, re-run step 4.
+
+Each repo gets ONE R10 against ITS final code; repos land producer→consumer.
+Multi-level chains (A→B→C) recurse the same way.
+
+## B7 — Multi-worktree landing + refresh (the canonical end-to-end)
+
+When this project is driven from multiple git worktrees sharing one `.git`, only
+ONE worktree can have `main` checked out at a time. Every "land + update all
+worktrees" follows this EXACT ordered sequence. It composes B1 (branch loop), B2
+(per-repo order + pointer-bump safety), B4 (sync/prune).
+
+**0. Pre-flight (worktree safety).** `git worktree list` → note which worktree
+holds `main`. Pin ONE worktree for the whole edit→commit→push sequence; drive every
+step with a **literal absolute path** `git -C /abs/path …`. NEVER a leading
+`cd`+`\`-continued chain (it scopes every later command into the submodule) and
+NEVER a shell variable for a path — **shell variables do NOT persist between Bash
+tool calls**, so a `WT=…` set in an earlier call is EMPTY later and `git -C
+"$WT/plugins"` silently becomes `git -C /plugins` (this was a real failure). Verify:
+`git -C /abs rev-parse --show-toplevel` == the path you edited AND `git -C /abs
+status --short` lists your edits.
+
+**1. Sync-before-start.** `git fetch origin --prune --tags`; ff local `main` to
+`origin/main` (B4).
+
+**2. Open the PRs in dependency order, same `feat/<slug>` in every repo** (sdk when
+touched → box submodules → plugins → superproject). Per-repo mechanics = B2 + B1
+step 1; pointer-bump safety = B2 step 3.
+Two proven additions:
+  - **plugins docs commit at `documentation reviewed`: `git -C <LITERAL-abs-plugins>
+    commit …`.** The literal path keeps repository selection explicit and lets
+    the fresh validator inspect the plugins diff independently. Do NOT use a
+    shell variable that may be unset or an in-command directory change.
+  - **box/<distro> re-stamp** (schema-HEAD bump): edit on the submodule's own feat
+    branch; **gate = `charly box validate` standalone** (a version-stamp change has
+    no build behavior — building proves nothing); commit, open PR, evaluator merges +
+    tags.
+
+**3. Land `main` via the PR — NEVER `git push origin main` (blocked) and NEVER `git
+switch main` in another worktree** (git fatals "already used by worktree"). The
+fresh `pr-validator` performs the server-side `gh pr merge --squash` (it advances
+`origin/main` remotely); then advance the LOCAL `main` ref where it lives:
+`git -C <main-wt> merge --ff-only origin/main`. A local `main` now only ever
+fast-forwards to what the evaluator merged remotely.
+
+**4. Tags: annotated only** (`git tag -a v<…> -m "<desc>" <merged-HEAD>`), applied
+by the evaluator on the merged `main` HEAD and pushed as `refs/tags/…` (allowed by
+the pre-push-gate; the user token triggers `release-packages.yml`). Verify `git
+cat-file -t <tag>` == `tag` AND `git ls-remote --tags origin <tag>` is non-empty.
+
+**5. Reconcile (when box submodules were re-stamped).** Bump the superproject
+GITLINKS `+1` to the re-stamped box mains (a separate superproject PR; B2 step-3
+safety) — do **NOT** bump the `@github` build pins: they lag deliberately, `charly
+box reconcile` reports "already reconciled", and bumping them pulls multi-cutover
+producer drift (a separate version-adoption cutover, NOT reconciliation).
+
+**6. Refresh EVERY worktree — PART of landing, NEVER a follow-up (R2).** For each
+worktree: the one on `main` → `git -C <wt> merge --ff-only origin/main`; each other
+→ `git -C <wt> checkout --detach origin/main`; THEN refresh only already-initialized
+submodules with `git -C <wt> submodule update --recursive` (no `--init`). Initialize
+only the paths the next task needs: a root R10 worktree needs `sdk` and `pkg/arch`, so
+use `git -C <wt> submodule update --init --recursive sdk pkg/arch`; box-submodule work
+initializes its own declared path. Never blanket-initialize every submodule merely to
+refresh a worktree: it creates unnecessary per-worktree clone state. The Skill tool
+serves skills from the MAIN worktree — a stale main worktree silently serves STALE SKILLS
+to sessions, so refreshing it is mandatory. (A ` M <sub>` in a worktree used only for
+the ff-merge is this drift, not lost work.)
+
+**A disposable `localpkg` bed builds from the submodule's ON-DISK WORKING-TREE
+checkout, NOT from the committed gitlink alone.** After a CLEAN gitlink
+auto-merge (no conflict), `git ls-tree HEAD <sub>` can already show the correct
+new pin while the submodule's on-disk `HEAD` is still the OLD commit — a
+gitlink merge does not itself check out the new submodule content; that needs
+its own `git -C <wt> submodule update --checkout <path>` (or `--recursive`
+over the initialized set), same as any other post-merge refresh in this step.
+Skipping it means the bed silently builds STALE source even though the
+committed pointer is correct. Signature: the localpkg build derives its repo
+root as `/tmp` (a symptom of resolving the wrong tree) and bakes a stale
+`pkgver` into the package it builds. (RCA'd 2026-07-20: `pkg/arch`
+`96ce37c`-stale on disk vs `5734a83` actually committed.)
+
+**A derived `pkgver` left dirty in `pkg/arch/PKGBUILD` persists ACROSS the
+session, per worktree.** `pkg/arch/calver.sh` stamps `PKGBUILD` with a
+derived `pkgver` at `makepkg` time, and that edit is a real working-tree
+change — it does not self-revert between bed runs. Discard it (`git -C <wt>
+checkout -- pkg/arch/PKGBUILD`, or the tree's standard clean step) before
+EVERY bed re-gate, in EVERY worktree that ran a `localpkg`/package build — not
+only the main checkout — or the next run's `git status` reads dirty for a
+reason unrelated to your actual edits.
+
+**Landing gotchas (each cost real time):** `git merge-base --is-ancestor A B` ERRORS if B's object isn't
+fetched (common for a sibling-worktree submodule) → `git fetch` first; cross-check
+`git ls-tree origin/main <sub>` before concluding "DIVERGED". A `git grep --
+<submodule-path>` from the superproject is a FALSE ZERO (git grep does not cross a
+gitlink) → `git -C <sub> grep` for the R5 sweep. The authoritative feat-branch head
+SHA comes from `git ls-remote origin refs/heads/<branch>` — `gh pr view --json
+headRefOid` LAGS a fresh push and will post the status on a stale SHA. Deriving the
+merge-time CalVer from a COMMIT's recorded date (`git show --date=format:'<fmt>'
+<sha>`, `git log -1 --format=%cd`) uses that commit's own author/committer TZ
+offset, not UTC, and can mis-stamp the tag/changelog by hours — `$VER` always comes
+from the LIVE clock at the moment of merge (`date -u +%Y.%j.%H%M`, per "CalVer"
+below), never from a commit's stored timestamp. A metric or grep verification
+command (a LOC count, a `git grep` sweep, a file-count claim) run from an
+ambient, `cd`-inherited working directory silently measures the WRONG tree the
+moment more than one worktree is in play — anchor every such command to an
+explicit repo root (`git -C /abs/path grep …`, or a `git rev-parse
+--show-toplevel` cross-check first), never a bare relative command trusting
+the shell's current directory. A stronger, WRITE-side form of the same
+footgun: a MUTATING command (anything that writes files or runs `git
+submodule update` as a side effect — `task cue:gen` is the canonical
+offender) run against a stale, ambient cwd doesn't just misreport, it
+MUTATES the wrong tree. Live incident: a fresh evaluator ran `task cue:gen`
+with a persisted shell cwd that had drifted to the main session worktree —
+the task's own `git submodule update` chain rewound 5 submodule checkouts +
+the `pkg/arch` gitlink there before the mistake was caught (fully restored,
+disclosed). So every mutating task/command invocation in an isolated-worktree
+workflow (a validator run, a teammate's branch work, a spike) carries an
+explicit `cd <worktree> &&` anchor IN THE SAME compound command — never a
+bare `task cue:gen` (or any command with submodule/file-write side effects)
+trusting a cwd set by an earlier, unrelated step.
+
