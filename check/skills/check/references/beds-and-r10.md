@@ -1,0 +1,530 @@
+# Beds and R10 — disposable acceptance gate reference
+
+Full detail for `/charly-check:check`. Sole-owner content: the R10 gate-by-change-class matrix and the flag-discipline catalog (every other skill points here).
+
+## Disposable test-bed deploys + `charly check run <bed>` — config-driven R10 acceptance
+
+The disposable R10 test beds are **`disposable: true` deploys in the project
+`charly.yml`** — a check bed is just a deploy marked `disposable: true`, there is
+no separate `check:` block. A deploy is a top-level entity resolved by name, so
+every deploy verb resolves a bed by name; `charly check run <bed>` drives the
+full R10 sequence on it:
+
+This is the **ecosystem-wide** rule: every repo-shipped disposable test bed —
+the main repo's beds AND every `box/<distro>` submodule's beds (the arch /
+cachyos / debian / ubuntu / fedora bootstrap-VM and pacstrap/debootstrap beds) —
+is a `disposable: true` deploy, a top-level entry in that repo's `charly.yml`. A
+test bed is always `disposable: true`; the lone non-disposable deploy a repo
+ships is an operator profile, not a test bed (the cachyos submodule's
+`charly-cachyos` workstation profile); operator deployments otherwise live in the
+per-host `~/.config/charly/charly.yml`. `disposable: true` is the sole
+authorization for the unattended destroy + rebuild on any of them.
+
+A bed is a **candybox** (the project rulebook "Candyboxing"): a disposable, secured
+container / VM stocked with the full toolset — the entire `charly check` probe surface
+(cdp/wl/dbus/vnc/mcp/adb/appium/kube), nested podman, real package managers, the
+whole layer/image library — so the AI can build, deploy, and prove the *real*
+composition inside it (the substance of RDD), and `disposable: true` makes
+tearing it down and rebuilding fearless. The box is restricted at the boundary,
+never by stripping the candy.
+
+1. `charly box build <image> --dev-local-pkg` — build the test artifact (pod beds only). The check-bed runner sets `--dev-local-pkg` automatically, so a bed bakes the **in-development** charly toolchain (any `localpkg:` candy built from local source) — never a stale published release. A bed thus always tests the code under development; a production box build downloads the released package. See `/charly-tools:charly` "Check-vs-production binary source" + `/charly-internals:install-plan` "Check-vs-production charly toolchain".
+2. `charly check box <image>` — box-section + baked candy-section probes.
+3. `charly bundle add <bed> <ref>` — apply the bed (or `charly vm create` for vm beds).
+4. (pod beds) `charly config <bed>` + `charly start <bed>`.
+5. `charly check live <bed>` — full three-section live probe pass.
+6. `charly update <bed>` — fresh-rebuild re-verification (R10 acceptance gate).
+7. `charly remove <bed>` (or `charly vm destroy`) — leave the host clean.
+
+**The bed tests the latest local candies — not the pinned remote.** Step 1 also
+points a bed's parent-repo `@github.com/<org>/<parent>/candy/...:<tag>` candy refs
+at the local superproject working tree — the candy-ref analogue of the auto
+`--dev-local-pkg` toolchain build above. The check-bed setup op auto-appends a
+`CHARLY_REPO_OVERRIDE` for the bed project's own superproject (detected via `git
+rev-parse --show-superproject-working-tree`; the ref's `:vTAG` is ignored, so the
+bed always builds the dev's current tree). So a `box/<distro>` submodule bed —
+which pulls main's shared candies via `@github` refs — verifies the in-development
+candy tree; without this it would build the stale pinned remote candy and serve no
+purpose. An explicit operator `CHARLY_REPO_OVERRIDE` entry for the same repo still
+wins (it is placed first). A bed whose project is its own root needs no override —
+its candies already resolve from the local tree. Source:
+`selfSuperprojectOverridePair` + `mergeRepoOverrides` (`charly/refs.go`, kept
+core), applied by the check-bed setup op in `candy/plugin-check/bed_run.go` —
+which drives the host `check-bed` session seam (`charly/host_build_check_bed.go`);
+the underlying `CHARLY_REPO_OVERRIDE` is the Go-`replace`-style "verify before you
+push" mechanism.
+
+**Exclusive-resource preemption wraps the sequence.** When a bed declares
+`requires_exclusive: [token...]` (e.g. a GPU-passthrough bed needing the one
+physical card), the check-bed runner acquires a resource-arbitration lease before step 1
+and `defer`-releases it after teardown: any running `preemptible` holder of the
+token (e.g. the operator's GPU workstation VM) is gracefully stopped — and the
+arbiter waits until it actually powers off so the device is freed — then restored
+when the bed finishes (even on failure, for `restore: always`). A holder is never
+left stopped: `charly preempt status` / `charly preempt restore` recover a crashed run.
+Triggering this — running a `requires_exclusive:` bed that stops the operator's
+`preemptible` GPU holder — is standing-authorized (no per-run confirmation): it is
+reversible by design (graceful stop + guaranteed restore), not a destroy.
+See `/charly-internals:disposable` "The resource-arbitration axis" + `/charly-core:deploy`.
+
+**A GPU bed runs on a passthrough host where host `nvidia-smi` fails — that is the
+ready state, not a blocker.** A `requires_exclusive: [nvidia-gpu]` bed needs the card
+bound to the `vfio-pci` host driver so the guest VM can claim it via VFIO; host-side
+`nvidia-smi` / `rocm-smi` failing is therefore expected and does not mean the bed
+can't run — the GPU comes alive inside the guest. Gauge readiness with `charly vm gpu
+status` (or `charly vm gpu list` / `lspci -nnk` → `Kernel driver in use: vfio-pci`),
+never host `nvidia-smi`. See `/charly-vm:vm` "GPU passthrough (VFIO)".
+
+A `requires_shared: [nvidia-gpu]` bed (a GPU CDI pod) makes the arbiter flip the
+whole IOMMU group vfio→nvidia at deploy and back nvidia→vfio at teardown — the
+group-aware, `modprobe -r`-gated switch (`charly vm gpu mode`/`status`/`recover`).
+Never manually sysfs-`unbind` a busy nvidia to "free" a card between bed runs:
+that hangs the kernel `device_lock` (reboot-only). If a card shows wedged/poisoned
+in `charly vm gpu status`, a host reboot is required; the arbiter refuses a poisoned
+token until then. Full model + RCA: `/charly-vm:vm` "GPU driver-mode switch" +
+`/charly-internals:disposable` "resource-arbitration axis".
+
+`charly check run <bed>` runs exactly ONE bed. Flags: `--keep` (don't
+tear down), `--no-rebuild` (skip step 6) — both scope-shrinking, governed by
+"Flag discipline" below. Per-run logs land in
+`.check/<bed>/<calver>/` (per-step `.log` files + `summary.yml`).
+
+**`summary.yml`'s `ok:` does not distinguish a pass from a prereq skip.** A bed charly skips
+for an absent host prereq (exit code **3**) still writes a summary recording success:
+
+```yaml
+bed: check-cachyos-gpu-vm
+steps:
+  - {name: prereq-gpu-skipped, duration_seconds: 0, ok: true}
+total_seconds: 0
+ok: true                     # ← a SKIP, not a pass
+```
+
+So `ok: true` + `total_seconds: 0` + a single `prereq-*-skipped` step IS the skip signature.
+The authoritative discriminator is the **process exit code 3** (charly also prints a
+`SKIPPED — …` line); never count a bed as passed from `summary.yml` alone. `/verify-beds`
+keys on the exit code for exactly this reason. And a wrapper script's own exit code is
+not the bed verdict — a script that pipes or post-processes `charly check run` must
+capture `${PIPESTATUS[0]}` (the charly exit) and corroborate the on-disk `summary.yml`;
+a notification-level exit 0 can mask a charly exit 1.
+
+To run a
+whole roster, fan the beds out concurrently, by owner: the short beds via the
+`/verify-beds` workflow (one `charly check run <bed>` process per agent), and every
+long bed — a `vm`/`android` substrate, or one whose last run took ≥600s — as its own
+`run_in_background` task owned by the persistent session, because an ephemeral
+sub-agent cannot own a bed that outlives its turn. `/verify-beds` defers the long beds
+(returning `deferredLongBeds[]`) and refuses host-local ones rather than running them;
+its `gateComplete: false` means the roster is partial. Either way wall-clock collapses
+to ≈ the slowest single bed (see "Approximate wall-clock" below).
+
+### Flag discipline — the `iterate:`/bed config IS the test specification
+
+The `iterate:` block / the deploy config in the project's `charly.yml` IS the
+test spec; the operator authorizes overrides, not Claude. Passing any
+scope-shrinking flag to `charly check run` (or `charly check live`) without the user
+explicitly naming that flag in the same conversation turn is the same fraud
+class as dry-run-as-R10 (the project rulebook R10 flag-override clause). The catalog:
+`--plateau-iteration`, `--max-scenario`, `--tag`, `--skip-rebuild`,
+`--on-pod` / `--on-vm` / `--on-host`, `--keep-repo`, `--dry-run`, and the bed
+flags `--no-rebuild` (skips the R10 fresh-rebuild gate) and `--keep`.
+(Fanning the full roster out concurrently — the short beds via `/verify-beds`,
+one `charly check run <bed>` per agent, and the long beds as persistent-session
+`run_in_background` tasks — is scope-expanding, not shrinking: it is in-spec
+without authorization when "R10 gate by change class" mandates the full
+fan-out for a cross-cutting change, and needs authorization only as a
+substitute for the class-mandated gate.) Internal-voice triggers — "tractable wall-clock", "for the
+canary", "to fit session bounds", "shorten this run", "skip the heavy leg",
+"faster iteration cycle" — are confessions, not defences. The `iterate:`
+block's `plateau_iteration` and the AI's `progress_no_improvement_timeout` together
+define the AI's recovery budget per phase; narrow neither without explicit
+authorization. Speed levers that do not shrink scope (e.g. `--podman-jobs`, `--jobs`) need
+no authorization — the lever catalog is `/charly-internals:agents` "Speed
+levers".
+
+**Run retention (`defaults.keep_check_runs`).** After `charly check run` (any path —
+bed / `iterate:` entity), `.check/<name>/` is trimmed to the newest N run
+artifacts (CalVer run dirs, `runs/<id>/` dirs, `result-<calver>.yml`) so harness
+output doesn't accumulate unbounded. `NOTES.md` (the durable Syncthing-replicated
+memory) is always preserved. Set `defaults.keep_check_runs` in `charly.yml`
+(`0`/absent disables); apply on demand with `charly clean --check`. See
+`/charly-core:clean`.
+
+### The ecosystem's disposable test-bed deploys
+
+| Bed | Target | Ref | Surface |
+|---|---|---|---|
+| `check-sway-browser-vnc-pod` | pod | `image: sway-browser-vnc` | cdp/wl/vnc/dbus/mcp/record + pod-side file/service/port/process/http |
+| `check-k3s-vm` | vm | `from: k3s-vm` | kube (all 13 methods) + guest-side file/service/port/process, http via port-forward, the external vm deploy end-to-end |
+| `check-pod` | pod | `image: check-pod` | combined mechanism bed: `candy:` image build (a `candy:` carrying `base:`/`from:`) + `candy:` layer composition order + `kind: pod` runtime (nc :18794 + supervisord) + every DeployTarget rendering path |
+| `check-local` | local | `from: check-local-app` | `kind: local` layer apply via ShellExecutor |
+| `check-jupyter-pod` | pod | `image: jupyter` | jupyter-mcp regression coverage |
+| `check-jupyter-ml-pod` | pod | `image: jupyter-ml` | jupyter-ml spacy/quarto + GPU MCP probes |
+| `check-versa-pod` | pod | `image: versa` | versa OSM analytics + vector-tile + marimo MCP |
+| `check-android-emulator-pod` | pod | `image: android-emulator` | Android 14 emulator (/dev/kvm) + adb/appium |
+| `check-openclaw-pod` | pod | `image: openclaw` | minimal headless gateway + dbus/service/port and exact installed CLI version |
+| `check-openclaw-full-pod` | pod | `image: openclaw-full` | maximal headless gateway + AI CLI and media/database tool stack |
+| `check-openclaw-desktop-pod` | pod | `image: openclaw-desktop` | combined streamed desktop + gateway + AI CLI + ollama + nested Charly toolchain |
+| `check-charly-vm` | vm | `from: charly-vm` | `charly` toolchain localpkg deploy witness (opencharly-git pacman install + dep auto-resolve) on the cloud VM |
+
+Bed homes: the main repo's `charly.yml` owns `check-k3s-vm`, `check-local`, and
+`check-charly-vm`; the pod beds above are top-level deploys in the `box/<distro>`
+submodules' `charly.yml` (`check-pod`, `check-jupyter-pod`, `check-jupyter-ml-pod`,
+`check-sway-browser-vnc-pod` in `box/fedora`; `check-versa-pod`,
+`check-android-emulator-pod`, `check-openclaw-pod`, `check-openclaw-full-pod`,
+and `check-openclaw-desktop-pod` in `box/cachyos`) and run from that submodule
+(e.g. `charly -C box/fedora check run check-pod`).
+
+Naming: `check-<descriptor>-<kind>`, dropping a redundant suffix when the
+descriptor already equals the kind AND the short form is free (`check-local`,
+`check-pod`). The harness AI-sandbox pod (the `iterate:` block's `sandbox:`
+target) is named
+`check-sandbox`, kept disjoint from these beds. Nothing in the `charly` Go code
+hardcodes that name — it flows from the `iterate.sandbox:` field through
+`ResolveIterateSandbox`, and prompts reference it via the `${TARGET_NAME}`
+substitution token. **The sandbox is an operator-provisioned per-host
+deploy** — the runner restarts-but-never-creates it: provision once with
+`charly bundle add check-sandbox <ref> --disposable` + `charly start
+check-sandbox` (the ref must provide charly + nested podman + the configured
+AI CLI; the per-host overlay never ships with the repo). On a host without
+the entry, `charly check run <bed>` fails fast with exactly that
+remediation. The supporting
+`vm: k3s-vm` + `k8s: vm-k3s-vm` entities live in the project `charly.yml`
+alongside its beds. `disposable: true` is the sole authorization
+for the unattended destroy+rebuild (see `/charly-internals:disposable`). Two
+load-time guards back the beds: `validateCheckBeds` enforces the deploy's substrate
+kind ∈ {pod, vm, local, android}, a resolvable cross-ref, and `disposable: true`;
+`foldCheckBeds` enforces the deploy's name is disjoint from every other deploy.
+Neither checks host ports —
+disjoint ports across beds are the author's responsibility (an overlap fails the
+second bed at deploy via `CheckPortAvailability`).
+
+**Shared-fixture image isolation — a concurrency class beyond ports.**
+`foldCheckBeds` keeps deploy names disjoint and port auto-allocation keeps host ports
+disjoint; a third class — two beds (or two runs of one bed from different worktrees) that
+build the same fixture image — is handled structurally by **per-run fixture image tags**:
+a bed run tags the fixture `<bed-root>-<runCalver>`, so two beds building the same fixture
+image name never share a tag and never race podman's store-global tag namespace. A shared
+unscoped `<fixture>:<tag>` risks a concurrent build/retag/remove from one tree pulling the
+tag out from under another tree's bed mid-run — invisible to a serial roster, surfacing
+only under simultaneity. The per-run tag makes distinct beds collision-free by
+construction.
+
+### Approximate wall-clock (10-CPU 32-GB reference host)
+
+`check-pod` ~110s idle but **842s measured under a concurrent roster** (one build →
+deploy → check → fresh-update → teardown cycle covering all four mechanisms) ·
+`check-local` ~45s · `check-sidecar-pod` ~180–290s · `check-k3s-vm` ~5–7 min ·
+`check-openclaw-full-pod` ~1414s · the heavy feature beds
+(`check-sway-browser-vnc-pod` ~2477s ≈ 41 min incl. image build) longer.
+
+**These are load-dependent, and the idle figures mislead.** A bed's own newest
+`.check/<bed>/<calver>/summary.yml` `total_seconds:` is the only honest number, and it is
+what `/verify-beds` reads to decide whether a bed is too long for a sub-agent to own
+(≥600s ⇒ deferred to the persistent session). Under a 16-way roster, several pod beds cross
+that line even though they finish in ~2 min idle. `charly check run <bed>` runs exactly ONE bed, so a roster run is N
+of them — and running them sequentially would make wall-clock ≈ the sum. To
+collapse that to ≈ the slowest single bed, fan the beds out concurrently — one
+`charly check run <bed>` process per owner: a per-agent process for the short beds
+(`/verify-beds`, an agent team), and a persistent-session `run_in_background` task for
+each long bed, which no sub-agent can own (see `/charly-internals:agents`
+"Speed levers"). The dominant cost is
+the step-1 `charly box build`: a pod bed builds the image once — the "fresh
+`charly update`" R10 step is a `systemctl restart` onto the already-built image, not
+a second build — and same-base beds share cached layers, so pre-warming a shared
+base once makes every sibling bed's build incremental.
+
+**Handling a long-running bed — by mechanism, not by who owns it.** A VM/emulator
+bed's `charly check run` orchestrator runs for minutes-to-tens-of-minutes and the
+libvirt domain / emulator it spawns outlives a single turn. (1) **Launch it as a
+harness-tracked background task** (`run_in_background`) — never foreground (the
+Bash tool's `timeout`, 120s default / 600s max, kills the call mid-`vm-create`,
+orphaning the domain) and
+never a sleep/poll loop (the R4 bandaid). (2) **Let the completion notification
+drive the next step** — the harness re-invokes the launching session when the run
+exits, so the launcher must survive to completion to be notified: the persistent
+main session does; an ephemeral sub-agent (returns synchronously) and an idle
+teammate (torn down on idle) do not, and orphan the bed. Every full `charly check run <bed>`
+is a `run_in_background` task owned by a persistent owner that survives across
+turns to be notified — the main session, a background agent, or (interactive
+tmux) a split-pane teammate; an in-process teammate cannot. Duration-independent;
+the 600s is a Bash foreground cap, irrelevant to a backgrounded bed.
+Teammates/sub-agents do bed-local edits + short foreground checks (`charly check
+image`), never the full run. (3) **Reconnect via durable state** —
+`.check/<bed>/<calver>/summary.yml` + the live domain are the truth: "done" =
+summary.yml present; "alive" = the orchestrator is in the process table; clean up
+an orphan (`running` domain, no live orchestrator) with `charly vm destroy <entity> --domain <bed>`
+(or `charly remove <name>` for a pod) before re-running. **A bed's libvirt domain is keyed by the
+deploy name, `charly-<bed>` (P33), not the shared `kind:vm` entity** — a `vm:` bed `check-charly-vm`
+with `from: charly-vm` runs the domain `charly-check-charly-vm`, so its orphan is torn down with
+`charly vm destroy charly-vm --domain check-charly-vm` (resolve the entity spec, target the per-deploy
+domain); the bare `charly vm destroy charly-vm` targets `charly-charly-vm` — a domain a bed never
+creates — and **fails with `no such VM`**. The check runner's expected-absence pre-clean and teardown
+use `--if-exists`, which is idempotent and still cleans managed metadata. Confirm the intended domain
+identity with `charly vm list`; see `/charly-vm:vm` "`charly vm destroy` — the DEPLOY name keys the
+domain" and `/charly-internals:agents` "The binding rule".
+
+Final target and member teardown are recorded acceptance steps. In particular, a targetless group
+records `cleanup-members`; a failed members-down operation fails the bed rather than leaving cleanup
+to inference from a later host inventory. The group fresh-rebuild transition likewise records and
+requires `rebuild-members-down` before bringing the members back up.
+
+### Prereq for the vm bed
+
+`check-k3s-vm` depends on the **libvirt user-session daemon**. Enable once:
+
+```bash
+systemctl --user enable --now virtqemud.service     # libvirt >= 8 (modular)
+# OR (older monolithic):
+systemctl --user enable --now libvirtd.service
+```
+
+(The host libvirt daemon is host infrastructure, not a charly-managed
+resource — enabling it via systemctl sits outside the charly-CLI-only
+mandate's scope.)
+
+`charly check run check-k3s-vm` best-effort starts the unit before `charly vm create`
+(via `startLibvirtUserSession()` in `charly/vm_backend_lifecycle.go`), and `resolveVmBackend()` now
+spawns it too **before** probing the socket — so a cold socket is never mistaken
+for "libvirt absent" (Arch/CachyOS ship no persistent `virtqemud.socket`; the
+socket appears only after an autospawn). Never gauge libvirt readiness with
+`systemctl is-active virtqemud.service` — a socket-activated / autospawn daemon
+reports the service `inactive` while libvirt works fine; check the socket
+(`$XDG_RUNTIME_DIR/libvirt/virtqemud-sock`) or `virsh -c qemu:///session list`
+instead. `resolveVmBackend()` surfaces
+a clear error when libvirt is absent. The `k3s-vm:` vm template pins
+`backend: libvirt` explicitly so the silent `auto -> qemu` fallback can't mask
+a missing daemon. See `/charly-vm:vm` "Prereq", `/charly-check:libvirt`.
+
+### Why this is config-driven
+
+Beds are `disposable: true` deploys; the runner reads the deploy node directly.
+This means the runner works for any deploy an operator defines — `charly check
+run <name>` resolves the deploy by name through the same path every deploy verb
+uses, with no hardcoded bed table to keep in sync.
+
+## Three primary modes (`charly check box` / `live` / `run`)
+
+The surface is three orthogonal verbs, each named for what it evaluates:
+
+- **`charly check box <image>`** — evaluates the image **artifact** in
+  isolation. Spawns a disposable container via `podman run --rm
+  <image-ref>` (`ImageExecutor`). Only `check:` steps at
+  `context: [build]` run; deploy-context steps are skipped with a clear
+  message. The right choice for build-time invariants ("did this
+  binary land at this path?", "is this package installed?") where a
+  running service would only add noise.
+
+- **`charly check live <name>`** — evaluates a **running deployment**
+  (pod / vm / host / k8s; auto-resolved by `<name>` against
+  charly.yml). Uses `ContainerExecutor` / `SSHExecutor` /
+  `NestedExecutor` (for dotted-path children) + `ResolveCheckVarsRuntime`
+  so deploy-context steps see real supervisord state, real
+  `HOST_PORT:<N>` mappings (including host-networked containers via
+  `HostConfig.NetworkMode` detection), and real in-container env.
+  Same dispatcher that powers `charly check live parent.child` for
+  pod-in-vm topologies.
+
+- **`charly check run <bed>`** — runs a `disposable: true` R10 deploy (full
+  sequence); when the bed carries an `iterate:` block it instead drives
+  an AI runner through plateau-bounded iterations. See
+  `references/authoring-gotchas.md` (Agent Driven Evaluation) and
+  "Realistic run-time expectations" below for the AI-iteration loop timing.
+
+The mode is explicit in the verb; there is no autodetect or
+implicit fallback. Choose the mode by picking the right verb.
+
+**Which verb/bed proves what (the project rulebook R7):** `charly check box` passes on
+zero-content stages too — it is not a substitute for the generated-artifact
+checks (R8). For the R10 gate, pick the disposable bed whose kind matches
+what you changed (`check-pod` for the combined box/candy/pod/DeployTarget
+mechanism, `check-local`, `check-k3s-vm`, or a feature bed). `charly check run`
+on an `iterate:` bed is the multi-hour AI-iteration benchmark, never a quick
+gate — the same verb dispatches by whether the entity carries an `iterate:` block.
+
+The banner after `charly check box` reports the image ref:
+
+```
+Image: ghcr.io/opencharly/fedora-coder:latest
+```
+
+The `meta.Box` short-name (from the `ai.opencharly.box` OCI
+label) is used by `charly check live` for the `charly-<image>` container-name
+lookup — full image refs like `ghcr.io/opencharly/fedora-coder:latest`
+are correctly mapped to `charly-fedora-coder`. Implementation:
+the live-gather engine in `charly/check_cmd.go` (carried by the `CheckLiveCmd`
+struct); the `charly check box` flow lives in the `command:check` plugin
+`candy/plugin-check`.
+
+## R10 gate by change class — pick the gate that exercises the change
+
+The R10 principle is exercise, not ceremony: a gate that cannot fail on the
+change proves nothing (wasted verification), and a change whose gate never
+executed is unproven (the fraud class the project rulebook R10 bans). Pick the smallest
+gate that genuinely exercises every changed code path — and run it in full.
+The project rulebook R10 carries the mandate; this matrix is the authoritative detail.
+
+| Change class | Pre-flight | The R10 gate | Tier on a clean pass | Explicitly NOT required |
+|---|---|---|---|---|
+| **Documentation-only change class** — `*.md` (`AGENTS.md` / `CLAUDE.md`, `plugins/**/SKILL.md`, READMEs, CHANGELOG), comment-only code edits, or a submodule pointer bump to an all-documentation submodule commit; zero behavior change | markdown integrity, link checks | The non-runtime standards: adversarial consistency review, the R5 grep self-test, cross-reference validation, and command-safety gates | `documentation reviewed` | ANY bed run or image build — beds cannot fail on prose |
+| **Hook / workflow scripts** — `.claude/hooks/*.sh`, `.claude/workflows/*.js` | `bash -n` / async-body parse | Execute the changed script live: run the hook directly (paste its output); a workflow whose control flow changed runs against ONE bed matching the change. Prompt-string-only workflow edits: parse + the non-runtime standards | `fully tested and validated` | The full bed fan-out |
+| **Harness project configuration** — `AGENTS.md`, `.codex/**`, repo-native `.agents/**`, or an executable that provisions or validates those surfaces | Parse the changed configuration; run the project profile and static-validator checks; verify exact gitlink and linked-worktree provenance | Run the final-tree repository harness gate: execute each changed validator/provisioner directly, verify only the gitlinks dispatched by the change class at their recorded revisions, and run the committed developer-profile checks. A Git-provisioning change also proves its canonical-object reference and exact-gitlink behavior in a dedicated linked worktree. Record the exact approved commands and active managed sandbox available for this run. This proves repository-controlled behavior; never claim that it proves settings loaded by a newly launched harness process. The fresh validator independently decides whether the final-tree delta additionally requires a Charly R10 bed and runs it when required. | `fully tested and validated` | A forced restart/new session, alternate home/cache/workspace, or unrelated VM/container roster that cannot exercise repository configuration |
+| **`charly` Go code** | `go test ./...` + `go vet` + `task build:binary` (R9 freshness + `charly version` check against `./bin/charly`) | `charly check run <bed>` for EACH bed whose kind matches a touched code path: box/candy/pod/DeployTarget mechanism → `check-pod`; `target: local` → `check-local`; VM / k8s → `check-k3s-vm`; a feature surface → its feature bed. Cross-cutting loader / resolver / IR / unified-schema changes → fan every matching bed out concurrently, by owner: short beds via `/verify-beds` (one `charly check run <bed>` per agent), every long bed (`vm`/`android`, or last run ≥600s) as a persistent-session `run_in_background` task — in-spec for that class, not a scope override; a `/verify-beds` result with `gateComplete: false` is a partial roster, never a green gate | `fully tested and validated` | Beds whose substrate the change cannot reach |
+| **Candy / box / pod / vm / k8s / local / android config** | `charly box validate` | Build + run a bed that composes the changed entity (a candy edit → a bed whose image stacks that candy); when no bed composes it, the R7 sequence on a disposable deploy: build → `charly check box` → deploy → `charly check live` → fresh `charly update` | `fully tested and validated` | Beds that do not compose the changed entity |
+| **`iterate:` / ai check config** | `charly box validate` | The affected `iterate:` bed run as specified (see "Flag discipline") | `fully tested and validated` | Unrelated beds |
+
+**Tier on a clean pass — the class fixes the gate; the gate fixes the tier.**
+Passing a class's full gate earns the tier in that column. `analysed on a live
+system` and `syntax check only` are partial-completion waypoints for the runtime
+classes only — a live invocation ran but no fresh-rebuild R10 → `analysed on a
+live system`; only compile / validate / dry-run ran → `syntax check only` (which
+forbids commit). The Documentation-only change class has no live runner, so it
+has no waypoint: its non-runtime standards either all pass (→ `documentation
+reviewed`) or the change is not ready. The tier definitions live in each
+harness root rulebook's "AI Attribution" section; this column names which tier each gate earns, it does not
+redefine them.
+
+Mixed changes take the union of their classes' gates (docs ride along with the
+code class in the same commit, at that code class's runtime tier — never
+`documentation reviewed`). Class assignment is honest, not aspirational:
+a "comment" edit that changes a prompt string an agent executes is
+script-text, not docs; a YAML comment is docs, but a YAML field is config. A
+submodule pointer bump is documentation only when the bumped submodule commit is
+itself all-documentation (the fresh validator inspects its `old..new` diff);
+a bump integrating submodule code is a code class, at a runtime tier.
+
+## Exit codes
+
+`charly check` uses a goss/pytest-style three-way exit convention so automation
+(and `charly check run <bed>`) can tell "the thing under test is broken" apart from
+"the check couldn't run":
+
+| Code | Meaning |
+|---|---|
+| `0` | All checks passed. |
+| `1` | Command / usage / infra error — bad args, undeclared deploy, container not running, image build/deploy/vm-create failed. The check never produced a pass/fail verdict. |
+| `2` | The check RAN and one or more **checks FAILED** (`sdk.CheckFailExitCode`). |
+
+`charly check box` / `charly check live` return `2` directly when checks fail.
+`charly check run <bed>` propagates `2` when the bed's **check step** (check-image /
+check-live) fails on checks, but `1` when an **infra step** (build / deploy /
+vm-create) fails — so a broken bed image is distinguishable from a genuine
+test failure. When `/verify-beds` fans a roster out, it aggregates the per-bed
+exit codes — reporting `2` only when *every* failing bed failed on checks, and
+`1` when any bed hit an infra failure. Implementation:
+the sdk owns the error/exit types — `sdk.ExitCodeError` + `sdk.CheckFailExitCode` /
+`sdk.CheckSkippedExitCode` — and charly's `main()` maps them to the process exit
+code via `errors.As`.
+
+## The 10 Testing Standards (referenced by the project rulebook R1–R10)
+
+Unit tests are not a substitute for running the service — a green `go test ./...` proves compilation and loader behavior, not that a service actually starts.
+
+These are the 10 standards referenced in the project rulebook's AI attribution tier ("fully tested and validated"). Each is keyed to a project-rulebook R-rule. Apply them whenever a change could affect Containerfile generation, OCI labels, init systems, service startup, or deploy code.
+
+0. **Prove every high-risk assumption before you edit (RDD — Risk Driven Development)** — the proactive bookend to Standard 10's fresh-rebuild gate. Low-risk orientation ("what does layer X do") is a skill lookup (R0, zero risk); every high-risk assumption — including any a skill or the code merely *asserts*, and above all whether this layer composition at its latest available versions builds / deploys / runs together — is proven on a `disposable: true` bed first (`charly check` it). Never accept docs or code as ground truth for a high-risk decision; if the bed disagrees with a skill, the skill is stale — fix it. Standard 0 (validate forward, riskiest-first) and Standard 10 (re-verify on a fresh rebuild) are the two ends of the same loop.
+
+1. **Build a real artifact** (R7) — `charly box build <image>` / `go build` / `charly vm build <vm>`. Not just `go test`. Not just `charly box generate`.
+2. **Verify the emitted artifact's content** (R8) — `grep -c supervisord-conf .build/<image>/Containerfile` for any image that uses supervisord; `charly check libvirt domain-xml <vm>` for a VM.
+3. **Verify critical OCI / capability labels post-build** (R8) — `charly box labels <ref> --format init` (or any `ai.opencharly.<key>` shorthand) prints the built ref's label and exits non-zero when absent; `charly box labels <ref>` lists the whole capability contract (`/charly-internals:capabilities`). Empty / missing label → the detection path silently returned nil → regression.
+4. **Deploy to a disposable target** (R10) — never experiment on a resource that doesn't carry `disposable: true`. If no suitable disposable target exists, create one first (`charly bundle add <name> <ref> --disposable` or mark a VM `disposable: true` in `charly.yml` and `charly vm create`). The setup is part of the task. On a disposable target: `charly update <name>` (unattended). On anything else: confirm with the user before any irreversible destroy — except preempting a declared-`preemptible:` holder, which is standing-authorized (reversible: graceful stop + guaranteed restore).
+5. **Target must reach steady-state** — `charly status <image>` → `running`; `charly check libvirt info <vm>` → state `running`; SPICE socket file exists and accepts a handshake. If the service start-limit is hit, the container is crashing — read `charly logs <image>` and reproduce in a disposable shell (`charly shell <image>`, running the service command manually).
+6. **Run the declarative test suite** — `charly check live <image>` full three-section pass against the live container (or `--uri` / `--host` remote equivalent for a remote target).
+7. **Verify the deployed binary is the one you built** (R9) — `charly version` on the target matches the expected CalVer, and `charly status <image>` (detail `Image ref:` line; JSON `image_ref`) shows the running container's image ref carries THIS build's CalVer tag, not the prior one. Source-only changes (Syncthing, git push) do not update the deployed binary; you must build AND deploy on the target host.
+8. **Verify runtime deps are installed via package management** (R9) — on the host: `charly doctor` (dependency status), or the host package manager directly (`rpm -q <pkg>` / `pacman -Q <pkg>` — host packages are not charly-managed resources, so the package manager IS their interface); inside a container: `charly cmd <box> 'rpm -q <pkg>'`. Manual installs do not count — they won't survive a fresh install on a synced host. Every runtime dep must live in `setup.sh` + `pkg/arch/PKGBUILD`.
+9. **Leave the target healthy, not paused/errored** — the final `charly status` (and `charly check libvirt info <vm>` for a VM) is healthy. If the target is in a broken state during exploration, `charly update` it back to the committed config before continuing — never layer experiments on broken state.
+10. **Re-verify on a fresh rebuild after committing the source-level fix** (R10) — `charly update <disposable-target>` one more time from clean, with the new source applied. Run standards 1–9 again against this fresh rebuild. **This is the acceptance gate.** A fix that works on a hand-patched target but not on a fresh rebuild is a regression waiting for the next unrelated rebuild to wipe your patch. Paste both the exploratory-pass output and the fresh-rebuild-pass output into the conversation — the user sees both.
+
+### `charly check live parent.child` reaches the actual leaf
+
+`charly check live <parent>.<child>` walks the dotted deployment path through
+`ResolveDeployChain` (`sdk/deploykit/deploy_chain.go`) and constructs a multi-hop
+`DeployExecutor` chain that lands probes inside the leaf's actual
+venue — `command: id` for a pod-in-VM leaf returns the inner pod's user, not
+the parent VM's. Live-check and AI-iteration-scoring chain construction go
+through the same code path `charly bundle add` uses.
+For deeply-nested paths, each segment adds one hop:
+
+```bash
+charly check live check-vm                            # → SSHExecutor (1 hop)
+charly check live check-vm.inner                      # → SSH + podman exec charly-check-vm_inner (2 hops)
+charly check live check-vm.inner.deeper               # → SSH + 2× podman exec (3 hops)
+```
+
+Same chain primitive (`NestedExecutor`) used everywhere — `charly bundle
+add`, `charly check live`, `charly check run` (AI iteration scoring).
+
+**Exception — a pod leaf nested in a VM delegates its check to the guest.** Because
+the host-vantage probes (the protocol verbs cdp/wl/vnc/dbus, which dispatch
+out-of-process via their plugin — `candy/plugin-cdp`/`candy/plugin-wl`/`candy/plugin-vnc`/`candy/plugin-dbus` —
+against the container resolved on the host's podman; and
+`${HOST_PORT}` addr/http, resolved via host `podman inspect`) cannot
+reach a container living in the guest, `charly check live <vm>.<pod>` does not
+chain-dispatch those per-check (they would skip). Instead `runVm` runs
+`charly check live <pod>` in the guest over SSH (`guestNestedCheckCmd` →
+`SSHExecutor.RunCapture`), where the nested pod is a direct pod — guest-local
+podman, ports on guest localhost, the guest `charly` (installed by
+`EnsureCharlyInGuest`) — so cdp/wl/mcp + `${HOST_PORT}` run natively, zero skips.
+The guest reads the same baked checks from the cp-box'd pod image, so the check
+set is identical; the host propagates the guest's report + exit code. A
+pod-in-pod or vm-in-vm leaf (no host↔guest container boundary) still uses the
+multi-hop chain above. See `references/cross-deployment-probing.md` ("Cross-deployment
+probing") for the symmetric authoring surface in a bed's plan (venue-from-position members).
+
+### Standards violations to avoid
+
+A green `go test ./...` run does not prove a cutover done — build, deploy, run, and test the live target every time. A post-`charly update` re-test must run against the freshly deployed container, not the prior one still resident from before the update (an `is not running` error on the new container means the update broke it, not that "tests pass in aggregate"). A service-start failure (`A dependency job for X failed` + immediate exit) is a real error to read (`charly logs`) and reproduce (`charly shell`), never a presumed transient. `disposable: true` is the sole destroy authorization — a `lifecycle: dev` tag and "it's a dev box" framing grant none; everything else needs user confirmation regardless of hostname. A fix verified only on a target hand-patched over an afternoon is unverified; re-run `charly update` from clean and re-verify before claiming success. A plan that said "one PR" gets no invented Phase 2. Docs and code are not proof for a high-risk assumption — prove it on a disposable bed first (Standard 0); conversely, don't bed-test a low-risk fact a skill already states — that is wasted effort. Risk, not documentation status, is the trigger.
+
+If the container needs state that's only available in deploy (volumes, env, tunnel), author the step at `context: [deploy]`. If it needs something at build only (binary path, package presence), author at `context: [build]`. Both contexts must pass for the cutover to be real.
+
+**Confidence tier mapping:** The "fully tested and validated" confidence level in the project rulebook's AI-attribution table requires all 10 standards met — including Standard 10, the fresh-rebuild re-verification. Anything short of that ships at a lower confidence tier.
+
+## Coverage snapshot (7 currently-tested images)
+
+Reference numbers from the last end-to-end session:
+
+| Image | Tests | Pass | Fail | Skipped |
+|-------|-------|------|------|---------|
+| `filebrowser` | 24 | 24 | 0 | 0 |
+| `jupyter` | 32 | 32 | 0 | 0 (includes 3 declarative `mcp:` checks) |
+| `openwebui` | 24 | 24 | 0 | 0 |
+| `hermes` | 50 | 50 | 0 | 0 |
+| `immich-ml` | 63 | 61 | 0 | 2 (redis port internal) |
+| `selkies-desktop` | 91 | 91 | 0 | 0 |
+| `sway-browser-vnc` | 92 | 92 | 0 | 0 (includes 7 declarative cdp/wl/dbus/vnc/mcp checks; 2 mcp tests come from the chrome-devtools-mcp layer) |
+
+**Total: 376 checks across 7 images (0 failing).**
+
+The "skipped" entries are intentional — they reference ports that
+aren't mapped in the containing image's `port:` block. Skipping them
+is correct behavior; they'd pass in an image that does expose those
+ports.
+
+## Realistic run-time expectations
+
+`charly check run default` is a multi-phase AI-iteration loop. Representative
+per-phase durations (measured solving all 92/92 across 9 iterations on a
+`disposable: true` check-sandbox):
+
+| Phase | Plan segment | Typical iter1 duration | Notes |
+|---|---|---|---|
+| 1 | single-pod-system-state | ~10 min | trivial pod deploy |
+| 2 | network-and-http | ~few min (cumulative scoring keeps phase 1 in scope) | nginx + curl in fedora:43 |
+| 3 | cross-pod-nonce-traffic | ~few min | redis + redis-client; EVAL_NONCE_KEY/VALUE substituted per iter |
+| 4 | mcp-protocol-probe | ~14 min | jupyter image build (~6 min) + 32 check steps |
+| 5 | kubernetes-cluster | ~20-30 min | k3s/kwok cluster bring-up |
+| 6 | desktop-display-and-input | ~50 min iter1, ~10 min iter2 | sway-browser-vnc image build (~14 min) + 13 cdp/wl/vnc checks; commonly takes 2 iters due to Chrome SIGBUS instability |
+| 7 | vm-control-libvirt-spice | ~40-50 min | libvirt domain (cloud-init, qemu-guest-agent) + 9 checks |
+| 8 | nested-deployment-chain | ~40 min | socket-passthrough nested pods + 9 cross-hop checks |
+
+**Total wall-clock for a fresh `charly check run default`**: typically
+5-7 hours on dev-class hardware. Set expectations accordingly — this
+is not a quick smoke. For a fast canary that exercises the loader +
+scoring paths end-to-end without real AI work, run
+`charly check run scaffolding-selftest` (~5 min, a single-segment plan
+that `include:`s `composition-import-selftest`).
+
+The plateau bound is `iterate.plateau_iteration` (default 3). In
+progressive mode, plateau ends the whole run — it does not advance
+to the next phase, so an AI that stalls on one phase doesn't collect
+easy wins on later phases it never engaged with.

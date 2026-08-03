@@ -1,0 +1,238 @@
+# Orchestration Model
+
+Companion reference for `/charly-internals:agents`. Owns the default
+multi-agent execution model: how the orchestrator and teammates split by
+model tier, how parallel work is scheduled and slotted, how concurrent
+landings stay safe, and who verifies what.
+
+## Default topology: one orchestrator, N cost-scaled teammates
+
+For any substantial or multi-cutover program, the default topology is a
+single persistent **orchestrator** session coordinating parallel
+**teammates** (one per in-flight cutover) and fresh **`pr-validator`s** (one
+per ready PR). This is the standing default, not an opt-in — solo/sequential
+execution is the exception, reserved for trivial single-file or
+conversational work. The model composes the bed-scoped partition, the fresh
+independent `pr-validator` two-step landing, and delegation-is-fresh-context
+(all owned elsewhere in this skill and in `/charly-internals:git-workflow`)
+rather than replacing them.
+
+### Model-tier split
+
+The orchestrator runs ×1 — one persistent session — and carries the
+highest-leverage reasoning: routing each ready PR to a fresh validator,
+sequencing merges, running the per-merge delta re-gate, owning long beds
+(`run_in_background`), rebase-broadcasting to siblings, and independently
+verifying every teammate decision (the correctness backstop for the whole
+run). Teammates run ×N in parallel, each bounded to one cutover or one PR
+under that verification. This ×1-vs-×N shape — not "who reasons harder" —
+decides the model tiers:
+
+- **Orchestrator → the most-capable model.** Paid once, resident across the
+  whole program, where the leverage is highest.
+- **Teammates and `pr-validator`s → a less-expensive model.** They scale ×N
+  with the parallel width, each bounded and backstopped by the orchestrator,
+  so the cheaper tier carries the parallel bulk affordably.
+
+State the principle (most-capable orchestrator, cost-scaled teammates) and
+the relative cost ratio, not exact prices — they rot. Current instantiation:
+a **Fable 5** orchestrator driving **Sonnet 5** teammates and validators (the
+orchestrator's per-token cost is materially higher; that premium buys the
+top tier only where the leverage is highest). Set the default teammate model
+in `/config` to the cheaper tier; a teammate or validator may still be
+spawned with an explicit `model:` when a unit needs it.
+
+### Maximum parallelization is the default
+
+Run every independent unit at once: multiple cutovers implemented
+concurrently (one teammate each, partitioned so no two share a bed's
+source — see "Bed-scoped parallel real-deployment testing" in
+`references/parallel-bed-testing.md` for the partition contract), multiple
+PRs validated concurrently (one fresh `pr-validator` each, independent
+contexts that couple only at the merge instant), first-ready-first-merged.
+There is no benefit to holding a ready PR for a sibling — the only inherent
+ordering is the merge instants and a real dependency DAG.
+
+### Slot budget
+
+The parallel width is bounded by a finite resource: the persistent teammate
+slots (the operator's live-oversight panes). Spend them by the right unit —
+a slot is one concurrent independent cutover, never a headcount of agents:
+
+- **Sequential sub-phases within one cutover do not each claim a slot.** The
+  owning session compacts-and-continues across its own phases (design →
+  implement → land) and delegates only mechanical bulk (a wide sweep, a
+  batch edit, a fan-out search) to a transient sub-agent that frees its slot
+  on return — never a new persistent teammate per sub-phase.
+- **Validators and design-reserve agents are transient/recyclable.** Stop a
+  fresh `pr-validator` or any spun-up design/scout agent the instant its
+  role completes so the slot returns to the pool (see "Agent lifecycle
+  hygiene" in `references/hooks-and-lifecycle.md`).
+- **On slot exhaustion, stop stale agents — never downgrade the model.**
+  Reclaim slots from finished agents; never switch to a headless/in-process
+  teammate mode to trade oversight for headroom.
+
+State the principle (slots are concurrent cutovers; transient bulk frees its
+slot; stop, don't downgrade, on exhaustion), not the host-specific pane
+count.
+
+### Concurrent landing — link, don't restate
+
+Landing stays concurrent with branch protection `strict: true` kept. The
+mechanism — after each merge, `gh pr update-branch` every still-open sibling
+PR, then a risk-proportional delta re-gate (empty merged-delta ∩
+branch-files → rebuild + `go test ./...` + lint + re-post status; non-empty
+→ additionally re-run the affected beds; a full roster re-run only when the
+overlap hits the cutover's risky shared paths) — is owned by
+`/charly-internals:git-workflow` ("Concurrent landings"). The orchestrator
+drives it; it is not restated here. Zero-overlap PRs (e.g. a test-only PR
+and a config PR) never block each other.
+
+### The orchestrator verifies every decision — bidirectionally
+
+"Verify every delegate decision" (`references/hooks-and-lifecycle.md`) is
+not a one-way audit. The orchestrator independently re-derives every
+teammate decision before accepting it — scope, mechanism, and coverage — by
+reading the code, running a bed, or observing live state, and corrects
+under-scoping, over-scoping, or coverage gaps; it never rubber-stamps.
+Teammates likewise correct the orchestrator, so verification is
+bidirectional. This catches defects invisible to a one-way audit: a
+shared-domain collision under concurrency, an under-scoped bed roster, a
+coverage gap in a drop-vs-nest call, a stale rebase base. The instrument is
+the same for a delegated decision as for your own: a high-risk claim is
+proven on a live `disposable: true` bed, never accepted on a teammate's
+report alone.
+
+A parity/golden/coverage instrument is itself a claim until proven
+non-vacuous: when a teammate offers a byte-parity harness, a golden corpus,
+or an "N cases pass" table, verify the instrument actually exercises what it
+claims before the verdict counts — count the cases it really runs (a
+zero-fixture corpus "passes" every diff; a parity test whose two sides run
+the same code path proves nothing). Read the instrument's inputs, not just
+its exit code.
+
+### The orchestrator owns architectural integrity
+
+Every placement decision is judged against the end-state architecture (the
+project rulebook's kernel definition, "Core is a PLUGIN HOST"), never
+against current constraints alone; a breaching decision is corrected at
+once, never ratified as local pragmatism. A "stays in core" ruling is valid
+only with a named K-wave exit and a tracked task; a constraint blocking the
+right placement gets a constraint-removal task, never a silent conformance.
+Every merge's delta re-gate includes an architecture delta (core LOC down,
+or flat with a named tracked reason).
+
+The enforcement stack is one chain, named together so no future session
+rebuilds it piecemeal: the pre-commit hook (commit-time no-new-alias /
+no-new-kit-import block) → the `pr-validator` architecture gate (the
+no-new-breach placement review with an explicit `placement:` verdict) → the
+P16 triple gate (the end-state floor: the import-surface assertion +
+import-purity + zero-alias — charly/import_purity_test.go; the per-file
+allowlist is retired) → the orchestrator's every-decision judgment.
+
+### Enforcement — "host-coupled" is never a permanence reason
+
+The project rulebook's kernel/plugin boundary law names the trap
+explicitly: calling a construct a "host-boundary object" — it "can't cross
+the process boundary," or "drives podman/ssh/flock/systemd itself" — is
+never a permanence reason; a plugin drives that same host object itself, or
+reaches a live venue over the reverse-channel broker, exactly as the seam is
+for. Three roles enforce this so the trap never survives a landing
+unchallenged:
+
+- **The mover reports where each piece landed** — per file/function, its
+  new plugin/kit home, never a bare "moved" claim. A remainder left in core
+  carries its own justification (an E/M/B/D clause), never inherited from
+  the moved majority.
+- **A validator rejects a remainder whose only justification is a
+  stays-core header.** A `// … STAYS CORE` comment is a claim, not a
+  verdict — the fresh `pr-validator`'s architecture gate treats it as
+  suspect by default and requires call-chain evidence before accepting the
+  remainder.
+- **The orchestrator audits stays-claims against the boundary law with
+  call-chain evidence**, never rubber-stamping a header. Precedent: a
+  deploy-dispatch kernel once justified as holding "host objects that cannot
+  cross the process boundary" was overruled as K4 residue, not permanent
+  core — a plugin can drive that same host object itself, or reach a live
+  venue over the reverse-channel broker the seam already provides for every
+  other externalized substrate.
+
+See the project rulebook's "The kernel/plugin boundary law" and
+`/charly-internals:plugin` (the placement table and the incomplete-seam
+catalog).
+
+## The responsibility matrix — who owns what
+
+**Orchestrator** (the persistent main session, ×1, most-capable model):
+- Owns: architectural integrity (every placement judged against the
+  end-state; breaches corrected at once); the plan/contract and all scope
+  rulings (every STOP-and-ask terminates here); independent
+  RDD-verification of every teammate decision (bidirectional — never
+  rubber-stamps, never rubber-stamped); all full bed runs / R10 rosters
+  (`run_in_background` — only the persistent session survives to receive
+  completion notifications); parity re-derivations; validator routing and
+  post-merge verification (tag-verify, main fast-forward, the delta re-gate
+  including the architecture delta); merge sequencing and rebase
+  broadcasts; the task board; the thematic batch queues (the Cutover Sizing
+  Law, `/charly-internals:cutover-policy`: every non-blocking fix is routed
+  into a named batch with an owner and a start — a teammate brief for a
+  small fix names its batch; a solo landing ceremony for a small
+  non-blocking fix is a routing error the orchestrator corrects); agent and
+  worktree lifecycle (spawn, stop-stale, prune, the slot budget); operator
+  escalation.
+- Never: authors cutover code it then validates; grinds mechanical bulk
+  itself (delegates); lets a "stays in core" ruling stand without a K-wave
+  exit and a tracked task.
+
+**Implementation teammate** (×N cost-scaled, one per independent cutover,
+one worktree each):
+- Owns: its one cutover end-to-end — design within the contract,
+  implementation, unit gates (build/test/lint/gofmt/cue-gen-repro), short
+  foreground checks (`charly box validate` / `charly check box`), R5
+  sweeps, ADE plans, CHANGELOGs, authoring its PRs, fix-rounds in-place on
+  CHANGES-REQUESTED, handoff packages when context runs short.
+- Delegates: mechanical bulk to transient sub-agents it briefs and reviews
+  (never rubber-stamps).
+- Never: runs a full `charly check run` / any bed roster (the
+  orchestrator's); merges or validates its own PR; edits outside its
+  worktree; touches a frozen tree without messaging first; changes contract
+  scope unilaterally; spawns persistent teammates.
+
+**PR validator** (fresh context, one per cutover chain — e.g. sdk → plugins
+→ super in one session):
+- Owns: independent adversarial re-validation (R0–R10 + skills + the
+  architecture gate with an explicit `placement:` verdict); the
+  squash-merge; the merge-time CalVer; the tag on every repo (a skipped tag
+  is a defect); the durable PR verdict comment before any gated action.
+- Never: validates anything it authored; `--admin`/force; close-and-recreate;
+  skips the placement verdict.
+
+**Transient sub-agent** (spawned by anyone; frees its slot on return):
+- Owns: one bounded, file-disjoint unit (relocation batch / survey / spike /
+  golden harness) and its own unit verification; returns verbatim results
+  to its spawner.
+- Never: full beds; commits/pushes/PRs; scope decisions; work beyond its
+  brief.
+
+**Design reserve** (a former implementer kept addressable for keystone
+questions):
+- Owns: answering design questions from its deep context. Stopped once its
+  knowledge is durably captured (handoff docs) — persistent slots belong to
+  cutovers.
+
+**Tie-breakers:** ambiguity about ownership → the orchestrator rules. Beds →
+always the orchestrator. Merges/tags → always a validator. Code → always a
+teammate/sub-agent worktree. Scope → always the contract and the
+orchestrator, never a lane-local decision.
+
+## See also
+
+- Entry: `../SKILL.md`
+- `references/program-discipline.md` — north-star protocol, IOU register,
+  per-merge measurement, migration-ledger discipline.
+- `references/agent-roster.md` — the primitives, the roster, the shipped
+  workflows.
+- `references/parallel-bed-testing.md` — the bed-scoped partition contract
+  this model schedules against.
+- `references/hooks-and-lifecycle.md` — delegation, teammate context
+  lifecycle, hooks doctrine, agent lifecycle hygiene.

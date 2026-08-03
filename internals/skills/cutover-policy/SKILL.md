@@ -12,11 +12,9 @@ description: |
 
 # cutover-policy
 
-Every schema change, API rename, or deprecation in OpenCharly ships as a **single hard-cutover PR**. This applies to BOTH code (Go types, exported functions, CLI flags, OCI labels) AND config (charly.yml, charly.yml, vm.yml field names and shapes).
+Every schema change, API rename, or deprecation in OpenCharly ships as a **single hard-cutover PR** — for BOTH code (Go types, exported functions, CLI flags, OCI labels) and config (charly.yml, vm.yml field names and shapes). A cutover is never phased, at plan authoring or execution, regardless of estimated time, scope, or context; the full no-exception statement and stop conditions are in "No exception clause" below.
 
-A cutover may NEVER be phased — not at plan authoring, not at execution. There is no pre-approval split, no post-approval split, no phased rollout, no grace period, no "author it as two plans" fallback. Plans are authored as full-scope, single-phase cutovers regardless of estimated time, scope, or context. Every cutover executes end-to-end through R10 in the SAME conversation. ALWAYS push as far as you can; compact context and continue, as many times as it takes. An approved plan is a CONTRACT; implement it as written.
-
-This skill is the source of truth for the policy. The project rulebook (`AGENTS.md` / `CLAUDE.md`) links here rather than re-stating the full policy inline. The project's `UserPromptSubmit` hook at `.claude/hooks/runtime-verification-reminder.sh` names the full R0-R10 + RDD + ADE roster as second-pass triggers (a pointer roster per the hooks doctrine, never rule-body copies) and fires at every user prompt.
+This skill is the source of truth for the policy. The project rulebook (`AGENTS.md` / `CLAUDE.md`) links here rather than re-stating the full policy inline.
 
 ## One phase, many tasks, one cutover — the workflow
 
@@ -27,11 +25,7 @@ This skill is the source of truth for the policy. The project rulebook (`AGENTS.
 3. **Test at the end, not between tasks**: run unit tests, `charly box build`, `charly bundle add` + `charly check live`, and the R10 fresh-rebuild re-verification AFTER all tasks are marked complete. Testing between tasks is cheap smoke-confirmation; the acceptance gate is the full-stack run against the final, transitional-free code (every transitional / legacy / dual-mode path already deleted — see step 2).
 4. **Ship or fix**: if any verification step fails, fix it in the same working tree and re-run the full verification. Do NOT commit a partial state.
 
-**Forbidden**: "Phase 1 landed, Phase 2 pending" as a stopping point. That leaves the system half-migrated — legacy paths live alongside new paths, migrations not yet run, tests passing for some beds and not others. Every historical instance of that pattern in this project left dead code and untested integration points that bit users later.
-
-**Splitting a cutover across conversation turns is ABSOLUTELY FORBIDDEN, with NO exception — at plan authoring or at execution.** Once a plan is approved, it executes end-to-end through R10 in the same conversation. ALWAYS push as far as you can. Compact context and continue, as many times as it takes. Time, context space, session budget, scope size, and "the work turned out to be large" are NEVER valid stop reasons.
-
-Do not propose phasing, narrowing, or scope reduction at plan-authoring time. Do not negotiate a split mid-execution. Do not silently downgrade. Do not widen, re-approach, or otherwise rewrite the contract mid-execution either — the plan is fixed once approved, and the ONLY legal change is to STOP and ask. An approved plan is a CONTRACT; implement it as written. The ONLY valid stop conditions, at any stage, are (a) an error you cannot resolve that requires user input, or (b) the plan contradicts itself, the project rulebook, or a loaded skill — STOP and ask in either case; do NOT commit a partial state.
+**Forbidden**: "Phase 1 landed, Phase 2 pending" as a stopping point — the system stays half-migrated (legacy paths alongside new ones, migrations not yet run, tests green for some beds only). Splitting a cutover across conversation turns is forbidden with no exception, at plan authoring or execution; an approved plan is a CONTRACT, fixed once approved — the only legal deviation is a STOP-and-ask at a genuine crossroad. See "No exception clause" below for the full stop-condition and forbidden-trigger catalog.
 
 ## Blocking vs non-blocking surfaced issues — what stays in this cutover, what spawns the next
 
@@ -50,16 +44,16 @@ The discriminator: *would shipping the current cutover WITHOUT this fix leave th
 
 **The mandate (matching statement in each harness root rulebook: "Hard Cutover by Default" → "The Cutover Sizing Law"): a cutover ships the LARGEST coherent scope one R10 gate can honestly prove, and the landing ceremony is paid ONCE per theme, never once per fix.**
 
-**Why.** Every landing has a FIXED cost that is independent of change size: the R10 bed gate (with any re-runs), 2–3 fresh-validator PR legs across the multi-repo chain, landing mechanics (CalVer stamp, tags, pointer bumps), and the coordination round-trips — in practice HOURS per ceremony. A sub-~1.5k-line solo cutover is therefore ceremony-dominated (measured: ~85% overhead on sub-800-line solo landings); the same fixes batched pay the ceremony once. "Atomic" means ONE commit per cutover on `main` — it has NEVER meant "smallest independently landable slice". A cutover that is honestly one theme is one atomic cutover no matter how many fixes it carries.
+**Why.** Every landing has a fixed cost that is independent of change size: the R10 bed gate (with any re-runs), 2–3 fresh-validator PR legs across the multi-repo chain, landing mechanics (CalVer stamp, tags, pointer bumps), and the coordination round-trips — in practice hours per ceremony. A sub-~1.5k-line solo cutover is therefore ceremony-dominated (measured: ~85% overhead on sub-800-line solo landings); the same fixes batched pay the ceremony once. "Atomic" means one commit per cutover on `main` — it has never meant "smallest independently landable slice". A cutover that is honestly one theme is one atomic cutover no matter how many fixes it carries.
 
 **The batch discipline:**
 
 - **Non-blocking fixes are COLLECTED into thematic batches** — e.g. a gate-infrastructure batch, a check/bed-correctness batch, a docs/lessons batch, a lint-category sweep (`/charly-internals:go-quality`'s "a handful of large thematic cutovers" is this law applied to lint findings). R2's "immediate-next cutover" for non-blocking work IS the next thematic batch.
-- **Batching is FORWARD MOTION, not deferral.** A batch is planned, scoped, assigned, and begun NOW — typically the moment its first member surfaces; further members join until it lands. The forbidden deferral is the UNSCHEDULED "someday" (no batch, no owner, no start); the forbidden phasing is splitting ONE change's own scope. A batch of genuinely separable fixes is neither.
-- **Solo ceremonies are the exception**, reserved for: (a) a BLOCKING or urgent fix that cannot wait for its batch (an active-gate breaker, a security issue, a `main` regression); (b) a properly-sized cutover — a substantial coherent scope in its own right (rule of thumb: a ≥~1.5k-line diff, or any planned program wave).
-- **Theme coherence bounds the batch**, not size: a batch's members must share ONE honest R10 story (one gate run proves them all). Mixing themes to inflate a batch is as wrong as splitting one.
-- **Gate sizing follows the same law**: run ONLY the beds that EXERCISE the change (the project rulebook R10 — "a gate that cannot fail on the change proves nothing (waste)"); an over-broad roster is not diligence. "Cross-cutting → full roster" applies to genuinely shared-state paths (loader / deploy ledger / store / arbiter), not to every change.
-- **Validator chains parallelize independent legs**: sdk and plugins-docs legs of one cutover validate CONCURRENTLY; sequential only where B2's dependency order forces (a consumer pointer needs the merged producer).
+- **Batching is forward motion, not deferral.** A batch is planned, scoped, assigned, and begun now — typically the moment its first member surfaces; further members join until it lands. The forbidden deferral is the unscheduled "someday" (no batch, no owner, no start); the forbidden phasing is splitting one change's own scope. A batch of genuinely separable fixes is neither.
+- **Solo ceremonies are the exception**, reserved for: (a) a blocking or urgent fix that cannot wait for its batch (an active-gate breaker, a security issue, a `main` regression); (b) a properly-sized cutover — a substantial coherent scope in its own right (rule of thumb: a ≥~1.5k-line diff, or any planned program wave).
+- **Theme coherence bounds the batch**, not size: a batch's members must share one honest R10 story (one gate run proves them all). Mixing themes to inflate a batch is as wrong as splitting one.
+- **Gate sizing follows the same law**: run only the beds that exercise the change (the project rulebook R10 — "a gate that cannot fail on the change proves nothing (waste)"); an over-broad roster is not diligence. "Cross-cutting → full roster" applies to genuinely shared-state paths (loader / deploy ledger / store / arbiter), not to every change.
+- **Validator chains parallelize independent legs**: sdk and plugins-docs legs of one cutover validate concurrently; sequential only where B2's dependency order forces (a consumer pointer needs the merged producer).
 
 **The sizing decision procedure — how a piece of work becomes a cutover (apply IN ORDER):**
 
@@ -72,7 +66,7 @@ The discriminator: *would shipping the current cutover WITHOUT this fix leave th
 
 **The three axes — do not conflate them:** (a) **BATCHING** (this law) governs MANY separate small changes → collect them into one theme-coherent cutover; (b) **DECOMPOSITION** (the forbidden-excuse catalog's "a large cutover decomposes into atomic per-unit cutovers landed one after another") governs ONE contract that is too large to land in a single atomic commit → split it into ordered units as FORWARD MOTION only — it is never a reason to make cutovers small by default, and never a deferral device; (c) **the NO-SPLIT rule** governs ONE change's own scope → it may never be carved in two to avoid doing it all now. All three serve the same law: *a cutover is the largest coherent scope that ONE R10 gate can honestly prove — never smaller (batch instead), never incoherently larger (decompose instead).*
 
-**Forbidden internal-voice triggers (the sizing set):** "I'll land this small fix through its own quick PR" (it has a batch) / "each issue gets its own atomic cutover" (only blocking/urgent ones do) / "to keep the diff focused I'll split these" (theme, not diff size, bounds the cutover) / "run the full roster to be safe" (run the beds that can FAIL on the change) / "decompose it into small cutovers" as a DEFAULT (decomposition is the too-BIG remedy, not a sizing preference).
+**Forbidden internal-voice triggers (the sizing set)** are folded into the master catalog in "No exception clause" below.
 
 ## Forbidden patterns (by default)
 
@@ -101,9 +95,7 @@ Phased migrations accumulate mid-state complexity that, in practice, rarely gets
 
 ## No exception clause
 
-There is no pre-approval split, no post-approval split, no phased rollout, no grace period, no "resume in the next session", no "author it as two plans" fallback. Plans are authored as full-scope, single-phase cutovers regardless of estimated time, scope, or context. Phase / scope / time concessions are FORBIDDEN at plan authoring AND at execution.
-
-Every cutover — regardless of estimated effort — runs as ONE phase in the SAME conversation through R10. ALWAYS push as far as you can. Compact context and continue, as many times as it takes.
+There is no pre-approval split, no post-approval split, no phased rollout, no grace period, no "resume in the next session", no "author it as two plans" fallback — regardless of estimated time, scope, or context, at plan authoring or execution. Every cutover runs as ONE phase, in the SAME conversation, through R10; compact context and continue, as many times as it takes.
 
 The ONLY valid stop conditions, at any stage, are:
 
@@ -112,32 +104,19 @@ The ONLY valid stop conditions, at any stage, are:
 
 In either case STOP and ask. Do NOT silently downgrade scope, narrow tests, abbreviate the R10 matrix, or commit a partial state. An approved plan is a CONTRACT; implement it as written.
 
-Forbidden internal-voice triggers (each is a confession, NOT a defence):
+**Forbidden internal-voice triggers (each is a confession, NOT a defence) — the full catalog; this skill is its sole owner, every other skill points here:**
 
-- "this is too large for one turn"
-- "we should split this into two plans"
-- "session budget concerns mean ..."
-- "to fit context space ..."
-- "for tractable wall-clock ..."
-- "I'll narrow scope just for this canary ..."
-- "let me ask whether to phase it"
-- "it's huge / a multi-cutover sub-program / a multi-session effort"
-- "it can't be finished this session / at a session boundary"
-- "I've run out of / exhausted context (space)"
+- "this is too large for one turn" / "we should split this into two plans" / "let me ask whether to phase it" / "I'll narrow scope just for this canary ..."
+- "session budget concerns mean ..." / "to fit context space ..." / "for tractable wall-clock ..." / "I've run out of / exhausted context (space)" / "this needs a fresh session / a fresh context to run safely" / "the correct next step is a fresh session (pointed at task #N)" — running low on context is answered by compacting-and-continuing, or by DELEGATING the unit to a fresh teammate / sub-agent (its whole purpose is carrying work forward with a fresh context budget) — never by stopping; that teammate IS the "fresh session," delivered on demand (see the project rulebook "Agents, Workflows & Teams" + `/charly-internals:agents`)
 - "continuing would leave a broken, unbuildable tree" — a FABRICATED excuse with ZERO evidence it has ever happened; never raise it
-- "this needs a fresh session / a fresh context to run safely"
-- "the correct next step is a fresh session (pointed at task #N)"
-- "I've scoped it as a focused effort for later"
-- "it's ready to grind whenever you want / as its own focused sequence"
-- "I'll revert this working foundation and report it as scoped-for-later"
-- "it's secondary / lower-priority / a nice-to-have / optional / not required"
-- "it's NON-\<gate\>, so it's not required" (the change is still IN the contract's scope)
+- "it's huge / a multi-cutover sub-program / a multi-session effort" / "it can't be finished this session / at a session boundary" — a large cutover DECOMPOSES into atomic per-unit cutovers, landed one after another as forward motion, never as a reason to stop
+- "I've scoped it as a focused effort for later" / "it's ready to grind whenever you want / as its own focused sequence" — decomposition used to DEFER rather than to keep going is the same forbidden phasing
+- "I'll revert this working foundation and report it as scoped-for-later" — reverting already-working code to manufacture a stopping point is the worst form of the excuse; a spike that proved the mechanism works means you KEEP the working code and land it
+- "it's secondary / lower-priority / a nice-to-have / optional / not required" / "it's NON-\<gate\>, so it's not required" — the change is still IN the contract's scope
+- "an honest assessment" / "a scoping finding" / "the spike's deliverable" / "exhaustively confirmed scope" — honesty-dressing rescues none of the above; an honest report of remaining work is legitimate only as a preface to continuing it in the SAME turn
+- (the sizing set, see "Cutover sizing" above) "I'll land this small fix through its own quick PR" (it has a batch) / "each issue gets its own atomic cutover" (only blocking/urgent ones do) / "to keep the diff focused I'll split these" (theme, not diff size, bounds the cutover) / "run the full roster to be safe" (run the beds that can FAIL on the change) / "decompose it into small cutovers" as a default (decomposition is the too-big remedy, not a sizing preference)
 
-If you catch yourself forming any of those: STOP forming them. The plan executes as written.
-
-**"Fresh context / a fresh session" is NEVER a stop — it is spelled *DELEGATE*.** When a cutover (or a whole multi-cutover program) is bigger than the current context budget, you do NOT halt and hand the user a "start a fresh session on task #N" note. You EITHER compact-and-continue in the same conversation, OR you SPAWN A FRESH TEAMMATE / SUB-AGENT (`Agent`, an agent team, or a workflow) and hand it the unit — it runs with a full, fresh context budget and returns the result while you keep orchestrating. That teammate IS the "fresh session," delivered on demand and inside the same autonomous run. A big program is executed by driving a teammate per cutover (or a team per stage) to merged PRs — never by stopping. Reach for delegation BEFORE you feel context pressure. See the project rulebook "Agents, Workflows & Teams" + `/charly-internals:agents`.
-
-**Difficulty, SIZE, and PRIORITY are the same forbidden argument — decompose to KEEP GOING, never to defer.** A cutover that turns out large (or that you have decided is "secondary") is NOT a reason to stop; it is a reason to **decompose it into atomic per-unit cutovers and land the FIRST one NOW**, then the next, then the next, until the whole is done — compacting context and continuing as many turns as it takes. Decomposition is legal ONLY as forward motion (land unit 1, continue to unit 2); it is FORBIDDEN as a deferral device ("I've split it into N cutovers, I'll do them later"). **Reverting or discarding already-working code because the remaining scope is large is the worst form of the excuse** — it destroys real progress to manufacture a stopping point; a spike that PROVED the mechanism works means you KEEP the working code and land it, you never revert-and-defer. And the excuse stays forbidden when dressed as *"an honest assessment," "a scoping finding," "the spike's deliverable,"* or *"exhaustively confirmed scope"*: an honest report of remaining work is legitimate ONLY as a preface to continuing it in the SAME turn. (This mirrors the project rulebook "Hard Cutover by Default" — the Forbidden-excuse catalog: difficulty, size, AND priority.)
+If you catch yourself forming any of these: STOP forming them. The plan executes as written.
 
 ## What a clean cutover PR looks like
 
@@ -173,10 +152,4 @@ The policy kicks in when the change is **visible to consumers** (YAML authors, o
 - `/charly-internals:install-plan` — shared IR that survived the cutover unchanged (non-example — additive extension of the DeployTarget surface)
 - the project rulebook "Hard Cutover by Default" — summary pointing at this skill
 
-## Live-deploy verification is mandatory (see `/charly-check:check` 10 standards)
-
-Changes that touch this verb's output must reach a healthy deployment on a target explicitly marked `disposable: true` (see `/charly-internals:disposable`). Use `charly update <name>` to destroy + rebuild unattended on any disposable target. Never experiment on a non-disposable deploy — set up a disposable one first with `charly bundle add <name> <ref> --disposable` or mark a VM in vm.yml.
-
-**After committing the source-level fix, `charly update` the disposable target ONCE MORE from clean and re-run the full verification.** A fix that passes only on a hand-patched target is not a real fix — it's a regression waiting for the next unrelated rebuild. Paste BOTH the exploratory-pass output and the fresh-rebuild-pass output into the conversation.
-
-Unit tests + a clean compile are necessary but not sufficient. See the project rulebook R1–R10.
+Live-deploy verification: see /charly-check:check (the 10 Testing Standards) and /charly-internals:disposable.

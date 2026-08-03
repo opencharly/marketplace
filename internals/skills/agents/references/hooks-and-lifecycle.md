@@ -1,0 +1,375 @@
+# Hooks, Delegation & Lifecycle
+
+Companion reference for `/charly-internals:agents`. Owns the hooks
+doctrine, delegation-as-fresh-context, teammate context lifecycle, the
+sub-agent operational invariants, agent lifecycle hygiene, the PR-gate
+audit, and worktree/validator lifecycle.
+
+## Delegation is fresh context — the primitives' primary purpose
+
+A sub-agent, teammate, or workflow agent runs with its own full, fresh
+context budget, independent of the orchestrating session's. That makes
+delegation the answer to context pressure, not a reason to stop. When a
+cutover — or a whole multi-cutover program — is bigger than the context you
+have left, you do not halt and tell the user to "start a fresh session on
+task #N". You spawn a fresh teammate or sub-agent (`Agent`, an agent team,
+or a workflow), hand it the unit of work, and it executes end-to-end with
+fresh context while you keep orchestrating and land the result. That
+teammate IS "a fresh session," delivered on demand, inside the same
+autonomous run. A large program is executed by driving a teammate per
+cutover (or a team per stage) to merged PRs — one clean atomic cutover per
+teammate, orchestrated by the persistent session, never deferred to a
+future human-started session. Reach for delegation before you feel context
+pressure. "I need a fresh session / a fresh context / I've exhausted
+context / continuing would break the tree" are forbidden excuses (the
+project rulebook's "Hard Cutover by Default" and
+`/charly-internals:cutover-policy`) — the autonomous loop never stops for
+context: it compacts-and-continues, decomposes, or delegates. The
+disposable-only, paste-proof, and no-scope-shrinking-flags binding rules
+apply to a delegated cutover exactly as to a directly-run one.
+
+**A handoff preserves in-flight WIP via the worktree plus a handoff
+package — never a "checkpoint commit."** When half-done work crosses a
+boundary (a teammate hands off, or a session delegates a mid-flight unit),
+the durable carrier is the non-destructive git worktree — the uncommitted
+working tree on its `feat/<slug>` branch — plus a handoff package (the
+branch and absolute worktree path, the WIP state, the exact next steps, any
+captured patch). It is never a "checkpoint commit": un-R10'd non-docs code
+cannot be committed at any honest tier — `syntax check only` pairs with "do
+not commit" and a runtime tier needs a live R10 that has not run, so the
+fresh validator must reject it. The receiving agent reads the package,
+confirms the worktree (`git -C <path> status --short` lists the WIP), and
+continues from the working tree — the WIP was never at risk because
+nothing destructive touched it.
+
+**Verify every delegate decision — a teammate/sub-agent report is a claim
+(never-trust-verify applies to delegates exactly as to docs and memory).**
+Before accepting any decision, finding, or scope-change a delegate
+proposes, the orchestrator verifies its 1–3 load-bearing claims itself —
+read the named file:line, run the grep/count, or (for a high-risk
+behavioral claim) demand/run the disposable-bed spike — and records the
+verification in the ruling; a claim it could not verify is flagged as
+unverified, never silently trusted. This is cheap (greps and reads) and it
+pays both ways: a confirmed claim puts the ruling on ground truth, and the
+misses are exactly the ones that would poison every dependent worker (an
+"additive" sdk move that was actually a cross-cutover type-graph hub; a
+hand-written wire type justified by a rationale a mandated `gengotypes`
+spike then overturned, while confirming the conclusion via the real
+inexpressible case; two teammates defining the same wire type in two
+schema files within minutes). Validator findings get the same treatment —
+re-read the flagged lines before fixing. Delegates' own claims about each
+other's scope (file-ownership, "X already moved Y") are the highest-risk
+class: verify against the tree, not the message.
+
+### Teammate context lifecycle — reuse is task-scoped, never cross-task
+
+A teammate's accumulated context is an asset on its own task chain and a
+liability on any other. The rule: **reuse the live teammate for anything
+that continues its assigned unit; never hand it a different unit — spawn a
+fresh teammate (and stop the old one), or clear its context/workspace
+first, which is the same thing: the new unit starts from zero.** Shutdown
+on task completion is mandatory for teammates and every other agent
+(validators, sub-agents) — the moment its task is done (PR merged / verdict
+accepted / report delivered), stop it; every new task starts a new teammate
+or agent with empty context. There is no related-chain carve-out: a program
+of related cutovers is one fresh teammate per cutover, sequenced by the
+orchestrator, never one teammate marching through a queue.
+
+- **Continue-same-task (reuse — the loaded context is the point):** a
+  CHANGES-REQUESTED fix round on its own PR; the next leg of its cutover
+  chain (sdk leg → superproject leg); rebase / `update-branch` rounds; an
+  orchestrator-ruled widening or re-scope of the same unit; the RCA of a
+  failure its own change caused. Respawning for these throws away the
+  worktree state, scoping map, and bed history the fix round needs, and
+  forces an expensive re-derivation.
+- **Different-task (never reuse a loaded context — related or not):** the
+  moment its chain lands (merged PR plus accepted report), a teammate is
+  stopped (see "Agent lifecycle hygiene" below), never re-tasked. A new
+  unit gets a fresh teammate: stale context anchors the new work on the
+  old domain's assumptions, the drained budget double-pays for
+  compactions mid-unit, and it surrenders the exact fresh-context benefit
+  delegation exists to provide. "Related" does not rescue reuse — a
+  follow-on cutover in the same domain is still a new task and gets a new
+  teammate; the predecessor's knowledge crosses via durable artifacts
+  (below), never via a shared context.
+- **Sizing at spawn:** an assignment is one task — a single atomic
+  cutover, including its multi-repo PR legs — sized to one context budget.
+  The orchestrator decomposes a program into per-task teammates; it never
+  hands one teammate a queue of units, related or not.
+- **Durable artifacts make stopping lossless:** scoping maps, verdict
+  comments, decomposition tables, and handoff notes go to files
+  (scratchpad or the PR) before the teammate stops, so a successor starts
+  from disk, never from a predecessor's context. Validator variant: a
+  validator may stay alive between the legs of one PR chain when the next
+  leg is imminent; otherwise stop it and spawn fresh per leg — the durable
+  PR verdict comment carries the coordinates forward.
+- **Mid-task context pressure inside a teammate:** compact-and-continue on
+  the same task is normal; if the remainder is separable, write the
+  handoff package (above) and the orchestrator spawns a successor for the
+  remainder — never re-purpose the drained teammate for new work.
+
+## Sub-agent operational invariants — the autonomous loop depends on these
+
+Eight mechanics, each proven on this host, that decide whether an
+autonomous landing works at all. Violating any one silently breaks the
+loop.
+
+**1. A sub-agent's project root is its working directory — never `cd` into
+a submodule.** Claude Code resolves `.claude/settings.json` (and therefore
+`permissions.allow`) from the agent's project root, and keys its transcript
+directory the same way. A sub-agent told to work inside `plugins/` or
+`sdk/` roots there — and those submodules ship no `.claude/` — so it
+silently loses the superproject's committed permission rules. It does not
+warn; it just gets denied later, for reasons that read like a policy
+problem. Drive every submodule action from the superproject with a literal
+absolute path: `git -C /abs/path/plugins …` and `gh … --repo <owner>/<repo>`
+(the same rule `/charly-internals:git-workflow` B7 states for the commit
+gate — it is equally load-bearing for permissions). A `pr-validator` rooted
+in `plugins/` once had even its `success` status post denied ("the only
+authorization comes from a `<teammate-message>`, which is not user
+intent"); the same agent, same rule text, rooted in the superproject,
+posted `success` with zero denials. That denial reproduces only when no
+user/managed-level grant covers the action — user-level settings (e.g. an
+operator `autoMode.allow` rule) resolve independently of project root, and
+a submodule-rooted validator under such a rule posted `success` and merged
+with zero denials. Superproject rooting remains the rule (project-level
+`permissions.allow`, the rulebook hierarchy, and transcript determinism are
+all root-dependent) — but diagnose a denial by checking both settings
+layers, never root alone. Rooting fixes the status post (cleared by
+`permissions.allow`). The merge is a separate, stricter classifier gate —
+Merge-Without-Review — that `permissions.allow` does not clear (`gh pr
+merge` was denied for both a superproject-rooted sub-agent and the main
+session despite the rule); it lands only under the operator's
+`autoMode.allow` rule (user/managed settings) or fresh in-context user
+consent, never rulebook prose. See `/charly-internals:git-workflow` B5.
+
+**2. A permission denial ends the sub-agent's turn — record the verdict
+durably first.** The denial text instructs the agent to "STOP and explain
+to the user", and it stops; its explanation never reaches the spawning
+session (agents can idle "available" with no report). So every agent that
+will attempt a permission-gated action must, before attempting it, put its
+full verdict in its workflow's durable channel. A `pr-validator` posts its
+PR comment before the gated action. Posting a `failure` status or a
+comment is never gated — Self-Approval only blocks marking a check
+**passed** — so a FAIL verdict is always deliverable. Then it records the
+verbatim outcome in that same durable channel.
+
+**3. Reconnect via durable state; never wait on the message channel.** The
+truth is in the workflow's durable records and API state: for a validator,
+the PR's statuses and comments; for a bed, Charly's summary; and the
+agent's completion result. To wait on a condition, use a `run_in_background`
+Bash `until`-loop that exits when it resolves — foreground `sleep` is
+blocked — and make the exit condition cover every terminal state (allowed,
+denied, status posted, merged, timed out). Silence is not success: a loop
+that only matches the happy path cannot distinguish "still working" from
+"died at a denial".
+
+**4. A sub-agent loads a skill by `Read`ing its `SKILL.md` by path — the
+reliable method; `Skill(name)` is unreliable regardless of the tool set.**
+Two independent facts, do not conflate them:
+- **Tools:** roster agents run unrestricted — specs omit the `tools:`
+  field, so they inherit all tools (documented behavior, equivalent to the
+  built-in `general-purpose` agent, `Tools: *`), per the project
+  rulebook's Candyboxing (trust the walls, not the tools). A whitelisted
+  `tools:` is the anti-pattern; do not re-add one to "grant"
+  `Skill`/`SendMessage`/`Write` — omission grants all.
+- **Skill access:** invoking `Skill(charly-internals:go)` by name depends
+  on the charly-* skills being registered in that sub-agent's session,
+  which is independent of the `tools:` field and usually absent — an
+  unrestricted `Tools: *` validator once got `Unknown skill:
+  charly-internals:git-workflow` (its session registry held only
+  built-ins), while `Read`ing `plugins/<family>/skills/<name>/SKILL.md`
+  worked every time. So the reliable method is the file `Read`;
+  `Skill(name)` is an opportunistic fast-path that may work in some
+  sessions. A `Skill(name)` failure (`Unknown skill` / "not registered")
+  is expected for a sub-agent, never "the skills are absent". Spawn
+  prompts therefore instruct `Read`-by-path (giving the SKILL.md paths),
+  with `Skill(name)` as an optional shortcut.
+
+**5. A teammate idle notification is turn-boundary noise, not proof it
+died or stalled.** The harness emits an idle signal every time a teammate
+yields its turn — which a working teammate does constantly (between tool
+batches, at every checkpoint). Treating the first idle as "went silent" and
+nudging or replacing on it is a false-positive that discards live work.
+Before nudging or escalating, confirm real inactivity from durable state:
+`find <teammate-worktree> -newermt '-15 min'` (any file touched recently →
+it is working), its `git status` dirty-count moving, or its transcript
+growing. Only a teammate with no worktree activity across a real window and
+no checkpoint is genuinely wedged — the nudge-then-replace reflex is
+correct only after that confirmation.
+
+**6. Confirm a background child's terminal state from its completion
+signal before respawning — never from its output-file size.** A bash
+`run_in_background` child of a teammate is harness-reaped when that
+teammate yields its turn (children have been observed killed seconds after
+the teammate's idle, while the identical command run in the foreground
+passed). So a teammate runs any owned work it needs to completion
+synchronously (foreground), and hands a bed or any other turn-outliving job
+to the persistent session; it never leaves a background child to finish
+after it yields. An `Agent`-tool child may survive the parent's yields, but
+its terminal state is authoritative only from its completion signal (the
+`<task-notification>` / exit code / durable workflow record), never from
+the size or tail of its output file (a half-written log is
+indistinguishable from a reaped one). Respawn only after the completion
+signal confirms the child actually ended.
+
+**7. Validator evidence discipline — six lessons, each a real
+validation-round finding.**
+- **Cross-repo PR/issue citations in any CHANGELOG entry or PR body must
+  carry the owner/repo qualifier** — a bare `#N` is ambiguous the moment
+  it's read from a different repo than the one it names; qualify every
+  cross-repo reference as `owner/repo#N` (e.g. `opencharly/charly#126`).
+- **The repo set a citation check must search is
+  `opencharly/{charly, plugins, sdk, distro-*, pkg-*, .github}`** —
+  checking only the repo the CHANGELOG lives in (or guessing a
+  plausible-sounding repo name) is how a real citation gets misdiagnosed
+  as fabricated.
+- **A validator (or any agent) verifying a claim against a local checkout
+  must treat that checkout as potentially stale and check `origin/main`
+  directly** — several independent validators have hit exactly this trap,
+  verifying a claim against a local tree that had already fallen behind
+  the remote.
+- **Every evidence attestation (a grep count, a checklist line, a balance
+  check) pasted into a PR body or CHANGELOG must be re-run at the final
+  head immediately before pasting** — never transcribed from memory or an
+  earlier run. A fabricated grep count that didn't reproduce, and an
+  independent parallel-repo validator round hitting the identical
+  mistake, are the same failure class: evidence a reader can't verify
+  because it was never actually re-executed is a fabrication, however
+  unintentional.
+- **A `git fetch`/`git push` error naming a missing remote ref on a branch
+  you believe exists is a STOP-and-investigate signal, not a
+  nothing-to-reconcile signal.** The branch's state changed out from under
+  you — a squash-merge-then-delete is the common cause — and pushing
+  anyway silently recreates an orphan branch of the same name, detached
+  from whatever PR it used to belong to. Re-derive the real state (`gh pr
+  view <n> --json state,mergedAt`) before pushing again.
+- **A validation clone's working tree can carry stale staged content from
+  `git checkout <ref> -- .`** (this form copies file contents from `<ref>`
+  into the working tree/index without moving HEAD or the branch pointer,
+  unlike `git checkout <ref>` / `git switch <ref>`) — a subsequent `git
+  switch --detach` then refuses (uncommitted changes would be
+  overwritten), which is the detection signal, not a tool malfunction to
+  route around. The recovery is a hard reset of the disposable clone — it
+  exists only for this validation run, so discard it (or `git reset
+  --hard` and `git clean -fdx` to the intended ref) rather than
+  reconciling file-by-file — followed by a full re-verification, never a
+  partial patch-up: a working tree that silently absorbed foreign content
+  cannot be trusted to be clean anywhere else in it either.
+
+**8. Orchestrator PR ledger and coordination-comment duty.** The
+orchestrator maintains a PR ledger — every session-created PR is tracked to
+an explicit disposition (merge after validation / close with a pointer
+rationale / hand off to another owner) — no orphans. On every `main`
+advance, the ledger's still-open entries are re-checked for staleness (a
+merge, a superseding rename, a policy change that invalidates one of their
+hunks). When any session's work creates a known interaction with a PR it
+does not own — including a PR explicitly out of that session's scope by
+operator directive — it posts a coordination comment on that PR rather
+than staying silent: commenting is always in scope even when evaluating or
+merging is not. See `plugins/internals/agents/pr-validator.md` "Cross-PR
+awareness" for the matching per-PR-validation-run duty — that spec owns the
+PR-validator's own sweep-and-comment mechanics; this item owns the
+orchestrator's standing ledger discipline across the whole session.
+
+## Hooks doctrine
+
+Hooks in this project enforce deterministic command mechanics only. There
+is no reminder layer — rule knowledge lives in the project rulebook and
+skills, loaded fresh by every agent at session start.
+
+| Hook | Event | Role |
+|---|---|---|
+| `pre-commit-gate.sh` | `PreToolUse(Bash)` | blocks hook bypass (`--no-verify`/`-n`/`core.hooksPath`), untokenizable commit commands, configured Go lint failures for staged Go modules, and a new-or-grown `charly/*_aliases.go` file or declaration-form kit-alias line (the ZERO-ALIASES gate) |
+| `pre-push-gate.sh` | `PreToolUse(Bash)` | blocks force-push and a direct push to `main` |
+
+Attribution identity/confidence, change class, CHANGELOG coverage,
+architecture, and R0–R10 evidence belong exclusively to the fresh
+`pr-validator`; the hooks contain no duplicate policy regexes. The honest
+division of labor: **hooks guard command mechanics; agents judge policy and
+proof.**
+
+See `references/agent-roster.md` "Agent teams" for the team primitive's
+setup — no hook is wired to its `TaskCreated` / `TaskCompleted` /
+`TeammateIdle` events; team coordination discipline is owned entirely by
+this skill.
+
+### Agent lifecycle hygiene — stop what you spawned
+
+**The moment an agent's/validator's work is accepted (verdict delivered, PR
+merged, report pasted), stop it — `TaskStop(<name>)` — which also frees its
+tmux pane.** A `shutdown_request` message is not a stop — it only ends the
+agent's conversation; the process and its pane persist until `TaskStop`.
+Message-then-stop is courtesy; message-instead-of-stop is the leak (idle
+finished teammates have been observed accumulating for hours this way).
+Fire `TaskStop` the moment the work is accepted — every agent, every
+validator, no exceptions. Stale finished agents accumulate silently until
+teammate spawning itself fails with "no space for a new pane". When that
+failure hits, the fix is cleanup — sweep with `tmux list-panes -a -F
+'#{session_name}:#{window_index}.#{pane_index}
+cmd=#{pane_current_command} title=#{pane_title}'` and kill idle agent panes
+highest-index-first (never pane .0 of any session) — never a switch away
+from tmux teammate mode: the panes are the operator's live oversight of
+every agent, a standing operator requirement, and `teammateMode` is
+snapshotted at session start anyway (a mid-session settings flip does
+nothing). Stopping is also the reuse boundary: a landed teammate is never
+re-tasked with a different unit — see "Teammate context lifecycle" above.
+
+**Stop only your own children, by task id — never pattern-kill by name.**
+`pgrep -f <substring>` / `pkill -f <substring>` matches every process whose
+argv contains the substring, regardless of owner — so a `pkill -f 'charly
+check run'` from one agent kills another agent's (or the operator's) live
+bed, and a `pkill -f charly` is catastrophic. Terminate a child you own
+with `TaskStop(<name>)` (agents) or the exact task id of the
+`run_in_background` job you launched (bash children) — never a name
+substring. When a genuinely orphaned resource must be cleared, target it
+by its specific identity (`charly vm destroy <entity> --domain <bed>`,
+`charly remove <name>`, `podman rmi -f <id>`), never a broad `pkill`.
+
+### The universal PR-gate — audit before any PR action, always
+
+**Before opening, updating, or merging any pull request, run the aggregate
+audit — unconditionally, as a standing preflight, never situational advice
+reached for only when something already looks off:** `gh pr list` across
+every repo touched by the cutover (superproject, `sdk`, `plugins`, each
+`box/<distro>`) plus `git worktree list` plus the live teammate/agent
+roster. This is an invert-the-default step: run it first, every time, not
+as a response to a suspected conflict. Skipping it risks opening a
+duplicate PR for scope another teammate's in-flight PR already covers,
+updating the wrong branch from a stale worktree, or merging over a
+still-running validator's verdict — each cheaper to prevent with three
+read-only commands than to unwind after the fact. The orchestrator runs
+this audit before dispatching a PR action to any teammate or validator, and
+a teammate/validator about to take a PR action runs it itself first when
+acting without the orchestrator's direct supervision.
+
+### Worktree lifecycle and validator identity — orchestrator-owned, never assumed
+
+- **The author worktree is the validator target.** A fresh validator
+  receives a new context and role, not a second checkout: it runs in the
+  clean author worktree at the bound PR head. It never creates or uses a
+  validator worktree, clone, alternate Git directory, cache, home, or
+  `/tmp` workspace.
+- **Worktree lifecycle is orchestrator-owned.** A validator or teammate
+  never removes a worktree it does not exclusively own. Post-merge cleanup
+  begins only after the validator has finished and live GitHub state
+  confirms the merge; it removes only the merged author worktree and
+  branch after clean-status and ownership checks.
+- **One validator identity per PR.** Never re-brief or re-spawn a validator
+  for an already-merged PR. A changed candidate requires a newly spawned
+  validator before landing; a merged candidate requires cleanup, not
+  another validation thread.
+- **Live repository state wins.** Before any cleanup or response to a
+  claimed merge, the orchestrator checks `gh pr view <n> --json
+  state,mergeCommit,mergedAt`. A teammate's self-report is not authority to
+  remove, recreate, or repurpose a path.
+
+## See also
+
+- Entry: `../SKILL.md`
+- `references/orchestration-model.md` — the topology this discipline
+  supports.
+- `references/parallel-bed-testing.md` — the binding rule for running a
+  bed, per-worktree self-freeze.
+- `references/agent-roster.md` — the roster, the shipped workflows, the
+  team primitive.

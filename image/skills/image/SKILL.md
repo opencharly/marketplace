@@ -652,10 +652,4 @@ The main repo imports all three submodules (`arch` / `cachyos` / `fedora` namesp
 - `/charly-build:migrate` — `charly migrate` migrates legacy configs into the canonical single-`charly.yml` layout
 - `/charly-internals:capabilities` — OCI label contract emitted at build time and consumed by deploy commands
 
-## Live-deploy verification is mandatory (see `/charly-check:check` 10 standards)
-
-Changes that touch this verb's output must reach a healthy deployment on a target explicitly marked `disposable: true` (see `/charly-internals:disposable`). Use `charly update <name>` to destroy + rebuild unattended on any disposable target. Never experiment on a non-disposable deploy — set up a disposable one first with `charly bundle add <name> <ref> --disposable` or mark a VM in vm.yml.
-
-**After committing the source-level fix, `charly update` the disposable target ONCE MORE from clean and re-run the full verification.** A fix that passes only on a hand-patched target is not a real fix — it's a regression waiting for the next unrelated rebuild. Paste BOTH the exploratory-pass output and the fresh-rebuild-pass output into the conversation.
-
-Unit tests + a clean compile are necessary but not sufficient. See the project rulebook R1–R10.
+Live-deploy verification: see /charly-check:check (the 10 Testing Standards) and /charly-internals:disposable.

@@ -1,0 +1,600 @@
+# Parallel Bed Testing
+
+Companion reference for `/charly-internals:agents`. Owns the bed-scoped
+parallel real-deployment testing model: the per-bed ownership rules, the
+concurrency ceilings and their fixes, the charly-binary multi-worktree
+rules, and the binding rule that running a bed is R10-class.
+
+## Implementation workflows are bed-scoped too
+
+The shipped workflows in `references/agent-roster.md` verify. A dynamic
+workflow that *implements* a cutover (fans coding out across `agent()`
+calls) obeys the same bed-scoped discipline as an agent team — it is the
+workflow expression of the B3 model (`/charly-internals:git-workflow`), not
+an exemption from it:
+
+- **Partition the parallel work by check bed.** One disjoint disposable bed
+  per parallel owner (`check-pod` / `check-k3s-vm` / `check-local` /
+  `check-android-emulator-pod` / …). Distinct beds get distinct
+  `charly-<bed>` container/VM/domain names, and a bed run tags every
+  fixture image it builds with a per-run `<bed-root>-<runCalver>` tag, so
+  two beds building the same fixture image name never race the
+  store-global tag namespace; the author assigns each disjoint host ports
+  too (the loader does not check ports — an overlap fails the second bed
+  at deploy), so beds run concurrently and safely.
+- **Check-test at every stage, never only at the end.** Each parallel owner
+  verifies before it changes (Risk Driven Development — proves its bed's
+  high-risk assumptions, above all composition, on its live bed/backend
+  first, never trusting a doc or the code for a high-risk call) and runs
+  its bed's real `charly check run <bed>` as the fresh-rebuild R10.
+- **Read-only review is an additional layer, never a substitute.** A
+  workflow that replaces real-deployment bed runs with a read-only
+  diff-review phase is a protocol violation. Adversarial diff review is
+  welcome on top of the beds.
+- **Compile-coherence is solved structurally, not by serializing.** A
+  single Go package can't have N agents edit-and-build at once, but that's
+  handled by shape: the lead lands the shared core first (compile-clean),
+  each parallel unit is an independent `init()`-registered file (no
+  shared-file edits), and the one shared tree's `charly` binary rebuild is
+  a single barrier between the parallel-implement and parallel-bed-R10
+  phases. Canonical shape: `Core (seq) → Implement (parallel by bed) →
+  Integrate+build (seq barrier) → BedR10 (parallel by bed) → Review
+  (parallel, read-only, optional)`. The barrier is load-bearing because
+  `charly` refuses heavy ops (`image build`, `deploy add`) whenever any
+  `charly/*.go` source is newer than the invoked binary (remediation: one
+  `task build:binary` in the shared checkout). A teammate editing
+  `charly/*.go` while another's bed is mid-run trips that guard on the
+  bed's deploy step, so rebuild once at the barrier, then run every bed
+  against the now-stable binary. The barrier carries a bare-`$PATH`
+  caveat: the shared tree's bed set must actually invoke `./bin/charly`
+  (explicitly, or with the shared tree's `bin/` prepended onto `$PATH` for
+  the bed's session) — a bed that shells to bare `charly` otherwise
+  resolves whatever the host has installed, never the shared tree's
+  freshly-rebuilt binary (the same trap "Host-local beds are never a
+  worktree gate" describes below). This barrier binds the shared-tree
+  model only (one checkout, one binary) — a multi-worktree team needs no
+  barrier at all, since each worktree's own `bin/charly` is
+  self-consistently gated (see "Per-worktree binaries" below); never
+  conflate the two models.
+- **Same binding rule** as below: disposable-only, commit-gated-not-run,
+  no-scope-shrinking-flags, paste-proof survives delegation.
+
+## The charly binary in a multi-teammate / multi-worktree setup
+
+Every teammate/worktree in a multi-agent run needs its own charly binary —
+conflating the host binary with a worktree's own build is the single most
+common way an in-flight cutover leaks onto shared host state.
+
+- **Two binaries, two roles.** Per-worktree `bin/charly` — built via `task
+  build:binary` (a CalVer-stamped build plus a `candy/charly/bin/charly`
+  copy, gitignored, no install step) — is the dev binary: every teammate
+  uses its own worktree's `./bin/charly` for every charly verb. The
+  host-installed `charly` is a distro-native package
+  (`.pkg.tar.zst`/`.rpm`/`.deb`, built via `task
+  pkg:arch`/`pkg:fedora`/`pkg:debian`/`pkg:all` into `dist/`, or downloaded
+  as a published release) installed with the distro's own package manager
+  — this is the only canonical host-refresh path; no Taskfile target
+  auto-installs system-wide. (`task install-portable` — a portable
+  `$HOME/.local/bin/charly` copy — remains for solo bootstrap, but it
+  writes to a host location exactly like a package install, so the same
+  in-flight-work boundary below applies to it too.)
+- **The host-install boundary — no host-writing target runs during
+  in-flight multi-teammate work, period.** Neither the package-manager
+  install nor `task install-portable` runs while teammates are
+  mid-cutover: both write to host state (`$PATH` or `$HOME`) every
+  concurrent teammate may resolve, and either would publish an unmerged
+  branch's binary where a sibling teammate or the operator expects
+  `main`'s behavior — an R9 violation. (Observed failure mode: a worktree
+  smoke bed tripped the stale-binary guard, and the fix attempt ran a
+  system-wide install task, publishing an unmerged branch's binary onto
+  the host — the reason this rule is absolute.) The host is updated from
+  merged `main` only, post-landing, by the orchestrator/operator, one
+  writer at a time (see "Post-merge resync" below).
+- **Stale-binary guard semantics are per tree.** `CheckBinaryFreshness`
+  (`charly/main_freshness.go`) walks up from cwd to find the opencharly
+  source root (the dir containing both `charly/main.go` and `charly.yml`),
+  stats the invoked binary via `os.Executable()`, and compares it against
+  the newest `.go` mtime under `<root>/charly/` (60s slack; info-only verbs
+  — version/help/status/inspect/list — are exempt). This is entirely
+  self-consistent per worktree: a guard trip while running `./bin/charly`
+  inside your own worktree means your `bin/charly` is older than your own
+  edits — the fix is `task build:binary`, never a host install. A guard
+  trip that resolves to the host-installed `charly` means you are on the
+  wrong path (your worktree's `./bin` isn't ahead of it on `$PATH`) or
+  running the wrong bed class (next bullet).
+- **Host-local beds are never a worktree gate.** A `local: {host: local}`
+  deploy (or a bed with a nested `local:` member) shells out to bare
+  `charly` on `$PATH` — that resolves whatever the host has installed, not
+  your worktree's `./bin/charly`, regardless of which worktree you're
+  standing in. Such a bed can only ever exercise host state, never your
+  worktree's in-flight source. In a worktree context, pick a pod or VM bed
+  instead: a pod bed bakes the worktree's binary via `--dev-local-pkg`; a
+  VM bed stages the worktree `charly` into the guest over
+  `kit.EnsureCharlyInGuest`. A guard trip (or any surprising behavior) on a
+  host-local bed while doing worktree work means you picked the wrong bed
+  class — never a signal to install anything (consistent with
+  `/verify-beds`'s blanket refusal of host-local beds, motivated there by
+  workstation safety).
+- **Invoking `./bin/charly` directly is not sufficient for beds whose plan
+  steps shell out to bare `charly`.** The outer invocation's binary does
+  not propagate to an inner bare-`charly` subprocess a bed's own
+  `command:` plan step launches — only a `$PATH` prefix does. Always run a
+  bed as `PATH=$PWD/bin:$PATH ./bin/charly check run <bed>`, so every
+  internal subprocess resolves the worktree binary consistently. The
+  failure signature: a single stale-binary step failure deep inside an
+  otherwise-green run — often on a step testing a surface unrelated to
+  your actual change, after minutes of progress — is the tell that an
+  inner bare-`charly` call resolved the host binary instead of yours.
+- **Multi-worktree concurrency corollary.** Because each worktree carries
+  its own binary and its own freshness-guard scope, teammates working in
+  distinct worktrees need no freeze barrier between them — each rebuilds
+  its own `./bin/charly` via `task build:binary` whenever it likes, with
+  zero cross-teammate interference. The "freeze `charly/*.go` plus one
+  `task build:binary` at the barrier" rule (above, and
+  `/charly-internals:git-workflow` B3) applies only to the shared-tree team
+  model — multiple agents editing one checkout with one shared binary,
+  where the barrier also carries the bare-`$PATH` caveat above. The two
+  models are not interchangeable: a shared-tree team needs the freeze
+  because there is exactly one binary every bed run depends on; a
+  multi-worktree team needs no freeze because there is one binary per
+  worktree.
+- **Within-worktree self-freeze — the complementary rule.** The per-tree
+  freshness guard does not check only at the start of a bed run — it
+  compares the invoked binary against the cwd's sources at every heavy
+  verb the bed executes, mid-run. So editing your own worktree's
+  `charly/*.go` — even a comment-only edit — while your own bed is
+  mid-flight trips the guard on the bed's next step and fails an
+  otherwise-green run. The two freeze scopes are complementary, not the
+  same rule: (a) across distinct worktrees, no barrier is needed (each
+  worktree's binary is independent); (b) within one worktree, freeze your
+  own `charly/*.go` for the duration of your own bed run — queue edits
+  until the verdict lands, then `task build:binary` and re-run. The
+  failure is self-inflicted, not a product defect: RCA it as "I edited
+  mid-run", rebuild, and re-run fresh — never chase the guard as a bug.
+  "Your own" is worktree-scoped, not agent-scoped — a spawned sub-agent
+  running a bed in the same worktree its spawner is editing is the
+  identical self-freeze violation viewed across two agents sharing one
+  tree, not an exempt case. One binary-build owner per worktree at a time:
+  before dispatching a sub-agent to run a bed in a worktree you (or any
+  other agent) are still editing, either finish/pause the edits first, or
+  dispatch the bed to a different worktree entirely — never both at once
+  in the same tree. (A bed-runner sub-agent that foreground-ran a long VM
+  bed with a `timeout` in a worktree its spawner kept editing once
+  produced both an orphaned libvirt domain and a stale-binary guard trip
+  at the same time — see "Handling a long-running bed" below for the
+  launch-mechanism half of the same failure.)
+- **Side-effects (documented elsewhere — pointers, not copies).** `task
+  build:binary` keeps the dual path `bin/charly` ↔ `candy/charly/bin/charly`
+  in sync (a manual `go build -o` does not) — see `/charly-internals:go`
+  "Quick Reference" / "Debug a Build Issue" + `/charly-tools:charly`. It
+  does not touch the tracked `pkg/arch/PKGBUILD` — that file is read only
+  by the distro-native package build (`charly box pkg`, run inside a
+  container from its own embedded template), never by a bare-host `go
+  build`.
+- **Post-merge resync.** After a wave lands, the orchestrator/operator
+  updates the host package from the new `main` via the native-package path
+  — build a fresh release artifact (`task pkg:arch`/`pkg:fedora`/
+  `pkg:debian` into `dist/`, from the main checkout) and install it with
+  the distro's package manager, or install a newly published release —
+  never via a Taskfile target that installs directly. Each long-lived
+  worktree is then either removed (its cutover is done) or fast-forwarded
+  to the new `main` plus a `task build:binary` re-run before reuse — never
+  left pointing at a pre-merge binary while its worktree source has moved
+  on.
+
+## The binding rule: running a bed is R10-class
+
+`charly check run <bed>` and `charly update` perform an unattended destroy
+and rebuild. Therefore, for any agent or workflow that runs them:
+
+- **Disposable-only.** The sole authorization is the bed's explicit
+  `disposable: true`. Agents run disposable check beds, never arbitrary
+  deploys.
+- **The commit is gated, not the run.** The git commit happens only after
+  a full live test of everything — the final code, on `disposable: true`
+  beds — passes and is pasted. Running `/verify-beds`, `check-bed-runner`,
+  or any `charly check run` throughout development — in parallel or in the
+  background, to validate assumptions before you change and to diagnose
+  errors — is encouraged. A run that passes on an intermediate state
+  simply does not authorize the commit; only the full final-code run does.
+- **No scope-shrinking flags.** Never pass `--no-rebuild` / `--keep` /
+  `--on-*` / scenario filters unless the user named the flag this turn.
+- **Declare an intended live bed run to the orchestrator and wait for a
+  slot.** Any agent about to run a real `charly check run <bed>` / `charly
+  update` first announces it and waits to be scheduled — the orchestrator
+  owns bed serialization (the per-exclusive-token groups, and host
+  build/store capacity). A bed launched without declaring it races an
+  already-running roster; the live-bed schedule is the orchestrator's,
+  never the individual agent's. (Shared fixture images no longer need a
+  mutex — bed runs tag them per-run `<bed-root>-<runCalver>`,
+  collision-free by construction; `/charly-check:check`.)
+- **Paste-proof survives delegation.** Sub-agents are built to summarize,
+  but R10 demands pasted proof. The executors return the raw verdict, exit
+  code, and failing-log tail; the delegating (main) agent pastes it into
+  the conversation. A delegated bed run whose failure is summarized away
+  is the exact fraud pattern the project bans.
+- **Handling a long-running bed — by mechanism, not by who owns it.** A
+  VM/emulator bed (`check-k3s-vm`, `check-android-emulator-pod`, the
+  bootstrap-VM beds) runs for minutes-to-tens-of-minutes and its libvirt
+  domain / emulator outlives a single turn. Run it by the mechanism, not a
+  who-owns-it rule:
+  - **Launch as a harness-tracked background task** (`run_in_background`).
+    Never foreground — the Bash tool's `timeout` (120s default, 600s
+    maximum) kills the call mid-`vm-create`, orphaning the domain. Never a
+    sleep/poll loop to "keep it alive" — that busy-poll is the exact R4
+    bandaid this replaces. A spawned sub-agent is not exempt from this
+    just because it is a different agent from its spawner: a
+    `check-bed-runner`-style sub-agent that foreground-runs a long VM bed
+    with a `timeout` inside the same worktree its spawner is
+    simultaneously editing combines two violations at once (foreground-
+    with-timeout on a long bed; editing a worktree during its own bed's
+    mid-flight run — "Within-worktree self-freeze" above) and produces
+    exactly the double failure both rules predict: the timeout kills the
+    bed mid-run and orphans its libvirt domain, and the freshness guard
+    trips on the concurrent edit. Being "a different agent" does not
+    create a second, exempt worktree — launch the long bed as a
+    `run_in_background` task owned by a persistent session and freeze
+    that worktree's edits for the run's duration regardless of which
+    agent is driving it.
+  - **The completion notification is the signal, not polling.** The
+    harness re-invokes the launching session with a `<task-notification>`
+    when the run exits, so the launcher must survive to completion to
+    receive it. The persistent main session does. An ephemeral sub-agent
+    does not (the `Agent` tool returns synchronously — its background
+    children die when it returns), and an idle teammate does not (its
+    process tree is torn down on idle) — both orphan the bed. Every full
+    `charly check run <bed>` belongs to the persistent session as a
+    background task — the only session that survives across turns to be
+    notified. Duration-independent: there is no time budget, and the Bash
+    600s figure is a foreground cap that never applies to a backgrounded
+    bed. Sub-agents/teammates do bed-local edits and short foreground
+    checks (`charly check box`), never the full run.
+  - **Reconnect via durable state, never a held process handle.**
+    `.check/<bed>/<calver>/summary.yml` (overall `ok:` and per-step status)
+    plus the live domain/container are the source of truth: "done" =
+    `summary.yml` exists; "still alive" = the `charly check run`
+    orchestrator is in the process table. But `ok: true` is not proof of a
+    pass — a bed charly skipped for an absent host prereq writes `ok:
+    true`, `total_seconds: 0`, and a lone `prereq-*-skipped` step; the exit
+    code is the discriminator (3 = skipped). See `/charly-check:check`. On
+    a suspected orphan — a `running` domain with no live orchestrator —
+    `charly vm destroy <entity>` (the `kind: vm` entity name, not the bed
+    name: a wrong name exits 0, prints `Destroyed VM …`, and leaves the
+    orphan running — confirm with `charly vm list`), or `charly remove
+    <name>` for a pod, before re-running. You re-derive state from disk;
+    you never "lose" a run.
+  - **Paste-proof survives.** The owner reports the verbatim
+    `summary.yml` verdict and exit code; the lead pastes it.
+
+## Bed-scoped parallel real-deployment testing
+
+The **check bed is the unit of ownership, isolation, and throughput**
+within one source tree; across cutovers, a **git worktree with its own
+built binary** is the gate-isolation unit (see "Per-worktree binaries"
+below — the two compose). `charly check run <bed>` runs exactly one bed;
+running a roster means N concurrent `charly check run <bed>` processes —
+one per agent — and every full `charly check run <bed>` is a long,
+multi-turn background task whose owner must survive across turns to
+receive the completion notification. A bed run is launched with
+`run_in_background` (uncapped — it runs across turns; the Bash 600s figure
+is a foreground cap that never applies) and re-invokes its launching
+context when it exits. Which contexts can own a bed, empirically verified
+on this host:
+
+- **The persistent main session** — launches each bed as its own
+  `run_in_background` task; re-invoked on completion. The headless default
+  mechanism.
+- **A background agent** (`Agent` tool, `run_in_background`) — a separate
+  supervisor-managed process that persists, runs to completion, and
+  reports. A per-bed out-of-process owner that works headless. Caveat: its
+  internal `charly check run` is one foreground call (600s-capped), so for
+  a long bed prefer the main-session `run_in_background` task or step the
+  bed.
+- **A split-pane teammate** — a separate persistent process, so it can own
+  a bed. Only in an interactive tmux/iTerm2 run (`teammateMode: tmux` and
+  the lead's own process launched inside tmux, `TMUX` set). Not available
+  headless.
+- **An in-process teammate** (the headless `teammateMode: auto` default) —
+  cannot own a bed that outlives a turn: its `run_in_background` task is
+  torn down the instant it yields. It runs bed-local edits and short
+  foreground checks (`charly check box`, `charly box validate`) only,
+  never the full `charly check run`.
+
+So "one agent per bed" means one persistent owner per bed, launched
+longest-pole-first: headless → the persistent session runs N concurrent
+`run_in_background` bed tasks (or a background agent per bed); interactive
+tmux → a split-pane teammate per bed. Never an in-process teammate.
+
+Two load-time mechanisms back the isolation: the bed set is derived from
+the disposable deploys (`CheckBeds()`) — a bed is just a `disposable: true`
+deploy, so it shares the deploy namespace's global name-uniqueness and
+can't collide with another deploy by construction — and `validateCheckBeds`
+requires every bed to set `disposable: true` and to resolve to a substrate
+(pod / vm / local / android, with the referenced vm/local/android entity
+present). Distinct beds therefore get distinct `charly-<bed>`
+container/libvirt-domain names — a `vm:` bed's libvirt domain is keyed by
+the deploy name (`vmDomainIdentity`), not the shared `kind:vm` entity it
+references, so sibling beds on one entity (`vm: {from: eval-vm}`) still get
+distinct `charly-<bed>` domains and per-deploy disk overlays. The fixture
+images a bed builds are isolated the same way — by a per-run tag, not a
+name: a bed run tags every image it builds (`charly box build … --tag
+<bed-root>-<runCalver>`) and passes that tag on every deploy step
+(`bedRunImageTag`), so two beds building the same fixture image name (e.g.
+`check-sidecar-pod` and `check-k8s-deploy` both building
+`check-k8s-deploy-app`) no longer race the store-global
+short-name→newest-local-CalVer resolution.
+
+**Host-port disjointness is not statically guaranteed, so every eval bed
+must use port auto-allocation — never a hardcoded host port.** The loader
+checks no ports, so a hardcoded host port shared by two beds surfaces only
+at deploy time when `CheckPortAvailability` / passt's `Listen failed …
+Address already in use` fails the second bed's `start` (observed: two VM
+beds once pinned the same SSH host port). Manual "pick disjoint ports"
+deconfliction is forbidden — it is fragile authoring that silently
+collides the moment a bed is added or the roster runs concurrently. Use
+auto-allocation by construction: a `vm:` bed sets `ssh: {port_auto: true}`
+(the runner probes a free host port and persists it in `vm_state`) and an
+extra `network.port_forwards` entry uses the `auto:<guest>` sentinel (the
+host port auto-allocated and persisted, resolved into the render and the
+k3s kubeconfig rewrite; never a hardcoded `<host>:<guest>` shared across
+beds — a real collision the k3s-vm pair once hit); a `pod:`/`local:` deploy
+uses the `port: [auto]` sentinel (`AllocateAutoPorts` tracks an `occupied`
+set so concurrent `[auto]` deploys never collide) and references the
+assigned port via `${HOST_PORT}` / `${HOST:<member>:<port>}` in its checks
+— never a literal host port. A bed pins an image → layers → files, so
+owning a bed owns those source files.
+
+**The per-bed-name mutex is worktree-independent — it extends across every
+agent and every worktree, not just within one team.** Bed→deploy names are
+deterministic (`charly-<bed>`), so the same bed name run concurrently from
+two different worktrees collides on that one deterministic domain/container
+name exactly as two teammates in the same tree would — the worktree
+boundary does not create a second namespace. This matters even when
+partitions look clean: a `pr-validator` (or any other agent) exercising its
+own R10 authority — e.g. re-running a bed to disprove a PR's false
+narrative — is a legitimate, different reason to run a bed, on a different
+worktree, that can still collide by name with an unrelated in-flight run.
+So the orchestrator's bed serialization duty (declare-and-wait-for-a-slot,
+above) covers all bed launches by name across the whole session, not merely
+the beds it tracks as one team's roster: before any agent (teammate,
+validator, or the orchestrator itself) launches `charly check run <bed>`,
+cross-check the bed name against every other worktree's in-flight run, not
+just this worktree's partition. Recover a name collision by stopping the
+lower-priority run (never tearing down the shared domain out from under the
+run that should continue) and re-launching it once the name is free.
+
+Each bed is a **candybox** (the project rulebook's "Candyboxing"): a
+disposable, secured deployment stocked with the full `charly` + MCP +
+`charly check` toolset, so the bed's owner can build, deploy, and prove the
+real thing inside its boundary and rebuild it fearlessly — never a
+tool-restricted sandbox.
+
+The playbook:
+
+1. **Lead partitions the beds** so no two teammates own the same bed's
+   source.
+2. **A persistent owner runs each bed; in-process teammates edit and
+   short-check.** The full `charly check run <bed>` (build → check image →
+   deploy → check live → fresh `charly update` → teardown) runs as a
+   `run_in_background` task on a persistent owner: headless → the
+   lead/persistent session (one `run_in_background` task per bed, or a
+   background agent per bed); interactive tmux → a split-pane teammate per
+   bed. It follows the `check-bed-runner` verbatim-verdict discipline;
+   failures triage via `root-cause-analyzer`. In-process teammates (the
+   headless default) do bed-local edits and short foreground checks
+   (`charly check box`, `charly box validate`) only — they cannot run a
+   full bed. Review/RCA are auxiliary — never a substitute for the live
+   run.
+3. **Verify before you change (Risk Driven Development):** each teammate
+   proves its bed's high-risk assumptions — above all the composition — on
+   its standing bed before editing, never trusting a doc or the code for a
+   high-risk call, so it is never disproven hours later.
+4. **Default parallel, longest-pole-first.** Beds run concurrently — there
+   is no `charly` concurrency cap (the "16-concurrent / 1000-total" figure
+   is only the dynamic-workflow harness ceiling); the real limit is host
+   CPU/RAM/podman, and there is no global build lock (pod beds take no
+   ledger flock, `.build/<image>` is per-image). KVM/libvirt are
+   multi-tenant and podman builds distinct image tags concurrently, so pod
+   and VM beds run alongside each other. **The real concurrency ceiling is
+   podman's single sqlite container-store write lock, not CPU.** Every
+   container op (each build stage, `podman run --rm` probe, pod create,
+   teardown `rm`) takes a write transaction on the one graphroot DB; under
+   many concurrent bed cycles the lock is contended past its busy-timeout
+   and ops fail with `Error: beginning transaction: database is locked`
+   (exit 125), cascading into probe/build/deploy failures across the whole
+   roster. Measured on a 16-core/123 GB host: at maxjobs 14 → 0 locks
+   (12/13 beds pass), at maxjobs 22 → every bed hit `database is locked`.
+   So the un-tuned ceiling is roughly 14–20 concurrent beds. It is not CPU
+   (RAM/disk have huge headroom at peak, and load 22–24 is fine) and not
+   orphans alone.
+   **The fix that raises the ceiling is `transient_store = true`**
+   (`~/.config/containers/storage.conf` `[storage]`, or podman's global
+   `--transient-store` flag): container run-state moves to a per-boot
+   tmpfs DB, so the high-churn container ops stop contending on the
+   graphroot lock; images stay persistent in graphroot. Proven: the same
+   maxjobs 22 that locked every bed produced 0 `database is locked`, 32/37
+   pass, with `transient_store` on. Enable it on any host running the
+   roster concurrently (set `[storage] driver/graphroot/runroot` to the
+   host's real values plus `transient_store = true`). Tradeoff: containers
+   don't survive reboot (quadlet services recreate from image+volumes;
+   volume data persists) — fine for an ephemeral eval host. Complementary
+   hygiene: `charly check box` runs its probes in one persistent container
+   (`podman exec` per step, not `podman run --rm` per step), minimizing
+   the container-setup store race; a residual setup failure is classified
+   infra. Partition by expected duration, not bed count: start the long
+   poles (VM/desktop beds, as persistent-session background tasks) first
+   and overlap the cheap pod beds underneath, so wall-clock is roughly the
+   slowest single bed.
+   **RDD discipline, learned the hard way:** a `database is locked` /
+   `signal: killed` (a probe hung on the store lock, then timed out) /
+   build crash under concurrency is the store lock — enable
+   `transient_store` — almost never CPU. Read the actual error line
+   (`database is locked`) rather than assuming a cause; then isolate any
+   bed failure by re-running it alone — passes alone but fails in a pool
+   means the shared store lock (`transient_store`), fails alone too means
+   a real deterministic bug (a fragile `curl -sL | tar` masked one
+   download 404 as `tar: Child returned status 1`). With the store lock
+   removed, RAM/disk/CPU have enough headroom that maxjobs of roughly
+   20–24 runs cleanly.
+4b. **Serialize beds that share an exclusive host-resource token — the
+   second concurrency ceiling, orthogonal to the store lock.** A bed
+   declaring `requires_exclusive:` / `requires_shared:` on a resource
+   token (`nvidia-gpu` for the real GPU; a synthetic selector-less token
+   like `test-lock` for the arbiter/preempt beds) contends with every
+   other bed claiming the same token: the arbiter fast-fails a second
+   claim on a held exclusive token (`resource nvidia-gpu is held
+   EXCLUSIVELY by "<bed>" — cannot share it`, exit 1, zero build steps —
+   the bed never builds), because two live claims on one exclusive
+   resource is a contradiction, not a queue. So a parallel roster must
+   partition by token: each exclusive-token set runs as its own serial
+   group (one bed at a time), while different token groups and the
+   no-token pool run in parallel. On this repo: `nvidia-gpu` =
+   {`check-cachyos-gpu-vm`, `check-selkies-{kde,labwc}-nvidia-vm`
+   (exclusive) + `check-cachyos-{comfyui,unsloth-studio,immich-ml,
+   jupyter-ml}-pod` + `check-versa-pod` (shared)} — all serial among
+   themselves (an exclusive vfio flip cannot overlap a shared nvidia+CDI
+   claim); `test-lock` = {`check-preempt-arbiter-pod`,
+   `check-preempt-live-pod`, `check-cross-pod-cdp`} — serial (GPU-free, so
+   parallel with the nvidia-gpu group). A read-only GPU detection bed
+   (`check-gpu-local`, `charly vm gpu status`) declares no token → parallel
+   pool. The signature that tells the two ceilings apart: `held
+   EXCLUSIVELY … cannot share` at the acquire step (arbiter → serialize the
+   token group) vs. `database is locked` mid-build (store lock →
+   `transient_store`). Never release a sibling's active lease to force a
+   parallel claim through — serialize the group instead (a stranded lease
+   from a killed claimant is cleared with `charly preempt restore`, not by
+   racing it).
+4c. **A parallel long-bed roster is owned by the persistent session as N
+   `run_in_background` tasks — never the sub-agent `/verify-beds` workflow
+   for beds over 600s.** A sub-agent's internal `charly check run` is one
+   foreground call (600s-capped), so a VM/GPU bed that outruns 600s is
+   killed mid-run while a sub-agent holds it (a "still running when forced
+   to report" incomplete verdict — a fan-out artifact, not a bed failure).
+   The persistent session survives across turns to receive each completion
+   notification, so it is the only owner that can hold a long bed. And
+   never force-terminate a running roster: SIGKILLing a bed's `charly box
+   build` mid-write corrupts the graphroot image (a partial image with a
+   missing `manifest` file makes every later `podman images` fail exit 125
+   host-wide); recover with `podman rmi -f <corrupt-id>` (the ID the error
+   names). Let a roster finish, or tear its deploys down with `charly vm
+   destroy` / `charly remove` — `transient_store` fixes the lock, not a
+   hard mid-write kill.
+4d. **A shared-tree walk must tolerate a concurrent sibling's transient
+   build artifacts — the fourth concurrency ceiling, invisible to every
+   serial run.** Beds run in one source tree, and a bed that builds in-tree
+   (a candy's makepkg under `pkgbuild/{pkg,src}`, a cargo `target/`, an npm
+   `node_modules/`) creates directories that are transiently unreadable
+   (fakeroot-owned, mode-0700, or half-written) while a sibling bed's
+   loader walks the same tree. A walk that aborts on the first per-entry
+   `EACCES` fails the sibling's entire `LoadUnified` — surfacing as a
+   bogus downstream error (a swallowed discover-walk `EACCES` on a candy's
+   `pkgbuild/pkg` directory once became a misleading "unknown kind:local
+   template" for an unrelated bed). Root-cause fix pattern: a tree walk
+   skips an unreadable/erroring subtree (`filepath.SkipDir`) and
+   continues — a discoverable manifest can never live in an unreadable
+   dir — and skips VCS/build-artifact dirs by name; it never aborts the
+   whole load. Same lesson for any shared-state read under concurrency:
+   don't swallow the real error (it hides the class), and don't let one
+   sibling's transient artifact fail an unrelated bed.
+4e. **Per-worktree binaries — bed gates from multiple branches overlap.**
+   See "The charly binary in a multi-teammate / multi-worktree setup"
+   above for the canonical host-vs-worktree-binary rule; this item adds
+   the concurrent-bed proof and the CalVer-stamping detail. The freshness
+   guard (`main_freshness.go`) compares `os.Executable()` against the
+   cwd-walked source root, so a worktree with its own `task build:binary`
+   output is self-consistent: `PATH=$PWD/bin:$PATH charly check run <bed>`
+   runs the full R10 sequence (deploy-add → check-live → fresh update →
+   cleanup, external plugins included) on the worktree's binary without
+   ever installing — `/usr/bin/charly` untouched. Proven concurrently
+   across worktrees on different branches: two different beds from two
+   trees ran overlapping (one finishing in roughly 79s, nested inside a
+   sibling's roughly 265s window), with separate per-tree
+   `.check/`/`.build/` outputs, zero cross-contamination, zero leftover
+   deploys. Requirements: the worktree needs the `sdk` and `pkg/arch`
+   submodules inited (`task build:binary` reads `pkg/arch/calver.sh`) but
+   not the `box/<distro>` submodules for the root disposable roster: root
+   `charly.yml` imports the distro namespaces (arch/cachyos/fedora) via
+   remote `@github.com/opencharly/distro-*` refs (resolver-fetched into
+   cache, pinned independently of the submodule pointers), so the root
+   check beds resolve from local `candy/` layers, registry base images,
+   and the remote-fetch cache, never the box/* working trees. (A
+   `box/<distro>`'s own in-submodule beds do need that submodule inited —
+   box-specific work, not the cross-cutting root roster.) Never install to
+   the host from a worktree — the host-install boundary above is absolute,
+   and no `task` target does it anyway. **The per-worktree binary must be
+   CalVer-stamped** — build it with `task build:binary`, which passes
+   `-ldflags "-X main.BuildCalVer=<calver>"`; a bare `go build -o` yields
+   an unstamped binary that reports version `unknown` and fails every bed
+   step asserting the CalVer stamp (a `vm:` bed pushes the host binary
+   into the guest and asserts `charly version` there, so an unstamped
+   binary fails the guest witness). This trap has recurred — `task
+   build:binary` (never a bare `go build -o`) is the only sanctioned way
+   to produce a per-worktree binary; a plain `go build` is a silent gate
+   defect that surfaces only at the guest stamp assertion, deep into a
+   long VM bed. Scheduling rule when overlapping gates: the same bed name
+   must never run twice at the same instant (bed→deploy names are
+   deterministic — same `charly-<bed>` names collide); distinct beds are
+   collision-free by construction — their `charly-<bed>` deploy names and
+   the fixture images they build, which a bed run tags per-run
+   `<bed-root>-<runCalver>` so two beds building the same fixture image
+   name never race the store-global tag namespace; and verify every bed
+   name against the live tree roster (`grep '^check-.*:' charly.yml`)
+   before each launch — rosters change across cutovers, so a stale name
+   from notes or memory aborts the run. Cross-gate concurrency shares the
+   one store-lock ceiling (item 4) and the exclusive-token chains (4b) —
+   one global scheduler, per-bed mutex, capacity roughly the measured
+   maxjobs.
+5. **The lead opens the single PR**, gated on the consolidated full
+   final-code live test (the beds in parallel); a fresh `pr-validator`
+   (never a teammate that authored code) validates and merges it.
+   Teammates never commit, push, or merge.
+
+Worked partition (illustrative): A → `{check-pod, check-local}`, B →
+`{check-jupyter-pod, check-versa-pod}`, C → `{check-k3s-vm}` (VM, needs the
+libvirt user session), D → `{check-sway-browser-vnc-pod}` (heavy). All
+concurrent → multiple pods and a VM live at once; wall-clock is roughly the
+slowest chain, not the sum.
+
+## Speed levers (grounded in the real bed cycle)
+
+One-agent-per-bed is the headline speedup; these compound it, each grounded
+in how `charly check run` actually behaves:
+
+- **A pod bed builds the image once.** Step 1 (`charly box build`) is the
+  only build; the "fresh `charly update`" R10 gate is a `systemctl
+  restart` onto the already-built image (`charly update` carries no
+  `--build`, and `EnsureImage` short-circuits on `LocalImageExists`). The
+  cost model is roughly one build per bed — never pessimistically assume
+  two.
+- **Pre-warm the shared base once.** Same-base beds (e.g. two `cachyos`
+  images) share cached base layers in podman storage, and the
+  content-derived `EffectiveVersion` keeps the base `FROM`-SHA stable so
+  cache misses don't cascade. Build the base (or the first same-base bed)
+  once before fan-out → every sibling bed's build is incremental,
+  rebuilding only changed layers.
+- **`check:`-check iteration is nearly free.** LABELs are emitted last in
+  the Containerfile, so a check-only edit rebuilds in seconds (every
+  upstream RUN/COPY cache-hits). Write check coverage aggressively; only
+  layer/package edits pay a full rebuild.
+- **`context_ignore` and `--podman-jobs` / `--jobs`** are the legitimate
+  build-speed levers (trim the build-context tar; parallelize stages
+  within one build and images across a DAG level). On by default.
+
+**Flag discipline — speed levers vs. scope-shrinking.** A "go faster"
+mandate tempts the forbidden shortcut. Legitimate: `--podman-jobs`,
+`--jobs`, `context_ignore`, pre-warming, agent-layer parallelism,
+longest-pole scheduling. R10-scope-shrinking (need explicit per-turn
+operator authorization, the project rulebook's R10 flag-override clause):
+`--no-rebuild` (skips the R10 fresh-update gate), `--keep`,
+`--skip-rebuild`. "To go faster / to fit the session" is the confession,
+not the defense. The full flag catalog and rule: `/charly-check:check`
+"Flag discipline".
+
+## See also
+
+- Entry: `../SKILL.md`
+- `references/orchestration-model.md` — the model that schedules against
+  this partition.
+- `references/agent-roster.md` — `check-bed-runner`, the shipped workflows.
+- `references/hooks-and-lifecycle.md` — sub-agent operational invariants,
+  agent lifecycle hygiene.

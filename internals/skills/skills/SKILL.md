@@ -34,11 +34,28 @@ Full index: `plugins/README.md`.
 | New candy or box added | Create skill via `charly box new candy` scaffold or manual SKILL.md |
 | Bug fix changes behavior | Document the fix in affected skills |
 | Cross-skill behavior discovered | Update Cross-References in all affected skills |
-| A doc / skill / comment diverges from observed reality (discovered by ANY means — not only a bed or a deleted identifier) | Treat as an incident (R1): RCA it, then sweep EVERY sibling doc/skill/comment carrying the same false/outdated/misleading claim and fix them all in the CURRENT cutover (blocking, R2). The two rows below are special cases of this |
-| A live bed contradicts a skill's claim (Risk Driven Development found it stale) | Fix the stale skill in the SAME change — RDD keeps the living docs honest; for a high-risk claim the running system is ground truth, not the doc |
-| Removed identifier still referenced in skill paragraph (R5 self-test failed) | Update / delete the paragraph in the SAME commit as the removal (R5) |
-| Project-rulebook heading / R-number / clause name changes (they are a public API) | Sweep every mirroring surface in the SAME commit — see "Mirroring surfaces" below (R5) |
+| A doc / skill / comment diverges from observed reality (discovered by ANY means — not only a bed or a deleted identifier) | Treat as an incident (R1): RCA it, then sweep EVERY sibling doc/skill/comment carrying the same false/outdated/misleading claim and fix them all in the current cutover (blocking, R2). The two rows below are special cases of this |
+| A live bed contradicts a skill's claim (Risk Driven Development found it stale) | Fix the stale skill in the same change — RDD keeps the living docs honest; for a high-risk claim the running system is ground truth, not the doc |
+| Removed identifier still referenced in skill paragraph (R5 self-test failed) | Update / delete the paragraph in the same commit as the removal (R5) |
+| Project-rulebook heading / R-number / clause name changes (they are a public API) | Sweep every mirroring surface in the same commit — see "Mirroring surfaces" below (R5) |
 | Rule DETAIL accretes inside the project rulebook (matrix, catalog, worked example growing in place) | Move the detail to its owning skill (see the Authoritative-copy registry); the project rulebook keeps the mandate + a `*Detail:*` pointer |
+
+## Skills are PUBLISHED — the corpus is a public surface
+
+Every skill in this repo is rendered as a page on **opencharly.ai** by `charly docs generate`
+(see `/charly-build:docs`). Three consequences bind every skill edit:
+
+- **The frontmatter `description:` is public.** It becomes the page's subtitle and meta
+  description, so it is read by people who have never seen the repo.
+- **A dangling `/charly-<plugin>:<skill>` cross-reference BREAKS THE DOCS BUILD.** References are
+  rewritten into site links at generation time and an unresolvable one is a hard error, not a
+  silent dead link. Renaming or deleting a skill therefore means sweeping every reference to it
+  in the same change — which the build now enforces rather than trusting.
+- **`references/*.md` split files become child pages**, linked from their entry card. They carry
+  no frontmatter by contract; only the entry `SKILL.md` does.
+
+The upside is that the corpus's internal consistency is now machine-checked: `task docs:drift`
+and the docs build together catch a stale cross-reference that a `git grep` sweep missed.
 
 ## When NOT to Update Skills
 
@@ -46,7 +63,7 @@ Full index: `plugins/README.md`.
 - **User-specific config** — use the active harness's private memory or user configuration
 - **Bug fixes in charly code** — the fix is in git; document behavioral changes in skills only
 - **Anything derivable from code** — skills document *usage*, not implementation details
-- **Historical / version-history content** — dated change notes, "renamed from", "previously / formerly / was", completed cutovers, retired / relocated identifiers → the repo's `CHANGELOG/` (one file per CalVer release version, `<YYYY.DDD.HHMM>.md`), NEVER a skill or the project rulebook. Skills describe current behavior in present tense only. When a cutover lands, write its narrative to the release's `CHANGELOG/<YYYY.DDD.HHMM>.md` (the version shared by the changelog filename and the release tag) and state the new standing rule forward-looking in the skill, with no history.
+- **Historical / version-history content** — dated change notes, renames, completed cutovers, retired identifiers → the repo's `CHANGELOG/`, never a skill or the project rulebook (the project rulebook "Where things are documented" owns the full doc-split). Skills describe current behavior in present tense only; write a landing cutover's narrative to its release `CHANGELOG/<YYYY.DDD.HHMM>.md` entry and state the new standing rule forward-looking in the skill, with no history.
 
 ## How to Update
 
@@ -72,6 +89,15 @@ description: |
 ## Cross-References (related skills)
 ## When to Use This Skill
 ```
+
+## Progressive disclosure: multi-file skills
+
+A skill is either a single `SKILL.md`, or an entry `SKILL.md` plus sibling `references/*.md` files in the same skill directory, loaded on demand by path. Split once a single file grows past ~400 lines or spans more than one cleanly-separable topic.
+
+- The entry `SKILL.md` keeps its frontmatter unchanged, an overview, a "when to use" section, and an index table mapping each topic to its `references/<file>.md` with a one-line description — entries stay ~100–150 lines total.
+- Each `references/<file>.md` carries the full detail for its topic in plain markdown with NO frontmatter (only the entry file is dispatched by the `Skill` tool).
+- Cross-file links are relative (`references/<name>.md`); a heading another file quotes keeps its text stable across the split.
+- An Authoritative-copy registry owner (below) may keep its canonical full text inside a `references/<file>.md` split file rather than the top-level `SKILL.md` body — the registry still names the SKILL as sole owner; the reference file is where the detail actually lives.
 
 ## Rulebooks vs Skills
 
@@ -115,17 +141,18 @@ their policy equivalent while preserving harness-specific tool language.
 | Kernel/plugin doctrine (core = kernel; every capability a plugin candy), the two authoring shapes, placement, the three-lane transport doctrine, the seams catalog, **the kernel/plugin boundary law** (E/M/B/D/R) + the incomplete-seam mandate | `/charly-internals:plugin` |
 | Skill Dispatcher, RDD/ADE/SDD mandates, acceptance checklist, attribution tiers, Documentation-only change class anchor, Key Rules index | harness root rulebooks (`CLAUDE.md` and `AGENTS.md`) |
 
+A registry owner may hold its canonical text in a `references/<file>.md` split file rather than the top-level `SKILL.md` body (see "Progressive disclosure" above) — the row still names the SKILL as sole owner regardless of which file inside it carries the detail.
+
 ## Mirroring surfaces — sweep when rulebook wording changes
 
 **The project rulebook's section headings, R-numbers, and named clauses ("flag-override
 clause", "gate by change class", "Documentation-only change class",
 "documentation reviewed" tier, "Acceptance checklist", "Post-Execution
 Policies", …) are a public API.** These surfaces reference them and MUST be
-swept in the SAME commit as any rename or removal (R5):
+swept in the same commit as any rename or removal (R5):
 
-- the 5 hooks in `.claude/hooks/` (`runtime-verification-reminder.sh`,
-  `end-of-turn-challenge.sh`, `team-coordination-reminder.sh`,
-  `pre-commit-gate.sh`, `pre-push-gate.sh`),
+- the 2 hooks in `.claude/hooks/` (`pre-commit-gate.sh`, `pre-push-gate.sh` — deterministic
+  command-mechanics gates only; there is no reminder-hook layer),
 - the 6 agents in `plugins/internals/agents/*.md`,
 - the 8 per-directory signpost `CLAUDE.md` files (`charly/`, `candy/`,
   `plugins/`, each `box/<distro>`),
@@ -226,6 +253,46 @@ repo want this?* Yes → committed skill, now. Only you → memory. (Skills also
 survive context compaction — conversation context does not — which is the same
 reason insights can't live only in the transcript.)
 
+## The replacement claim carries the removal's burden of proof
+
+When a doc/skill/comment is found false, the fix is TWO claims, not one: the deletion, and
+whatever is written in its place. Both need evidence. The failure mode is applying rigor to the
+deletion and a plausible guess to the successor — the false claim is gone, a new one ships, and
+the sweep that would have caught it already passed.
+
+This is recorded because it happened four times in one cutover, across three repos. Two of the four
+were corrections to a stale `directory:` claim (charly, sdk); the other two were corrections to the
+cross-reference rewriter's own documentation (plugins). What they share is not the subject but the
+mistake:
+
+| Replacement written | Why it was also false |
+|---|---|
+| "inline entries have no source directory of their own" | `ScanInlineCandy` is passed `rootDir`; an inline candy's SourceDir always equals its declaring file's dir |
+| "the branch fires for a remote (`@github`) or submodule-vendored candy" | `CandyCopySource` early-returns on `GetRemote()` as its FIRST statement — a remote candy can never reach that branch |
+| "the 11 frontmatter refs are published as plain subtitle text" | `firstLine` truncates the description to its first sentence; all 11 sit past the cut and are published nowhere |
+| "3665 references … every reference is rewritten" | 3654 are rewritten; the count was taken whole-file and described as body-scope |
+
+Every one shares a root cause: **measuring or reasoning at one scope, then describing another.**
+
+Practical rules:
+
+- **Trace the successor before writing it.** A claim about which branch runs needs the early
+  returns above it read; a claim about what is published needs the emitter read, not the producer.
+- **State a partial enumeration as partial.** "an inline candy … and a `discover:` entry can point
+  elsewhere" is honest; an implied-complete list you cannot defend is not.
+- **Re-derive figures at the scope the sentence names**, with the code's own matching rules where
+  one exists — not an approximation of them.
+- **A correction is a new claim, not a cleanup**, and gets the same gate the original edit would.
+- **Sweep the claim, not the sentence — and defeat line wrapping.** A claim-keyed `git grep` of the
+  phrase *as written* silently misses a copy whose text wraps mid-phrase: `… four consecutive PASS`
+  / `runs proved …` matches neither `"four consecutive PASS runs"` nor a line-scoped regex. Grep the
+  shortest distinctive fragment that cannot straddle a line break, or normalize first
+  (`git grep -h '' -- '*.md' | tr '\n' ' '`). This bit twice in one PR: once as string-keyed vs
+  claim-keyed (a table row restating corrected prose), once as a wrapped sentence reported clean.
+- **Count the surfaces before declaring a sweep done.** The same claim routinely lives in a skill, a
+  CHANGELOG, a candy comment and a PR body. Fixing the history and leaving the guidance is the worst
+  outcome: a skill is what the next session loads, a CHANGELOG is what nobody reads for advice.
+
 ## Skill↔code source-map sync audit
 
 Many skills carry a *source map* of the Go code — `Source:` frontmatter, file-listing
@@ -264,9 +331,9 @@ skill's grep self-test caught). Audit and fix them as follows:
    `/charly-internals:git-workflow`.
 
 **Alias residue is a special case — never assert its exact location.** A `charly/*_aliases.go` line is
-transitional K-wave residue that ZERO-ALIASES/K5 deletes, so a skill asserting its EXACT per-symbol
-file:line desyncs on every alias relocation AND documents a path already scheduled for deletion. State the
-STABLE spec-source (the owning plugin/sdk package) and the K5-dissolution destination instead of a
+transitional K-wave residue that ZERO-ALIASES/K5 deletes, so a skill asserting its exact per-symbol
+file:line desyncs on every alias relocation and documents a path already scheduled for deletion. State the
+stable spec-source (the owning plugin/sdk package) and the K5-dissolution destination instead of a
 concrete alias location, and `grep -rn` every concrete alias-attribution claim (a file:line or symbol
 name) against the live tree before asserting it. Motivating incident: a go-skill row produced 5
 alias-attribution errors across 5 validation rounds by naming exact residue locations that had already
