@@ -88,9 +88,16 @@ So the generator walks **each repo as its own project root** — the superprojec
 ## Cross-reference rewriting
 
 The skill corpus is densely self-linked in harness syntax — 3665 references across 257 distinct
-targets, `/charly-check:check` alone appearing 268 times. Every reference is rewritten to a site
-link, and **an unresolvable reference fails generation** rather than emitting a dead link. Three
-guards keep real content from being mangled into links, each earned from an actual corpus case:
+targets in the files the generator reads, `/charly-check:check` alone appearing 268 times.
+
+**3654 of those are rewritten** into site links. The remaining 11 sit in `SKILL.md` frontmatter
+`description:` fields, which `splitFrontmatter` removes before the body is rewritten, so they are
+published as plain subtitle text rather than links. All 11 resolve today, so nothing breaks — but
+"every reference is rewritten" is the wrong claim, and a skill about the rewriter should not make
+it. An unresolvable reference **in a body** fails generation rather than emitting a dead link.
+
+Three guards keep real content from being mangled into links, each earned from an actual corpus
+case:
 
 1. the skill part must start with a letter — else `redis://charly-redis:6379` matches;
 2. the reference must not follow `/` — URL authorities;
