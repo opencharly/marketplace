@@ -152,7 +152,7 @@ See "Authoring an external COMMAND plugin" below.
   builder resolves, ValidateEgress, EmitPluginOp, localpkg). `bake_plugin:` baking is INLINE via `deploykit.EmitBakedPlugins` (the former `bake-plugins` host-builder is DELETED — no HostBuild). The rest: `overlay`
   (the pod overlay build), `step-emit` (host-coupled step fragments), `plugin-binary`
   (the F10 plugin host build), `cli` (run-any-charly-command
-  reentry), `hostprobe` (doctor's raw host facts), `feature`, `render-service`, `retention-defaults`, `raw-project`, `validate-project-checks`, `remote-image-resolve`, `box-fetch-resolve`, `config-resolve`
+  reentry), `hostprobe` (doctor's raw host facts), `feature`, `render-service`, `retention-defaults`, `validate-project-checks`, `remote-image-resolve`, `box-fetch-resolve`, `config-resolve`
   (config-persist is DELETED — persist moved plugin-side to candy/plugin-vm/vm_host_persist.go), the `deploy-*-resolve` / `deploy-members-*` / `resolve-target-add` / `deploy-node-del-dispatch` / `deploy-plugins-connect` / `deploy-from-box` family, the `loader-*` and `pod-*` (lifecycle verbs) and `pod-config-*` families, `arbiter-bracket-acquire` + `-release`, `construct-step`, `check-load-plugins`,
   `check-bed`, `check-run`. The build engine is in core TODAY — K3 build-engine
   migration inventory, not permanent core — the box-build podman DRIVE moved to candy/plugin-build in
