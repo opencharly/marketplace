@@ -174,11 +174,11 @@ it does not consume the sdk mechanism libraries, and it contains zero aliases/sh
    (compiled-in registry + go-plugin gRPC), prescan the CLI grammar from plugin-declared words, dispatch
    words→plugins (including the per-node kind-decode resolve+invoke a plugin's `Materializer` seam calls
    back into — the fold/not-found policy itself lives in `candy/plugin-loader`), and broker
-   the reverse channel (venue executors + `InvokeProvider`). → P16 gate (a): the file allowlist (~4k floor).
+   the reverse channel (venue executors + `InvokeProvider`). → P16 gate (a): the import-surface assertion (charly/import_purity_test.go — every charly/ file imports only spec/* + the proto/plugin-api contract + vetted third-party; the per-file allowlist is retired).
 2. **Core does not import the sdk mechanism layer.** Core imports only the protocol contract — `sdk/spec`
    (wire types) + the proto/go-plugin packages + the Provider/Op vocabulary. `sdk/{kit,deploykit,
-   buildkit,loaderkit,vmshared,…}` are for plugins. → P16 gate (b): import-purity (`charly/` has zero
-   mechanism-kit imports; the migration-pattern residual import is the tracked "until-K<n>" exception).
+   buildkit,loaderkit,vmshared,…}` are for plugins. → P16 gate (b): import-purity (`charly/` has ZERO
+   `github.com/opencharly/sdk` references — prod, test, and go.mod; the #55 terminus closed the last tracked residuals).
 3. **Zero aliases/shims.** Every `charly/*_aliases.go` (`type X = deploykit.X`, `var y = kit.Y`) is a
    mid-cutover crutch that keeps a capability call site in core; the fix is never an alias — it is moving
    the call site into its owning plugin. → P16 gate (c): the `charly/*_aliases.go` glob is empty.

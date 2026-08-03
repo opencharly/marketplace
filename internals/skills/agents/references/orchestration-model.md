@@ -126,8 +126,9 @@ The enforcement stack is one chain, named together so no future session
 rebuilds it piecemeal: the pre-commit hook (commit-time no-new-alias /
 no-new-kit-import block) → the `pr-validator` architecture gate (the
 no-new-breach placement review with an explicit `placement:` verdict) → the
-P16 triple gate (the end-state floor: allowlist + import-purity +
-zero-alias) → the orchestrator's every-decision judgment.
+P16 triple gate (the end-state floor: the import-surface assertion +
+import-purity + zero-alias — charly/import_purity_test.go; the per-file
+allowlist is retired) → the orchestrator's every-decision judgment.
 
 ### Enforcement — "host-coupled" is never a permanence reason
 
