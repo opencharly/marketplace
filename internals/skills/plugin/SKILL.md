@@ -638,21 +638,30 @@ trajectory.
 dispatches to plugins, and brokers the wire; it does not parse config, resolve, build, deploy, or check,
 it does not consume the sdk mechanism libraries, and it contains ZERO aliases/shims.
 
-**The three rules (each mechanically enforceable — the P16 triple gate gates all three).**
+**The three rules (each mechanically enforceable — the P16 import-surface gate gates all three; step 7
+of the import-purity program replaced the former per-file allowlist with a direct import-surface
+assertion, `charly/import_purity_test.go` + `charly/plugin_import_hygiene_test.go` — see
+"Verification" below).**
 
 1. **Everything is a plugin.** Every capability — INCLUDING the project loader, the deploy walk, the
    build engine, and the bed runner — lives in a plugin candy. Core's only jobs: discover/load plugins
    (compiled-in registry + go-plugin gRPC), prescan the CLI grammar from plugin-declared words, dispatch
    words→plugins (INCLUDING the per-node kind-decode resolve+invoke a plugin's `Materializer` seam calls
    back into — the FOLD/not-found POLICY itself lives in `candy/plugin-loader`, K1 unit 1), and broker
-   the reverse channel (venue executors + `InvokeProvider`). → P16 gate (a): the file allowlist (~4k floor).
-2. **Core does not import the sdk mechanism layer.** Core imports ONLY the protocol contract — `sdk/spec`
+   the reverse channel (venue executors + `InvokeProvider`).
+2. **Core does not import the sdk mechanism layer.** Core imports ONLY the protocol contract — `spec/*`
    (wire types) + the proto/go-plugin packages + the Provider/Op vocabulary. `sdk/{kit,deploykit,
-   buildkit,loaderkit,vmshared,…}` are for PLUGINS. → P16 gate (b): import-purity (`charly/` has zero
-   mechanism-kit imports; the migration-pattern residual import is the tracked "until-K<n>" exception).
+   buildkit,loaderkit,vmshared,…}` (and the sdk root plugin-authoring package) are for PLUGINS. → P16
+   gate (a): IMPORT-PURITY — every `charly/` file, prod and test, imports only spec/* + proto + stdlib +
+   a reviewed third-party allowlist, and never `github.com/opencharly/sdk` (root or any kit).
 3. **Zero aliases/shims.** Every `charly/*_aliases.go` (`type X = deploykit.X`, `var y = kit.Y`) is a
    mid-cutover crutch that keeps a capability CALL SITE in core; the fix is never an alias — it is MOVING
-   the call site into its owning plugin. → P16 gate (c): the `charly/*_aliases.go` glob is empty.
+   the call site into its owning plugin. → P16 gate (b): the `charly/*_aliases.go` glob is empty.
+
+A THIRD assertion (P16 gate (c), the PER-PLUGIN MINIMAL-IMPORT check) rounds out the program: no
+`candy/*` plugin module drags an unused direct `github.com/opencharly/{sdk,spec}` dependency (Rule 2) —
+a plugin genuinely using sdk is fine (that's the 4-layer model), a plugin declaring it and never
+importing it is a dragged dependency.
 
 **Why the seams die (the radical simplification).** Today's config-resolve / config-persist / oci-inspect
 seams exist ONLY because plugins could not load the project or touch the store. Once the loader is
@@ -699,6 +708,10 @@ P16 lands LAST, with all three gates green. GPU host-detection legs are the oper
   `TestExternalPluginEndToEnd` proves the schema travels over RPC, `TestPluginSchemaSpliceValidation`,
   `TestBuiltinPluginSchemasSplice` is the CI gate that every builtin schema splices).
 - `task cue:gen` — regenerates spec + every plugin's params; reproducible (a second run is a no-op).
+- `go test ./charly/... -run 'TestImportPurity|TestZeroAliases|TestPluginImportHygiene'` — the P16
+  import-surface gate: every `charly/` file's imports (never `github.com/opencharly/sdk`), zero
+  `charly/*_aliases.go` files, and no `candy/*` plugin module with an unused direct
+  `github.com/opencharly/{sdk,spec}` dependency.
 - `charly box validate` — the candy + `plugin:` block (`candy/plugin-box/validate_rules.go`'s
   `IsPlugin` check — an explicit, documented 1:1 port of the former core `validatePluginCandy`, deleted
   as dead code in the 2026-07-22 dead-code-radical-removal batch once its call site moved here —

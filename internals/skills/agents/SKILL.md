@@ -278,8 +278,8 @@ enforcement layers are ONE stack, named together so no future session rebuilds
 them piecemeal: **the pre-commit hook (commit-time no-new-alias / no-new-kit-import
 block) → the `pr-validator` ARCHITECTURE GATE (the no-new-breach placement review +
 the explicit `placement:` verdict) → the P16 triple gate (the end-state floor:
-allowlist + import-purity + zero-alias) → the orchestrator's every-decision
-judgment (this duty).**
+import-purity + zero-alias + the per-plugin minimal-import check) → the orchestrator's
+every-decision judgment (this duty).**
 
 ### Enforcement — "host-coupled" is never a permanence reason
 
