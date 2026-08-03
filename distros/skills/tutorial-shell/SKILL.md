@@ -27,12 +27,12 @@ charly -C box/fedora check run check-tutorial-shell
 | Property | Value |
 |----------|-------|
 | Base | fedora |
-| Candies | supervisord, ripgrep, sshd |
+| Candies | ripgrep, sshd |
 | Ports | 2222 (tcp, from the sshd candy) |
-| Init | supervisord |
+| Init | supervisord — **auto-injected**, not composed (see below) |
 | Bed | `check-tutorial-shell` (`disposable: true`, pod) |
 
-## Why these three candies
+## Why these two candies
 
 Each one is there to teach exactly one thing, and the box is kept at three so it stays readable
 when quoted in full on a documentation page:
@@ -41,7 +41,12 @@ when quoted in full on a documentation page:
 |---|---|
 | `/charly-tools:ripgrep` | a **tool** candy — packages plus deterministic probes, no service |
 | `/charly-coder:sshd` | a **service** candy, and the canonical init-polymorphism example: ONE `service:` list carrying both a `use_packaged:` systemd form and a custom `exec:` supervisord form |
-| `/charly-infrastructure:supervisord` | the container **init** that actually runs the service |
+
+**The init is deliberately absent from that list.** Because `sshd` declares a service, charly
+resolves the init the target needs and injects it — `supervisord` for a container image, nothing
+extra for a systemd machine venue, which already has an init. Composing the init by hand is
+neither required nor correct: it would be target-blind. That is why the box teaches with two
+candies rather than three.
 
 Together they cover the whole shape of a box without any of them being a fixture: a reader can
 build this, shell into it, and use it.
