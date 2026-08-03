@@ -260,8 +260,10 @@ whatever is written in its place. Both need evidence. The failure mode is applyi
 deletion and a plausible guess to the successor — the false claim is gone, a new one ships, and
 the sweep that would have caught it already passed.
 
-This is recorded because it happened four times in one cutover, in four repos, each time correcting
-a stale `directory:` claim:
+This is recorded because it happened four times in one cutover, across three repos. Two of the four
+were corrections to a stale `directory:` claim (charly, sdk); the other two were corrections to the
+cross-reference rewriter's own documentation (plugins). What they share is not the subject but the
+mistake:
 
 | Replacement written | Why it was also false |
 |---|---|
