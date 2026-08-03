@@ -32,6 +32,22 @@ my-plugin:
 A candy with no `plugin:` block is an ordinary candy; one WITH it is a plugin. Full candy authoring surface
 applies (`/charly-image:layer`), including the mandatory `version:`/`description:`/`plan:`+`check:` (ADE).
 
+## A plugin's declarations are a PUBLISHED surface
+
+`charly docs generate` (see `/charly-build:docs`) renders one **opencharly.ai** page per plugin
+candy from three things this file already requires: the `plugin.providers` list, the per-plugin
+`schema/*.cue`, and the candy `description:`. Two consequences:
+
+- An empty, stale or placeholder `description:` is a public-docs defect, not just an ADE gate
+  miss — it is the prose a reader gets for that plugin.
+- **Placement is computed, never transcribed:** the page states compiled-in vs runtime by reading
+  `charly/charly.yml`'s `compiled_plugins:`, so moving a plugin between placements updates its
+  documentation automatically. Never write the placement into the description prose; it will
+  drift the moment the list changes.
+
+The same three declarations are how an OUT-OF-TREE plugin documents itself — the generator cannot
+reach a repo it does not have, so its author publishes from the identical surface.
+
 ## Reference Index
 
 | Topic | File |

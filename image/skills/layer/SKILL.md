@@ -8,7 +8,7 @@ description: |
 
 ## Overview
 
-A **candy** is a directory under `candy/<name>/` that installs a single concern. Candies are the building blocks of container images in opencharly. Each candy is a **compact name-first node**: the top-level key is the candy NAME, under it a single `candy:` kind key holds the **FULL body** — the scalar fields (`version`, `description`, `directory`, …), every collection (`package`, `env`, `service`, `volume`, …) inline, and the operational steps as an ordered list under `plan:` — all in a single `charly.yml` file.
+A **candy** is a directory under `candy/<name>/` that installs a single concern. Candies are the building blocks of container images in opencharly. Each candy is a **compact name-first node**: the top-level key is the candy NAME, under it a single `candy:` kind key holds the **FULL body** — the scalar fields (`version`, `description`, `status`, …), every collection (`package`, `env`, `service`, `volume`, …) inline, and the operational steps as an ordered list under `plan:` — all in a single `charly.yml` file.
 
 There is **one YAML file per candy** for install logic — no separate Taskfiles. Everything an author needs to install flows through the `run:` steps in the `plan:` list and auto-detected package manifests (`pixi.toml`, `package.json`, `Cargo.toml`).
 
@@ -23,32 +23,23 @@ layer-named and image-named entity may coexist (distinct `uf.Candy` vs `uf.Box`
 maps). The `charly box` COMMAND family is UNCHANGED — only the YAML `box:` KIND
 keyword was removed.
 
-## `directory:` — where the layer's config files live
+## A candy's files live in the candy's own directory
 
-A charly.yml's relative file references (`copy:` / `write:` step paths, `data.src`, install-file probes like `pixi.toml` / `package.json`, service-file globs) resolve against **`directory:`**, which defaults to `.` (the directory containing charly.yml).
+A charly.yml's relative file references (`copy:` / `write:` step paths, `data.src`, install-file
+probes like `pixi.toml` / `package.json`, service-file globs) resolve against **the directory
+containing charly.yml**. There is no field for pointing a candy somewhere else, and the
+resolution is not configurable.
 
-Use `directory:` to keep charly.yml and its supporting config files in separate directories:
+The boundary is enforced, not merely conventional: a `copy:` source containing `..` is rejected
+at validate time (`copy: "../../x" may not contain .. (no traversal)`), so a candy cannot reach a
+sibling directory, a parent, or another submodule. Keep a candy's supporting files beside its
+charly.yml.
 
-```yaml
-# candy/my-app/charly.yml
-my-app:
-  candy:
-    version: 2026.100.0000
-    description: ...
-    directory: ../../configs/my-app    # resolves relative to charly.yml's dir
-    package: [foo]
-    plan:
-      - run: install the access-policy file
-        copy: policies.json            # found at configs/my-app/policies.json
-        to: /etc/my-app/policies.json
-```
-
-Resolution rule:
-- `""` or `"."` → same dir as charly.yml (the default)
-- relative path → joined onto charly.yml's dir
-- absolute path → used as-is
-
-`charly box validate` fails when `directory:` points at a path that doesn't exist.
+When a candy genuinely needs content that lives outside its own directory — a sibling submodule's
+source tree, a large upstream artifact — fetch it at build time with a `download:` step or a
+`command:` clone rather than looking for a path escape. Worked example: `/charly-tools:docs-site`
+clones the published `opencharly/docs` repository instead of reaching into the `docs/` submodule
+beside it.
 
 ## The compact node form (name-first, one kind key)
 
@@ -60,7 +51,6 @@ chrome:
   candy:
     version: 2026.100.0000
     description: ...
-    directory: .
     package: [chromium]
     plan:
       - run: install the chrome managed-policy file

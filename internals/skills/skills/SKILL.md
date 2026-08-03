@@ -40,6 +40,23 @@ Full index: `plugins/README.md`.
 | Project-rulebook heading / R-number / clause name changes (they are a public API) | Sweep every mirroring surface in the same commit — see "Mirroring surfaces" below (R5) |
 | Rule DETAIL accretes inside the project rulebook (matrix, catalog, worked example growing in place) | Move the detail to its owning skill (see the Authoritative-copy registry); the project rulebook keeps the mandate + a `*Detail:*` pointer |
 
+## Skills are PUBLISHED — the corpus is a public surface
+
+Every skill in this repo is rendered as a page on **opencharly.ai** by `charly docs generate`
+(see `/charly-build:docs`). Three consequences bind every skill edit:
+
+- **The frontmatter `description:` is public.** It becomes the page's subtitle and meta
+  description, so it is read by people who have never seen the repo.
+- **A dangling `/charly-<plugin>:<skill>` cross-reference BREAKS THE DOCS BUILD.** References are
+  rewritten into site links at generation time and an unresolvable one is a hard error, not a
+  silent dead link. Renaming or deleting a skill therefore means sweeping every reference to it
+  in the same change — which the build now enforces rather than trusting.
+- **`references/*.md` split files become child pages**, linked from their entry card. They carry
+  no frontmatter by contract; only the entry `SKILL.md` does.
+
+The upside is that the corpus's internal consistency is now machine-checked: `task docs:drift`
+and the docs build together catch a stale cross-reference that a `git grep` sweep missed.
+
 ## When NOT to Update Skills
 
 - **Ephemeral issues** — use conversation context or memory
