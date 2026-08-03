@@ -94,8 +94,9 @@ to the host's foldCandyKind by an explicit disc branch.)
 structural kind's whole POINT is preserving the node's AUTHORED resource-member children (peers, nested
 pod-in-pod, cross-member `${HOST:…}` checks) — but they CANNOT ride `op.Params`: that JSON is unified against
 the plugin's CLOSED `#<Kind>Input` def, which the member subtree would violate. So the HOST pre-decodes the
-authored member children via the SAME core `buildBundleNode` recursion the builtin path uses
-(`buildResourceMemberChildren` — ONE member-decode source of truth, R3) and threads the decoded subtree to
+authored member children via the SAME `sdk/loaderkit.BuildBundleNode` recursion the builtin path uses,
+reached through the ProjectLoader seam (`loaderkit.BuildResourceMemberChildren` — ONE member-decode source of
+truth, R3) and threads the decoded subtree to
 `OpLoad` via `op.Env` (`spec.StructuralKindLoadEnv{Members}`). The plugin decodes only its kind-specific scalar
 body from `op.Params` and ATTACHES the host-threaded members to its `spec.Deploy` reply — Members for a
 targetless kind (group), Children for a workload — so the reconstructed `uf.Bundle` entry is BYTE-EQUIVALENT to
