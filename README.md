@@ -1,6 +1,6 @@
 # OpenCharly Plugins
 
-Claude Code, Codex, and Kimi plugins for OpenCharly — the candy factory for you and your agents.
+Claude Code, Codex, and Kimi plugins for OpenCharly — the fully stocked gourmet kitchen for you and your agents.
 
 ## How this marketplace is organized
 
@@ -54,7 +54,7 @@ manager UI.
 
 | Plugin | Skill count | MCP server | Purpose |
 |---|--:|---|---|
-| **charly-distros** | 34 | — | Base OS images, GPU runtime, per-distro builders. fedora (+ fedora-builder, fedora-nonfree — the base stack is owned by the `opencharly/distro-fedora` submodule, which is self-contained (`import: []`); the charly-fedora / fedora-test showcase images are owned by that submodule too), arch (+ arch-builder, owned by the self-contained `opencharly/distro-arch` submodule), cachyos (+ cachyos-pacstrap/-builder, owned by the `opencharly/distro-cachyos` submodule, which imports the `arch` namespace), debian / ubuntu (+ their `-builder` and `-debootstrap`/`-debootstrap-builder`, owned by the `opencharly/distro-debian` / `opencharly/distro-ubuntu` submodules), nvidia, cuda, rocm, etc. The `nvidia` GPU base image now lives in the `opencharly/distro-fedora` submodule (the `nvidia` / `cuda` / `rocm` layers stay in main). |
+| **charly-distros** | 35 | — | Base OS images, GPU runtime, per-distro builders. fedora (+ fedora-builder, fedora-nonfree — the base stack is owned by the `opencharly/distro-fedora` submodule, which is self-contained (`import: []`); the charly-fedora / fedora-test showcase images are owned by that submodule too), arch (+ arch-builder, owned by the self-contained `opencharly/distro-arch` submodule), cachyos (+ cachyos-pacstrap/-builder, owned by the `opencharly/distro-cachyos` submodule, which imports the `arch` namespace), debian / ubuntu (+ their `-builder` and `-debootstrap`/`-debootstrap-builder`, owned by the `opencharly/distro-debian` / `opencharly/distro-ubuntu` submodules), nvidia, cuda, rocm, etc. The `nvidia` GPU base image now lives in the `opencharly/distro-fedora` submodule (the `nvidia` / `cuda` / `rocm` layers stay in main). |
 | **charly-languages** | 4 | — | Programming language runtimes — pixi, python, python-ml, python-ml-layer. (golang/rust/nodejs live in `charly-coder` because they're tightly coupled to dev images.) |
 | **charly-infrastructure** | 22 | — | Databases, networking, security, system services. postgresql, redis, valkey, vectorchord, k3s, traefik, supervisord, tailscale, gocryptfs, virtualization, dbus-layer, tmux-layer, ssh-client, gnupg, etc. |
 | **charly-tools** | 20 | — | CLI utilities and the `charly` binary — ripgrep, himalaya, whisper, nano-pdf, summarize, ordercli, gogcli, sherpa-onnx, songsee, blogwatcher, sag, xurl, goplaces, mcporter, yay, vscode, charly, cue, docs-site. |
