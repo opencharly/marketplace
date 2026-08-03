@@ -52,7 +52,8 @@ charly docs generate --out docs/src/content/docs --root .
 
 ## What it emits
 
-The generator owns four trees and rewrites them wholesale each run, so a deleted source entity
+The generator owns three top-level trees — `vision.md`, `reference/` and `recipes/` — and
+rewrites them wholesale each run, so a deleted source entity
 disappears from the site instead of lingering as an orphan page. The hand-authored narrative
 (`index.mdx`, `start/`, `concepts/`, `guides/`) is never read or written.
 
@@ -86,7 +87,7 @@ So the generator walks **each repo as its own project root** — the superprojec
 
 ## Cross-reference rewriting
 
-The skill corpus is densely self-linked in harness syntax — 3665 references across 258 distinct
+The skill corpus is densely self-linked in harness syntax — 3665 references across 257 distinct
 targets, `/charly-check:check` alone appearing 268 times. Every reference is rewritten to a site
 link, and **an unresolvable reference fails generation** rather than emitting a dead link. Three
 guards keep real content from being mangled into links, each earned from an actual corpus case:
