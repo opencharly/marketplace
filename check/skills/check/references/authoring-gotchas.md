@@ -1,0 +1,369 @@
+# Authoring gotchas, ADE, and the AI-iteration harness
+
+Full detail for `/charly-check:check`: Agent Driven Evaluation (the agent-graded steps + the six-stage loop), the numbered non-obvious authoring gotchas, and the AI-iteration harness's pgrep-deadlock defense.
+
+## Agent Driven Evaluation (ADE) — `charly box/check feature run` + the agent grader
+
+ADE runs an entity's own baked plan (shipped in the
+`ai.opencharly.description` OCI label) as acceptance tests. It is named for the
+agent that drives the evaluation: an `agent-check:` step is graded by an AI
+agent, and the agent's verdicts drive the red→green loop. `charly check box` /
+`charly check live` and `charly box/check feature run` read the same baked
+plan — `charly check box`/`live` run its deterministic `check:` steps, while
+`charly box/check feature run` also bind the `agent-check:` (and `agent-run:`)
+steps to the agent grader.
+
+### The six-stage loop
+
+| Stage | Who | Command | What |
+|---|---|---|---|
+| **Specify** | you / an agent | hand-edit the candy's `plan:` list (or `charly box set candy.<name>.plan ...`) | Author the `description:` string + `plan:` steps on the CANDY that provides the behaviour (it bakes into every box that composes the candy — R3). |
+| **Bind** | author (implicit) | `charly feature pending <entity>` lists the agent-graded steps | Use a `check:` step (inline verb) → deterministic; use an `agent-check:` step (prose) → agent-graded. |
+| **Run** | you / CI | `charly box feature run <image>` / `charly check feature run <deployment>` | Execute the plan; per-step pass/fail + grader evidence. |
+| **Iterate** | you / an agent | edit + re-run, OR `charly check run <bed>` (an `iterate:` bed) | Drive red→green by hand, or let the plateau-bounded AI loop write the code until the `check:` steps pass. |
+| **Bake** | the build | `charly box build` | `description:` + plan steps bake into `ai.opencharly.description`; runs source-less against a pulled image. |
+| **Gate** | R10 | `charly check run <bed>` | Runs the bed image's deterministic `check:` steps — every candy ships them (ADE authoring is mandatory: `charly box validate` requires a non-empty `description:` string and at least one deterministic `check:` step). The live agent grader via `charly check feature run` stays opt-in. |
+
+### The BIND contract — a step binds to its verifier by shape
+
+```yaml
+# candy/<name>/charly.yml — description: + the ordered plan: list, all inline
+# in the candy body (the ONE flat operational sequence)
+dashboard:
+    candy:
+        description: Dashboard          # the candy's purpose; first line = summary
+        plan:
+            - check: the page title is Dashboard   # inline verb → deterministic
+              id: dashboard-title
+              cdp:
+                  method: eval
+                  expression: document.title
+            - agent-check: the chart looks populated, not empty   # prose-only → agent-graded
+```
+
+A `check:` step carries an embedded probe verb (`file`/`http`/`command`/`cdp`/
+`mcp`/…) and runs that check deterministically. An `agent-check:` step carries
+only prose and binds to the agent grader. `charly feature pending` lists every
+`agent-run:`/`agent-check:` step so an author sees the agent-graded work.
+
+### The two run verbs
+
+- **`charly box feature run <image>`** — build context. A disposable container
+  (`podman run --rm` per check), deterministic `check:` steps only. An
+  `agent-check:`/`agent-run:` step has no stable target to probe, so it reports
+  unbound (advisory skip; `--strict` fails it). Resolves the image against local
+  storage (never `charly.yml`), like `charly check box`.
+- **`charly check feature run <deployment>`** — deploy context. Against a running
+  image-backed (pod) deployment; deterministic `check:` steps run their checks and
+  `agent-check:` steps bind to the agent grader (unless `--no-agent`). Flags:
+  `-i/--instance`, `--format text|json|tap|junit`, `--tag <expr>`,
+  `--agent <name>`, `--timeout <dur>`, `--no-agent`, `--strict`.
+
+Exit codes follow the 0/1/2 convention (a step fail → exit 2 via the sdk's
+`CheckFailExitCode`; an infra error → 1). No plan baked → a no-op pass.
+
+### The agent grader contract
+
+For a prose-only step (when grading is enabled), the runner spawns the
+configured `kind: agent` CLI once (bounded — never the plateau loop), handing it the
+entity's `description:`, the step's prose, the live
+target name, and the instruction that it may probe via `charly cmd <target> …`,
+`charly check live <target> --filter <verb>`, `charly status <target>`. The agent returns a
+single-line JSON verdict `{"verdict":"pass|fail","evidence":"…"}`; the runner
+parses it (plain or `stream-json`) into a pass/fail with evidence. An
+unparseable / timed-out / launch-failed grader is a fail with the raw output
+— never a silent pass. The grader wall-clock cap is `--timeout` → the ai entry's
+`timeout:` → a 5m default. Which agent: `--agent <name>` → the sole configured `agent:`
+entry → an explicit "specify --agent" error.
+
+`--no-agent` is the deterministic-only mode (CI): `agent-check:` steps report
+`unbound` (visible, never silently green). The unattended `charly check run <bed>`
+gate runs `charly check feature run <bed> --no-agent` so a bed stays deterministic and
+free; exercise the live grader with an explicit `charly check feature run <name>`.
+
+### Worked example (end to end)
+
+```bash
+# 1. Author plan steps on the layer that provides the behaviour.
+$EDITOR candy/web-layer/charly.yml    # add a `check:` step (cdp: eval) +
+                                      # an `agent-check:` prose step
+
+# 2. See the agent-graded steps.
+charly feature pending candy:web-layer
+
+# 3. Build → run build-context acceptance (deterministic steps).
+charly box build web
+charly box feature run web
+
+# 4. Deploy, then run deploy-context acceptance with the agent grader.
+charly start web
+charly check feature run web                # agent-check steps agent-graded against the live pod
+charly check feature run web --no-agent     # deterministic-only (CI): agent-check steps report unbound
+```
+
+Implementation: `charly/check_feature_run.go` (the verbs), `sdk/kit/grader.go`
+(`AgentGrader` + `RunAgentOnce` + `parseVerdict`, moved from `charly/check_feature_grader.go` (now `sdk/kit/grader.go`)
+in P12a — core constructs `&AgentGrader{}` directly, so it lives in `kit`, reachable from
+core code), and `charly/description_collect.go` (`charly feature (`charly feature
+list/pending/validate`). The `Runner.Grader` dispatch is `kit.RunPlan` (`sdk/kit/planrun.go`)
+directly — the former 1-line `charly/description_run.go` wrapper was dissolved in P12a.
+Target resolution is shared with the harness loop and `charly check box`/`live` (R3).
+
+## Authoring Gotchas (learned the hard way)
+
+These are the non-obvious issues that surface only when you run the tests
+against real containers. Skim before writing new checks.
+
+### 1. Host-side deploy tests: `127.0.0.1:${HOST_PORT:N}`, not `${CONTAINER_IP}:${HOST_PORT:N}`
+
+In rootless podman, the container's pod-network IP (e.g. `10.89.0.x`) is
+not routable from the host. `${HOST_PORT:N}` resolves to a port on the
+host's loopback that forwards into the container. Combining them is
+nonsense:
+
+```yaml
+# ❌ WRONG — 10.89.0.x:HOST_PORT is unreachable from either side.
+addr: ${CONTAINER_IP}:${HOST_PORT:8080}
+
+# ✓ RIGHT — host-side access via the forwarded port.
+addr: 127.0.0.1:${HOST_PORT:8080}
+
+# ✓ ALSO RIGHT — in-container, using the container port directly.
+command: curl -fsS http://127.0.0.1:8080/health
+in_container: true
+```
+
+Use `${CONTAINER_IP}` only from inside another container in the same pod.
+
+### 2. `http` status is a single int — no lists
+
+```yaml
+# ❌ WRONG — yaml unmarshals a list to int fails with "cannot unmarshal !!seq"
+status: [200, 301, 302]
+
+# ✓ RIGHT — pick the most-likely code. Or author multiple tests.
+status: 200
+```
+
+For endpoints that return 400/401 when probed without auth (MCP servers,
+API endpoints), `status: 400` is a legitimate "endpoint exists and refuses
+empty input" check.
+
+### 3. `pgrep`, `ss`, `nc` are not in minimal images
+
+The `process:`, `port: listening`, and `nc`-based command tests silently
+fail on images that skip `procps-ng` / `iproute` / `ncat`. Portable
+alternatives:
+
+| Intent | Portable alternative |
+|--------|----------------------|
+| "supervisord is running" | `command: supervisorctl pid; exit_status: 0` (in_container) |
+| "some program under supervisord" | `service: <name>; running: true` |
+| "port N listening in-container" | `command: curl -fsS http://127.0.0.1:N/<route>; in_container: true` |
+| "port reachable from host" | `addr: 127.0.0.1:${HOST_PORT:N}; reachable: true` (Go-native dial) |
+
+### 4. `supervisorctl status` exits 3 when any program is non-RUNNING
+
+Layers like `hermes` declare `autostart=false` programs (e.g.
+`hermes-whatsapp`), which leaves them STOPPED. `supervisorctl status`
+returns exit 3 — fails `exit_status: 0` checks.
+
+```yaml
+# ❌ BRITTLE — fails if any program is autostart=false.
+command: supervisorctl status
+exit_status: 0
+
+# ✓ ROBUST — `pid` asks for supervisord's own PID, 0 iff the socket
+# responds.
+command: supervisorctl pid
+exit_status: 0
+in_container: true
+```
+
+### 5. Know which stream a `--version`-style command writes to
+
+`charly version` writes to stdout (via `fmt.Println`) — the canonical
+`candy/charly/charly.yml` test asserts a `stdout:` matcher.
+
+```yaml
+plan:
+    - check: charly version prints a CalVer to stdout
+      id: charly-version
+      command: /usr/local/bin/charly version
+      exit_status: 0
+      stdout:
+          - matches: "[0-9]{4}\\.[0-9]+"
+```
+
+But other tools genuinely write to stderr — `ssh -V`, `openssl version`,
+some `*-config --version` scripts. Always probe first
+(`charly cmd <image> '<cmd> 2>&1 >/dev/null'` — if the output shows up here
+it was stderr; if silent, it's stdout). See also the `ssh-version`
+check in `candy/ssh-client/charly.yml` which IS a real stderr case.
+
+### 6. Drop `$` anchor in `matches:` regexes on command output
+
+Command stdout typically ends with `\n`. Go's `regexp` treats `$` as
+end-of-input (not end-of-line by default), so `\.ipynb$` won't match
+`path.ipynb\n`. Drop the anchor:
+
+```yaml
+# ❌ WRONG — fails because trailing newline
+stdout:
+  - matches: "\\.ipynb$"
+
+# ✓ RIGHT — substring match is usually what you want
+stdout:
+  - matches: "\\.ipynb"
+```
+
+### 7. `${VAR:-default}` is not supported by charly's resolver
+
+charly's variable resolver accepts `${IDENT}` only — no bash-style defaults,
+no parameter expansion. An unresolved variable is reported as a
+`unresolved variables: <name>` SKIP.
+
+```yaml
+# ❌ Parsed as a single var name; reported as unresolved if not set
+command: psql -U ${POSTGRES_USER:-postgres}
+
+# ✓ Plain env-var reference; resolves from the container's environment
+# in the deploy context. For a true default, set it in the layer's `env:`.
+command: psql -U ${POSTGRES_USER}
+```
+
+### 8. Fedora 43 package renames — query the installed name, not the dnf request
+
+The `package:` verb does exact string equality against the rpm
+database, not the dnf install request. When dnf resolves a virtual
+provides, the test must name the actual installed package.
+
+| dnf request | Installed name on Fedora 43 |
+|-------------|-----------------------------|
+| `redis` | `valkey-compat-redis` |
+| `liberation-fonts` | `liberation-sans-fonts` (+ `-serif-fonts`, `-mono-fonts`) |
+
+Always verify with `charly shell <image> -c 'rpm -qf /path/to/binary'`.
+
+### 9. Volume paths don't exist at build context
+
+`/workspace`, `${VOLUME_CONTAINER_PATH:name}`, and similar paths
+are provisioned by `charly config` at deploy time. A build-context step on
+them fails in `charly check box` because the mount isn't attached.
+
+```yaml
+# ❌ Fails under `charly check box` — workspace isn't mounted
+- check: the workspace directory exists
+  id: workspace-dir
+  file:
+      file: /workspace
+      filetype: directory
+
+# ✓ context: [deploy] so it runs only against live containers
+- check: the workspace directory exists
+  id: workspace-dir
+  context: [deploy]
+  file:
+      file: /workspace
+      filetype: directory
+```
+
+### 10. Disposable tests run as the image's default user — not root
+
+`charly check box` runs `podman run --rm <image>` with the image's USER
+directive (typically uid 1000 for containers). Root-only files
+(e.g. `/etc/sudoers.d/*` is root:root 0750) report as "missing" because
+the user can't traverse the parent directory.
+
+```yaml
+# ❌ Reports "exists=false" even though the file IS there (0750 dir)
+- check: the charly-user sudoers drop-in exists
+  id: sudoers-charly-user
+  file:
+      file: /etc/sudoers.d/charly-user
+      exists: true
+
+# ✓ Verify the semantic (can I sudo?) instead of the file bit
+- check: the user can sudo without a password
+  id: sudoers-charly-user
+  command: sudo -n -l
+  exit_status: 0
+  stdout:
+      - contains: "NOPASSWD"
+```
+
+### 11. Bootc images keep USER=root — tests must cover both modes
+
+Gotcha 10 flips for bootc. `sdk/deploykit` (relocated from `charly/generate.go` in #67) deliberately omits the final `USER <uid>` directive on bootc images because systemd (PID 1 in a bootc VM) manages user sessions via login, so the container's own USER directive is irrelevant. Result: the same `charly check box` that runs as uid 1000 in a container runs as uid 0 in a bootc image.
+
+That breaks any test that assumes the user-context default. A `sudo -n -l` check that expects `NOPASSWD` in the output works for non-bootc (USER=1000 → sudo lists the user's NOPASSWD rule) but fails for bootc (USER=0 → sudo prints root's Defaults block, which doesn't contain the literal string `NOPASSWD`). Same failure mode for any `test -f ~/.config/foo` that depends on `$HOME=/home/user`.
+
+The fix: drop into `user` explicitly when running as root, stay as-is otherwise. Use `runuser -u user -- <cmd>` as the bridge — it's portable across util-linux versions and preserves stdout:
+
+```yaml
+# Dual-mode: container (USER=1000) AND bootc (USER=root) both pass
+- check: the user can sudo without a password (container AND bootc)
+  id: sudoers-charly-user
+  command: |
+      if [ "$(id -u)" = "0" ]; then
+        runuser -u user -- sudo -n -l
+      else
+        sudo -n -l
+      fi
+  exit_status: 0
+  stdout:
+      - contains: "NOPASSWD"
+```
+
+Don't use `runuser -l user -s /bin/bash -c '…'`. On Arch's util-linux
+(2.42+), `runuser -l … -c` swallows the wrapped command's stdout when
+the shell is a login shell — reproduced: `runuser -l user -s /bin/bash
+-c 'sudo -n -l'` prints nothing and exits 0; `runuser -u user -- sudo
+-n -l` prints the full NOPASSWD listing. This bit the earlier shipping
+form of the test; the sshd candy now uses `-u … --`.
+
+Worked example: `/charly-coder:sshd` ships exactly the `-u user --` pattern. Alternative: give the step `context: [deploy]` so it runs against a live container where you control the user-switch externally.
+
+### 12. `charly check box <short-name>` is ambiguous with multiple CalVer tags — use the full registry ref
+
+`charly check box` resolves its positional argument against local podman storage, not `charly.yml`. When the host has accumulated many CalVer tags for the same image (a normal consequence of iterative `charly box build` runs), the short form errors out:
+
+```
+charly: error: ambiguous short name "openclaw-desktop" in local storage;
+           candidates: ghcr.io/opencharly/openclaw-desktop:latest,
+           ghcr.io/opencharly/openclaw-desktop:2026.109.1418,
+           ... Re-run with a full ref.
+```
+
+Use the fully-qualified registry ref:
+
+```bash
+charly check box ghcr.io/opencharly/openclaw-desktop:latest
+```
+
+This is different from `charly box inspect`, `charly box build`, and `charly check live` (the live-service runner), which key off `charly.yml` and accept short names unambiguously. Only the disposable-container runner has this restriction because it does not consult `charly.yml` at all.
+
+## Issue 52328 (claude-code Bash + pgrep self-match deadlock) defense
+
+The Claude Code runtime has a known issue documented in this project's
+own `.check/ISSUE-claude-code-bash-pgrep-self-match-deadlock.md`: when
+the AI uses `Bash{run_in_background: true}` with a `until ! pgrep -f
+"<pattern>"` poll-loop, the literal pattern string is preserved in the
+spawned bash's argv (because the wrapper uses `bash -c '… check
+"<command>" …'`). `pgrep -f` then matches itself, the loop spins
+forever, the parent `claude -p` process can't exit because it waits
+for all background bash subprocesses, and the harness orchestrator
+deadlocks waiting on claude.
+
+The harness defends against this pattern between iterations: at every
+iter end (in `candy/plugin-check/harness_loop.go`'s per-iteration commit), the
+orchestrator runs
+`podman exec charly-check-sandbox pkill -f "while true.*sleep [0-9]+"` to
+clean up orphaned keepalive bashes left dangling by the AI's
+`TaskOutput`-timeout pattern, and logs the kill count.
+
+Workaround for the AI inside the loop: prefer `kill -0 <PID>`-style
+checks (track the original PID via `cmd & echo $!`) over `pgrep -f`
+when the pattern would also match the wrapping bash. The harness
+defense is a safety net, not a license to use the broken pattern
+deliberately.

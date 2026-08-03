@@ -1,0 +1,116 @@
+## Task emission pipeline
+
+All install-task logic lives in a single file: `charly/tasks.go` (~380 lines) — but `emitTasks` there is a thin shim to `deploykit.Generator.EmitTasks` (the actual per-verb emitters, relocated from `charly/generate.go` in #67). Authored layer-side as `task:` list in `charly.yml`; emitted as Containerfile directives via this sequence per layer inside `WriteCandySteps` (`sdk/deploykit/candy_steps.go`):
+
+```
+1. # Layer: <name>                 (comment header)
+2. ARG TARGETARCH + ENV ARCH=${TARGETARCH}    (once; from emitVarsEnv)
+3. ENV <K>=<V> for each layer.Vars entry      (also from emitVarsEnv)
+4. Package install: rpm/deb/pac/aur  (unchanged — format template render)
+5. emitTasks(b, layer, img, buildDir, contextRelPrefix, initialUser):
+   for each t in layer.tasks:
+     resolve ${VAR} in non-verbatim fields
+     user := resolveUserSpec(t.User, img)   // numeric UID for ${USER}
+     if user != runningUser: emit USER <value>
+     switch t.Kind():
+       case "mkdir":    emitMkdirBatch  (coalesces adjacent same-user+same-mode)
+       case "copy":     emitCopy        (COPY --from=<layer> --chmod= --chown=)
+       case "write":    stageInlineContent + emitWrite (COPY from .build _inline)
+       case "link":     emitLinkBatch   (coalesces adjacent same-user)
+       case "download": emitDownload    (RUN curl + extractor + /tmp/downloads cache)
+       case "setcap":   emitSetcapBatch (coalesces; strip on empty caps)
+       case "command":  emitCmd         (RUN bash -c 'set -e; ...' + /ctx bind)
+       case "build":    WriteCandySteps (deploykit) handles builder placement
+       case "plugin":   builtin ProvisionActor → act shell RUN (in-proc);
+                        any other provider → emitPluginFragment → Invoke(OpEmit)
+                        → spec.EmitReply.Fragment spliced verbatim
+6. USER root reset (unless last layer + skipRootReset)
+```
+
+The `plugin:` verb case is placement-agnostic above the registry. `plugin: command` is the one special case — it rehydrates `plugin_input.command` and emits via the SAME `emitCmd` as the literal `command` verb. Every other `plugin:` step resolves its provider via `providerRegistry.ResolveVerb`: a builtin `ProvisionActor` renders an act shell `RUN` in-proc (the zero-JSON fast path, `resolveProvisionScript`), while ANY other resolved provider — an external `grpcProvider` (host-built + connected by `NewGenerator`'s build-time plugin connect seam, `loadProjectPlugins`), or a builtin emitting a richer fragment — renders via `emitPluginFragment`, which calls `prov.Invoke(OpEmit)` with the step's `plugin_input` (`op.Params`) + a `spec.BuildEnv` descriptor (`op.Env`) and splices the returned `spec.EmitReply.Fragment` verbatim into the Containerfile. An unresolved verb is a loud error, never a silently-dropped step. This is the build half of operator-authorized build-time plugin execution — see `/charly-internals:plugin` (placement) + `/charly-build:generate`. (`emitPluginFragment`'s core is factored into the shared `invokeOpEmitFragment` seam, which the DEPLOY-mode pod-overlay `ociEmitStep` external-step arm (reached by the candy's `deploykit.OCITarget.EmitStepOp` over `HostBuild("step-emit","oci-emit-step")`) ALSO uses to bake an `external:<word>` `class:step` step declaring `StepContract.Emits=true` — F-STEP-EMIT, see `/charly-internals:install-plan`.)
+
+### `Task` struct (`charly/layers.go:604`)
+
+Flat struct with verb-discriminator fields. Exactly one of `Cmd` / `Mkdir` / `Copy` / `Write` / `Link` / `Download` / `Setcap` / `Build` must be non-empty. Shared modifiers (`User`, `Mode`, `To`, `Target`, `Content`, `Extract`, `Include`, `Env`, `Caps`, `Comment`) are validated per-verb in `candy/plugin-box/validate_rules.go:validateCandyTasks`.
+
+```go
+func (t *Task) Kind() (string, error)   // returns verb or error ("no action" / "conflicting actions")
+```
+
+The `Layer` struct that feeds emission carries its `require:` / `candy:` refs as `[]CandyRef` (one typed list each — no parallel bare/raw arrays), and its `Has*` predicates (`HasEnv`/`HasPorts`/`HasVolumes`/…) are derived methods (only the filesystem-probe caches like `HasPixiToml` stay fields). Layers are populated by the single `populateCandyFromYAML`. Which layers reach this emission pipeline is decided upstream by the reachability-scoped, per-entity-version resolver (the git tag is the fetch coordinate; the layer's own `version:` is the identity) — see `/charly-internals:go` "Remote-layer resolver".
+
+### Emitter helpers (all in `charly/tasks.go`)
+
+| Helper | Output |
+|---|---|
+| `emitVarsEnv(b, vars)` | `ARG TARGETARCH` + `ENV ARCH=${TARGETARCH}` + sorted `ENV K=V` |
+| `emitMkdirBatch(b, []Task, img)` | One `RUN mkdir -p … [&& chmod <mode> …]` |
+| `emitCopy(b, Task, layerStage, img)` | `COPY --from=<layerStage> --chmod= [--chown=] <src> <to>` |
+| `emitWrite(b, Task, srcPath, img)` | `COPY [--chown=] --chmod= <srcPath> <path>` where `srcPath` is the staged inline-content file |
+| `emitLinkBatch(b, []Task, img)` | One `RUN ln -sf t1 l1 && ln -sf t2 l2 …` |
+| `emitDownload(b, Task, img)` | `RUN --mount=type=cache,dst=/tmp/downloads [+ task cache:] bash -c '… curl -o "$__c.part" && mv → /tmp/downloads/<sha256>; <extractor> "$__c"'` — content-addressed, fetch-once, integrity-safe |
+| `emitSetcapBatch(b, []Task, img)` | `RUN setcap -r … && setcap caps path …` |
+| `emitCmd(b, Task, layerStage, img, userIsRoot)` | `RUN --mount=type=bind,from=<layerStage>,source=/,target=/ctx [--mount=type=cache,…] bash -c $'BUILD_ARCH=$(uname -m)\nset -e\n<command>'` (ANSI-C `$'...'` quoting — see below) |
+
+### Shell-quoting helpers (`charly/tasks.go`)
+
+Two helpers in `tasks.go` handle the two shell-quoting problems that
+come up when embedding scripts and JSON into a Containerfile:
+
+| Helper | Purpose | Used by |
+|--------|---------|---------|
+| `shellSingleQuote(s)` | Standard `'...'` quoting with `'\''` escape for embedded single quotes. | `emitDownload` (for `t.Env` values), `writeJSONLabel` (for LABEL JSON values containing `awk '{…}'` etc.) |
+| `shellAnsiQuote(s)` | Bash ANSI-C `$'...'` quoting: real newlines, tabs, and backslashes survive as `\n` / `\t` / `\\`. Keeps a multi-line script on a single physical line. | `emitCmd` body |
+
+**Why `shellAnsiQuote` exists**: a plain `bash -c '<body>'` with embedded
+real newlines gets cut off by podman's Dockerfile parser at the first
+newline inside the quoted string — the parser is line-oriented and
+treats everything after the newline as a new instruction. `$'…\n…'`
+serializes the whole script to one physical line; bash then reassembles
+the newlines when it parses the `-c` argument. Works on Fedora/Arch
+(bash-linked `/bin/sh`) and Alpine (ash supports ANSI-C).
+
+**Why `export VAR=val;` beats `VAR=val cmd`** in `emitDownload`: the
+`VAR=val cmd` prefix form sets `VAR` in `cmd`'s environment, but bash
+expands `${VAR}` in `cmd`'s arguments *before* the environment is
+assembled. Result: the URL `pixi-${BUILD_ARCH}-unknown-linux-musl.tar.gz`
+gets rendered as `pixi--unknown-linux-musl.tar.gz` (empty arch) →
+404. Terminating with `;` forces bash to run the export statement first,
+putting the value in scope for the downstream URL expansion.
+
+### Inline-content staging
+
+`stageInlineContent(buildDir, contextRelPrefix, candyName, content)` writes `write:` task content to `<buildDir>/_inline/<layer>/<sha256>` on disk and returns the build-context-relative path (e.g. `.build/<image>/_inline/<layer>/<sha256>`). Content-addressed filename makes writes idempotent — identical content writes no-op; changed content produces a new hash which invalidates only that COPY's cache layer. **No shell heredoc ever appears in the Containerfile** — content travels as bytes.
+
+### User resolution
+
+`resolveUserSpec(userField, img)` → `(directive, chownPair)`:
+
+- `root` / `0` / empty → `("0", "")` (root is COPY's default; skip `--chown`)
+- `${USER}` → `(strconv.Itoa(img.UID), fmt.Sprintf("%d:%d", img.UID, img.GID))` — **numeric** `USER <UID>` directive, avoiding `/etc/passwd` dependencies at the switch point
+- `<uid>:<gid>` → pass through
+- bare numeric `<uid>` → `(u, u + ":" + u)`
+- literal name → `(u, u + ":" + u)` (COPY `--chown=<name>:<name>` works when the user exists in the image)
+
+### Variable substitution
+
+Two-tier:
+
+- **Generate-time:** `taskSubstPath` expands `~/` to `img.Home` and substitutes `${USER}` / `${UID}` / `${GID}` / `${HOME}` literally (values known at generate time). Applied to paths, URLs, modes, `to`, `target`, etc.
+- **Build-time (Docker):** `${ARCH}` comes from BuildKit's `TARGETARCH` via `ARG TARGETARCH` + `ENV ARCH=${TARGETARCH}` emitted at layer top. Layer-local `var:` become `ENV` directives too. Docker substitutes these in COPY paths, RUN commands, and ENV values.
+- **Build-time (shell):** `${BUILD_ARCH}` is auto-injected as a local shell variable at the top of each `command:` / `download:` RUN (`BUILD_ARCH=$(uname -m)`). Unlike `${ARCH}`, it isn't available in non-shell fields.
+
+`taskUnresolvedRefs(s, known)` returns `${NAME}` references that don't resolve against auto-exports ∪ layer `var:` — used by `validateCandyTasks` to error on typos.
+
+### Adjacent-coalescing (`taskCoalescesWith`)
+
+Only these verbs coalesce: `mkdir`, `link`, `setcap`. Coalescing requires same verb + same `User` field (literal equality before resolution). The orchestrator loop consumes consecutive matching tasks into a batch, then flushes as a single directive. Non-adjacent same-verb tasks never merge — reordering across other verbs is forbidden.
+
+### Parent-dir auto-insertion
+
+For `copy:` and `write:` tasks, if the destination's parent directory isn't already registered in `declaredDirs` (which tracks every `mkdir:` task PLUS all ancestor paths, matching Unix `mkdir -p` semantics), the orchestrator prepends a single `RUN mkdir -p <parent>` (as the task's `run_as:`) immediately before the COPY. This is the only implicit directive in the pipeline; authors can disable it for a specific path by declaring the parent via explicit `mkdir:`.
+
+## Tag-section install emission
+
+Distro-version tag sections (`debian:13:`, `ubuntu:24.04:`, etc.) are resolved via first-match-wins on the image's `distro:` priority list. Tag sections use the primary format's **full** install template — so they can carry `repos:`, `keys:`, `options:`, and `package:`, not just packages alone. The generator reads each tag section's full YAML map via `charly/layers.go:TagPkgConfig.Raw`.
+
