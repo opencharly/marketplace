@@ -253,6 +253,35 @@ repo want this?* Yes → committed skill, now. Only you → memory. (Skills also
 survive context compaction — conversation context does not — which is the same
 reason insights can't live only in the transcript.)
 
+## The replacement claim carries the removal's burden of proof
+
+When a doc/skill/comment is found false, the fix is TWO claims, not one: the deletion, and
+whatever is written in its place. Both need evidence. The failure mode is applying rigor to the
+deletion and a plausible guess to the successor — the false claim is gone, a new one ships, and
+the sweep that would have caught it already passed.
+
+This is recorded because it happened four times in one cutover, in four repos, each time correcting
+a stale `directory:` claim:
+
+| Replacement written | Why it was also false |
+|---|---|
+| "inline entries have no source directory of their own" | `ScanInlineCandy` is passed `rootDir`; an inline candy's SourceDir always equals its declaring file's dir |
+| "the branch fires for a remote (`@github`) or submodule-vendored candy" | `CandyCopySource` early-returns on `GetRemote()` as its FIRST statement — a remote candy can never reach that branch |
+| "the 11 frontmatter refs are published as plain subtitle text" | `firstLine` truncates the description to its first sentence; all 11 sit past the cut and are published nowhere |
+| "3665 references … every reference is rewritten" | 3654 are rewritten; the count was taken whole-file and described as body-scope |
+
+Every one shares a root cause: **measuring or reasoning at one scope, then describing another.**
+
+Practical rules:
+
+- **Trace the successor before writing it.** A claim about which branch runs needs the early
+  returns above it read; a claim about what is published needs the emitter read, not the producer.
+- **State a partial enumeration as partial.** "an inline candy … and a `discover:` entry can point
+  elsewhere" is honest; an implied-complete list you cannot defend is not.
+- **Re-derive figures at the scope the sentence names**, with the code's own matching rules where
+  one exists — not an approximation of them.
+- **A correction is a new claim, not a cleanup**, and gets the same gate the original edit would.
+
 ## Skill↔code source-map sync audit
 
 Many skills carry a *source map* of the Go code — `Source:` frontmatter, file-listing
