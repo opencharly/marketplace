@@ -44,8 +44,8 @@ prove the new content. `task docs:pin` fails if it drifts from the `docs` gitlin
 
 A branch name here is a correctness bug, not a convenience: `var:` values are emitted as `ENV`
 above the steps, so with `main` the clone layer's cache key never moves and the bed silently
-rebuilds whatever commit that layer first captured. That shipped once, and four consecutive PASS
-runs proved stale content before it was caught.
+rebuilds whatever commit that layer first captured. That shipped once, and every run passed while
+proving stale content until review caught it.
 
 | Var | Default |
 |---|---|

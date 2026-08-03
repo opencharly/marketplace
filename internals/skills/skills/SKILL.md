@@ -283,6 +283,15 @@ Practical rules:
 - **Re-derive figures at the scope the sentence names**, with the code's own matching rules where
   one exists — not an approximation of them.
 - **A correction is a new claim, not a cleanup**, and gets the same gate the original edit would.
+- **Sweep the claim, not the sentence — and defeat line wrapping.** A claim-keyed `git grep` of the
+  phrase *as written* silently misses a copy whose text wraps mid-phrase: `… four consecutive PASS`
+  / `runs proved …` matches neither `"four consecutive PASS runs"` nor a line-scoped regex. Grep the
+  shortest distinctive fragment that cannot straddle a line break, or normalize first
+  (`git grep -h '' -- '*.md' | tr '\n' ' '`). This bit twice in one PR: once as string-keyed vs
+  claim-keyed (a table row restating corrected prose), once as a wrapped sentence reported clean.
+- **Count the surfaces before declaring a sweep done.** The same claim routinely lives in a skill, a
+  CHANGELOG, a candy comment and a PR body. Fixing the history and leaving the guidance is the worst
+  outcome: a skill is what the next session loads, a CHANGELOG is what nobody reads for advice.
 
 ## Skill↔code source-map sync audit
 
