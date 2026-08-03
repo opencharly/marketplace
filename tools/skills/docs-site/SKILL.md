@@ -82,9 +82,9 @@ charly check run check-docs
 A `disposable: true` pod deploy of `docs-site-app`. Reaching steady state proves the box builds,
 starts and stays up; the shape assertions already ran at image build.
 
-The generator's own cross-reference integrity gate (an unresolvable `/charly-x:y` fails
-generation) is covered by the plugin's Go tests plus `task docs:drift` on the host — this bed
-covers the artifact those produce.
+The generator's own cross-reference integrity gate (an unresolvable
+`/charly-<plugin>:<skill>` reference fails generation) is covered by the plugin's Go tests plus
+`task docs:drift` on the host — this bed covers the artifact those produce.
 
 ## Troubleshooting
 

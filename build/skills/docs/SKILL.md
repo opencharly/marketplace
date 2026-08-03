@@ -99,6 +99,26 @@ corpus case:
 `references/<file>.md` pointers (backticked paths, never markdown links) resolve to the skill's
 own child page.
 
+### Authoring consequence: you cannot write a fake reference
+
+Because the gate fails closed, a **well-formed reference in prose must resolve** — there is no
+escape syntax. A skill therefore cannot write `/charly-` followed by two real-looking lowercase
+words as a throwaway example: that shape matches, resolves to nothing, and fails the docs build.
+
+Write generic forms with angle-bracket placeholders instead — `<` is not a letter, so the
+pattern never matches:
+
+```
+/charly-<plugin>:<skill>     ✅ safe in prose
+```
+
+This is not hypothetical, and it bit twice in one sitting. The first draft of
+`/charly-tools:docs-site` used a made-up two-word reference as its example of an unresolvable
+one, and the generator dutifully aborted — the skill documenting the gate tripped the gate. The
+fix's own "don't do this" example then tripped it a second time. Failing closed is still the
+right behaviour (a typo'd real reference is far likelier than a deliberate fake one), so
+describe the bad shape rather than spelling it.
+
 ## Why declarative sources, not the CLI's help output
 
 The host renders every dynamic command word with a generic stub description, intercepts the
