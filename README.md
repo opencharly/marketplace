@@ -28,7 +28,7 @@ manager UI.
 | Plugin | Skill count | MCP server | Purpose |
 |---|--:|---|---|
 | **charly-core** | 15 | — | Lifecycle: start, stop, service, charly-status, logs, shell, ssh, deploy, charly-update, remove, charly-config, cmd, charly-version, charly-doctor, clean. |
-| **charly-build** | 13 | — | Build/authoring: build, generate, list, inspect, merge, new, pull, validate, secrets, settings, migrate, reconcile, charly-mcp-cmd. |
+| **charly-build** | 14 | — | Build/authoring: build, generate, list, inspect, merge, new, pull, validate, secrets, settings, migrate, reconcile, charly-mcp-cmd, docs (the opencharly.ai site generator). |
 | **charly-check** | 13 | — | Live-container evaluation: `check` orchestrator + cdp, wl, wl-overlay, dbus, vnc, spice, libvirt, record, adb, appium probes + `android` (the `kind: android` device + `apk:` package format + Android-device deploy) + the `check-sway-browser-vnc-pod` R10 bed. |
 | **charly-automation** | 7 + 1 agent | — | tmux verb, agent control plane (agent skill + agent-control-operator agent), host-side wrappers (alias, udev), topic flags (enc, sidecar, openclaw-deploy). |
 
@@ -57,7 +57,7 @@ manager UI.
 | **charly-distros** | 34 | — | Base OS images, GPU runtime, per-distro builders. fedora (+ fedora-builder, fedora-nonfree — the base stack is owned by the `opencharly/distro-fedora` submodule, which is self-contained (`import: []`); the charly-fedora / fedora-test showcase images are owned by that submodule too), arch (+ arch-builder, owned by the self-contained `opencharly/distro-arch` submodule), cachyos (+ cachyos-pacstrap/-builder, owned by the `opencharly/distro-cachyos` submodule, which imports the `arch` namespace), debian / ubuntu (+ their `-builder` and `-debootstrap`/`-debootstrap-builder`, owned by the `opencharly/distro-debian` / `opencharly/distro-ubuntu` submodules), nvidia, cuda, rocm, etc. The `nvidia` GPU base image now lives in the `opencharly/distro-fedora` submodule (the `nvidia` / `cuda` / `rocm` layers stay in main). |
 | **charly-languages** | 4 | — | Programming language runtimes — pixi, python, python-ml, python-ml-layer. (golang/rust/nodejs live in `charly-coder` because they're tightly coupled to dev images.) |
 | **charly-infrastructure** | 22 | — | Databases, networking, security, system services. postgresql, redis, valkey, vectorchord, k3s, traefik, supervisord, tailscale, gocryptfs, virtualization, dbus-layer, tmux-layer, ssh-client, gnupg, etc. |
-| **charly-tools** | 19 | — | CLI utilities and the `charly` binary — ripgrep, himalaya, whisper, nano-pdf, summarize, ordercli, gogcli, sherpa-onnx, songsee, blogwatcher, sag, xurl, goplaces, mcporter, yay, vscode, charly, cue. |
+| **charly-tools** | 20 | — | CLI utilities and the `charly` binary — ripgrep, himalaya, whisper, nano-pdf, summarize, ordercli, gogcli, sherpa-onnx, songsee, blogwatcher, sag, xurl, goplaces, mcporter, yay, vscode, charly, cue, docs-site. |
 
 #### Per-pod plugins
 
