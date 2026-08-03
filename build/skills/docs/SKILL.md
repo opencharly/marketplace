@@ -88,9 +88,21 @@ So the generator walks **each repo as its own project root** — the superprojec
 ## Cross-reference rewriting
 
 The skill corpus is densely self-linked in harness syntax — 3665 references across 257 distinct
-targets, `/charly-check:check` alone appearing 268 times. Every reference is rewritten to a site
-link, and **an unresolvable reference fails generation** rather than emitting a dead link. Three
-guards keep real content from being mangled into links, each earned from an actual corpus case:
+targets in the **skill files** the generator reads, `/charly-check:check` alone appearing 268
+times. (Candy, box and `VISION.md` sources carry references too; those go through other emitters
+and are not counted here.)
+
+**3654 of those are rewritten** into site links — every reference in a skill BODY. The remaining
+11 sit in `SKILL.md` frontmatter `description:` fields and never reach the published page at all:
+`splitFrontmatter` removes the frontmatter before the body is rewritten, and `firstLine` then
+truncates the description to its first sentence for the page subtitle, which drops all 11. They
+resolve, so nothing breaks — but that is why, not because they are published unlinked.
+
+An unresolvable reference **in a body** fails generation rather than emitting a dead link; a
+reference in a `description:` is never gated, because it is never published.
+
+Three guards keep real content from being mangled into links, each earned from an actual corpus
+case:
 
 1. the skill part must start with a letter — else `redis://charly-redis:6379` matches;
 2. the reference must not follow `/` — URL authorities;
@@ -101,8 +113,8 @@ own child page.
 
 ### Authoring consequence: you cannot write a fake reference
 
-Because the gate fails closed, a **well-formed reference in prose must resolve** — there is no
-escape syntax. A skill therefore cannot write `/charly-` followed by two real-looking lowercase
+Because the gate fails closed, a **well-formed reference in a skill BODY must resolve** — there is
+no escape syntax. A skill therefore cannot write `/charly-` followed by two real-looking lowercase
 words as a throwaway example: that shape matches, resolves to nothing, and fails the docs build.
 
 Write generic forms with angle-bracket placeholders instead — `<` is not a letter, so the
