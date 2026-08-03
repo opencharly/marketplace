@@ -75,7 +75,7 @@ staticcheck 242, unparam 100, unused 53, gocyclo 46, gocritic 43, errorlint 29, 
 dupl 10, ineffassign 4, unconvert 3, misspell 1. Re-run to refresh; the per-linter shape is the
 triage map.
 
-**MEASUREMENT GOTCHA — measure with the configured run, NEVER `--enable-only`.** The
+**Measurement gotcha — measure with the configured run, never `--enable-only`.** The
 authoritative count is `golangci-lint run ./...` (the configured set), which DEDUPLICATES
 across linters: a function flagged `unused` is NOT also reported by `unparam` for its params,
 and a complex function shows ONCE (e.g. as `gocyclo`). `golangci-lint run --enable-only unparam`
@@ -84,9 +84,9 @@ category can read 3 under `--enable-only` and 0 in the real gate. Always trust t
 run; it is what CI and contributors see. (Corollary under "Fixing": a `//nolint` can shift which
 linter "wins" the dedup — see there.)
 
-## Auto-fix safety — NEVER blanket `--fix` (CRITICAL)
+## Auto-fix safety — never blanket `--fix`
 
-**`golangci-lint run --fix` CORRUPTS this source tree** (confirmed 2026-06-14, v2.12.2):
+**`golangci-lint run --fix` corrupts this source tree** (confirmed 2026-06-14, v2.12.2):
 gocritic's autofixer rewrites multi-statement blocks into a one-liner whose body it emits as a
 literal `{ ... }` elision placeholder — the `...` is gocritic's snip marker, written verbatim
 into the file → `syntax error: unexpected ...` (broke `ssh_client.go` + `deploy_executor_nested.go`,
@@ -231,10 +231,7 @@ unparam` a uniform-handler signature) — don't nolint-stack blindly.
 
 ## R10 gate by change class (the commit gate)
 
-`go test ./...` + `golangci-lint run` + `task build:binary` are SMOKE, not the gate. The gate
-is `charly check run <bed>` on the bed that EXERCISES the change (cross-cutting tree-wide
-categories → fan EVERY matching bed out concurrently BY OWNER: the SHORT beds via `/verify-beds`, one `charly check run <bed>` per agent, and every LONG bed — `vm`/`android`, or last run ≥600s — as its own persistent-session `run_in_background` task, since a sub-agent cannot own a bed that outlives its turn; `/verify-beds` defers those and refuses host-local beds, and `gateComplete: false` means the roster is partial), disposable-only, fresh-rebuild, zero warnings, pasted proof. See
-`/charly-check:check` "R10 gate by change class" and `/charly-internals:cutover-policy`.
+`go test ./...` + `golangci-lint run` + `task build:binary` are smoke, not the gate — the gate is `charly check run <bed>` on the bed(s) that exercise the change, disposable-only, fresh-rebuild, zero warnings, pasted proof. The bed-selection matrix (incl. cross-cutting fan-out by owner) is owned by `/charly-check:check` "R10 gate by change class"; see also `/charly-internals:cutover-policy`.
 
 **A mechanical pre-commit backstop is separate from the R10 gate.** The `pre-commit-gate.sh`
 hook (`.claude/hooks/`) runs the CONFIGURED `golangci-lint run` on every module a commit's
