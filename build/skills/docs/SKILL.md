@@ -86,11 +86,10 @@ So the generator walks **each repo as its own project root** — the superprojec
 
 ## Cross-reference rewriting
 
-The skill corpus is densely self-linked in harness syntax (`/charly-check:check` alone appears
-277 times). Every reference is rewritten to a site link, and **an unresolvable reference fails
-the build** rather than emitting a dead link — which makes the docs build a corpus-wide integrity
-check. Three guards keep real content from being mangled into links, each earned from an actual
-corpus case:
+The skill corpus is densely self-linked in harness syntax — 3665 references across 258 distinct
+targets, `/charly-check:check` alone appearing 268 times. Every reference is rewritten to a site
+link, and **an unresolvable reference fails generation** rather than emitting a dead link. Three
+guards keep real content from being mangled into links, each earned from an actual corpus case:
 
 1. the skill part must start with a letter — else `redis://charly-redis:6379` matches;
 2. the reference must not follow `/` — URL authorities;
