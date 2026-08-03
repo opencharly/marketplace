@@ -50,7 +50,7 @@ runs proved stale content before it was caught.
 | Var | Default |
 |---|---|
 | `DOCS_REPO` | `https://github.com/opencharly/docs.git` |
-| `DOCS_REF` | `main` |
+| `DOCS_REF` | the `docs` gitlink sha — an immutable commit, **never a branch** (see above) |
 
 ## Verification
 
@@ -97,7 +97,8 @@ The generator's own cross-reference integrity gate (an unresolvable
 |---|---|
 | `docs-site-pinned-commit` FAILS | the clone layer is stale, or `DOCS_REF` was re-pinned without rebuilding |
 | `task docs:pin` fails | `DOCS_REF` (or the check's literal sha) drifted from the `docs` gitlink |
-| fetch fails with "couldn't find remote ref" | `DOCS_REF` names a commit that is not on the docs repo's `main` |
+| fetch fails `upload-pack: not our ref <sha>` | `DOCS_REF` names a commit not reachable from ANY ref in the docs repo — never pushed, or garbage-collected |
+| fetch fails `couldn't find remote ref <name>` | `DOCS_REF` holds a ref NAME rather than a sha, which the pinned-commit contract forbids |
 | `npm ci` fails on a lockfile mismatch | `package.json` and `package-lock.json` disagree — regenerate the lockfile in the docs repo |
 | a shape check fails but `index.html` exists | the generator emitted a different tree layout; re-run `task docs:sync` and check the diff |
 
