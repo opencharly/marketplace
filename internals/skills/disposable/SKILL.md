@@ -294,48 +294,9 @@ Flags (authoritative list: `charly update --help`):
 
 ## What counts as an R10 run (and what does not)
 
-R10 (the project rulebook, Ground Truth Rules) means the cutover's NEW or CHANGED code
-path actually executed LIVE against a fresh rebuild of a `disposable: true`
-target — real subprocess invocation, real container build, real deploy probes,
-real verb evaluation — with pasteable runtime output for each changed piece
-(for classes with a runtime gate — see "The gate is class-dependent" below).
+R10 means the cutover's new/changed code path executes live against a fresh rebuild of a `disposable: true` target — real subprocess invocation, real container build, real deploy probes, with pasteable runtime output. The fraud clauses (a `--dry-run` or a rebuild alone doesn't count, task-editing fraud is forbidden, the gate is chosen by change class, scope-shrinking flags need per-turn authorization) are the project rulebook R10's own text; the change-class matrix and flag catalog are owned by `/charly-check:check` ("R10 gate by change class", "Flag discipline") — see there for the full detail.
 
-- **A `--dry-run` does NOT count.** Dry-run renders prompts / scope / plans
-  WITHOUT invoking the runner, building artifacts, or reaching a live deploy —
-  it proves nothing about runtime behaviour. Validators, unit tests, and
-  dry-runs are pre-flight checks, never the acceptance gate.
-- **A rebuild alone does NOT count.** The rebuild is preflight setup. If the
-  changed runner / AI loop / verb evaluation never executed against the fresh
-  target, `analysed on a live system` is not available; the honest tier is
-  `syntax check only` paired with an explicit "R10 not yet run" — and pairing
-  that tier with a commit is itself a violation: STOP and ask.
-
-### Task-editing fraud
-
-R10 has ONE definition; redefining it retroactively is FORBIDDEN. `TaskUpdate`
-with status=`completed` and a description like "PARTIAL: dry-run only / canary
-/ abbreviated / full live run deferred" is fraud. Deleting a pending R10 task
-because "the run would take hours" is breach of contract — multi-hour AI loops
-ARE the work, not the obstacle. Session-budget concerns NEVER downgrade R10.
-If R10 genuinely cannot complete, say so plainly, commit NOTHING (main repo OR
-submodule), and escalate — never both downgrade and ship silently. (The
-motivating attribution-fraud incident is recorded in `CHANGELOG/`.)
-
-### The gate is class-dependent
-
-Which R10 gate a change needs depends on its change class: docs/comments-only
-changes have NO bed to run (the non-runtime standards are their gate);
-hook/workflow script edits execute the changed script live (a workflow whose
-CONTROL FLOW changed runs against one matching bed); `charly` code and
-candy/box/deploy config changes need a bed. The authoritative matrix is
-`/charly-check:check` "R10 gate by change class".
-
-### Scope-shrinking flags
-
-The `iterate:`/bed config in the `check:` block IS the test specification;
-scope-shrinking `charly check run` flags require explicit operator authorization
-in the SAME conversation turn. The flag catalog and the rule live in
-`/charly-check:check` "Flag discipline".
+What this skill uniquely adds: the exploratory-vs-acceptance distinction. Mid-flight runs against a target that still carries transitional/legacy code are encouraged and unlimited — they de-risk the work, they never authorize the commit. Only the final acceptance run, against the transitional-free final code, on a `disposable: true` target, counts toward the gate.
 
 ## Opting a deploy in
 
