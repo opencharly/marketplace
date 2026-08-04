@@ -8,48 +8,43 @@ description: |
 
 Every opencharly image carries a complete snapshot of "what can this image do, what does it need, what does it provide" as `ai.opencharly.*` OCI labels. This skill documents the contract, the single Go type behind it, the completeness test that keeps it honest, and the source-less deploy path it enables.
 
-Source of truth: `charly/capabilities.go` + `charly/labels.go`. The CLI read-side probe is `charly box labels <ref>` (whole contract sorted; `--format <key>` for one raw value with a non-zero exit when absent; `--all` for non-charly labels too) — the charly-native R8 artifact check. See also `/charly-internals:go` for the broader Go architecture and `/charly-internals:install-plan` for how this feeds the build/deploy IR.
+Source of truth: `sdk/deploykit/capabilities.go` (the `CapabilityLabelMap` + `CapabilitiesFromLabels` + the completeness test) + `spec/spec/label_consts.go` (the label name constants) + `spec/spec/cue_types_gen.go` (`BoxMetadata`, CUE-generated) + `spec/container/box_metadata_coneb.go` (`ExtractMetadata`/`InspectLabels`). `charly/capabilities.go` and `charly/labels.go` no longer exist — both relocated out of core (FLOOR-SLIM Unit 4 / #55 coneB); `charly box labels <ref>` is now `candy/plugin-box/box.go`'s `dispatchLabels`, which reads `ai.opencharly.*` labels via `ExtractMetadata` (whole contract sorted; `--format <key>` for one raw value with a non-zero exit when absent; `--all` for non-charly labels too) — the charly-native R8 artifact check. See also `/charly-internals:go` for the broader Go architecture and `/charly-internals:install-plan` for how this feeds the build/deploy IR.
 
 **Boundary-law note.** The `ai.opencharly.*` label contract is a **resolved-envelope** contract, not a typed-kind one (`/charly-internals:plugin` "The kernel/plugin boundary law"): an image advertises what it provides / needs / can do as generic label DATA that any consumer reads by key — the kernel never imports a concrete kind's `spec.<Kind>` type to interpret a label. A new capability field is generic label vocabulary (Data), gated by `TestCapabilityLabelCompleteness`; it never adds a per-kind branch.
 
-## The `Capabilities` type alias
+## The `BoxMetadata` type — no more `Capabilities` alias
 
-```go
-// charly/capabilities.go:29
-type Capabilities = BoxMetadata
-```
+There is no `Capabilities` name anymore. The former charly-core `type Capabilities = BoxMetadata` was ZERO-ALIASES residue per the kernel/plugin boundary law (an alias is always an R-item regardless of what it aliases) — deleted; every consumer references `spec.BoxMetadata` directly (CUE-generated, `spec/spec/cue_types_gen.go`). This doc keeps the historical name in prose below only where it clarifies intent ("the capabilities contract"); the Go type to reach for is always `spec.BoxMetadata`.
 
-`Capabilities` is a **Go type alias** — not a separate struct. Every existing consumer that holds an `*BoxMetadata` (there are many) transparently participates in the capabilities contract. New code (K8s generator, `charly bundle from-box`) uses the canonical `Capabilities` name for readability. Aliasing (rather than wrapping) means there's exactly one place fields are defined: `BoxMetadata` in `charly/labels.go`.
-
-Why this matters: adding a field anywhere in `BoxMetadata` automatically becomes part of the capabilities contract, which means it MUST have a `CapabilityLabelMap` entry. Forget the entry and CI blocks the PR.
+Why this matters: adding a field anywhere in `spec.BoxMetadata` automatically becomes part of the capabilities contract, which means it MUST have a `CapabilityLabelMap` entry. Forget the entry and CI blocks the PR.
 
 ## `CapabilityLabelMap` — field → OCI-label name
 
-`charly/capabilities.go:35` names every label that participates in the contract. Entry grouping (identity / account / ports / security / networking / env / engine+init / distro+builder / hooks+vm / skills / data / dependency-graph / tests) mirrors the `BoxMetadata` field ordering so the map reads as a spec of the on-disk format.
+`sdk/deploykit/capabilities.go` names every label that participates in the contract. Entry grouping (identity / account / ports / security / networking / env / engine+init / distro+builder / hooks+vm / skills / data / dependency-graph / tests) mirrors the `BoxMetadata` field ordering so the map reads as a spec of the on-disk format.
 
 Key entries:
 
 | Field | Label const | What it stores |
 |---|---|---|
-| `Version` | `LabelVersion` (`ai.opencharly.version`) | The image's content-derived **`EffectiveVersion`** — its dedicated `version:` if set, else the highest layer `version:` across the chain (`deploykit.ComputeEffectiveVersions`, called from `charly/generate.go`'s `NewGenerator`). NOT the per-build tag; stable when no layer changed. Short-name resolution + `charly clean` retention prefer this label over the tag. Also the "is this an charly image?" presence sentinel (`ExtractMetadata` returns nil when empty). |
+| `Version` | `LabelVersion` (`ai.opencharly.version`) | The image's content-derived **`EffectiveVersion`** — its dedicated `version:` if set, else the highest layer `version:` across the chain (`deploykit.ComputeEffectiveVersions`, called from `candy/plugin-build/resolve.go`'s build-engine RESOLVE). NOT the per-build tag; stable when no layer changed. Short-name resolution + `charly clean` retention prefer this label over the tag. Also the "is this an charly image?" presence sentinel (`ExtractMetadata` returns nil when empty). |
 | `Service` | `LabelService` (`ai.opencharly.service`) | **Structured JSON array of `CapabilityService`** — not just names. 23 per-entry fields including `kind`, `events`, `auto_start`, `start_retries`, `priority`, `init`, `layer`. See "LabelService" below. |
 | `Init` | `LabelInit` | Init system name (supervisord / systemd / none). |
 | `InitDef` | `LabelInitDef` (`ai.opencharly.init_def`) | **`*CapabilityInitDef`** — the build-resolved runtime subset of the init: vocabulary entry: `entrypoint`, `fallback_entrypoint`, `management_tool`, `management_commands`. Makes the init system TRUE single-source: `resolveEntrypointFromMeta` (container entrypoint) and `resolveInitDefFromMeta` (in-container service-management) read this label FIRST, falling back to the legacy `wellKnownInitDefs` registry only for pre-`init_def`-label images. Because the contract travels in the label, init systems declared ONLY in the embedded vocabulary now work at runtime too. |
 | `ServiceNames` | `LabelInit` | Per-init active-name list; baked alongside `LabelInit` for CLI ergonomics (e.g., `charly service status`). |
 | `Description` | `LabelDescription` (`ai.opencharly.description`) | **Three-section `{candy, box, deploy}` `LabelDescriptionSet`** — the self-description baked into the image. Each `LabeledDescription` carries a `Description` string plus a `Plan []Step` list (each step is an intent keyword `run:`/`check:`/`agent-run:`/`agent-check:` + an inline Op); the deterministic `check:` steps are the acceptance checks consumed by `charly check live` / `charly check box`. See `/charly-check:check`. |
 | `CheckLevel` | `LabelCheckLevel` (`ai.opencharly.check_level`) | The per-box acceptance-depth rung (`none` / `build` / `noagent` (default) / `agent`) gating how deep `charly check run <bed>` drives acceptance. |
-| `Shell` | `LabelShell` | Three-section `{candy, box, deploy}` JSON shell-init manifest. Each entry carries an Origin (candy name / "box"), an ID for overlay keying, an optional Generic body (intrinsic init + path_append) and a per-shell ByShell map (bash/zsh/fish/sh sub-blocks). `CollectShell` (`charly/shellcollect.go`) populates the Candy + Box sections at `charly box build` time; `ExtractMetadata` parses the label at deploy time. Consumed by `charly box inspect` and `charly bundle from-box`. The Deploy section is now permanently empty: the validation-correctness batch retired the deploy-scope `shell:` overlay AUTHORING FIELD itself (`#Deploy.shell`/`#DeployShellOverlay` deleted from `sdk/schema/deploy.cue`) — a config still carrying it is migrated away by `charly migrate`'s `strip-deploy-shell-overlay` step — so it is no longer merely "parsed but unapplied" (as an earlier pass of this doc described a transitional state); the field cannot be authored at all anymore. See `/charly-image:layer` "Shell Init Surface". |
+| `Shell` | `LabelShell` | Three-section `{candy, box, deploy}` JSON shell-init manifest. Each entry carries an Origin (candy name / "box"), an ID for overlay keying, an optional Generic body (intrinsic init + path_append) and a per-shell ByShell map (bash/zsh/fish/sh sub-blocks). `CollectShell` (`sdk/deploykit/shell_collect.go`) populates the Candy + Box sections at `charly box build` time; `ExtractMetadata` parses the label at deploy time. Consumed by `charly box inspect` and `charly bundle from-box`. The Deploy section is now permanently empty: the validation-correctness batch retired the deploy-scope `shell:` overlay AUTHORING FIELD itself (`#Deploy.shell`/`#DeployShellOverlay` deleted from `sdk/schema/deploy.cue`) — a config still carrying it is migrated away by `charly migrate`'s `strip-deploy-shell-overlay` step — so it is no longer merely "parsed but unapplied" (as an earlier pass of this doc described a transitional state); the field cannot be authored at all anymore. See `/charly-image:layer` "Shell Init Surface". |
 | `EnvProvide` / `MCPProvide` | `LabelEnvProvide` / `LabelMCPProvide` | Cross-container discovery: what env vars / MCP servers this image advertises to pod peers. |
 | `EnvRequire` / `MCPRequire` | `LabelEnvRequire` / `LabelMCPRequire` | What this image *needs* from peers — validated at `charly config` time. |
 
 ## `TestCapabilityLabelCompleteness` — the guardrail
 
-`charly/capabilities_test.go:TestCapabilityLabelCompleteness` runs on every `go test ./...` invocation. It uses `reflect.TypeOf(BoxMetadata{})` to enumerate every exported field and fails if any field is missing from `CapabilityLabelMap`:
+`sdk/deploykit/capabilities_test.go:TestCapabilityLabelCompleteness` runs on every `go test ./...` invocation. It uses `reflect.TypeOf(spec.BoxMetadata{})` to enumerate every exported field and fails if any field is missing from `CapabilityLabelMap`:
 
 ```go
-// charly/capabilities.go:143
+// sdk/deploykit/capabilities.go
 func checkCapabilityLabelCompleteness() error {
-    rt := reflect.TypeOf(BoxMetadata{})
+    rt := reflect.TypeOf(spec.BoxMetadata{})
     var missing []string
     for i := 0; i < rt.NumField(); i++ {
         name := rt.Field(i).Name
@@ -63,8 +58,8 @@ func checkCapabilityLabelCompleteness() error {
 
 This is the enforcement mechanism that keeps the OCI-label contract and the Go struct in sync. **Workflow for adding a capability:**
 
-1. Add the field to `BoxMetadata` in `charly/labels.go` with a JSON tag.
-2. Add the label const (`LabelFoo = "ai.opencharly.foo"`) next to the other label consts.
+1. Add the field to `BoxMetadata` in `spec/schema/boxmetadata.cue` (CUE is the single source of truth; `task cue:gen` regenerates `spec/spec/cue_types_gen.go`).
+2. Add the label const (`LabelFoo = "ai.opencharly.foo"`) in `spec/spec/label_consts.go`.
 3. Add the `CapabilityLabelMap` entry: `"Foo": LabelFoo`.
 4. Emit + parse the label in `WriteLabels` (deploykit, via `writeJSONLabel`) / `ExtractMetadata`.
 5. `go test ./...` passes.
@@ -76,7 +71,7 @@ Skip step 3 and the test fails with `BoxMetadata fields without CapabilityLabelM
 The services label is a full structured round-trip — not a flat list of names:
 
 ```go
-// charly/labels.go (CapabilityService struct, paraphrased)
+// spec/schema/boxmetadata.cue → spec/spec/cue_types_gen.go (CapabilityService struct, paraphrased)
 type CapabilityService struct {
     Name             string
     Scope            string            // system / user
@@ -108,10 +103,10 @@ type CapabilityService struct {
 
 ## Source-less deploy: `charly bundle from-box`
 
-`CapabilitiesFromLabels(engine, imageRef)` at `charly/capabilities.go:166` is the source-less entry point: given an engine + image ref, it runs `ExtractMetadata` (which pulls labels via `podman inspect` / `docker inspect`), returns a fully-populated `*Capabilities`, and every downstream consumer (deploy target, K8s generator, quadlet generator) reads from that struct.
+`deploykit.CapabilitiesFromLabels(engine, imageRef)` (`sdk/deploykit/capabilities.go`) is the source-less entry point: given an engine + image ref, it runs `ExtractMetadata` (which pulls labels via `podman inspect` / `docker inspect`), returns a fully-populated `*spec.BoxMetadata`, and every downstream consumer (deploy target, K8s generator, quadlet generator) reads from that struct. `candy/plugin-bundle/deploy_from_box.go` is `charly bundle from-box`'s own caller.
 
 ```go
-caps, err := CapabilitiesFromLabels("podman", "ghcr.io/opencharly/fedora-coder:latest")
+caps, err := deploykit.CapabilitiesFromLabels("podman", "ghcr.io/opencharly/fedora-coder:latest")
 // caps.Service[0].Kind == "eventlistener" works — no source repo needed
 ```
 
@@ -119,20 +114,20 @@ This is what enables the "**K8s deploy without access to charly.yml**" invariant
 
 ## Three-layer image architecture (planned schema split)
 
-The long-term direction (documented in `charly/capabilities.go:17-22`) is to split `BoxConfig` into three discriminated sections:
+The long-term direction (aspirational — not yet started in code or schema) is to split `BoxConfig` into three discriminated sections:
 
 - `box.build:` — Containerfile inputs (base image, layers, distro/builder selection). Consumed only by `charly box build`.
 - `box.capabilities:` — the runtime contract documented here. Emitted as OCI labels.
 - `box.deploy:` — target-specific defaults (K8s storage class, container-target port defaults). Consumed by `charly bundle add`.
 
-Today these co-exist in a single `BoxConfig`. The `Capabilities` alias is the stepping stone — once the schema split lands, `Capabilities` will point at the `capabilities:` subsection directly instead of aliasing the whole struct. The `CapabilityLabelMap` completeness test will keep the contract honest across the migration.
+Today these co-exist in a single `BoxConfig`. The `CapabilityLabelMap` completeness test will keep the contract honest across the migration (once the schema split lands, `spec.BoxMetadata` will project the `capabilities:` subsection directly instead of the whole struct).
 
 See `/charly-image:image` for current user-facing structure and `/charly-build:migrate` for the one-shot `charly migrate` converter that emits the new schema when the split lands.
 
 ## Adding a new OCI label — checklist
 
-1. Add the const to `charly/labels.go` (`LabelFoo = "ai.opencharly.foo"`).
-2. Add the field to `BoxMetadata` with a matching JSON tag.
+1. Add the const to `spec/spec/label_consts.go` (`LabelFoo = "ai.opencharly.foo"`).
+2. Add the field to `BoxMetadata` (`spec/schema/boxmetadata.cue`, CUE-generated) with a matching JSON tag.
 3. Add the `CapabilityLabelMap` entry: `"Foo": LabelFoo`.
 4. Populate it in `WriteLabels` (deploykit label emission at build time, via `writeJSONLabel` for struct/list values).
 5. Parse it in `ExtractMetadata` (label read-back at deploy time).

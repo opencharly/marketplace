@@ -488,7 +488,7 @@ charly box inspect android-emulator --format ports
 
 ## OCI Labels
 
-Every image `charly` builds carries a set of `ai.opencharly.*` OCI labels embedding the resolved image config so that `charly config` and `charly bundle` can work without the project source tree. The full list is assembled in `charly/labels.go`:
+Every image `charly` builds carries a set of `ai.opencharly.*` OCI labels embedding the resolved image config so that `charly config` and `charly bundle` can work without the project source tree. The full list is assembled in `sdk/deploykit/write_labels.go` (emission) / read back via `ExtractMetadata` (`spec/container/box_metadata_coneb.go`) — label names in `spec/spec/label_consts.go`, the `spec.BoxMetadata` struct in `spec/schema/boxmetadata.cue` (see `/charly-internals:capabilities`):
 
 | Label | Contents |
 |---|---|
@@ -510,7 +510,7 @@ All of the above round-trip via `charly config`: the label is read from the imag
 
 ### Tunnel is charly.yml-only
 
-`labels.go:334` **explicitly skips reading** any tunnel label when resolving an image's deploy config. Tunnels (Tailscale serve, Cloudflare tunnel) are treated as a **deployment** decision, not an image attribute — they live exclusively in `charly.yml`. This was the deliberate design of commit `2759124` (tunnel→charly.yml migration), motivated by three concerns:
+The label→config apply path **explicitly skips reading** any tunnel label when resolving an image's deploy config (`charly/labels.go`, the file this behavior originally shipped in, no longer exists — the OCI-label surface relocated to `sdk/deploykit`/`spec/container`, see `/charly-internals:capabilities`; the tunnel-is-config-only RULE below is unchanged). Tunnels (Tailscale serve, Cloudflare tunnel) are treated as a **deployment** decision, not an image attribute — they live exclusively in `charly.yml`. This was the deliberate design of commit `2759124` (tunnel→charly.yml migration), motivated by three concerns:
 
 1. **Per-instance divergence.** One selkies-desktop image may be deployed with a Tailscale tunnel in one environment and no tunnel in another. Baking the tunnel choice into the image forecloses that.
 2. **`--update-all` safety.** Propagating config changes across deployed services must not accidentally rewrite tunnel settings from image labels and blow away per-instance overrides.

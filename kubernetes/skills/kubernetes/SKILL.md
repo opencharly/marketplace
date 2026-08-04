@@ -30,7 +30,7 @@ Every box runtime contract is baked into OCI labels at build time, so **a K8s de
 | **Capabilities** — box runtime contract | `box.capabilities:` (or layer rollups) | **yes** — every field under `ai.opencharly.*` |
 | **Deployment** — how to run the image | a name-first deploy node (substrate kind at the edge — here `k8s:`) in `charly.yml` + `~/.config/charly/charly.yml` overlay | no |
 
-The completeness invariant: every exported field on `BoxMetadata`/`Capabilities` has a `CapabilityLabelMap` entry. A compile-time test enforces this — a new capability field without a label mapping fails the build. See `charly/capabilities.go`.
+The completeness invariant: every exported field on `spec.BoxMetadata` (there is no more `Capabilities` alias — see `/charly-internals:capabilities`) has a `CapabilityLabelMap` entry. A compile-time test enforces this — a new capability field without a label mapping fails the build. See `sdk/deploykit/capabilities.go`.
 
 ## Deployment schema — target-agnostic fields
 
@@ -167,7 +167,7 @@ charly bundle sync openclaw                   # kubectl apply -k ...
 - `charly/k8s_generate.go` / `host_build_k8s_generate.go` are DELETED — the former "k8s-generate-kustomize" HostBuild seam they served is retired (K5-A item 6): the Kustomize GENERATION now runs entirely inside `candy/plugin-kube/materialize.go` (see above), and `candy/plugin-bundle/deploy_from_box.go`'s `charly bundle from-box --target k8s` path calls `materializeKustomize` the same way. The generator itself still lives in `candy/plugin-k8sgen/k8sgen.go`, reached over `verb:k8sgen` peer dispatch, not a core shim
 - `candy/plugin-k8sgen/` — the compiled-in Kustomize GENERATOR candy (M13): `k8sgen.go` (the ported workload/service/pvc/ingress/kustomization builders + the workload-kind heuristic + `GenerateTree`), serving `verb:k8sgen`/`OpEmit` over `spec.K8sGenInput` → `spec.K8sGenReply` manifest docs; no client-go (split from the heavy external plugin-kube so it resolves in the project-less from-box path)
 - `charly/bundle_from_box_cmd.go` — `BundleFromBoxCmd` (`charly bundle from-box`, K8s among its targets)
-- `charly/capabilities.go` — `Capabilities` (alias of `BoxMetadata`) + `CapabilityLabelMap` + completeness check
+- `sdk/deploykit/capabilities.go` — `CapabilityLabelMap` + completeness check, over `spec.BoxMetadata` (`charly/capabilities.go`, this row's former citation, no longer exists — see `/charly-internals:capabilities`)
 
 ## Related skills
 

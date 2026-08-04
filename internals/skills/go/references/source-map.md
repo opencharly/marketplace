@@ -118,7 +118,7 @@ The inheritance rule lives here: `distro:`/`build:` are VALUES → inherited acr
 
 ### Capabilities — `BoxMetadata` alias + label completeness check
 
-`Capabilities = BoxMetadata` (type alias in `charly/capabilities.go`). `CapabilityLabelMap` lists every field with its OCI label home; `TestCapabilityLabelCompleteness` fails the build if an `BoxMetadata` field lacks a mapping. This invariant keeps `charly bundle from-box` reliable: every field deploy code might consult is readable from a pushed image's labels alone, independent of `charly.yml`.
+`spec.BoxMetadata` (CUE-generated, `spec/schema/boxmetadata.cue`) — there is no more `Capabilities` alias; the former `charly/capabilities.go` type alias was ZERO-ALIASES residue, deleted (see `/charly-internals:capabilities`). `CapabilityLabelMap` (`sdk/deploykit/capabilities.go`) lists every field with its OCI label home; `TestCapabilityLabelCompleteness` fails the build if a `spec.BoxMetadata` field lacks a mapping. This invariant keeps `charly bundle from-box` reliable: every field deploy code might consult is readable from a pushed image's labels alone, independent of `charly.yml`.
 
 ### Kubernetes substrate (EXTERNAL — `deploy:k8s`, candy/plugin-kube)
 
