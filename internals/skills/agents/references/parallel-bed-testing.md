@@ -338,11 +338,21 @@ extra `network.port_forwards` entry uses the `auto:<guest>` sentinel (the
 host port auto-allocated and persisted, resolved into the render and the
 k3s kubeconfig rewrite; never a hardcoded `<host>:<guest>` shared across
 beds — a real collision the k3s-vm pair once hit); a `pod:`/`local:` deploy
-uses the `port: [auto]` sentinel (`AllocateAutoPorts` tracks an `occupied`
-set so concurrent `[auto]` deploys never collide) and references the
+relies on the default — **absence of a deploy-level `port:` key IS
+auto-allocation** (the legacy `port: [auto]` sentinel is retired;
+`/charly-core:deploy` "Auto port mapping" is the sole owner of this
+contract) — `ResolveDeployPorts`/`AllocateAutoPorts` track an `occupied`
+set so concurrent deploys never collide, and a bed pins a fixed host port
+only via an explicit `host:container` entry (`port: ["8888:8888"]`) for
+specific container ports, never a bare `auto` token. References the
 assigned port via `${HOST_PORT}` / `${HOST:<member>:<port>}` in its checks
 — never a literal host port. A bed pins an image → layers → files, so
-owning a bed owns those source files.
+owning a bed owns those source files. (Task #19, 2026-08-04: a nil/absent
+per-host overlay on a bed's first-ever `charly config` used to SKIP port
+resolution entirely — `candy/plugin-deploy-pod/config_setup.go`'s
+`resolveDeployPorts` now self-heals a nil overlay instead of skipping it,
+so this auto-allocation contract holds on a fresh disposable bed's very
+first run, not just subsequent ones.)
 
 **The per-bed-name mutex is worktree-independent — it extends across every
 agent and every worktree, not just within one team.** Bed→deploy names are
