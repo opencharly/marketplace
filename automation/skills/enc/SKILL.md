@@ -359,34 +359,29 @@ mid-mount. Enable it once per host that runs charly encrypted volumes.
 - **`charly remove --purge`**: removes named volumes
 - **Data provisioning**: `charly config --seed` (default) provisions data from data candies into bind-backed directories after mounting encrypted volumes. Works for both bind and encrypted volume types
 
-### Boot Behavior: Gated on Unattended Unlock
+### Boot Behavior: Waiting for an Unattended Unlock
 
-Every quadlet carries `[Install] WantedBy=default.target` and every encrypted
-deploy carries `TimeoutStartSec=0`, unconditionally. Autostart is not something a
-deploy earns by choosing a particular credential store. What differs between
-deploys is what happens *inside* `ExecStartPre=charly config mount <image>`, and
-the question that decides it is a capability:
+An encrypted deploy's quadlet carries `ExecStartPre=charly config mount <image>`,
+and what shapes its boot is a capability:
 
 > **Can the passphrase be obtained with no human present?**
 
-| Passphrase-resolution capability | What `ExecStartPre` does at boot | User action on reboot |
-|---|---|---|
-| **Unattended-capable** — the store can yield the passphrase without anyone at the keyboard, and can wait if it is not readable yet | Blocks in `charly config mount` until the passphrase becomes available; `TimeoutStartSec=0` means it waits rather than failing | None — the container starts as soon as the store opens |
-| **Human-gated** — obtaining the passphrase requires a person | Resolves once and fails fast, with remediation naming the missing credential; the unit ends in `failed` | `charly start <image>`, which prompts on the controlling terminal |
+Secret Service can. It becomes readable when the keyring unlocks at login, without
+anyone typing a passphrase for the volume itself. So an encrypted deploy backed by
+it gets `[Install] WantedBy=default.target` plus `TimeoutStartSec=0`: systemd
+starts the unit at boot, and `ExecStartPre` blocks in the mount until the keyring
+opens rather than timing out.
 
-Note what the rows are keyed on. The gate is the capability, not a store's name:
-a store lands in the first row by *being able to wait for an unlock that arrives
-without a person*, and Secret Service qualifying is the consequence of that, not
-the definition. `ResolveEncPassphraseForMountWithResolver`
-(`sdk/deploykit/enc_passphrase.go`) implements the split as a `usesWaitingBackend`
-predicate: resolution paths that can wait take the waiting branch; the rest
-resolve once and return an error.
+That is the out-of-the-box arrangement — `secret_backend` resolves to the keyring
+by default, so there is nothing to configure to get it.
 
-The rest of this section describes the first row, which is the case worth
-detailing: the passphrase is not readable at the instant the unit starts, and the
-mount waits for it.
+The gate is the capability rather than a store's name; Secret Service satisfying
+it is the consequence, not the definition.
+`ResolveEncPassphraseForMountWithResolver` (`sdk/deploykit/enc_passphrase.go`)
+expresses it as a `usesWaitingBackend` predicate — a resolution path that can wait
+takes the waiting branch.
 
-**Unattended flow on reboot, with Secret Service as the store:**
+**Flow on reboot:**
 1. Boot → systemd starts user instance (linger) → quadlet service starts
 2. ExecStartPre → `charly config mount` → keyring locked → the enc leaf RPCs
    `verb:credential await-unlock` to candy/plugin-secrets, which subscribes to
@@ -471,7 +466,7 @@ kicks in.
 encrypted volume "library": cipher dir at /home/.../charly-immich-library/cipher is populated but plain mount at /home/.../charly-immich-library/plain is empty — refusing to start (would write plaintext over encrypted data); run 'charly config mount immich' first
 ```
 
-This guards against a real data-loss shape: a quadlet missing the `ExecStartPre=charly config mount <image>` auto-mount hook (see "Boot Behavior: Gated on Unattended Unlock" above and `/charly-build:migrate` "charly migrate") would silently bind an empty `plain/` over a populated cipher tree, the container's services would `initdb` / first-run-wizard against the empty dir, and plaintext data would accumulate on top of an encrypted vault. This error class fails the start IMMEDIATELY when `charly start` detects that exact pre-start state.
+This guards against a real data-loss shape: a quadlet missing the `ExecStartPre=charly config mount <image>` auto-mount hook (see "Boot Behavior: Waiting for an Unattended Unlock" above and `/charly-build:migrate` "charly migrate") would silently bind an empty `plain/` over a populated cipher tree, the container's services would `initdb` / first-run-wizard against the empty dir, and plaintext data would accumulate on top of an encrypted vault. This error class fails the start IMMEDIATELY when `charly start` detects that exact pre-start state.
 
 **Important caveat on quadlet-managed services.** This check runs only in the direct-mode (CLI) path. systemd-managed quadlet services bypass it — they go straight to `podman` after `ExecStartPre=charly config mount <image>` succeeds. The actual root-cause fix for those is the `ExecStartPre` hook itself; `VerifyBindMounts` is a belt-and-suspenders safety net for the direct path.
 
