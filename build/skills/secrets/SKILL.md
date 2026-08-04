@@ -484,7 +484,8 @@ charly secrets gpg setup                                 # Configure agent + sto
 | `gpg: No secret key` | Key not in keyring | `charly secrets gpg import-key <path>` |
 | Constant passphrase prompts | Passphrase not in Secret Service | `charly secrets gpg setup` (stores for all keygrips) |
 | `decrypting .secrets failed` | Diagnostics printed automatically | Follow suggested `charly secrets gpg` commands |
-| `Secret Service not available` | KeePassXC not running/unlocked | Start KeePassXC, unlock database |
+| `no Secret Service on D-Bus` | KeePassXC not running/unlocked | Start KeePassXC, unlock database |
+| `Secret Service not available — pinentry-qt will prompt` | same cause, but only a warning during `setup` | Optional: start KeePassXC to avoid the prompt |
 | `secret-tool store` fails | No FdoSecrets exposed group | KeePassXC → right-click group → "Mark as Secret Service exposed" |
 | Passphrase stored but still prompted | Stored for wrong keygrip | `charly secrets gpg doctor` shows which keygrips need passphrases |
 
