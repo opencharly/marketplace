@@ -215,7 +215,8 @@ whenever the keyring is broken, so the two are kept distinct.
 
       encryption passphrase not available for charly/enc/<image>
       (backend=<backend>, source=<source>). Remediation: run `charly doctor` to
-      check keyring health, store with `charly secrets set charly/enc <image>`, …
+      check keyring health, store with `charly secrets set charly/enc <image>`,
+      or switch backend with `charly settings set secret_backend config`
 
 - `locked` → **wait**, event-driven and unbounded, whenever the caller wired an
   unlock waiter — which the systemd path always does (see "Event-driven keyring
