@@ -28,7 +28,7 @@ Each verb also auto-becomes an MCP tool (`box.new.project`, `box.new.box`, `box.
 | Action | Command | Description |
 |--------|---------|-------------|
 | New project | `charly box new project <dir>` | Scaffold a fresh charly project (charly.yml + box/ + candy/ + .gitignore) |
-| New box | `charly box new box <name> --base <ref> [--candies a,b,c]` | Write box/<name>/charly.yml |
+| New box | `charly box new box <name> --base <ref> [--candy a,b,c]` | Write box/<name>/charly.yml |
 | New candy | `charly box new candy <name>` | Create candy/<name>/charly.yml |
 
 ## Usage
@@ -57,7 +57,7 @@ extend or override the embedded default. Add a box with `charly box new box <nam
 ```bash
 charly -C ~/my-project box new box hello \
     --base quay.io/fedora/fedora:43 \
-    --candies sshd,tmux
+    --candy sshd,tmux
 # Writes box/hello/charly.yml (an image = a `candy:` node carrying `base:`):
 #   candy:
 #     name: hello
@@ -65,7 +65,7 @@ charly -C ~/my-project box new box hello \
 #     candy: [sshd, tmux]
 ```
 
-Flags: `--base` (required — URL or name of another box), `--candies` (optional comma-separated candy names). Existing `charly.yml` comments + key order are preserved.
+Flags: `--base` (required — URL or name of another box), `--candy` (optional comma-separated candy names). Existing `charly.yml` comments + key order are preserved.
 
 ### `charly box new candy <name>`
 
@@ -86,7 +86,7 @@ The end-to-end scaffold → build flow:
 2. (optional) Declare `distro:`/`builder:`/`init:`/`resource:` only to EXTEND or OVERRIDE the embedded build vocabulary — a fresh project needs none
 3. `charly box new candy my-svc` — create a candy
 4. `charly candy add-rpm my-svc openssh-server` — populate packages (see `/charly-image:layer`)
-5. `charly box new box my-app --base quay.io/fedora/fedora:43 --candies my-svc` — wire into charly.yml
+5. `charly box new box my-app --base quay.io/fedora/fedora:43 --candy my-svc` — wire into charly.yml
 6. `charly box validate` — check for errors
 7. `charly box build my-app` — build the image
 
