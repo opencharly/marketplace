@@ -190,8 +190,11 @@ check-sandbox` (the ref must provide charly + nested podman + the configured
 AI CLI; the per-host overlay never ships with the repo). On a host without
 the entry, `charly check run <bed>` fails fast with exactly that
 remediation. The supporting
-`vm: k3s-vm` + `k8s: vm-k3s-vm` entities live in the project `charly.yml`
-alongside its beds. `disposable: true` is the sole authorization
+`vm: k3s-vm` entity lives in the project `charly.yml` alongside its beds, with a
+SEPARATE `kind: k8s` profile per bed that deploys it (`check-k3s-vm-ctx`,
+`check-k8s-deploy-cluster-ctx`) — each pinned to that bed's own per-deploy
+kubeconfig context, so sibling beds sharing the one `vm:` entity never resolve
+through each other's cluster. `disposable: true` is the sole authorization
 for the unattended destroy+rebuild (see `/charly-internals:disposable`). Two
 load-time guards back the beds: `validateCheckBeds` enforces the deploy's substrate
 kind ∈ {pod, vm, local, android}, a resolvable cross-ref, and `disposable: true`;

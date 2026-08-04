@@ -97,56 +97,75 @@ fields (`name:`, `namespace:`, `cluster:`, `kubeconfig:`, `kube_kind:`,
 INSIDE the `kube:` map, while `timeout:` stays a sibling. A `kube:` step is a
 `check:` step.
 
-Example from `candy/k3s-server/charly.yml` — the k8s cluster-readiness steps as
-list items under the `k3s-server:` candy's `plan:`:
+Example from the main repo's `charly.yml` — the `check-k3s-vm` bed's
+cluster-readiness steps, each naming ITS OWN `kind: k8s` profile by literal:
 
 ```yaml
-k3s-server:
-  candy:
-    version: …
-    description: …
-    # … require / distro / service elided …
+check-k3s-vm:
+  vm:
+    from: k3s-vm
+    disposable: true
     plan:
-      # … earlier build-context steps elided …
-      - check: the cluster reports at least one Ready node
+      # … guest-side command / process / port / file steps elided …
+      - check: k8s=wait-nodes
+        id: kv-k8s-wait-nodes
         kube:
           method: wait-nodes
-          cluster: "${DEPLOY_NAME}"
+          cluster: "check-k3s-vm-ctx"    # this bed's OWN kind:k8s profile
           kube_count: 1
         timeout: 180s
         stdout: {contains: "Ready"}
-        context: [deploy]
+        context: [runtime]
       # `addons` BLOCKS until Traefik + ServiceLB + local-path are all Ready, so it
       # MUST precede any ingressclass/storageclass step — those resources are
       # registered by the addon stack. Ordering matters: `ingressclass`/`storageclass`
       # are one-shot list verbs with no internal wait, and they exit 0 on an EMPTY
       # list, so a `contains` matcher run before the addons settle FAILS rather than
       # waits. Gate first, assert second.
-      - check: Traefik, ServiceLB, and local-path addons are all Ready
+      - check: k8s=addons
+        id: kv-k8s-addons
         kube:
           method: addons
-          cluster: "${DEPLOY_NAME}"
+          cluster: "check-k3s-vm-ctx"
         timeout: 240s
-        context: [deploy]
-      - check: Traefik is registered as the cluster's default ingress class
+        context: [runtime]
+      - check: k8s=ingressclass
+        id: kv-k8s-ingressclass-traefik
         kube:
           method: ingressclass
-          cluster: "${DEPLOY_NAME}"
+          cluster: "check-k3s-vm-ctx"
         stdout: {contains: "traefik"}
-        context: [deploy]
+        context: [runtime]
 ```
 
-`cluster: "${DEPLOY_NAME}"` lets a candy's `context: [deploy]` step address its own
-cluster generically: `${DEPLOY_NAME}` is a **runtime-only check var** resolving to
-the sanitized deploy name (`:`/`.`/`/` → `-`) — the SAME identifier
-`K3sPostProvision` uses for the kubeconfig context + ClusterProfile. It is
-UPPERCASE because the check-var expander only recognizes uppercase names; a
-lowercase `${deploy_name}` (the artifact-path token) is NOT an check var and is
-rejected by `charly box validate` in kube identifier fields.
+**A `kube:` step belongs to whoever can NAME the cluster — which is the deploy, not
+a generic candy.** The bed above names `check-k3s-vm-ctx`, a `kind: k8s` profile it
+alone owns, pinned to its own per-deploy kubeconfig context. Its sibling bed
+`check-k8s-deploy` names `check-k8s-deploy-cluster-ctx`, so the two never resolve
+through each other's context even though both deploy the SAME shared `kind: vm`
+entity.
 
-`wait-nodes` with `name:` set matches a single specific node (used by
-`k3s-agent`'s join-confirmation test). Without `name:`, it waits until
-`kube_count:` nodes are Ready.
+**Do NOT write `cluster: "${DEPLOY_NAME}"`.** `${DEPLOY_NAME}` is a runtime-only
+check var holding the sanitized name (`:`/`.`/`/` → `-`) of the deployment under
+check, and it is not a cluster selector: for a VM live check it is seeded from the
+`kind: vm` ENTITY name (`candy/plugin-check/live_gather.go`, `pluginCheckLiveVM`),
+which every bed deploying that entity SHARES — so it addresses another deployment's
+context, or none at all, and the step fails with `no kubeconfig context selected`.
+Threading the profile through a deploy-set env var is worse, not better: an
+unresolved check var is a SKIP rather than a failure (`sdk/kit/planrun.go`), and the
+VM check-var environment is a fixed map carrying no arbitrary deploy env, so such a
+step goes silently vacuous. A generic candy that must prove its own control plane
+came up probes it IN-VENUE instead — `candy/k3s-server/charly.yml` drives the k3s
+client entrypoint (`/usr/local/bin/kubectl`) against the server's local kubeconfig,
+needing no host kubeconfig merge, no port-forward, and no `kind: k8s` entity.
+
+(`${DEPLOY_NAME}` is UPPERCASE because the check-var expander only recognizes
+uppercase names; a lowercase `${deploy_name}` — the artifact-path token — is NOT a
+check var and is rejected by `charly box validate` in kube identifier fields.)
+
+`wait-nodes` with `name:` set matches a single specific node — the shape a
+multi-node deploy uses to confirm one named worker joined. Without `name:`, it
+waits until `kube_count:` nodes are Ready.
 
 ## Method notes
 
