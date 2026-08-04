@@ -376,13 +376,19 @@ opens rather than timing out.
 That is the out-of-the-box arrangement — `secret_backend` resolves to the keyring
 by default, so there is nothing to configure to get it.
 
+An encrypted deploy whose passphrase **cannot** be obtained without a person does
+not start at boot. Its `[Install]` section carries no `WantedBy=` target, so
+nothing pulls the unit in — the deploy is simply not running after a reboot, with
+no failure to look at. Start it explicitly with `charly start <image>`, which
+prompts for the passphrase and mounts the volumes inline.
+
 The gate is the capability rather than a store's name; Secret Service satisfying
 it is the consequence, not the definition.
 `ResolveEncPassphraseForMountWithResolver` (`sdk/deploykit/enc_passphrase.go`)
 expresses it as a `usesWaitingBackend` predicate — a resolution path that can wait
 takes the waiting branch.
 
-**Flow on reboot:**
+**Flow on reboot, unattended case:**
 1. Boot → systemd starts user instance (linger) → quadlet service starts
 2. ExecStartPre → `charly config mount` → keyring locked → the enc leaf RPCs
    `verb:credential await-unlock` to candy/plugin-secrets, which subscribes to
