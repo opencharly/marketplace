@@ -198,7 +198,7 @@ env-less store chain `resolveStoreChain` in `candy/plugin-secrets/store.go`) ret
 | `env`         | Resolved from an env var override (e.g. `GOCRYPTFS_PASSWORD`) | Terminal: use the value |
 | `keyring`     | Found in the system keyring via the iteration-capable read path | Terminal: use the value |
 | `config`      | Found in `~/.config/charly/config.yml` (fallback or explicit backend) | Terminal: use the value |
-| `locked`      | Primary backend is present but locked (e.g. keyring not yet unlocked after login) | **Retry** — backend may unlock shortly |
+| `locked`      | Primary backend is present but locked (e.g. keyring not yet unlocked after login) | **Wait** for the unlock — unbounded and event-driven under systemd |
 | `unavailable` | Primary backend probe failed (e.g. ssClient saw every collection error out); fell back to `ConfigFileStore` but the credential isn't stored there either | **Retry with backoff** — may be transient at early boot |
 | `default`     | Backend queried successfully and the credential is **not stored anywhere** | **Terminal** — prompt the user interactively or fail with remediation |
 
@@ -210,24 +210,33 @@ whenever the keyring is broken, so the two are kept distinct.
 
 **Under systemd (`INVOCATION_ID` set, typical for `ExecStartPre`):**
 
-- `default` → **fail immediately** with an actionable error ("encryption
-  passphrase not stored for charly/enc/<image>; store with `charly secrets set charly/enc
-  <image>`, or switch backend with `charly config set secret_backend config`").
-- `locked` / `unavailable` → **retry** up to `encMountDeadline` (package
-  variable in `charly/enc.go`, default `2 * time.Minute`, poll period
-  `encMountPollPeriod = 5 * time.Second`). After the deadline elapses, fail
+- `default` → **fail immediately** with the actionable error built by
+  `EncNotStoredError`:
+
+      encryption passphrase not available for charly/enc/<image>
+      (backend=<backend>, source=<source>). Remediation: run `charly doctor` to
+      check keyring health, store with `charly secrets set charly/enc <image>`, …
+
+- `locked` → **wait**, event-driven and unbounded, whenever the caller wired an
+  unlock waiter — which the systemd path always does (see "Event-driven keyring
+  waiting" below). This path has no deadline. With no waiter wired it degrades to
+  the bounded retry below.
+- `unavailable` → **retry** up to `EncMountDeadline` (package variable in
+  `sdk/deploykit/enc_passphrase.go`, default `2 * time.Minute`, poll period
+  `EncMountPollPeriod = 5 * time.Second`). After the deadline elapses, fail
   with a diagnostic listing backend, source, and remediation.
 - `env` / `keyring` / `config` with a non-empty value → return
   immediately.
 
-**In interactive mode** (no `INVOCATION_ID`), `resolveEncPassphraseForMount`
-delegates to `resolveEncPassphrase` which prompts via the extpass script on
-the controlling TTY.
+**In interactive mode** (no `INVOCATION_ID`), `ResolveEncPassphraseForMount`
+delegates to `ResolveEncPassphrase`, whose last resort is `AskPassword`
+(`sdk/deploykit/enc_probe.go`) — a `systemd-ask-password` prompt.
 
-Covered by table tests in `charly/enc_resolve_mount_test.go` (7 cases including
-`default` fails fast, `locked` retries until deadline, `unavailable` retries
-until deadline, `keyring`/`config` with values return immediately, explicit
-non-keyring backend fails fast without polling, reset callback invocation).
+Covered by the table tests in `sdk/deploykit/enc_passphrase_test.go` (11 test
+functions, including `default` fails fast, `locked` retries then fails,
+`locked` then succeeds, the three waiter outcomes — value, cancelled context,
+and `default` — `unavailable` stays bounded, success returns immediately, and
+reset is called between retries).
 
 ## Troubleshooting: broken Secret Service collection
 
@@ -312,10 +321,10 @@ fallback).
 ## Scope Unit Architecture
 
 The gocryptfs / `systemd-run --scope` / fusermount3 SHELLING runs OUT of charly's
-core: it is served by the compiled-in `candy/plugin-enc` (verb:enc, C16a). charly's
-in-core enc shim host-prelifts the resolved per-volume plan + passphrase and Invokes
-the plugin's OpExecute; the plugin runs the commands. The runtime behavior below is
-unchanged by that extraction.
+core: it is served by the compiled-in `candy/plugin-enc` (verb:enc, C16a). The enc
+leaf in `candy/plugin-pod` prelifts the resolved per-volume plan + passphrase and
+Invokes the plugin's OpExecute; the plugin runs the commands. The runtime behavior
+below is unchanged by that extraction.
 
 Each encrypted volume is mounted via `systemd-run --scope --user --unit=charly-enc-<image>-<volume> -- gocryptfs -allow_other <cipherdir> <plaindir>`. This creates a transient systemd scope unit that:
 
@@ -338,28 +347,48 @@ Because every mount uses `-allow_other`, the host's `/etc/fuse.conf` MUST contai
 `user_allow_other` line — `fusermount3` refuses `-allow_other` for a non-root user without it
 (`option allow_other only allowed if 'user_allow_other' is set`). charly handles this proactively:
 `charly doctor`'s **Encrypted Storage** group checks it (`checkFuseAllowOther`, WARNING + fix hint
-when missing), and the in-core enc shim **preflights** it before a mount/ensure op
-(`fuseAllowOtherEnabled` in `charly/enc.go`) — failing fast with the exact fix
+when missing), and the enc leaf **preflights** it before a mount/ensure op
+(`FuseAllowOtherEnabled` in `sdk/deploykit/enc_probe.go`) — failing fast with the exact fix
 (`echo user_allow_other | sudo tee -a /etc/fuse.conf`) instead of the raw `fusermount3` error
 mid-mount. Enable it once per host that runs charly encrypted volumes.
 
 ## Integration with Runtime
 
 - **`charly shell`/`charly start` (direct mode)**: resolves volume backing from charly.yml, verifies encrypted volumes are mounted, appends `-v <plain>:<container-path>` flags. `charly start` mounts encrypted volumes inline via systemd-run scopes before starting the container
-- **`charly config` (quadlet mode)**: generates quadlet file with `ExecStartPre=charly config mount <image>` for encrypted services. ExecStartPre creates scope units internally — these are independent of the container service. Boot behavior is backend-gated (see below)
+- **`charly config` (quadlet mode)**: generates quadlet file with `ExecStartPre=charly config mount <image>` for encrypted services. ExecStartPre creates scope units internally — these are independent of the container service. What happens inside that step at boot depends on whether the passphrase can be obtained unattended (see below)
 - **`charly remove --purge`**: removes named volumes
 - **Data provisioning**: `charly config --seed` (default) provisions data from data candies into bind-backed directories after mounting encrypted volumes. Works for both bind and encrypted volume types
 
-### Boot Behavior: Backend-Gated
+### Boot Behavior: Gated on Unattended Unlock
 
-| Credential Backend | Quadlet Behavior | User Action on Reboot |
+Every quadlet carries `[Install] WantedBy=default.target` and every encrypted
+deploy carries `TimeoutStartSec=0`, unconditionally. Autostart is not something a
+deploy earns by choosing a particular credential store. What differs between
+deploys is what happens *inside* `ExecStartPre=charly config mount <image>`, and
+the question that decides it is a capability:
+
+> **Can the passphrase be obtained with no human present?**
+
+| Passphrase-resolution capability | What `ExecStartPre` does at boot | User action on reboot |
 |---|---|---|
-| **Secret Service (keyring)** | `WantedBy=default.target` + `ExecStartPre` (waits for keyring) + `TimeoutStartSec=0` | None — auto-starts after login |
-| **Config file / none** | `ExecStartPre` (guard) + NO `WantedBy` | `charly start <image>` (prompts interactively) |
+| **Unattended-capable** — the store can yield the passphrase without anyone at the keyboard, and can wait if it is not readable yet | Blocks in `charly config mount` until the passphrase becomes available; `TimeoutStartSec=0` means it waits rather than failing | None — the container starts as soon as the store opens |
+| **Human-gated** — obtaining the passphrase requires a person | Resolves once and fails fast, with remediation naming the missing credential; the unit ends in `failed` | `charly start <image>`, which prompts on the controlling terminal |
 
-**Secret Service flow on reboot:**
+Note what the rows are keyed on. The gate is the capability, not a store's name:
+a store lands in the first row by *being able to wait for an unlock that arrives
+without a person*, and Secret Service qualifying is the consequence of that, not
+the definition. `ResolveEncPassphraseForMountWithResolver`
+(`sdk/deploykit/enc_passphrase.go`) implements the split as a `usesWaitingBackend`
+predicate: resolution paths that can wait take the waiting branch; the rest
+resolve once and return an error.
+
+The rest of this section describes the first row, which is the case worth
+detailing: the passphrase is not readable at the instant the unit starts, and the
+mount waits for it.
+
+**Unattended flow on reboot, with Secret Service as the store:**
 1. Boot → systemd starts user instance (linger) → quadlet service starts
-2. ExecStartPre → `charly config mount` → keyring locked → the core RPCs
+2. ExecStartPre → `charly config mount` → keyring locked → the enc leaf RPCs
    `verb:credential await-unlock` to candy/plugin-secrets, which subscribes to
    DBus `PropertiesChanged` signals on Secret Service collections, with a
    30-second backstop re-probe (`awaitSignalBackstop`)
@@ -370,8 +399,8 @@ mid-mount. Enable it once per host that runs charly encrypted volumes.
    systemd sends SIGTERM on `systemctl stop`. No arbitrary deadline.
 
 **Event-driven keyring waiting:** when
-`source=locked` under a keyring-capable backend, the core's
-`resolveEncPassphraseForMount` RPCs `verb:credential await-unlock` to
+`source=locked` under a waiting-capable backend, the waiter injected into
+`ResolveEncPassphraseForMount` RPCs `verb:credential await-unlock` to
 candy/plugin-secrets — the Secret Service owner since the godbus dep-shed
 (charly's core links no godbus). The plugin subscribes to DBus
 `org.freedesktop.DBus.Properties.PropertiesChanged` signals on the
@@ -388,8 +417,8 @@ Unix-socket connection).
   The backstop is what catches the unlock on KeePassXC hosts.
 - `awaitProgressLogInterval` — throttle for periodic "still waiting"
   journal output (default `1 * time.Hour`).
-- SIGTERM cancellation: the core builds the wait ctx via
-  `signal.NotifyContext(ctx, SIGINT, SIGTERM)` and passes it on the
+- SIGTERM cancellation: `ResolveEncPassphraseForMountWithResolver` builds the
+  wait ctx via `signal.NotifyContext(…, SIGINT, SIGTERM)` and passes it on the
   Invoke — `systemctl stop` sends SIGTERM, the ctx cancels, gRPC
   propagates the cancellation to the plugin's Invoke, the loop returns
   cleanly, and systemd transitions the unit to `inactive`.
@@ -400,17 +429,19 @@ Unix-socket connection).
 
 Source: `candy/plugin-secrets/keyring_unlock_wait.go` (`awaitUnlock`,
 `awaitUnlockLoop`, `awaitUnlockBackstopOnly`, `isCollectionUnlockedSignal`),
-reached via `verb:credential await-unlock`. The core seam is
-`charly/enc.go` (`awaitKeyringUnlockViaPlugin`) +
-`charly/credential_plugin.go` (`pluginCredentialStore.awaitUnlock`, the
-`credentialAwaiter` interface).
+reached via `verb:credential await-unlock`. The waiter is injected by the caller:
+`candy/plugin-pod/enc_cmd.go` (`pluginAwaitKeyringUnlock`) passes it into
+`deploykit.ResolveEncPassphraseForMount`. `charly/credential_plugin.go`
+(`pluginCredentialStore.awaitUnlock`, the `credentialAwaiter` interface) is the
+core-side equivalent for the CLI's other credential-store operations.
 
 **Bounded retry for `source=unavailable`:** transient
-backend-probe failures (`source=unavailable`) use a bounded poll
-loop with two package-level variables in `charly/enc.go`:
+backend-probe failures (`source=unavailable`) go through `RetryUnavailable`,
+a bounded poll loop with two package-level variables in
+`sdk/deploykit/enc_passphrase.go`:
 
-- `encMountDeadline` — total wall-clock cap (default `2 * time.Minute`)
-- `encMountPollPeriod` — interval between probes (default `5 * time.Second`)
+- `EncMountDeadline` — total wall-clock cap (default `2 * time.Minute`)
+- `EncMountPollPeriod` — interval between probes (default `5 * time.Second`)
 
 `source=default` (credential not stored anywhere) is terminal and fails
 immediately with an actionable error — no amount of retrying will conjure
@@ -422,10 +453,10 @@ units are independent of the container service cgroup. On restart, the
 
     All encrypted volumes for <image> already mounted (N/N)
 
-When every requested volume is already mounted, `encMount` at
-`charly/enc.go:232-291` iterates the mount list once, finds every target is
-live, and returns `nil` **without calling `resolveEncPassphraseForMount`
-or touching the credential store at all**. This means a broken keyring
+When every requested volume is already mounted, `pluginEncMount`
+(`candy/plugin-pod/enc_cmd.go`) iterates the mount list once, finds every target
+is live, and returns `nil` **without calling `ResolveEncPassphraseForMount`,
+touching the credential store, or dispatching verb:enc at all**. This means a broken keyring
 backend does NOT block restarts of running services — only fresh mounts
 (e.g., after reboot) need the keyring. If gocryptfs crashes (scope dies),
 the next `charly config mount` or `charly start` detects the stale scope, stops
@@ -434,17 +465,17 @@ kicks in.
 
 ## Pre-start safety check: cipher populated + plain empty
 
-`verifyBindMounts` (`charly/enc.go:verifyBindMounts`) runs in the `charly start` / `charly shell` direct-mode code path before the container is started. For any `type: encrypted` volume that does not show up as a FUSE mount, an extra discrimination fires before the generic "not mounted" error: when the cipher dir on disk holds user data (anything beyond the `gocryptfs.conf` + `gocryptfs.diriv` metadata files) AND the plain mount target is empty, the error switches to a louder form spelling out the data-loss risk:
+`VerifyBindMounts` (`sdk/deploykit/enc_probe.go`) runs in the `charly start` / `charly shell` direct-mode code path before the container is started. For any `type: encrypted` volume that does not show up as a FUSE mount, an extra discrimination fires before the generic "not mounted" error: when the cipher dir on disk holds user data (anything beyond the `gocryptfs.conf` + `gocryptfs.diriv` metadata files) AND the plain mount target is empty, the error switches to a louder form spelling out the data-loss risk:
 
 ```
 encrypted volume "library": cipher dir at /home/.../charly-immich-library/cipher is populated but plain mount at /home/.../charly-immich-library/plain is empty — refusing to start (would write plaintext over encrypted data); run 'charly config mount immich' first
 ```
 
-This guards against a real data-loss shape: a quadlet missing the `ExecStartPre=charly config mount <image>` auto-mount hook (see "Boot Behavior: Backend-Gated" above and `/charly-build:migrate` "charly migrate") would silently bind an empty `plain/` over a populated cipher tree, the container's services would `initdb` / first-run-wizard against the empty dir, and plaintext data would accumulate on top of an encrypted vault. This error class fails the start IMMEDIATELY when `charly start` detects that exact pre-start state.
+This guards against a real data-loss shape: a quadlet missing the `ExecStartPre=charly config mount <image>` auto-mount hook (see "Boot Behavior: Gated on Unattended Unlock" above and `/charly-build:migrate` "charly migrate") would silently bind an empty `plain/` over a populated cipher tree, the container's services would `initdb` / first-run-wizard against the empty dir, and plaintext data would accumulate on top of an encrypted vault. This error class fails the start IMMEDIATELY when `charly start` detects that exact pre-start state.
 
-**Important caveat on quadlet-managed services.** This check runs only in the direct-mode (CLI) path. systemd-managed quadlet services bypass it — they go straight to `podman` after `ExecStartPre=charly config mount <image>` succeeds. The actual root-cause fix for those is the `ExecStartPre` hook itself; verifyBindMounts is a belt-and-suspenders safety net for the direct path.
+**Important caveat on quadlet-managed services.** This check runs only in the direct-mode (CLI) path. systemd-managed quadlet services bypass it — they go straight to `podman` after `ExecStartPre=charly config mount <image>` succeeds. The actual root-cause fix for those is the `ExecStartPre` hook itself; `VerifyBindMounts` is a belt-and-suspenders safety net for the direct path.
 
-Helper: `cipherPopulatedPlainEmpty(cipherDir, plainDir)` returns true only when both conditions hold. Returns false on any os.ReadDir error (the surrounding error path will surface those — this helper is purely a discrimination hint). Source: `charly/enc.go:cipherPopulatedPlainEmpty`. Tested by `charly/migrate_quadlets_test.go:TestCipherPopulatedPlainEmpty` (5 sub-cases: dangerous, metadata-only, plain-non-empty, missing-cipher, missing-plain).
+Helper: `CipherPopulatedPlainEmpty(cipherDir, plainDir)` returns true only when both conditions hold. Returns false on any os.ReadDir error (the surrounding error path will surface those — this helper is purely a discrimination hint). Source: `sdk/deploykit/enc_probe.go`. Tested by `sdk/deploykit/enc_probe_test.go:TestCipherPopulatedPlainEmpty` (5 sub-cases: dangerous, metadata-only, plain-non-empty, missing-cipher, missing-plain).
 
 ## Volume Backing Override
 
@@ -475,16 +506,17 @@ Plain bind mounts do not use encrypted storage commands. They are direct host di
 
 **Source files:**
 
-- `charly/enc.go` — the in-core enc SHIM + deploy-model (C16a). `encMount`/`encUnmount`/`encPasswd`/`ensureEncryptedMounts` are thin shims that HOST-PRELIFT the per-volume plan (`encPlanFor`: resolved cipher/plain dirs + init/mounted flags + scope-unit name) and the passphrase, then `encExecViaPlugin` resolves verb:enc and Invokes OpExecute. Keeps (deploy-model, stays core): `encMount`'s all-mounted short-circuit, `encStatus` (pure probe+print), the path/probe helpers (`encryptedPlainDir`/`isEncryptedMounted`/`isEncryptedInitialized`/`cipherPopulatedPlainEmpty` — the mandatorily-core `ResolveVolumeBacking` + `verifyBindMounts` consume them), `loadEncryptedVolume` (loader), `resolveEncPassphraseForMount` (bounded retry for `source=unavailable` via `retryUnavailable`), `awaitKeyringUnlockViaPlugin` (the `source=locked` waiter — delegates the event-driven DBus wait to `verb:credential await-unlock`, out-of-process in candy/plugin-secrets, so charly's core links no godbus)
+- `sdk/deploykit/enc_probe.go` — the enc PROBE + PLAN surface, kit-resident so both the CLI leaves and a plugin caller share one implementation. `EncPlanFor`/`EncPlanForConfig` build the per-volume plan (resolved cipher/plain dirs + init/mounted flags + scope-unit name); `LoadEncryptedVolume` loads the encrypted-volume set from the per-host config; `EncStatus` is a pure probe+print; the path/probe helpers `ResolveEncVolumeDir`/`IsEncryptedMounted`/`IsEncryptedInitialized`/`CipherPopulatedPlainEmpty` back `VerifyBindMounts`; `FuseAllowOtherEnabled` is the `/etc/fuse.conf` preflight; `AskPassword` is the `systemd-ask-password` prompt
+- `sdk/deploykit/enc_passphrase.go` — the passphrase-resolution ORCHESTRATION, taking its credential store as an injected `CredentialAccess` rather than by name. `ResolveEncPassphrase` (env var → store → auto-generate or prompt), `ResolveEncPassphraseForMount` + its testable `…WithResolver` core (the `usesWaitingBackend` split), `EncNotStoredError`, `RetryUnavailable` (the bounded `source=unavailable` poll) and its two knobs `EncMountDeadline` / `EncMountPollPeriod`
+- `candy/plugin-pod/enc_cmd.go` — the `charly config status|mount|unmount|passwd` leaf BODIES. Holds the reverse-channel executor, so it dispatches verb:enc and verb:credential directly; `pluginEncMount` keeps the all-mounted fast-path short-circuit, and `pluginAwaitKeyringUnlock` is the injected `source=locked` waiter that RPCs `verb:credential await-unlock` (out-of-process in candy/plugin-secrets, so charly's core links no godbus)
 - `candy/plugin-enc/enc.go` — the ENCRYPTED-VOLUME (gocryptfs) MECHANICS plugin (C16a, verb:enc, compiled-in): the gocryptfs / `systemd-run --scope --unit=charly-enc-<dir>-<volume>` / fusermount3 / `gocryptfs -init` / `gocryptfs -passwd` / extpass SHELLING (`mountVolumes`/`unmountVolumes`/`ensureVolumes`/`passwdVolumes`/`runGocryptfsScope`/`encExtpassArgs`), driven by the host-prelifted `spec.EncExecInput`. `-allow_other` for rootless keep-id + the stale-scope retry live here. Wire types: CUE-sourced at `sdk/schema/enc.cue`, generated into `spec/cue_types_gen.go` (`#EncExecInput`/`#EncVolumePlan`/`#EncExecReply`, shared by the shim + the plugin); the plain `EncMethod*` string-selector constants stay hand-written in `spec/enc_consts.go` (never a JSON/YAML shape for `gengotypes` to generate)
 - `candy/plugin-secrets/keyring_unlock_wait.go` — `awaitUnlock` (the externalized event-driven DBus signal wait for `source=locked`), `awaitUnlockLoop`, `awaitUnlockBackstopOnly`, `isCollectionUnlockedSignal` (the collection-unlocked signal filter), `awaitSignalBackstop` (30s), `awaitProgressLogInterval` (1h)
-- `charly/credential_plugin.go` — the core seam: `pluginCredentialStore.awaitUnlock` (RPCs `verb:credential await-unlock` over a SIGINT/SIGTERM-cancellable ctx) + the `credentialAwaiter` interface
-- `charly/credential_plugin.go` — the CORE adapter: `DefaultCredentialStore` (→ `pluginCredentialStore`), `ResolveCredential` (the `"unavailable"`-vs-`"default"` source distinction), `resolveSecretBackend`, `resetDefaultCredentialStore` (propagates a keyring re-probe to the plugin over `verb:credential reset`)
+- `charly/credential_plugin.go` — the CORE adapter: `DefaultCredentialStore` (→ `pluginCredentialStore`), `ResolveCredential` (the `"unavailable"`-vs-`"default"` source distinction), `resolveSecretBackend`, `resetDefaultCredentialStore` (propagates a keyring re-probe to the plugin over `verb:credential reset`), plus the core seam `pluginCredentialStore.awaitUnlock` (RPCs `verb:credential await-unlock` over a SIGINT/SIGTERM-cancellable ctx) and the `credentialAwaiter` interface
 - `candy/plugin-secrets/secret_service.go` — godbus-based ssClient, `findItemAcrossCollections` (with locked-vs-broken tracking), `ssOps` interface for test injection, `ErrSSNotFound` / `ErrSSAllBroken` / `ErrSSInteractiveUnlockRequired` sentinel errors
 - `candy/plugin-secrets/credential_keyring.go` — `KeyringStore.Probe` (iterates collections, accepts if ≥1 healthy), `KeyringStore.Get` (delegates to `keyringGetViaSSClient`, maps `ErrSSInteractiveUnlockRequired` to `KeyringLockedError`), index-divergence warning
 - `candy/plugin-secrets/store.go` — `DefaultCredentialStore` (tracks `defaultStoreProbeErr`), `resolveStoreChain` (the env-less store resolution the core adapter's `ResolveCredential` forwards to over `verb:credential`)
-- `charly/deploy.go` — `DeployVolumeConfig`, `ResolveVolumeBacking`
-- `charly/runtime_config.go` — `KeyringCollectionLabel` field (the `keyring_collection_label` setting)
+- `sdk/deploykit/deploy_volume.go` — `ResolveVolumeBacking`, which splits a box's declared volumes into named volumes and bind-backed mounts. The volume type itself is schema-sourced as `spec.DeployVolume` (`spec/schema/deploy.cue` `#DeployVolume`)
+- `candy/plugin-secrets/config_store.go` — the `KeyringCollectionLabel` field (the `keyring_collection_label` setting)
 
 ## Cross-References
 

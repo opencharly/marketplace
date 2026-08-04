@@ -846,7 +846,7 @@ immich:
 - **`charly remove --purge`**: removes named volumes (also encrypted volumes + the `<name>-overlay` images — see `/charly-core:remove`)
 - **`charly box inspect --format bind_mounts`**: outputs deploy-configured volume backing
 
-Source: `charly/deploy.go` (`DeployVolumeConfig`, `ResolveVolumeBacking`), `charly/enc.go` (`ResolvedBindMount`).
+Source: `sdk/deploykit/deploy_volume.go` (`ResolveVolumeBacking`), `sdk/deploykit/quadlet.go` (`ResolvedBindMount`); the volume type is schema-sourced as `spec.DeployVolume` (`spec/schema/deploy.cue` `#DeployVolume`).
 
 ## VNC Password for Deployments
 
