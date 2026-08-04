@@ -601,8 +601,9 @@ until the author supplies the proof. If ANY item fails, go to Phase 2 with
 
 **Applies when the diff touches a reader-facing narrative page**: `README.md`,
 `VISION.md`, `GRIEVANCES.md`, `AGENTS.md`, or anything hand-authored under the
-docs site (`index.mdx`, `start/`, `concepts/`, `guides/`). Generated trees are
-exempt — fix their source, not the projection.
+docs site (`start/`, `concepts/`, `guides/`). Generated trees are exempt — fix
+their source, not the projection. Note that the site's HOME PAGE is generated
+from `README.md`, so a change to the front page arrives as a README diff.
 
 A documentation-only change class buys a LIGHTER runtime gate. It does not buy a
 lighter review. Prose ships defects exactly like code does; they are just harder
@@ -628,12 +629,24 @@ Spawn a `general-purpose` sub-agent and brief it EXACTLY this way:
   and say which it is unsure about; (c) *where it got lost*, *with exact quotes*;
   (d) *unsupported claims*, quoted; (e) *what it still cannot answer* — what
   problem this solves, who it is for, what adoption costs, what it runs on.
+- Ask one more thing, which only it can answer: **"Which section would you have
+  DELETED, and which section is MISSING?"**
 - Tell it to be blunt and that praise is worthless.
 
 **Its findings are FINDINGS, not suggestions.** A page a competent engineer
 cannot follow is defective. Weigh them: a taste disagreement is not a defect, but
-"I could not tell what this does", a quoted contradiction, or an unanswerable
-adoption question all are. If it reports nothing substantive, say so explicitly
+"I could not tell what this does", a quoted contradiction, an unanswerable
+adoption question, and — the category most easily missed — **a misallocation of
+the reader's attention** all are.
+
+That last one needs naming because it fits none of the others and is the most
+actionable thing a cold reader produces: *"the pages spend their two longest
+sections pre-empting a confusion I did not have, while the confusion I actually
+had is never flagged — the prose is arguing with a previous reader I am not."*
+That is neither taste nor a contradiction. It is a page shaped by the last round
+of review rather than by what a newcomer needs, and it is precisely what a reader
+forbidden every other source is the only instrument able to detect. Run 1b.0
+EVERY time for that reason, not only when a page looks risky. If it reports nothing substantive, say so explicitly
 in your verdict — silence must be visible, so a skipped reader cannot masquerade
 as a clean one.
 
@@ -642,7 +655,11 @@ as a clean one.
 Each of these caught a real defect that survived author review:
 
 1. **Contradiction sweep.** A term defined NEGATIVELY in one place and used
-   POSITIVELY in another is a hard FAIL. (Shipped once: a table saying a candy is
+   POSITIVELY in another is a hard FAIL. **Sweep the POST-MERGE page, and a
+   collision in which EITHER side appears in the diff is blocking regardless of
+   which side is older** — without that clause the item is defeatable by leaving
+   the older half of a contradiction untouched and routing it to a batch as
+   "pre-existing". (Shipped once: a table saying a candy is
    *"not 'a layer'"* sixteen lines above a table saying it **is** *"a layer"*, in
    a section opening *"used precisely throughout"*.)
 2. **Undefined-term sweep.** Every term the page uses as jargon must be defined
@@ -651,7 +668,10 @@ Each of these caught a real defect that survived author review:
    workflow, with `bundle` defined nowhere in either document.)
 3. **Asserted vs demonstrated.** For each headline capability claim, find the
    artifact that shows it. A claim repeated three times with no example is
-   marketing. (Shipped once: *"moving a deploy from a container to a VM is a
+   marketing. **Removing an artifact that demonstrated a SURVIVING claim is a
+   regression, even when the replacing prose is better written** — prose quality
+   and evidence are separate axes, and a diff that trades a worked example for a
+   tidier table has weakened the page even if it reads better. (Shipped once: *"moving a deploy from a container to a VM is a
    keyword change"* — with no deploy declaration anywhere on either surface.)
 4. **Reader-state claims — zero tolerance.** Grep, case-insensitive:
    `you already|you probably|will feel|feels familiar|most tools|most toolchains|every other tool|no other tool|unlike most|nothing else does`.
@@ -659,10 +679,19 @@ Each of these caught a real defect that survived author review:
    construction. A conditional heading (`## If you know Docker`) scopes its claims
    to readers who opted in and is legitimate; a bare assertion is not.
 5. **Every count and named set re-derived from the artifact**, never read from
-   the body. (Shipped once: "five AI coding CLIs" where the box lists four.)
+   the body. **Then reconcile the numbers AGAINST EACH OTHER**: when a page states
+   two totals a reader will take as the same set, that is a defect even when both
+   are individually correct. Per-number re-derivation passes a population swap —
+   "86 plugin candies" in one paragraph and "81" fifteen lines later, both true of
+   different populations — and a swap is worse than a wrong number, because there
+   is no wrong figure to point at. (Shipped once: "five AI coding CLIs" where the box lists four.)
 6. **Gate probativeness — ask what mutation would make this gate fail.** If
    nothing would, the gate is decoration and citing it is a false claim, however
-   green it is. Mutation-test the load-bearing one. (Caught twice in one PR body:
+   green it is. Mutation-test the load-bearing one. **Mutate the gate's INPUTS,
+   not only its logic.** A gate whose logic is sound can still be vacuous because
+   of what it reads: for anything that reads the WORKING TREE, the mutation is
+   `git stash` in every repo it touches. A generator gate run against dirty
+   sibling checkouts measures the author's uncommitted work, not the PR. (Caught twice in one PR body:
    a `docs:drift` no-op offered as proof a page was generated, when deleting the
    generator entirely still passed; and a site build offered as proof a config
    line was safe, when a dead sidebar link builds green and renders on 852 pages.)
@@ -680,10 +709,55 @@ Each of these caught a real defect that survived author review:
 10. **Cross-surface drift.** When a page duplicates another (README ↔ landing),
     diff them. Divergent capitalisation, a dropped table column, or a claim
     updated in one is drift that has already started.
+11. **Source liveness — the check that reads the SOURCE, not the page.** Every
+    other item here reads the page, so a page can be internally flawless and still
+    be a projection of source that exists nowhere. For each generated page in the
+    diff, resolve its source (a `README.md`, a `SKILL.md`, a candy's
+    `description:`) and confirm it is LANDED in the owning repo, not sitting
+    dirty in the author's tree:
 
-### 1b.2 — The standing question
+    ```
+    git -C <repo> status --short          # is the source dirty?
+    git show origin/main:<path> | grep …  # is the claim's source landed?
+    ```
+
+    For every prose claim about code BEHAVIOUR, confirm the code is committed.
+    And **"the companion PR carries it" requires that PR to EXIST** — check
+    `gh pr list` in the named repo rather than accepting the reference. A docs PR
+    describing behaviour that lives only in an uncommitted working tree will
+    publish the inverse of shipped reality the moment it merges.
+12. **Every abbreviation expanded on first use, or linked.** Extract the
+    uppercase tokens from the prose (excluding fenced and inline code, where they
+    are identifiers) and check each one resolves: expanded inline the first time
+    the document uses it, or linked to the abbreviations table in
+    `concepts/00-vocabulary.md`. `IR`, `CUE`, `OCI`, `MCP`, `RPC`, `CalVer`,
+    `ADE`, `RDD`, `SDD` and the probe protocols (`CDP`, `VNC`, `ADB`) all read as
+    noise to someone meeting them cold — and an unexplained abbreviation in the
+    sentence that carries a page's main claim makes that claim unreadable, which
+    is indistinguishable from not having made it.
+
+### 1b.1a — On isolation (resolving the W0 conflict)
+
+W0 forbids bootstrapping another CHECKOUT to validate FROM, because permissions
+and plugin resolution depend on running rooted in the superproject. It does NOT
+forbid a **read-only worktree at the PR head**, driven with `git -C` from that
+root — and after a destructive experiment leaked into the shared checkout during
+PR #9, a scratch worktree is the CORRECT way to run any mutation test. Create it,
+drive everything with absolute paths from the superproject root, verify the shared
+checkout clean afterwards, and remove it.
+
+### 1b.2 — The standing questions
 
 **What surface does this change touch that no gate's scope includes?**
+
+**Which gate am I citing, what does it actually read, and is what it reads the
+thing under review?** Four separate findings in this program were one pattern:
+reaching for the nearest green signal instead of the one that would go red if the
+claim were false. `docs:drift` cited as proof a page was generated; a site build
+cited as proof a config line was safe; a test cited as proof of a mixed engine
+pair; and `docs:drift` again, this time reading three dirty sibling worktrees. In
+every case the conclusion happened to be true and the evidence was not
+load-bearing.
 
 Both generator defects found in this program were the SEAM between gates, each of
 which was individually correct about its own scope — a page the generator could no

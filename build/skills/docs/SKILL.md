@@ -52,14 +52,23 @@ charly docs generate --out docs/src/content/docs --root .
 
 ## What it emits
 
-The generator owns three top-level trees — `vision.md`, `reference/` and `recipes/` — and
-rewrites them wholesale each run, so a deleted source entity
-disappears from the site instead of lingering as an orphan page. The hand-authored narrative
-(`index.mdx`, `start/`, `concepts/`, `guides/`) is never read or written.
+The generator owns `index.md`, `vision.md`, `grievances.md`, `reference/` and `recipes/`. What
+stays hand-authored is the teaching narrative the repository has no equivalent of: `start/`,
+`concepts/` and `guides/`.
+
+**Deletion works, and it did not always.** Before emitting, the generator PRUNES every page in the
+output tree carrying the `DO-NOT-EDIT` header, then rewrites what it still produces — so a page it
+no longer emits does not come back. Until that pass existed the generator could only ADD: a page
+whose source was deleted stayed in the tree forever, and every gate above it read as a pass, since
+`task docs:drift` compares a regeneration against the committed tree and a stale page is identical
+in both. The header is the whole safety boundary — hand-authored pages do not carry it and are
+never touched, and a file is matched by reading it, never by its path.
 
 | Tree | Source |
 |---|---|
+| `index.md` | `README.md`, H1 and tagline dropped (the hero renders it), `opencharly.ai` links made site-relative, site frontmatter assembled by the generator |
 | `vision.md` | `VISION.md` verbatim, repo-relative links rewritten for a web reader |
+| `grievances.md` | `GRIEVANCES.md` verbatim, same rewriting |
 | `reference/cli/` | one page per `command:` provider word |
 | `reference/candy/` | every defined candy: packages, services, and its `plan:` as an acceptance spec |
 | `reference/box/` | every defined box |

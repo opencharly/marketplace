@@ -393,13 +393,15 @@ Path: `~/.config/containers/systemd/charly-<image>.container` (or `charly-<image
 Contents include:
 - `[Container]` section: image reference, container name, port mappings, volumes, environment
 - `[Service]` section: restart policy, lifecycle hooks
-- `[Install]` section: `WantedBy=default.target` (omitted for encrypted services without keyring backend)
+- `[Install]` section: `WantedBy=default.target` — see the boot-behaviour note below
 - `PodmanArgs=` for security settings (privileged, capabilities, devices)
 - `Volume=` for named volumes and plain bind mounts
 - `Environment=` / `EnvironmentFile=` for env vars
 - `ExecStartPost=` / `ExecStopPost=` for tunnel commands
 
-Service name: `charly-<image>.service`. Container name: `charly-<image>`. Entrypoint: determined by the embedded `init:` vocabulary for the configured init system. Encrypted volumes are mounted via `ExecStartPre=charly config mount` in the quadlet, which creates transient `charly-enc-<image>-<volume>.scope` units for each encrypted volume. These scope units are independent of the container service — they survive stop/restart (see `/charly-automation:enc`). With Secret Service backend: auto-starts after login (ExecStartPre waits for keyring unlock, `TimeoutStartSec=0`). With KeePass or no backend: requires `charly start` (no `WantedBy=default.target`).
+Service name: `charly-<image>.service`. Container name: `charly-<image>`. Entrypoint: determined by the embedded `init:` vocabulary for the configured init system. Encrypted volumes are mounted via `ExecStartPre=charly config mount` in the quadlet, which creates transient `charly-enc-<image>-<volume>.scope` units for each encrypted volume. These scope units are independent of the container service — they survive stop/restart (see `/charly-automation:enc`).
+
+**Boot behaviour.** The quadlet carries `[Install] WantedBy=default.target`, so systemd starts every deploy at boot. A deploy with encrypted volumes starts at boot too and then SUSPENDS in `ExecStartPre=charly config mount` until the keyring unlocks — `TimeoutStartSec=0`, so it waits indefinitely rather than failing. Loading the secret from anything other than the keyring is not a supported configuration.
 
 ### Security in Quadlet
 
