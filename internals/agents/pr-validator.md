@@ -597,6 +597,100 @@ your own re-run is not "probably fine" — it is unverified, and unverified is F
 until the author supplies the proof. If ANY item fails, go to Phase 2 with
 `failure` and STOP (do not merge).
 
+## Phase 1b — Documentation scrutiny (reader-facing prose)
+
+**Applies when the diff touches a reader-facing narrative page**: `README.md`,
+`VISION.md`, `GRIEVANCES.md`, `AGENTS.md`, or anything hand-authored under the
+docs site (`index.mdx`, `start/`, `concepts/`, `guides/`). Generated trees are
+exempt — fix their source, not the projection.
+
+A documentation-only change class buys a LIGHTER runtime gate. It does not buy a
+lighter review. Prose ships defects exactly like code does; they are just harder
+to see, because prose that is confusing still parses. **"Documentation-only"
+must never read as "waved through."**
+
+### 1b.0 — The cold reader is MANDATORY, and it is not you
+
+You cannot evaluate whether a page teaches a stranger, because you are not one:
+you have read this repo's skills, the diff, and the PR body. Everything the page
+fails to explain, you supply from memory without noticing. **Simulating a
+newcomer is not a substitute — spawn one.**
+
+Spawn a `general-purpose` sub-agent and brief it EXACTLY this way:
+
+- Name the changed page paths and **forbid it every other source** — no source
+  code, no skills, no `VISION.md`, no web search. Its whole value is not knowing.
+- Tell it to state plainly where the answer is **"I could not tell"**, and that a
+  confident wrong guess is worse than an admission.
+- Ask for, at minimum: (a) *the sixty-second test* — one sentence in its own
+  words after the first screen only, and whether it would have kept reading;
+  (b) *comprehension* — define each term the page claims to define, from memory,
+  and say which it is unsure about; (c) *where it got lost*, *with exact quotes*;
+  (d) *unsupported claims*, quoted; (e) *what it still cannot answer* — what
+  problem this solves, who it is for, what adoption costs, what it runs on.
+- Tell it to be blunt and that praise is worthless.
+
+**Its findings are FINDINGS, not suggestions.** A page a competent engineer
+cannot follow is defective. Weigh them: a taste disagreement is not a defect, but
+"I could not tell what this does", a quoted contradiction, or an unanswerable
+adoption question all are. If it reports nothing substantive, say so explicitly
+in your verdict — silence must be visible, so a skipped reader cannot masquerade
+as a clean one.
+
+### 1b.1 — Mechanical checks you run yourself
+
+Each of these caught a real defect that survived author review:
+
+1. **Contradiction sweep.** A term defined NEGATIVELY in one place and used
+   POSITIVELY in another is a hard FAIL. (Shipped once: a table saying a candy is
+   *"not 'a layer'"* sixteen lines above a table saying it **is** *"a layer"*, in
+   a section opening *"used precisely throughout"*.)
+2. **Undefined-term sweep.** Every term the page uses as jargon must be defined
+   BEFORE first use, and a page promising "N terms" must define the ones it then
+   relies on. (Shipped once: `charly bundle add` in the table teaching the
+   workflow, with `bundle` defined nowhere in either document.)
+3. **Asserted vs demonstrated.** For each headline capability claim, find the
+   artifact that shows it. A claim repeated three times with no example is
+   marketing. (Shipped once: *"moving a deploy from a container to a VM is a
+   keyword change"* — with no deploy declaration anywhere on either surface.)
+4. **Reader-state claims — zero tolerance.** Grep, case-insensitive:
+   `you already|you probably|will feel|feels familiar|most tools|most toolchains|every other tool|no other tool|unlike most|nothing else does`.
+   Assertions about what the reader knows, uses, or will feel are unverifiable by
+   construction. A conditional heading (`## If you know Docker`) scopes its claims
+   to readers who opted in and is legitimate; a bare assertion is not.
+5. **Every count and named set re-derived from the artifact**, never read from
+   the body. (Shipped once: "five AI coding CLIs" where the box lists four.)
+6. **Gate probativeness — ask what mutation would make this gate fail.** If
+   nothing would, the gate is decoration and citing it is a false claim, however
+   green it is. Mutation-test the load-bearing one. (Caught twice in one PR body:
+   a `docs:drift` no-op offered as proof a page was generated, when deleting the
+   generator entirely still passed; and a site build offered as proof a config
+   line was safe, when a dead sidebar link builds green and renders on 852 pages.)
+7. **Re-run every sweep the body claims**, whole-tree, per-submodule, with `-E`.
+   `git grep` does not cross submodule boundaries and an un-`-E`'d alternation
+   returns zero and reads as clean.
+8. **R4a — binary-only commands.** Every command outside an INSTALL section must
+   work with nothing but the `charly` binary on `$PATH`: no `task` target, no
+   `./bin/charly`, no repo-relative path, no `cd` into a checkout. A command
+   needing more is a PRODUCT defect; the fix belongs in `charly`, and a doc that
+   works around it FAILS.
+9. **Excerpt integrity.** Every fenced config block must be traceable to a
+   committed file — grep its distinctive lines against the source. Invented
+   illustrative YAML FAILS.
+10. **Cross-surface drift.** When a page duplicates another (README ↔ landing),
+    diff them. Divergent capitalisation, a dropped table column, or a claim
+    updated in one is drift that has already started.
+
+### 1b.2 — The standing question
+
+**What surface does this change touch that no gate's scope includes?**
+
+Both generator defects found in this program were the SEAM between gates, each of
+which was individually correct about its own scope — a page the generator could no
+longer emit but nothing could remove, and a sidebar whose targets no gate read.
+That is the shape of hole that survives review. Ask the question explicitly and
+record the answer in your verdict.
+
 ## Phase 2 — Post the verdict: a required status AND a PR comment
 
 Record the verdict TWO ways — the machine gate (the commit status branch
