@@ -58,11 +58,14 @@ extend or override the embedded default. Add a box with `charly box new box <nam
 charly -C ~/my-project box new box hello \
     --base quay.io/fedora/fedora:43 \
     --candy sshd,tmux
-# Writes box/hello/charly.yml (an image = a `candy:` node carrying `base:`):
-#   candy:
-#     name: hello
-#     base: quay.io/fedora/fedora:43
-#     candy: [sshd, tmux]
+# Writes box/hello/charly.yml (an image = a `candy:` node carrying `base:`).
+# The NAME is the node key, not a field — there is no `name:`:
+#   hello:
+#       candy:
+#           base: quay.io/fedora/fedora:43
+#           candy:
+#               - sshd
+#               - tmux
 ```
 
 Flags: `--base` (required — URL or name of another box), `--candy` (optional comma-separated candy names). Existing `charly.yml` comments + key order are preserved.
@@ -92,7 +95,7 @@ The end-to-end scaffold → build flow:
 
 All six steps are also callable as MCP tools (`box.new.project`, `box.new.candy`, `candy.add-rpm`, …), so an agent driving `charly mcp serve` can run this entire flow over RPC. See `/charly-build:charly-mcp-cmd` "Authoring tools" for the worked MCP-only example.
 
-The scaffolded `charly.yml` from step 3 is minimal (a `candy:` block with `name:` + `version:` and a placeholder comment). Add sections as needed: a `distro:` map (per-distro `package:` lists, populated by `charly candy add-rpm` / `add-deb` / `add-pac` / `add-aur`) for system packages, `env:` for runtime environment, `port:` / `service:` / `volume:` for services, and `task:` for install operations (mkdir, copy, write, download, link, setcap, cmd, build). The scaffolder does not create separate Taskfile shell scripts — all install logic flows through `task:` in `charly.yml`.
+The scaffolded `charly.yml` from step 3 is minimal — the candy NAME as the node key, then a `candy:` block carrying `version:`, a placeholder `description:`, and a `plan:` with one starter `check:` (there is no `name:` field; the key IS the name). Add sections as needed: a `distro:` map (per-distro `package:` lists, populated by `charly candy add-rpm` / `add-deb` / `add-pac` / `add-aur`) for system packages, `env:` for runtime environment, `port:` / `service:` / `volume:` for services, and `task:` for install operations (mkdir, copy, write, download, link, setcap, cmd, build). The scaffolder does not create separate Taskfile shell scripts — all install logic flows through `task:` in `charly.yml`.
 
 ## Naming Rules
 
