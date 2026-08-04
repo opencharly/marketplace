@@ -95,7 +95,7 @@ charly candy add-pac sshd openssh
 charly candy set sshd env.SSHD_PORT 22
 charly candy set sshd service.name sshd
 charly candy set sshd port '["22:22"]'
-charly candy set sshd require '[supervisord]'
+charly candy set sshd require '[build-toolchain]'
 
 # Free-form files (layer scripts, pixi.toml, root.yml, *.service):
 charly box write candy/sshd/sshd_config.d/99-charly.conf --content 'X11Forwarding no\n'
