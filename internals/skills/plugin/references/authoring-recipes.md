@@ -153,8 +153,8 @@ See "Authoring an external COMMAND plugin" below.
   (the pod overlay build), `step-emit` (host-coupled step fragments), `plugin-binary`
   (the F10 plugin host build), `cli` (run-any-charly-command
   reentry), `hostprobe` (doctor's raw host facts), `feature`, `render-service`, `retention-defaults`, `validate-project-checks`, `remote-image-resolve`, `box-fetch-resolve`, `config-resolve`
-  (config-persist is DELETED — persist moved plugin-side to candy/plugin-vm/vm_host_persist.go), the `deploy-*-resolve` / `deploy-members-*` / `resolve-target-add` / `deploy-node-del-dispatch` / `deploy-plugins-connect` / `deploy-from-box` family, the `loader-*` and `pod-*` (lifecycle verbs) and `pod-config-*` families, `arbiter-bracket-acquire` + `-release`, `construct-step`, `check-load-plugins`,
-  `check-bed`, `check-run`. The build engine is in core TODAY — K3 build-engine
+  (config-persist is DELETED — persist moved plugin-side to candy/plugin-vm/vm_host_persist.go), the `deploy-*-resolve` / `resolve-target-add` / `deploy-node-del-dispatch` / `deploy-plugins-connect` / `deploy-from-box` family (`deploy-members-*` DIED, K-wave W3a A4 — candy/plugin-bundle calls sdk/deploykit.BringUpMembers/TearDownMembers directly), the `loader-*` and `pod-*` (lifecycle verbs) and `pod-config-*` families, `arbiter-bracket-acquire` + `-release`, `construct-step`, `check-load-plugins`,
+  `check-bed-gpu-prereq` (the ONE narrow seam surviving `check-bed`'s full dissolution, K-wave W3 B2-full — every other former responsibility moved into candy/plugin-check/bed_session.go), `check-run`. The build engine is in core TODAY — K3 build-engine
   migration inventory, not permanent core — the box-build podman DRIVE moved to candy/plugin-build in
   P8b, and the Containerfile RENDER DRIVE moved to `sdk/deploykit` (#67, driven by plugin-build over the
   envelope + the `render-seam` reverse legs; the host render-leg is DELETED). This is the shared-capability
