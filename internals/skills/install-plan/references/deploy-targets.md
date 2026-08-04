@@ -125,9 +125,11 @@ design Q1–Q4, verified against the actual call graph, not assumed):
   `grpcSubstrateLifecycle` ran as a SEPARATE pre-dispatch call now resolves INSIDE the plugin dispatch
   itself (Unit-6 design Q3), with the host-side plan-hook lookup running BEFORE the arbiter bracket is
   entered.
-- **Secret injection, artifact retrieval, and `--verify`** (`prepareCandySecrets`/
-  `retrieveArtifactsAndK3s`/`checkLocalDeployScope`) — core siblings of `bundle_add_cmd.go` with their
-  own core-only dependencies; they wrap `pluginDeployTarget.Add`'s dispatch call, unmoved.
+- **Secret injection, artifact retrieval, and `--verify`** — ALL plugin-side now, inside
+  `handleDeployApply` itself (`candy/plugin-bundle/secrets_artifacts.go`'s `injectCandySecrets`/
+  `retrieveArtifactsAndDispatchRegisters`; `verify_local.go`'s `verifyLocalDeployScope`, #55 W3
+  B3). `charly/unified_targets.go`'s `pluginDeployTarget.Add` no longer wraps any of these — it
+  only dispatches and returns.
 
 The ledger key is `computeDeployID(name, nil, nil)` — derived from the deploy name alone (so the
 host-venue `Kind()=="host"` never collides with another host-venue deploy on the ledger scan). A
