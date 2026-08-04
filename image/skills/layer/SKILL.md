@@ -1101,7 +1101,7 @@ plan:
 
 ### Add a service
 
-Declare a `service:` entry (the unified schema — see "Service Declaration" above) and add `supervisord` to `require:`. The generator renders per-candy entries into supervisord INI fragments assembled into a single `/etc/supervisord.conf` at image build time (or systemd units on systemd-init targets).
+Declare a `service:` entry (the unified schema — see "Service Declaration" above). That is the whole step: declaring a service is what SELECTS an init system, so charly adds that init's own candy to the composition automatically and target-aware — `supervisord` for a container image, nothing extra for a machine venue that already has systemd. Do NOT add the init to `require:` by hand; `require:` is target-blind and would drag supervisord onto a systemd venue. The generator renders per-candy entries into supervisord INI fragments assembled into a single `/etc/supervisord.conf` at image build time (or systemd units on systemd-init targets).
 
 ---
 
