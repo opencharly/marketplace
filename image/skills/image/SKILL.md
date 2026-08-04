@@ -132,7 +132,7 @@ Each verb below is also auto-exposed as an MCP tool (`box.new.project`, `box.new
 | Action | Command |
 |--------|---------|
 | Scaffold a fresh project | `charly box new project <dir>` |
-| Add a box entry | `charly box new box <name> --base <ref> --candy <a,b,c>` |
+| Add a box entry | `charly box new box <name> --base <ref> --candies <a,b,c>` |
 | Add a candy dir (stub `charly.yml`) | `charly box new candy <name>` |
 | Edit a value in `charly.yml` | `charly box set <dotpath> <yaml-value>` |
 | Append a candy to a box | `charly box add-candy <image> <layer>` |
