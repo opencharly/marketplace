@@ -70,8 +70,10 @@ resolves the `cluster:` profile to a concrete kubeconfig context via the generic
 `charly bundle add vm:k3s-srv` (or any deploy whose layers include
 `k3s-server`) provisions a cluster whose kubeconfig is merged into the
 default kubeconfig under a context named after the deploy (the plugin-side
-`k3s-post-provision` finalization dispatched by `K3sPostProvision` via
-`invokeKubePluginWithBroker`, which retrieves the kubeconfig, rewrites its
+`k3s-post-provision` finalization dispatched by `candy/plugin-bundle`'s
+`k3sPostProvision` (InvokeProviding `verb:kube` peer-to-peer — the former
+core `invokeKubePluginWithBroker` seam is deleted), which retrieves the
+kubeconfig, rewrites its
 guest-forwarded server, and merges it via `mergeKubeconfig` — all inside
 `candy/plugin-kube`), so a plan step can then address it with `cluster: k3s-srv`:
 
@@ -186,12 +188,14 @@ charly's core binary.
     in core). Called DIRECTLY by this same plugin's `k3s_post.go`
     (`k3sPostProvision`) — no separate host-orchestrated merge round-trip.
   - `k3s_post.go` — the WHOLE k3s post-provision finalization (S3, FINAL/K5
-    unit 6, relocated wholesale from the now-thin `charly/k3s_post.go`):
-    `k3sPostProvision` checks the retrieved-kubeconfig path, rewrites its
-    GUEST-local server URL to the HOST-forwarded port (`deployVMForwards`
-    resolves the deploy tree node + the `kind:vm` entity's declared
-    `port_forwards` via the generic `"deploy-entity-resolve"` HostBuild seam,
-    then reads the PERSISTED port-forward allocation ledger via the SIBLING
+    unit 6, relocated wholesale from the former `charly/k3s_post.go`, itself
+    now DELETED — see below): `k3sPostProvision` checks the retrieved-kubeconfig
+    path, rewrites its GUEST-local server URL to the HOST-forwarded port
+    (`deployVMForwards` resolves the deploy tree node + the `kind:vm` entity's
+    declared `port_forwards` by self-loading the project PLUGIN-SIDE — K-wave
+    W3a A3-phase-2, `sdk/loaderkit.ResolveMergedTreeViaExecutor` /
+    `ResolveVmEntityViaExecutor` — no HostBuild round trip remains for this
+    leg, then reads the PERSISTED port-forward allocation ledger via the
     `"config-resolve"` HostBuild seam — `hostConfigResolveVmState`, the SAME
     seam `candy/plugin-vm`'s own `hostConfigResolve` uses for its OWN VmState
     reuse, R3 — a FIX-ROUND regression fix: a direct
@@ -204,24 +208,20 @@ charly's core binary.
     channel and spliced onto the base for validation. Authoring is unchanged
     (`kube: nodes`, not `plugin: kube`); the internal plugin/plugin_input wire
     envelope the sugar desugars to is never authored.
-- `charly/k8s_plugin.go` — `invokeKubePluginWithBroker`: the core seam that
-  builds a synthetic `kube:` `#Op` and dispatches it to the plugin WITH the
-  reverse-channel broker (`InvokeWithExecutor`) through the registry — the
-  broker access is needed for the plugin's own "deploy-entity-resolve"
-  HostBuild leg. Used by the k3s deploy path to invoke the
-  `k3s-post-provision` method.
-- `charly/k3s_post.go` — now a ONE-CALL dispatch shim: `K3sPostProvision`
-  marshals `{method: "k3s-post-provision", artifact_key, deploy_name}` and
-  calls `invokeKubePluginWithBroker`, printing the plugin's returned status
-  line. The retrieve-check, port-forward rewrite, and merge all run INSIDE
-  `candy/plugin-kube` now (see `k3s_post.go` above). No client-go import
-  remains in core.
-- `charly/k8s_config.go` — `findK8sSpec` looks up a `K8sSpec` (`kind: k8s`
-  cluster template) by name from the project `charly.yml` / `k8s.yml`, and
-  `resolveClusterContext` (the host side of the `cc.ResolveClusterContext`
-  reverse-leg) uses it to turn a `kube:` step's `cluster:` profile name into a
-  concrete kubeconfig context — the out-of-process plugin PULLS the mapping (it
-  cannot reach the project loader itself).
+- `charly/k8s_plugin.go` / `charly/k3s_post.go` / `charly/k8s_config.go` are
+  ALL DELETED — the former core seam that built a synthetic `kube:` `#Op` and
+  dispatched it to the plugin WITH the reverse-channel broker
+  (`invokeKubePluginWithBroker`) is gone. `candy/plugin-bundle`'s own
+  `k3sPostProvision` (`secrets_artifacts.go`) InvokeProviders `verb:kube`
+  peer-to-peer directly (`exec.InvokeProvider(ctx, "verb", "kube", …)`, with
+  an explicit `kit.ShellExecutor{}` venue override reproducing the original
+  "broker only, no live venue" contract) to trigger the
+  `k3s-post-provision` method. The retrieve-check, port-forward rewrite, and
+  merge all run INSIDE `candy/plugin-kube` (see `k3s_post.go` above); the
+  cluster-template lookup that used to need `charly/k8s_config.go`'s
+  `findK8sSpec` now self-loads plugin-side too (`sdk/loaderkit.ResolveK8sEntityViaExecutor`,
+  K-wave W3a A3-phase-2). No client-go import, and no `kube:`-specific host
+  seam, remains in core.
 
 There is no `charly/k8s_cmd.go`, `kubeMethods` table, `runKube` dispatcher,
 `posKube*` flag builder, or `k8sClusterFlags`/`LoadClusterProfile` symbol —
