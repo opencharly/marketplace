@@ -84,7 +84,9 @@ charly --repo default box list boxes                      # literal "default" �
 CHARLY_PROJECT_REPO=opencharly/charly charly box list boxes
 ```
 
-`--repo` and `--dir` are mutually exclusive (passing both exits with `charly: --repo and --dir are mutually exclusive`). All five paths are declared on the top-level `CLI` struct in `charly/main.go` and resolved by a single `os.Chdir(cli.Dir)` call **before** Kong dispatches the subcommand, so every existing `os.Getwd()` site picks up the new cwd — no per-command plumbing needed.
+`--repo` and `--dir` are mutually exclusive (passing both exits with `charly: --repo and --dir are mutually exclusive`). All five paths are declared on the top-level `CLI` struct in `charly/main.go`, and the cwd move is a single `os.Chdir(cli.Dir)` call **before** Kong dispatches the subcommand, so every existing `os.Getwd()` site picks up the new cwd — no per-command plumbing needed.
+
+**`--repo` additionally resolves EARLIER, in the pre-parse prescan** (`projectDirPreParse`, `charly/plugin_command_prescan.go`). The chdir above happens after `kong.Parse`, which has already FROZEN the grammar — so a command word that exists only in the `--repo` target would never be registered, and `charly --repo <owner/repo> <word>` reported an unknown verb. Reading `charly.yml` worked (that is after the chdir); finding the verb did not. Resolution there is attempted only when the flag or env var is present, so a bare invocation never touches the network, and an unresolvable spec falls through to cwd so the local grammar survives.
 
 **Repo spec normalization** (in `charly/main_repo.go`):
 
