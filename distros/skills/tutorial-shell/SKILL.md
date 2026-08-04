@@ -2,7 +2,7 @@
 name: tutorial-shell
 description: |
   The teaching box quoted end to end by opencharly.ai — a minimal, real dev shell
-  composing one tool candy, one service candy, and the container init.
+  composing one tool candy and one service candy, with the container init injected.
   MUST be invoked before editing the tutorial-shell box, the check-tutorial-shell bed,
   or any documentation page that excerpts them.
 ---
@@ -14,7 +14,7 @@ curriculum on [opencharly.ai](https://opencharly.ai) can quote a box that is rea
 re-proven on every R10 roster run — instead of illustrating with YAML that nobody executes.
 
 Lives in the **`opencharly/distro-fedora`** repo (git submodule at **`box/fedora`**). Its
-`fedora` base is bare-local in the same self-contained submodule (`import: []`), and the three
+`fedora` base is bare-local in the same self-contained submodule (`import: []`), and both composed
 candies are pulled by `@github` reference.
 
 ```bash
@@ -34,8 +34,8 @@ charly -C box/fedora check run check-tutorial-shell
 
 ## Why these two candies
 
-Each one is there to teach exactly one thing, and the box is kept at three so it stays readable
-when quoted in full on a documentation page:
+Each one is there to teach exactly one thing, and the composed list is kept to two so it stays
+readable when quoted in full on a documentation page:
 
 | Candy | Teaches |
 |---|---|
