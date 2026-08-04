@@ -98,7 +98,7 @@ charly remove my-app -e KEY=VALUE      # Set env vars for lifecycle hooks
 - Ports bound to configured `bind_address`
 - Entrypoint: determined by the embedded `init:` vocabulary (e.g., `supervisord -n -c /etc/supervisord.conf` for supervisord, `sleep infinity` if no init system)
 - Auto-restart on failure via `WantedBy=default.target` (encrypted services with Secret Service backend include `ExecStartPre=charly config mount` + `TimeoutStartSec=0` for keyring wait; KeePass/no backend omit `WantedBy` — require `charly start`)
-- `charly box validate` enforces: images with init system layers MUST include the required dependency layer (defined by the embedded `init:` vocabulary `depends_candy`)
+- The required dependency layer is INJECTED, not policed: a box composing a `service:` candy has the active init's `depends_candy` (from the embedded `init:` vocabulary) added to its composition automatically, so a box never has to list `supervisord` by hand and can no longer be missing it.
 - `Secret=charly-<image>-<name>,target=/run/secrets/<name>` for each layer-declared secret (Podman only)
 
 ### Container Secrets

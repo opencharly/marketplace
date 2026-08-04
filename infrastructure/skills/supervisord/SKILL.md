@@ -248,8 +248,7 @@ my-image:
   candy:
     base: fedora
     candy:
-      - supervisord
-      - my-service  # layers with service: entries need supervisord
+      - my-service  # declares service: — supervisord is injected, not listed
 ```
 
 Adding a `service:` block to a candy automatically pulls in `supervisord` via the embedded `init:` vocabulary's `depends_candy`. You rarely add `supervisord` to a box's `candy:` list manually.
