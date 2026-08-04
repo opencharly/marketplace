@@ -190,9 +190,9 @@ my-app:
     base: fedora
     env_file: "~/.config/my-app/.env"
     candy:
-      - supervisord
       - traefik
-      - my-service          # published ports are inherited from the candies (no box `port:`)
+      - my-service          # declares service: — the init is injected, not listed here.
+                            # Published ports are inherited from the candies (no box `port:`)
     env:
       MY_VAR: value
     security:
