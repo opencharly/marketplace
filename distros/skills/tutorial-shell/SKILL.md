@@ -56,10 +56,11 @@ build this, shell into it, and use it.
 The box carries **one** `check:` step, `tutorial-shell-service-wired-into-init`: the assembled
 `/etc/supervisord.conf` contains a `[program:sshd]` block.
 
-That is the only claim composition itself produces. `supervisord`'s plan proves the init is
-installed; `sshd`'s proves the daemon is installed; **neither proves sshd became a supervisord
-program**. Drop either candy and the check fails — regenerating without `sshd` emits no
-`supervisor/` fragment directory at all.
+That is the only claim composition itself produces. The injected `supervisord`'s plan proves the
+init is installed; `sshd`'s proves the daemon is installed; **neither proves sshd became a
+supervisord program**. Drop `sshd` from the composed list and the check fails: with no `service:`
+declared, nothing selects an init, so no supervisord candy is injected and no
+`/etc/supervisord.conf` is assembled to hold a `[program:sshd]` block.
 
 **Co-residence is NOT checked here, on purpose.** Every composed candy's plan runs against *this*
 image, so ripgrep's probes and sshd's probes both passing already proves both landed. A box-level

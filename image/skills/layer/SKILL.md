@@ -630,7 +630,7 @@ my-app:
   candy:
     require:
       - python
-      - supervisord
+      - build-toolchain
 ```
 
 ### `require` vs `candy` (composition)
