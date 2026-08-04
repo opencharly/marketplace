@@ -7,7 +7,7 @@ type DeployTarget interface {
 }
 ```
 
-NO in-proc targets implement the bare `DeployTarget` (Name + Emit) interface — the former in-proc overlay walker + the pod overlay target were DELETED in P11c (the pod overlay render now lives in the candy `plugin-deploy-pod`, via `deploykit.OCITarget`), so there are no deploy targets dispatched by `ResolveTarget`. The deploy LIFECYCLE is the separate `UnifiedDeployTarget` interface (Add/Del/Test/Update/Start/Stop/Status/Logs/Shell/Rebuild), and its sole implementer is the thin, data-only `pluginDeployTarget` (`charly/unified_targets.go`, S3b — see "`pluginDeployTarget` + `candy/plugin-bundle`" below): ALL FIVE substrates — `local`, `vm`, `pod`, `k8s`, `android` — route through it over `candy/plugin-bundle`'s `Invoke(OpDeployDispatch)` and, from there, the executor reverse channel to the ACTUAL substrate's own out-of-process plugin:
+NO in-proc targets implement the bare `DeployTarget` (Name + Emit) interface — the former in-proc overlay walker + the pod overlay target were DELETED in P11c (the pod overlay render now lives in the candy `plugin-deploy-pod`, via `deploykit.OCITarget`), so there are no deploy targets dispatched by `ResolveTarget`. The deploy LIFECYCLE is the separate `UnifiedDeployTarget` interface (Add/Del/Update/Start/Stop/Status/Logs/Shell/Rebuild — `Test` DELETED, #55 W3 B3 remainder: zero real callers anywhere in the tree), and its sole implementer is the thin, data-only `pluginDeployTarget` (`charly/unified_targets.go`, S3b — see "`pluginDeployTarget` + `candy/plugin-bundle`" below): ALL FIVE substrates — `local`, `vm`, `pod`, `k8s`, `android` — route through it over `candy/plugin-bundle`'s `Invoke(OpDeployDispatch)` and, from there, the executor reverse channel to the ACTUAL substrate's own out-of-process plugin:
 
 ### `deploykit.OCITarget` (`sdk/deploykit/oci_target.go`) — the pod-overlay walker (P11c relocation)
 The kind-blind Containerfile walker MOVED out of `charly/build_target_oci.go` (P11c) into `sdk/deploykit`; the candy `plugin-deploy-pod` constructs it + renders via `deploykit.NewRenderGeneratorFromProject`. Emits Containerfile text. Consumes `phases.install.container` from the embedded `charly/charly.yml` build vocabulary (falls back to `install_template:`). All compiler-emitted step kinds' build-emit is plugin-served: the plugin-served build-emit kinds (`deploykit.PluginEmitStepWords` — the PURE C1.1 kinds + the no-op-emit `reboot` (C1.6) + the HOST-COUPLED `system-packages` (C1.2), `builder` (C1.3), `local-pkg-install` (C1.4), `op` (C1.5)) route through the host's thin `oci-emit-step` forwarding seam (`charly/oci_step_emit.go`'s `ociEmitStep`/`dispatchOCIStep`, reached by the candy's `deploykit.OCITarget.EmitStepOp` over `HostBuild("step-emit","oci-emit-step")`) to `candy/plugin-installstep`'s `"oci-dispatch"` word, which itself resolves the serving `class:step` provider via `DescribeProvider`/`InvokeProvider` and Invokes its `OpEmit` (K5-A item 2) — their former in-core overlay-walker `emit*` methods are gone; the payload is the step VIEW (`StepToView`), and a legitimately-empty render is tolerated (`allowEmpty`; a no-op-emit `apk-install`/`reboot` declares `Emits=false` and is skipped entirely). The FOUR HOST-COUPLED kinds (`system-packages`/`builder`/`local-pkg-install`/`op`) no longer call back a host `step-emit` renderer at all (K5-Unit-6b): `candy/plugin-installstep` fetches the `"resolved-project"` envelope once per project dir and renders them DIRECTLY against its own `deploykit.Generator` (built via the shared `deploykit.NewRenderGeneratorFromProject`) — `op`'s render still delegates to the SAME `Generator.EmitTasks` (the per-verb emitters `emitCopy`/`emitWrite`/`emitCmd`/`emitMkdirBatch`/...) the box build uses, just invoked from the plugin's own Generator instance rather than a host round-trip. Only `ExternalPlugin` keeps an in-proc `StepProvider.EmitOCI` at the Go-object level (dispatched to its `class:verb` provider via `InvokeProvider` from the plugin's `"oci-dispatch"` word) — the C1.1–C1.6 externalization is COMPLETE, every InstallStep kind now plugin-served.
@@ -43,7 +43,7 @@ DATA-ONLY proxy:
 - **`pluginDeployTarget`** (`charly/unified_targets.go`) holds ONLY plain data (name/word/
   hasLifecycle/hasPreresolve/node) plus a live venue executor — never a core-private `*grpcProvider`
   (constructed only at plugin-CONNECT time, a clause-M mechanism that cannot live in a plugin). Every
-  `UnifiedDeployTarget`/`LifecycleTarget` method (`Add`/`Update`/`Del`/`Test`/`Start`/`Stop`/`Status`/
+  `UnifiedDeployTarget`/`LifecycleTarget` method (`Add`/`Update`/`Del`/`Start`/`Stop`/`Status`/
   `Logs`/`Shell`/`Attach`/`Rebuild`) marshals a `spec.DeployTargetDispatchRequest{Op: "add"|"update"|
   "del"|…}` and calls its own `dispatch()`, which threads the current venue (`t.venueJSON`, reused
   across calls once the first "add" dispatch reports one back) and calls `dispatchDeployTarget`.
@@ -69,8 +69,12 @@ DATA-ONLY proxy:
   the `local` AND `vm` substrates route through `Add → apply → recordDeploy`, so their aur-builder
   teardown resolves the `pacman -Rs …` command at `charly bundle del` instead of erroring on an empty
   command.
-- **Test** runs the deploy-scope checks HOST-SIDE — `runUnifiedTargetChecks` against the executor
-  (the plugin is not involved; the checks are in-proc `CheckVerbProvider`s, R3) — unmoved by S3b.
+- **Test** (the interface method that used to run deploy-scope checks HOST-SIDE via
+  `runUnifiedTargetChecks`) is DELETED (#55 W3 B3 remainder): it had zero real callers anywhere in
+  the tree — `charly check live` reaches `candy/plugin-check` directly (`live_gather.go`'s
+  `pluginCheckRunLive`), never through this adapter. The `target: local --verify` deploy-scope
+  check pass (a DIFFERENT, still-live path) runs plugin-side too now — see
+  `candy/plugin-bundle/verify_local.go`.
 - **Update** re-dispatches with fresh plans — an idempotent re-Add (the candy's ledger `ReverseOps`
   are REPLACED, not appended).
 - **Del** replays the RECORDED `ReverseOps` from the ledger (no plugin call) via the shared
