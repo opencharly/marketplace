@@ -94,8 +94,9 @@ to the host's foldCandyKind by an explicit disc branch.)
 structural kind's whole POINT is preserving the node's AUTHORED resource-member children (peers, nested
 pod-in-pod, cross-member `${HOST:…}` checks) — but they CANNOT ride `op.Params`: that JSON is unified against
 the plugin's CLOSED `#<Kind>Input` def, which the member subtree would violate. So the HOST pre-decodes the
-authored member children via the SAME core `buildBundleNode` recursion the builtin path uses
-(`buildResourceMemberChildren` — ONE member-decode source of truth, R3) and threads the decoded subtree to
+authored member children via the SAME `sdk/loaderkit.BuildBundleNode` recursion the builtin path uses,
+reached through the ProjectLoader seam (`loaderkit.BuildResourceMemberChildren` — ONE member-decode source of
+truth, R3) and threads the decoded subtree to
 `OpLoad` via `op.Env` (`spec.StructuralKindLoadEnv{Members}`). The plugin decodes only its kind-specific scalar
 body from `op.Params` and ATTACHES the host-threaded members to its `spec.Deploy` reply — Members for a
 targetless kind (group), Children for a workload — so the reconstructed `uf.Bundle` entry is BYTE-EQUIVALENT to
@@ -146,14 +147,14 @@ See "Authoring an external COMMAND plugin" below.
   host-side build, via the `sdk.Executor`: `InvokeProvider(class, word, op, params, env)` — the host resolves
   the peer in the registry and Invokes it on the caller's behalf (threading the SAME venue executor into an
   out-of-process target over a nested broker — the host is the dispatch broker, since it owns the registry);
-  and `HostBuild(kind, spec)` — the host runs the registered host-builder for `kind` — ~54 registered kinds
+  and `HostBuild(kind, spec)` — the host runs the registered host-builder for `kind` — 39 registered kinds
   today (the count drifts per cone; `git grep 'registerHostBuilder(' charly/*.go` resolving the `*BuilderKind` constants is the authoritative list). The build/render-relevant ones: the 8 `buildengine-*` kinds (`buildengine-prep` et al. — the thin host shards the candy's plugin-side `resolveBuildEngine` reaches: the local scan, the registry plugin connect, and the render-seam-floor `renderGenCache` populate; REPLACING the former fat `build-prep`/`build_resolve_host.go` seam, DELETED, whose loader+prep+envelope+drive-model resolve all moved plugin-side), `render-seam` (the #67 render's host-coupled seams: RenderService,
   builder resolves, ValidateEgress, EmitPluginOp, localpkg). `bake_plugin:` baking is INLINE via `deploykit.EmitBakedPlugins` (the former `bake-plugins` host-builder is DELETED — no HostBuild). The rest: `overlay`
   (the pod overlay build), `step-emit` (host-coupled step fragments), `plugin-binary`
   (the F10 plugin host build), `cli` (run-any-charly-command
-  reentry), `hostprobe` (doctor's raw host facts), `feature`, `render-service`, `retention-defaults`, `raw-project`, `validate-project-checks`, `remote-image-resolve`, `box-fetch-resolve`, `config-resolve`
-  (config-persist is DELETED — persist moved plugin-side to candy/plugin-vm/vm_host_persist.go), the `deploy-*-resolve` / `deploy-members-*` / `resolve-target-add` / `deploy-node-del-dispatch` / `deploy-plugins-connect` / `deploy-from-box` family, the `loader-*` and `pod-*` (lifecycle verbs) and `pod-config-*` families, `arbiter-bracket-acquire` + `-release`, `construct-step`, `check-load-plugins`,
-  `check-bed`, `check-run`. The build engine is in core TODAY — K3 build-engine
+  reentry), `feature`, `retention-defaults`, `validate-project-checks`, `remote-image-resolve`, `box-fetch-resolve`, `config-resolve` (`hostprobe` DIED with doctor's plugin-side hostfacts.go — peer InvokeProvider to verb:gpu/verb:credential; `render-service` DIED in the W3 B4 InvokeProvider move)
+  (config-persist is DELETED — persist moved plugin-side to candy/plugin-vm/vm_host_persist.go), the `deploy-*-resolve` / `resolve-target-add` / `deploy-node-del-dispatch` / `deploy-plugins-connect` / `deploy-from-box` family (`deploy-members-*` DIED, K-wave W3a A4 — candy/plugin-bundle calls sdk/deploykit.BringUpMembers/TearDownMembers directly), the `loader-*` and `pod-*` (lifecycle verbs) and `pod-config-*` families, `arbiter-bracket-acquire` + `-release`, `construct-step`, `check-load-plugins`,
+  `check-bed-gpu-prereq` (the ONE narrow seam surviving `check-bed`'s full dissolution, K-wave W3 B2-full — every other former responsibility moved into candy/plugin-check/bed_session.go), `check-run`. The build engine is in core TODAY — K3 build-engine
   migration inventory, not permanent core — the box-build podman DRIVE moved to candy/plugin-build in
   P8b, and the Containerfile RENDER DRIVE moved to `sdk/deploykit` (#67, driven by plugin-build over the
   envelope + the `render-seam` reverse legs; the host render-leg is DELETED). This is the shared-capability
@@ -297,7 +298,7 @@ their `cmd/serve` shim. Shape:
   which detects the kit shape by the exported `NewCheckVerb`) wraps it in a `kitVerbAdapter` (a package-main
   `CheckVerbProvider` that passes the live `*Runner` as a `kit.CheckContext` via `runnerCheckContext` and
   converts `kit.Result`→`CheckResult`), concatenates the candy's schema (via the public
-  `sdk/schemaconcat`), and registers through the SAME `RegisterBuiltinPluginUnit` gate (origin
+  `spec/schemaconcat`), and registers through the SAME `RegisterBuiltinPluginUnit` gate (origin
   `"builtin"`). Dispatch is the SAME `runOne`→`CheckVerbProvider.RunVerb` path a compiled-in candy verb
   uses — full typed fast path, the real `*Runner`, no envelope.
 - OUT-OF-PROCESS: a `cmd/serve/main.go` shim calls `sdk.ServeCheckVerb(pkg.NewCheckVerb(), calver,
@@ -307,7 +308,7 @@ their `cmd/serve` shim. Shape:
   `LocalTransport` when the candy is NOT in `compiled_plugins`; `invokeVerbProvider` (provider_checkenv.go)
   serves BOTH reverse services on one broker id. The verdict round-trips as the same `{status,message}`
   every out-of-process verb returns.
-- `kit` imports the stdlib + `sdk/spec` + `sdk/vmshared` + the pinned external helpers (`gopkg.in/yaml.v3`, `golang.org/x/sys/unix`) — never the `sdk` root module; the candy imports `kit` + `sdk` + `spec` + its `params`.
+- `kit` imports the stdlib + `spec/spec` + `sdk/vmshared` + the pinned external helpers (`gopkg.in/yaml.v3`, `golang.org/x/sys/unix`) — never the `sdk` root module; the candy imports `kit` + `sdk` + `spec` + its `params`.
 
 A kit candy keeps the verb's logic (RunVerb on `kit.CheckContext`) OUTSIDE charly's module while preserving
 the typed fast path — runnable in-proc (compiled-in, the real `*Runner`, no envelope) OR out-of-process (the
@@ -318,9 +319,9 @@ The SDK module (`github.com/opencharly/sdk`) is the ONLY module a plugin imports
 `BuildCapabilities`, `ProvidedCapability`, `Conn`, plus the shared out-of-process check-verb helpers
 `ResultJSON` (the `{status,message}` reply) / `CheckRequiredModifiers` (the required-modifier check) +
 the `*Executor` venue methods `VenueCapture`/`VenueHasTool`/`VenueRunSilent`), `sdk/kit` (the
-pure-helper package, stdlib + `sdk/spec` only — `ShellQuote`, `TrimPreview`, `MethodSpec`,
-`WalkPlans`, …; the SDK root imports it too), `sdk/spec`, and `sdk/proto`. `schemaconcat` is the
-public `sdk/schemaconcat` package (the SDK uses it internally).
+pure-helper package, stdlib + `spec/spec` only — `ShellQuote`, `TrimPreview`, `MethodSpec`,
+`WalkPlans`, …; the SDK root imports it too), `spec/spec`, and `spec/proto`. `schemaconcat` is the
+public `spec/schemaconcat` package (the SDK uses it internally).
 
 ## Authoring an external COMMAND plugin (a `charly <word>` subcommand)
 

@@ -92,11 +92,14 @@ The CLI has a centralized design for "image not in local storage" errors.
 Every deploy-mode command inherits the same friendly recommendation without
 per-call-site code:
 
-1. `ExtractMetadata(engine, imageRef)` in `charly/labels.go` returns
-   `ErrImageNotLocal` (wrapped with the image ref) when the image is absent
+1. `ExtractMetadata(engine, imageRef)` in `spec/container/box_metadata_coneb.go`
+   (re-exported as `kit.ExtractMetadata` / `deploykit.ExtractMetadata`) returns
+   `spec.ErrImageNotLocal` (wrapped with the image ref) when the image is absent
    from local storage.
-2. `EnsureImage(imageRef, rt)` in `charly/transfer.go` returns the same sentinel
-   when the image is absent from both run and build engines.
+2. `dispatchBuildEnsure` (`charly/dispatch_build_ensure.go`) dispatches to
+   candy/plugin-build's `build:ensure` word (`candy/plugin-build/ensure.go`),
+   which returns the same sentinel when the image is absent from both run and
+   build engines.
 3. `FormatCLIError` in `charly/image.go` unwraps the sentinel at the top-level
    error boundary in `main()` and renders:
 
@@ -190,5 +193,6 @@ storage).
   deploy-mode commands that require a pulled image.
 - `/charly-core:deploy` — charly.yml overlay semantics applied on top of the
   labels `pull` materializes.
-- `/charly-internals:go` — `ErrImageNotLocal` / `EnsureImage` / `ExtractMetadata`
-  source locations (`charly/labels.go`, `charly/transfer.go`, `charly/image.go`).
+- `/charly-internals:go` — `ErrImageNotLocal` / `dispatchBuildEnsure` / `ExtractMetadata`
+  source locations (`spec/spec/image_errors.go`, `charly/dispatch_build_ensure.go`,
+  `spec/container/box_metadata_coneb.go`, `charly/image.go`).

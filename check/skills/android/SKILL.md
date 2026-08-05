@@ -135,18 +135,21 @@ the goadb dependency + the single apk install path (`install.go`:
 `installByPackage` apkeep+adb / `installFromHostApk` goadb push / `uninstall`)
 live in ONE plugin, never duplicated across verb and deploy.
 
-**F6/FINAL-K5-unit-6a moved the preresolve leg wholesale INTO the plugin** —
-the deploy is no longer split host ⇄ plugin for its preresolve DATA (only the
-two genuinely LoadUnified/credential-store-coupled touches still reach the
-host, over the generic seam below):
+**F6/FINAL-K5-unit-6a moved the preresolve leg wholesale INTO the plugin**, and
+**K-wave W3a A3-phase-2 finished the job**: the deploy-tree node + `kind:android`
+entity lookups that used to reach the host over the generic
+`"deploy-entity-resolve"` HostBuild seam now self-load the project PLUGIN-SIDE
+too (`sdk/loaderkit.ResolveMergedTreeViaExecutor` / `ResolveAndroidEntityViaExecutor`,
+unblocked by the loader-orchestration move to `sdk/loaderkit`) — no HostBuild
+round trip remains in this leg:
 
 - **Plugin** (`candy/plugin-adb/preresolve.go`, the `deploy:android`
   preresolve leg) resolves the device endpoint (engine inspect /
   `${HOST_PORT:N}` / google-play creds from the credential store) and collects
   the apk install specs from the deploy's compiled plans (committed-APK paths
-  → absolute host paths) itself, reaching the host ONLY via the generic
-  `"deploy-entity-resolve"` HostBuild seam for the deploy-tree node + the
-  `kind:android` entity/credentials, and ships the result as
+  → absolute host paths) itself, self-loading the deploy-tree node + the
+  `kind:android` entity plugin-side and resolving google-play credentials
+  peer-to-peer via `verb:credential`, and ships the result as
   `DeployVenue.Substrate` (a `spec.AndroidDeployVenue`).
 - **Plugin** (`candy/plugin-adb/deploy.go`, the `deploy:android` provider) gates
   on `sys.boot_completed`, installs each app with retry (reusing the SAME
@@ -179,12 +182,16 @@ general per-substrate preresolver hook registry `charly/deploy_preresolve.go`)
 is DELETED. `candy/plugin-adb/preresolve.go` now owns it end-to-end (mirroring
 `candy/plugin-kube/preresolve.go`'s `deploy:k8s` move): it resolves the device
 endpoint (engine inspect / `${HOST_PORT:N}` / google-play creds) and collects
-the apk install specs itself, reaching the host ONLY for the two genuinely
-LoadUnified/credential-store-coupled touches (resolving the deploy-tree node,
-and the `kind:android` entity + its google-play credentials) via the GENERIC
-`"deploy-entity-resolve"` HostBuild seam — everything else (engine-inspect,
-port resolution, the committed-APK path walk) is pure/portable and runs
-plugin-side directly, returning a `spec.AndroidDeployVenue`.
+the apk install specs itself. **K-wave W3a A3-phase-2** finished the move: the
+deploy-tree node lookup and the `kind:android` entity lookup — the two
+touches that used to reach the host over the generic `"deploy-entity-resolve"`
+HostBuild seam — now self-load the project PLUGIN-SIDE too
+(`sdk/loaderkit.ResolveMergedTreeViaExecutor` / `ResolveAndroidEntityViaExecutor`);
+google-play credentials resolve peer-to-peer via `verb:credential`. No
+HostBuild round trip remains anywhere in this leg — engine-inspect, port
+resolution, the committed-APK path walk, and the entity/tree self-load are
+ALL pure/portable and run plugin-side directly, returning a
+`spec.AndroidDeployVenue`.
 
 - `candy/plugin-adb/preresolve.go` — the `deploy:android` PRERESOLVE leg:
   `AndroidSpec`/`AndroidAdbEndpoint`/`AndroidGoogleAccount`/`ApkPackageSpec`,
@@ -195,7 +202,7 @@ plugin-side directly, returning a `spec.AndroidDeployVenue`.
   truth) + the relaxed `checkDeployProviderBijection` (in-proc XOR externalized).
 - `charly/plugin_prescan.go` — `isExternalDeploySubstrate` (a substrate kind is
   external iff in `externalizedDeploySubstrates`).
-- `sdk/schema/deploy.cue` (CUE-sourced; generated into `spec/cue_types_gen.go`) — `#DeployVenue` (`.Substrate`) + `#AndroidDeployVenue`.
+- `spec/schema/deploy.cue` (CUE-sourced; generated into `spec/spec/cue_types_gen.go`) — `#DeployVenue` (`.Substrate`) + `#AndroidDeployVenue`.
 - `candy/plugin-adb/deploy.go` — the `deploy:android` provider (boot gate + install
   loop with retry + uninstall reverse ops); `install.go` — the shared installer.
 - `deploykit.ApkInstallStep` (`sdk/deploykit/steps.go`); `sdk/deploykit/install_build.go` —

@@ -2,7 +2,7 @@
 name: local-infra
 description: |
   Go file map for the host side of the `local:` (external deploy:local plugin) +
-  VM deploy execution surface. Files: local_spec.go, deploy_chain.go,
+  VM deploy execution surface. Files: deploy_chain.go,
   sdk/kit/sshconfig.go, sdk/vmshared/hostdistro.go, install_ledger.go, builder_run.go,
   shell_profile.go, reverse_ops.go, service_render.go, deploy_ref.go.
   MUST be invoked before reading or modifying any of those files, or when
@@ -20,15 +20,15 @@ The `InstallPlan` IR (see `/charly-internals:install-plan`) is the central data 
 
 | File | Purpose | Key exports |
 |---|---|---|
-| `charly/local_spec.go` | `LocalSpec` struct + `findLocalSpec` lookup | `LocalSpec`, `findLocalSpec` |
+| `candy/plugin-bundle/node_resolve.go` | `lookupLocalTemplate` — resolves a `kind: local` template by name PLUGIN-SIDE (the resolved-project envelope + a direct `InvokeProvider(kind,"local",OpResolve)` call, no LoadUnified). `charly/local_spec.go`'s former core-only `findLocalSpec` DIED once this became its last consumer's resolver too (#55 W3 B3) | `lookupLocalTemplate` |
 | `sdk/deploykit/deploy_chain.go` | `rootExecutorForDeployNode` — picks the root `DeployExecutor` for a `local:` deploy node (`ShellExecutor` for `host:local`/absent, `SSHExecutor` for `host:<user@machine>`) (moved from `charly/deploy_chain.go`) | `rootExecutorForDeployNode` |
 | `charly/unified_targets.go` + `candy/plugin-bundle/deploy_target.go` | S3b: `pluginDeployTarget` (thin, data-only core proxy) + the plugin-side `runDeployDispatch` orchestration — Add/Test/Update/Del lifecycle for the externalized `local:` substrate (and k8s/android) over the executor reverse channel; records/replays teardown ops via the ledger (full detail in `/charly-internals:install-plan`). Replaces the DELETED `charly/deploy_target_external.go` (`externalDeployTarget`) | `pluginDeployTarget`, `runDeployDispatch` |
 | `sdk/kit/sshconfig.go` | `~/.config/charly/ssh_config` fragment writer (managed-block protocol) | `kit.WriteVmSshStanza`, `kit.RemoveVmSshStanza`, `kit.ListVmSshAliases`, `kit.EnsureSshConfigInclude`, `kit.RemoveSshConfigInclude`, `kit.VmSshAlias`, `kit.SshFragmentPath`, `kit.SshConfigPath` |
-| `sdk/kit/deploy_executor_ssh.go` | Credential-free `SSHExecutor` (no `-i`, no host-key overrides) | `SSHExecutor` |
-| `sdk/kit/deploy_executor.go` | `ShellExecutor` — local shell venue | `ShellExecutor` |
+| `spec/exec/deploy_executor_ssh.go` | Credential-free `SSHExecutor` (no `-i`, no host-key overrides) | `SSHExecutor` |
+| `spec/exec/deploy_executor.go` | `ShellExecutor` — local shell venue | `ShellExecutor` |
 | `sdk/vmshared/hostdistro.go` | Detect host distro from `/etc/os-release`; glibc preflight | `HostDistro`, `DetectHostDistro`, `DetectHostGlibc`, `CompareGlibc`, `distroIDAliases` |
 | `sdk/kit/install_ledger.go` | Flock-serialized JSON ledger at `~/.config/opencharly/installed/` (moved from `charly/install_ledger.go`) | `LedgerPaths`, `LedgerLock`, `DeployRecord`, `CandyRecord`, `StepRecord`, `AcquireLedgerLock`, `AddCandyDeployment`, `RemoveCandyDeployment` |
-| `sdk/kit/builder_run.go` | `podman run <builder>` wrapper for compile-needing layers (moved from `charly/builder_run.go`) | `BuilderRun`, `BuilderRunOpts`, `UserScopeBindMounts`, `UserScopeEnv` |
+| `spec/exec/builder_run.go` | `podman run <builder>` wrapper for compile-needing layers (moved from `charly/builder_run.go`) | `BuilderRun`, `BuilderRunOpts`, `UserScopeBindMounts`, `UserScopeEnv` |
 | `charly/shell_profile.go` | bash/zsh/fish detection + managed-block fencing + env.d I/O | `ShellKind`, `DetectLoginShell`, `EnvdDir`, `WriteEnvdFile`, `RemoveEnvdFile`, `ManagedBlockBody`, `RemoveManagedBlockAt` (the per-candy `shell_snippet:` teardown strip, called by `reverseRemoveManaged`), `ShellInitFilePath` (the block-SPLICE itself is kit's, `sdk/kit/profile.go`) |
 | `sdk/kit/reverse_ops.go` | Execute `ReverseOp` slices in LIFO order via per-kind handlers + render each `ReverseOpPackageRemove`'s host removal command from the format's `uninstall_template` at record time (moved from `charly/reverse_ops.go`) | `runReverseOps`, `ReverseExecutor` interface, 15 reverse handlers, `fillReverseUninstallCmds` (called by `candy/plugin-bundle`'s `recordDeploy`, S3b, before ledger-persist — the aur builder emits an EMPTY `UninstallCmd` and defers to this host render; `reversePackageRemove` errors loudly on an empty command at teardown) |
 

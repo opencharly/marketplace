@@ -116,8 +116,10 @@ from the host.
 The versa deploy entry is minimal — the seven URL env vars the
 notebook reads are all auto-injected via per-producing-layer
 `env_provide:` blocks, and the eight container ports are
-auto-allocated to free host ports when the operator writes
-`port: [auto]`. The user's browser is on the
+auto-allocated to free host ports by default: absence of a
+deploy-level `port:` key IS auto-allocation (`/charly-core:deploy`
+"Auto port mapping" — the legacy `port: [auto]` sentinel is retired).
+The user's browser is on the
 host; container-internal `localhost:N` URLs do NOT resolve there —
 but the auto-derived `*_PUBLIC_URL` vars correctly carry the
 host-side mapping, so the browser-bound and kernel-bound URL spaces
@@ -129,11 +131,10 @@ versa:
     image: versa
     disposable: true
     lifecycle: dev
-    port:
-      - auto    # auto-allocate one free host port per image-declared
-                # container port. The resolved expansion is persisted
-                # as `resolved_port:` alongside this entry on the
-                # next `charly config versa` / `charly update versa` run.
+    # No port: key — every image-declared container port auto-allocates to a
+    # free host port. The resolved expansion is persisted as `resolved_port:`
+    # alongside this entry on the next `charly config versa` / `charly update
+    # versa` run.
 ```
 
 That's the entire entry. No `env:` block — the seven URL env vars
@@ -150,7 +151,8 @@ flow from layer `env_provide:`:
 | `VERSATILES_ASSETS_PUBLIC_URL` | `versatiles-frontend` | `http://127.0.0.1:{{.HostPort 8002}}` |
 
 If you need stable host ports across rebuilds (e.g. browser
-bookmarks), replace `port: [auto]` with an explicit list — the
+bookmarks), pin them with an explicit `port:` list (the container
+side; unlisted container ports keep auto-allocating) — the
 `env_provide:` templates substitute against whichever ports you
 chose, so the URL env vars stay correct either way:
 
@@ -193,8 +195,7 @@ versa:
   pod:
     image: versa
     disposable: true
-    port:
-      - auto                   # auto-allocated host ports
+    # No port: key — every container port auto-allocates to a free host port.
 
 versa/ecovoyage:
   pod:
@@ -226,8 +227,7 @@ versa-pinned-2026.131.2134:
   pod:
     image: ghcr.io/opencharly/versa:2026.131.2134  # exact ref, never re-resolved
     disposable: true
-    port:
-      - auto
+    # No port: key — every container port auto-allocates to a free host port.
 ```
 
 Container name: `charly-versa-pinned-2026.131.2134`. CLI:

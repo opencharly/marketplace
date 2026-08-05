@@ -70,8 +70,10 @@ resolves the `cluster:` profile to a concrete kubeconfig context via the generic
 `charly bundle add vm:k3s-srv` (or any deploy whose layers include
 `k3s-server`) provisions a cluster whose kubeconfig is merged into the
 default kubeconfig under a context named after the deploy (the plugin-side
-`k3s-post-provision` finalization dispatched by `K3sPostProvision` via
-`invokeKubePluginWithBroker`, which retrieves the kubeconfig, rewrites its
+`k3s-post-provision` finalization dispatched by `candy/plugin-bundle`'s
+`k3sPostProvision` (InvokeProviding `verb:kube` peer-to-peer — the former
+core `invokeKubePluginWithBroker` seam is deleted), which retrieves the
+kubeconfig, rewrites its
 guest-forwarded server, and merges it via `mergeKubeconfig` — all inside
 `candy/plugin-kube`), so a plan step can then address it with `cluster: k3s-srv`:
 
@@ -95,56 +97,75 @@ fields (`name:`, `namespace:`, `cluster:`, `kubeconfig:`, `kube_kind:`,
 INSIDE the `kube:` map, while `timeout:` stays a sibling. A `kube:` step is a
 `check:` step.
 
-Example from `candy/k3s-server/charly.yml` — the k8s cluster-readiness steps as
-list items under the `k3s-server:` candy's `plan:`:
+Example from the main repo's `charly.yml` — the `check-k3s-vm` bed's
+cluster-readiness steps, each naming ITS OWN `kind: k8s` profile by literal:
 
 ```yaml
-k3s-server:
-  candy:
-    version: …
-    description: …
-    # … require / distro / service elided …
+check-k3s-vm:
+  vm:
+    from: k3s-vm
+    disposable: true
     plan:
-      # … earlier build-context steps elided …
-      - check: the cluster reports at least one Ready node
+      # … guest-side command / process / port / file steps elided …
+      - check: k8s=wait-nodes
+        id: kv-k8s-wait-nodes
         kube:
           method: wait-nodes
-          cluster: "${DEPLOY_NAME}"
+          cluster: "check-k3s-vm-ctx"    # this bed's OWN kind:k8s profile
           kube_count: 1
         timeout: 180s
         stdout: {contains: "Ready"}
-        context: [deploy]
+        context: [runtime]
       # `addons` BLOCKS until Traefik + ServiceLB + local-path are all Ready, so it
       # MUST precede any ingressclass/storageclass step — those resources are
       # registered by the addon stack. Ordering matters: `ingressclass`/`storageclass`
       # are one-shot list verbs with no internal wait, and they exit 0 on an EMPTY
       # list, so a `contains` matcher run before the addons settle FAILS rather than
       # waits. Gate first, assert second.
-      - check: Traefik, ServiceLB, and local-path addons are all Ready
+      - check: k8s=addons
+        id: kv-k8s-addons
         kube:
           method: addons
-          cluster: "${DEPLOY_NAME}"
+          cluster: "check-k3s-vm-ctx"
         timeout: 240s
-        context: [deploy]
-      - check: Traefik is registered as the cluster's default ingress class
+        context: [runtime]
+      - check: k8s=ingressclass
+        id: kv-k8s-ingressclass-traefik
         kube:
           method: ingressclass
-          cluster: "${DEPLOY_NAME}"
+          cluster: "check-k3s-vm-ctx"
         stdout: {contains: "traefik"}
-        context: [deploy]
+        context: [runtime]
 ```
 
-`cluster: "${DEPLOY_NAME}"` lets a candy's `context: [deploy]` step address its own
-cluster generically: `${DEPLOY_NAME}` is a **runtime-only check var** resolving to
-the sanitized deploy name (`:`/`.`/`/` → `-`) — the SAME identifier
-`K3sPostProvision` uses for the kubeconfig context + ClusterProfile. It is
-UPPERCASE because the check-var expander only recognizes uppercase names; a
-lowercase `${deploy_name}` (the artifact-path token) is NOT an check var and is
-rejected by `charly box validate` in kube identifier fields.
+**A `kube:` step belongs to whoever can NAME the cluster — which is the deploy, not
+a generic candy.** The bed above names `check-k3s-vm-ctx`, a `kind: k8s` profile it
+alone owns, pinned to its own per-deploy kubeconfig context. Its sibling bed
+`check-k8s-deploy` names `check-k8s-deploy-cluster-ctx`, so the two never resolve
+through each other's context even though both deploy the SAME shared `kind: vm`
+entity.
 
-`wait-nodes` with `name:` set matches a single specific node (used by
-`k3s-agent`'s join-confirmation test). Without `name:`, it waits until
-`kube_count:` nodes are Ready.
+**Do NOT write `cluster: "${DEPLOY_NAME}"`.** `${DEPLOY_NAME}` is a runtime-only
+check var holding the sanitized name (`:`/`.`/`/` → `-`) of the deployment under
+check, and it is not a cluster selector: for a VM live check it is seeded from the
+`kind: vm` ENTITY name (`candy/plugin-check/live_gather.go`, `pluginCheckLiveVM`),
+which every bed deploying that entity SHARES — so it addresses another deployment's
+context, or none at all, and the step fails with `no kubeconfig context selected`.
+Threading the profile through a deploy-set env var is worse, not better: an
+unresolved check var is a SKIP rather than a failure (`sdk/kit/planrun.go`), and the
+VM check-var environment is a fixed map carrying no arbitrary deploy env, so such a
+step goes silently vacuous. A generic candy that must prove its own control plane
+came up probes it IN-VENUE instead — `candy/k3s-server/charly.yml` drives the k3s
+client entrypoint (`/usr/local/bin/kubectl`) against the server's local kubeconfig,
+needing no host kubeconfig merge, no port-forward, and no `kind: k8s` entity.
+
+(`${DEPLOY_NAME}` is UPPERCASE because the check-var expander only recognizes
+uppercase names; a lowercase `${deploy_name}` — the artifact-path token — is NOT a
+check var and is rejected by `charly box validate` in kube identifier fields.)
+
+`wait-nodes` with `name:` set matches a single specific node — the shape a
+multi-node deploy uses to confirm one named worker joined. Without `name:`, it
+waits until `kube_count:` nodes are Ready.
 
 ## Method notes
 
@@ -186,12 +207,14 @@ charly's core binary.
     in core). Called DIRECTLY by this same plugin's `k3s_post.go`
     (`k3sPostProvision`) — no separate host-orchestrated merge round-trip.
   - `k3s_post.go` — the WHOLE k3s post-provision finalization (S3, FINAL/K5
-    unit 6, relocated wholesale from the now-thin `charly/k3s_post.go`):
-    `k3sPostProvision` checks the retrieved-kubeconfig path, rewrites its
-    GUEST-local server URL to the HOST-forwarded port (`deployVMForwards`
-    resolves the deploy tree node + the `kind:vm` entity's declared
-    `port_forwards` via the generic `"deploy-entity-resolve"` HostBuild seam,
-    then reads the PERSISTED port-forward allocation ledger via the SIBLING
+    unit 6, relocated wholesale from the former `charly/k3s_post.go`, itself
+    now DELETED — see below): `k3sPostProvision` checks the retrieved-kubeconfig
+    path, rewrites its GUEST-local server URL to the HOST-forwarded port
+    (`deployVMForwards` resolves the deploy tree node + the `kind:vm` entity's
+    declared `port_forwards` by self-loading the project PLUGIN-SIDE — K-wave
+    W3a A3-phase-2, `sdk/loaderkit.ResolveMergedTreeViaExecutor` /
+    `ResolveVmEntityViaExecutor` — no HostBuild round trip remains for this
+    leg, then reads the PERSISTED port-forward allocation ledger via the
     `"config-resolve"` HostBuild seam — `hostConfigResolveVmState`, the SAME
     seam `candy/plugin-vm`'s own `hostConfigResolve` uses for its OWN VmState
     reuse, R3 — a FIX-ROUND regression fix: a direct
@@ -204,24 +227,20 @@ charly's core binary.
     channel and spliced onto the base for validation. Authoring is unchanged
     (`kube: nodes`, not `plugin: kube`); the internal plugin/plugin_input wire
     envelope the sugar desugars to is never authored.
-- `charly/k8s_plugin.go` — `invokeKubePluginWithBroker`: the core seam that
-  builds a synthetic `kube:` `#Op` and dispatches it to the plugin WITH the
-  reverse-channel broker (`InvokeWithExecutor`) through the registry — the
-  broker access is needed for the plugin's own "deploy-entity-resolve"
-  HostBuild leg. Used by the k3s deploy path to invoke the
-  `k3s-post-provision` method.
-- `charly/k3s_post.go` — now a ONE-CALL dispatch shim: `K3sPostProvision`
-  marshals `{method: "k3s-post-provision", artifact_key, deploy_name}` and
-  calls `invokeKubePluginWithBroker`, printing the plugin's returned status
-  line. The retrieve-check, port-forward rewrite, and merge all run INSIDE
-  `candy/plugin-kube` now (see `k3s_post.go` above). No client-go import
-  remains in core.
-- `charly/k8s_config.go` — `findK8sSpec` looks up a `K8sSpec` (`kind: k8s`
-  cluster template) by name from the project `charly.yml` / `k8s.yml`, and
-  `resolveClusterContext` (the host side of the `cc.ResolveClusterContext`
-  reverse-leg) uses it to turn a `kube:` step's `cluster:` profile name into a
-  concrete kubeconfig context — the out-of-process plugin PULLS the mapping (it
-  cannot reach the project loader itself).
+- `charly/k8s_plugin.go` / `charly/k3s_post.go` / `charly/k8s_config.go` are
+  ALL DELETED — the former core seam that built a synthetic `kube:` `#Op` and
+  dispatched it to the plugin WITH the reverse-channel broker
+  (`invokeKubePluginWithBroker`) is gone. `candy/plugin-bundle`'s own
+  `k3sPostProvision` (`secrets_artifacts.go`) InvokeProviders `verb:kube`
+  peer-to-peer directly (`exec.InvokeProvider(ctx, "verb", "kube", …)`, with
+  an explicit `kit.ShellExecutor{}` venue override reproducing the original
+  "broker only, no live venue" contract) to trigger the
+  `k3s-post-provision` method. The retrieve-check, port-forward rewrite, and
+  merge all run INSIDE `candy/plugin-kube` (see `k3s_post.go` above); the
+  cluster-template lookup that used to need `charly/k8s_config.go`'s
+  `findK8sSpec` now self-loads plugin-side too (`sdk/loaderkit.ResolveK8sEntityViaExecutor`,
+  K-wave W3a A3-phase-2). No client-go import, and no `kube:`-specific host
+  seam, remains in core.
 
 There is no `charly/k8s_cmd.go`, `kubeMethods` table, `runKube` dispatcher,
 `posKube*` flag builder, or `k8sClusterFlags`/`LoadClusterProfile` symbol —

@@ -139,7 +139,7 @@ engine — the compiled-in dispatch surface for both), `plugin.go` (`NewProvider
 advertising `command:clean` + `verb:retention` / `CliMain`), `retention.go` (the relocated
 engine: `pruneImagesByRetention`, `pruneCheckRuns`, `pruneBuildCandyDirs`, `invalidateImageTags`,
 `pruneDeepDanglingImages`, and the `charlyImageTags` inventory — all now in this package,
-importing only `sdk/kit` + `sdk/spec`). `--deep` shares its engine with the default
+importing only `sdk/kit` + `spec/spec`). `--deep` shares its engine with the default
 charly-labeled dangling sweep via `pruneDanglingImages`/`selectDanglingImages`
 (`candy/plugin-clean/retention.go`) parameterized by an `onlyCharly` bool: `pruneDanglingCharlyImages`
 (onlyCharly=true, the default sweep) and `pruneDeepDanglingImages` (onlyCharly=false, `--deep`)

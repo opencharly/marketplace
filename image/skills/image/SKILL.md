@@ -490,7 +490,7 @@ charly box inspect android-emulator --format ports
 
 ## OCI Labels
 
-Every image `charly` builds carries a set of `ai.opencharly.*` OCI labels embedding the resolved image config so that `charly config` and `charly bundle` can work without the project source tree. The full list is assembled in `charly/labels.go`:
+Every image `charly` builds carries a set of `ai.opencharly.*` OCI labels embedding the resolved image config so that `charly config` and `charly bundle` can work without the project source tree. The full list is assembled in `sdk/deploykit/write_labels.go` (emission) / read back via `ExtractMetadata` (`spec/container/box_metadata_coneb.go`) — label names in `spec/spec/label_consts.go`, the `spec.BoxMetadata` struct in `spec/schema/boxmetadata.cue` (see `/charly-internals:capabilities`):
 
 | Label | Contents |
 |---|---|
@@ -512,7 +512,7 @@ All of the above round-trip via `charly config`: the label is read from the imag
 
 ### Tunnel is charly.yml-only
 
-`labels.go:334` **explicitly skips reading** any tunnel label when resolving an image's deploy config. Tunnels (Tailscale serve, Cloudflare tunnel) are treated as a **deployment** decision, not an image attribute — they live exclusively in `charly.yml`. This was the deliberate design of commit `2759124` (tunnel→charly.yml migration), motivated by three concerns:
+The label→config apply path **explicitly skips reading** any tunnel label when resolving an image's deploy config (`charly/labels.go`, the file this behavior originally shipped in, no longer exists — the OCI-label surface relocated to `sdk/deploykit`/`spec/container`, see `/charly-internals:capabilities`; the tunnel-is-config-only RULE below is unchanged). Tunnels (Tailscale serve, Cloudflare tunnel) are treated as a **deployment** decision, not an image attribute — they live exclusively in `charly.yml`. This was the deliberate design of commit `2759124` (tunnel→charly.yml migration), motivated by three concerns:
 
 1. **Per-instance divergence.** One selkies-desktop image may be deployed with a Tailscale tunnel in one environment and no tunnel in another. Baking the tunnel choice into the image forecloses that.
 2. **`--update-all` safety.** Propagating config changes across deployed services must not accidentally rewrite tunnel settings from image labels and blow away per-instance overrides.
@@ -592,7 +592,7 @@ Every entity is a top-level **name-first** node, so within a single document the
 
 Every YAML file is a generic, kind-agnostic container — the loader routes each document by its top-level kind-key (its SHAPE), **NEVER by filename**. So ANY file may hold ANY mix of kinds. Splitting entities into per-kind sibling files named for their kind (`vm.yml` for VMs, `pod.yml` for pod deploys, …) is a pure user **CONVENIENCE** you express in `charly.yml`'s `import:` (and, for candy directories, `discover:`) — it is never required, and the code hardcodes no per-kind filename. **`charly.yml` is the only filename the code knows**; everything else (which files to `import:`, which directories + manifest names to `discover:`) is configured there. Inline maps in `charly.yml` and per-kind splits load identically. `discover:` is a flat generic scan-spec list (`- {path, recursive, manifest}`); the manifest defaults to `charly.yml` but is overridable per spec. Migration of legacy configs: `charly migrate` (idempotent). See `/charly-build:migrate`, `/charly-internals:go`.
 
-The kind schemas each document is validated against (`box` / `candy` / `vm` / …) are **CUE-single-source**: the `@go()`-annotated `sdk/schema/*.cue` defs are the sole source for both the Go param structs (generated into `sdk/spec` by `task cue:gen`) and load-time validation, so changing a box/candy field is a CUE edit → `task cue:gen` → see the `/charly-internals:go` recipe "How to change the charly.yml schema (CUE is the single source of truth)".
+The kind schemas each document is validated against (`box` / `candy` / `vm` / …) are **CUE-single-source**: the `@go()`-annotated `spec/schema/*.cue` defs are the sole source for both the Go param structs (generated into `spec/spec` by `task cue:gen`) and load-time validation, so changing a box/candy field is a CUE edit → `task cue:gen` → see the `/charly-internals:go` recipe "How to change the charly.yml schema (CUE is the single source of truth)".
 
 ## The `import:` statement (composition + namespaces)
 
