@@ -356,31 +356,23 @@ mid-mount. Enable it once per host that runs charly encrypted volumes.
 ## Integration with Runtime
 
 - **`charly shell`/`charly start` (direct mode)**: resolves volume backing from charly.yml, verifies encrypted volumes are mounted, appends `-v <plain>:<container-path>` flags. `charly start` mounts encrypted volumes inline via systemd-run scopes before starting the container
-- **`charly config` (quadlet mode)**: generates quadlet file with `ExecStartPre=charly config mount <image>` for encrypted services. ExecStartPre creates scope units internally — these are independent of the container service. What happens inside that step at boot depends on whether the passphrase can be obtained unattended (see below)
+- **`charly config` (quadlet mode)**: generates quadlet file with `ExecStartPre=charly config mount <image>` for encrypted services. ExecStartPre creates scope units internally — these are independent of the container service. Whether that unit is started at boot depends on the configured secret backend (see below)
 - **`charly remove --purge`**: removes named volumes
 - **Data provisioning**: `charly config --seed` (default) provisions data from data candies into bind-backed directories after mounting encrypted volumes. Works for both bind and encrypted volume types
 
-### Boot Behavior: Waiting for an Unattended Unlock
+### Boot Behavior: Which Backend, and Why
 
-An encrypted deploy's quadlet carries `ExecStartPre=charly config mount <image>`,
-and what shapes its boot is a capability:
+An encrypted deploy's quadlet carries `ExecStartPre=charly config mount <image>`.
+Whether systemd starts that unit at boot is decided by **which secret backend is
+configured** — nothing else:
 
-> **Can the passphrase be obtained with no human present?**
+| `secret_backend` | `[Install]` | at boot |
+|---|---|---|
+| `keyring`, `auto`, unset | `WantedBy=default.target` + `TimeoutStartSec=0` | starts; `ExecStartPre` blocks in the mount until the keyring unlocks, rather than timing out |
+| `config` | no `WantedBy=` target | does not start; needs an explicit `charly start <image>` |
 
-Secret Service can. It becomes readable when the keyring unlocks at login, without
-anyone typing a passphrase for the volume itself. So an encrypted deploy backed by
-it gets `[Install] WantedBy=default.target` plus `TimeoutStartSec=0`: systemd
-starts the unit at boot, and `ExecStartPre` blocks in the mount until the keyring
-opens rather than timing out.
-
-That is the out-of-the-box arrangement — `secret_backend` resolves to the keyring
-by default, so there is nothing to configure to get it.
-
-An encrypted deploy whose passphrase **cannot** be obtained without a person does
-not start at boot. Its `[Install]` section carries no `WantedBy=` target, so
-nothing pulls the unit in — the deploy is simply not running after a reboot, with
-no failure to look at. Start it explicitly with `charly start <image>`, which
-prompts for the passphrase and mounts the volumes inline.
+`auto` is the default and resolves to the keyring, so the first row is the
+out-of-the-box arrangement with nothing to configure.
 
 **The gate is the backend name, and the reason is policy rather than capability.**
 `emitInstallSection` (`sdk/deploykit/quadlet.go`) writes `WantedBy=default.target`
@@ -397,10 +389,20 @@ Service, which waits for a session unlock. So a rule phrased as "start it at boo
 if the passphrase can be obtained unattended" would *grant* autostart to the
 cleartext case and deny it to the encrypted one.
 
-The exclusion is a **security decision**: a passphrase sitting in a plaintext file
-must not be auto-mounted, unattended, at every boot. Secret Service qualifies
-because the key is protected until an operator unlocks it — not because it is
-easier to obtain.
+The exclusion is a **security decision, and it is recorded**: sdk#121 ruled that
+`secret_backend: config` stays supported *with a warning whenever a passphrase is
+stored in cleartext* — a warning that then shipped as code in charly#213
+(`warnCleartextStorage`) — and rejected the capability form on the grounds that
+"it would grant autostart to a deploy whose passphrase sits in cleartext". A
+passphrase in a plaintext file must not be auto-mounted, unattended, at every
+boot. Secret Service qualifies because the key is protected until an operator
+unlocks it, not because it is easier to obtain.
+
+One wrinkle worth knowing before you trust the source: the only rationale the
+code carries in-line is the comment `emitInstallSection` emits for the excluded
+case — `# Encrypted volumes require 'charly start' (no keyring auto-unlock)` —
+which states the *capability* reading refuted above. The comment is stale; the
+ruling is the authority.
 
 The mount-time predicate `usesWaitingBackend`
 (`ResolveEncPassphraseForMountWithResolver`, `sdk/deploykit/enc_passphrase.go`)
