@@ -26,21 +26,23 @@ sequencing merges, running the per-merge delta re-gate, owning long beds
 verifying every teammate decision (the correctness backstop for the whole
 run). Teammates run ×N in parallel, each bounded to one cutover or one PR
 under that verification. This ×1-vs-×N shape — not "who reasons harder" —
-decides the model tiers:
+decides the model tiers — RELATIVELY, never by name:
 
-- **Orchestrator → the most-capable model.** Paid once, resident across the
-  whole program, where the leverage is highest.
-- **Teammates and `pr-validator`s → a less-expensive model.** They scale ×N
+- **Orchestrator → the most capable model the session runs.** Paid once,
+  resident across the whole program, where the leverage is highest.
+- **Teammates and `pr-validator`s → the operating model.** They scale ×N
   with the parallel width, each bounded and backstopped by the orchestrator,
-  so the cheaper tier carries the parallel bulk affordably.
+  so the same model carries the parallel bulk affordably.
 
 State the principle (most-capable orchestrator, cost-scaled teammates) and
-the relative cost ratio, not exact prices — they rot. Current instantiation:
-a **Fable 5** orchestrator driving **Sonnet 5** teammates and validators (the
-orchestrator's per-token cost is materially higher; that premium buys the
-top tier only where the leverage is highest). Set the default teammate model
-in `/config` to the cheaper tier; a teammate or validator may still be
-spawned with an explicit `model:` when a unit needs it.
+the relative cost ratio, not exact prices and NEVER model names — names rot
+and they misdirect: every agent definition pins `model: inherit`, so the
+whole roster runs whatever model the operating harness and session run, and
+the machinery is usable under any of them. The tier split is expressed by
+which model the operator chooses to run the session on, not by a second
+model this document names. A teammate or validator may still be spawned with
+an explicit `model:` override when a unit genuinely needs a different one —
+that override is the only place a model is ever named.
 
 ### Maximum parallelization is the default
 
