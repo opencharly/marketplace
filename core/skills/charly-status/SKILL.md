@@ -112,7 +112,7 @@ forward with zero status-specific code.
 - `sdk/enginekit` — `EngineClient` (the only place that touches podman/docker),
   `ContainerSnapshot`, structured `PortMapping` — the sdk kit the substrate
   plugin's pod-live collection imports.
-- `sdk/spec/status_types.go` — `SubstrateKind` + `StatusFromState` (the shared
+- `spec/spec/status_types.go` — `SubstrateKind` + `StatusFromState` (the shared
   state-vocab mapper, single-sourced for every plugin collector + the host's
   enrichment).
 
@@ -351,4 +351,4 @@ charly status --json | jq '.[] | select(.nested) | .nested[].image'
 - `/charly-core:logs` -- view service logs (via `/charly-core:service`)
 - `/charly-core:service` -- full service lifecycle management
 
-Live-deploy verification: see /charly-check:check (the 10 Testing Standards) and /charly-internals:disposable.
+Live-deploy verification: see /charly-check:check (the 11 Testing Standards) and /charly-internals:disposable.

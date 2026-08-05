@@ -48,11 +48,12 @@ candy tree; without this it would build the stale pinned remote candy and serve 
 purpose. An explicit operator `CHARLY_REPO_OVERRIDE` entry for the same repo still
 wins (it is placed first). A bed whose project is its own root needs no override —
 its candies already resolve from the local tree. Source:
-`selfSuperprojectOverridePair` + `mergeRepoOverrides` (`charly/refs.go`, kept
-core), applied by the check-bed setup op in `candy/plugin-check/bed_run.go` —
-which drives the host `check-bed` session seam (`charly/host_build_check_bed.go`);
-the underlying `CHARLY_REPO_OVERRIDE` is the Go-`replace`-style "verify before you
-push" mechanism.
+`proc.SelfSuperprojectOverridePair` + `proc.MergeRepoOverrides` (`spec/proc`,
+shared by `charly/plugin_loader.go` and the plugin), applied by `bedSetup` in
+`candy/plugin-check/bed_session.go` — the check-bed session runs fully plugin-side
+now (K-wave W3 B2-full dissolved the former `charly/host_build_check_bed.go` seam
+entirely); the underlying `CHARLY_REPO_OVERRIDE` is the Go-`replace`-style "verify
+before you push" mechanism.
 
 **Exclusive-resource preemption wraps the sequence.** When a bed declares
 `requires_exclusive: [token...]` (e.g. a GPU-passthrough bed needing the one
@@ -189,8 +190,11 @@ check-sandbox` (the ref must provide charly + nested podman + the configured
 AI CLI; the per-host overlay never ships with the repo). On a host without
 the entry, `charly check run <bed>` fails fast with exactly that
 remediation. The supporting
-`vm: k3s-vm` + `k8s: vm-k3s-vm` entities live in the project `charly.yml`
-alongside its beds. `disposable: true` is the sole authorization
+`vm: k3s-vm` entity lives in the project `charly.yml` alongside its beds, with a
+SEPARATE `kind: k8s` profile per bed that deploys it (`check-k3s-vm-ctx`,
+`check-k8s-deploy-cluster-ctx`) — each pinned to that bed's own per-deploy
+kubeconfig context, so sibling beds sharing the one `vm:` entity never resolve
+through each other's cluster. `disposable: true` is the sole authorization
 for the unattended destroy+rebuild (see `/charly-internals:disposable`). Two
 load-time guards back the beds: `validateCheckBeds` enforces the deploy's substrate
 kind ∈ {pod, vm, local, android}, a resolvable cross-ref, and `disposable: true`;
@@ -416,13 +420,18 @@ the sdk owns the error/exit types — `sdk.ExitCodeError` + `sdk.CheckFailExitCo
 `sdk.CheckSkippedExitCode` — and charly's `main()` maps them to the process exit
 code via `errors.As`.
 
-## The 10 Testing Standards (referenced by the project rulebook R1–R10)
+## The 11 Testing Standards
+
+**Numbered 0–11, which is twelve entries.** Standard 0 (RDD) is the *proactive* bookend and is not
+counted among the eleven: the eleven are the verification standards an attribution tier binds
+against. Standard 0 and Standard 11 are the two ends of the same loop, which is why 0 sits in the
+list rather than beside it. (referenced by the project rulebook R1–R10)
 
 Unit tests are not a substitute for running the service — a green `go test ./...` proves compilation and loader behavior, not that a service actually starts.
 
-These are the 10 standards referenced in the project rulebook's AI attribution tier ("fully tested and validated"). Each is keyed to a project-rulebook R-rule. Apply them whenever a change could affect Containerfile generation, OCI labels, init systems, service startup, or deploy code.
+These are the 11 standards referenced in the project rulebook's AI attribution tier ("fully tested and validated"). Each is keyed to a project-rulebook R-rule. Apply them whenever a change could affect Containerfile generation, OCI labels, init systems, service startup, or deploy code.
 
-0. **Prove every high-risk assumption before you edit (RDD — Risk Driven Development)** — the proactive bookend to Standard 10's fresh-rebuild gate. Low-risk orientation ("what does layer X do") is a skill lookup (R0, zero risk); every high-risk assumption — including any a skill or the code merely *asserts*, and above all whether this layer composition at its latest available versions builds / deploys / runs together — is proven on a `disposable: true` bed first (`charly check` it). Never accept docs or code as ground truth for a high-risk decision; if the bed disagrees with a skill, the skill is stale — fix it. Standard 0 (validate forward, riskiest-first) and Standard 10 (re-verify on a fresh rebuild) are the two ends of the same loop.
+0. **Prove every high-risk assumption before you edit (RDD — Risk Driven Development)** — the proactive bookend to Standard 11's fresh-rebuild gate. Low-risk orientation ("what does layer X do") is a skill lookup (R0, zero risk); every high-risk assumption — including any a skill or the code merely *asserts*, and above all whether this layer composition at its latest available versions builds / deploys / runs together — is proven on a `disposable: true` bed first (`charly check` it). Never accept docs or code as ground truth for a high-risk decision; if the bed disagrees with a skill, the skill is stale — fix it. Standard 0 (validate forward, riskiest-first) and Standard 11 (re-verify on a fresh rebuild) are the two ends of the same loop.
 
 1. **Build a real artifact** (R7) — `charly box build <image>` / `go build` / `charly vm build <vm>`. Not just `go test`. Not just `charly box generate`.
 2. **Verify the emitted artifact's content** (R8) — `grep -c supervisord-conf .build/<image>/Containerfile` for any image that uses supervisord; `charly check libvirt domain-xml <vm>` for a VM.
@@ -431,9 +440,21 @@ These are the 10 standards referenced in the project rulebook's AI attribution t
 5. **Target must reach steady-state** — `charly status <image>` → `running`; `charly check libvirt info <vm>` → state `running`; SPICE socket file exists and accepts a handshake. If the service start-limit is hit, the container is crashing — read `charly logs <image>` and reproduce in a disposable shell (`charly shell <image>`, running the service command manually).
 6. **Run the declarative test suite** — `charly check live <image>` full three-section pass against the live container (or `--uri` / `--host` remote equivalent for a remote target).
 7. **Verify the deployed binary is the one you built** (R9) — `charly version` on the target matches the expected CalVer, and `charly status <image>` (detail `Image ref:` line; JSON `image_ref`) shows the running container's image ref carries THIS build's CalVer tag, not the prior one. Source-only changes (Syncthing, git push) do not update the deployed binary; you must build AND deploy on the target host.
-8. **Verify runtime deps are installed via package management** (R9) — on the host: `charly doctor` (dependency status), or the host package manager directly (`rpm -q <pkg>` / `pacman -Q <pkg>` — host packages are not charly-managed resources, so the package manager IS their interface); inside a container: `charly cmd <box> 'rpm -q <pkg>'`. Manual installs do not count — they won't survive a fresh install on a synced host. Every runtime dep must live in `setup.sh` + `pkg/arch/PKGBUILD`.
-9. **Leave the target healthy, not paused/errored** — the final `charly status` (and `charly check libvirt info <vm>` for a VM) is healthy. If the target is in a broken state during exploration, `charly update` it back to the committed config before continuing — never layer experiments on broken state.
-10. **Re-verify on a fresh rebuild after committing the source-level fix** (R10) — `charly update <disposable-target>` one more time from clean, with the new source applied. Run standards 1–9 again against this fresh rebuild. **This is the acceptance gate.** A fix that works on a hand-patched target but not on a fresh rebuild is a regression waiting for the next unrelated rebuild to wipe your patch. Paste both the exploratory-pass output and the fresh-rebuild-pass output into the conversation — the user sees both.
+8. **R9 covers PLUGIN binaries, not just `charly`** — a verb served OUT-OF-PROCESS
+   loads the packaged plugin from `/usr/lib/charly/plugins/` unless
+   `CHARLY_PLUGIN_DIR` points at your build. So a live run of an out-of-process
+   verb, and any bed that exercises one, proves NOTHING about your rebuild by
+   default: it runs the installed plugin and cannot fail on code you just wrote.
+   Both a live run and a full bed have shipped green this way before anyone
+   noticed. `CHARLY_PLUGIN_DIR` need only hold the plugin UNDER TEST — the loader
+   falls back to `/usr/lib/charly/plugins` for everything else, so staging the full set is
+   unnecessary. Set it — then assert the changed path actually executed rather
+   than inferring it from a PASS. Same failure family as invoking a stale
+   `/usr/bin/charly`: "the binary under test must be the one invoked" applies to
+   every binary in the chain.
+9. **Verify runtime deps are installed via package management** (R9) — on the host: `charly doctor` (dependency status), or the host package manager directly (`rpm -q <pkg>` / `pacman -Q <pkg>` — host packages are not charly-managed resources, so the package manager IS their interface); inside a container: `charly cmd <box> 'rpm -q <pkg>'`. Manual installs do not count — they won't survive a fresh install on a synced host. Every runtime dep must live in `setup.sh` + `pkg/arch/PKGBUILD`.
+10. **Leave the target healthy, not paused/errored** — the final `charly status` (and `charly check libvirt info <vm>` for a VM) is healthy. If the target is in a broken state during exploration, `charly update` it back to the committed config before continuing — never layer experiments on broken state.
+11. **Re-verify on a fresh rebuild after committing the source-level fix** (R10) — `charly update <disposable-target>` one more time from clean, with the new source applied. Run standards 1–10 again against this fresh rebuild. **This is the acceptance gate.** A fix that works on a hand-patched target but not on a fresh rebuild is a regression waiting for the next unrelated rebuild to wipe your patch. Paste both the exploratory-pass output and the fresh-rebuild-pass output into the conversation — the user sees both.
 
 ### `charly check live parent.child` reaches the actual leaf
 
@@ -477,7 +498,7 @@ A green `go test ./...` run does not prove a cutover done — build, deploy, run
 
 If the container needs state that's only available in deploy (volumes, env, tunnel), author the step at `context: [deploy]`. If it needs something at build only (binary path, package presence), author at `context: [build]`. Both contexts must pass for the cutover to be real.
 
-**Confidence tier mapping:** The "fully tested and validated" confidence level in the project rulebook's AI-attribution table requires all 10 standards met — including Standard 10, the fresh-rebuild re-verification. Anything short of that ships at a lower confidence tier.
+**Confidence tier mapping:** The "fully tested and validated" confidence level in the project rulebook's AI-attribution table requires all 11 standards met — including Standard 11, the fresh-rebuild re-verification. Anything short of that ships at a lower confidence tier.
 
 ## Coverage snapshot (7 currently-tested images)
 

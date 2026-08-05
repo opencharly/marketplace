@@ -594,4 +594,4 @@ Next step: `/charly-core:deploy` (quadlet setup, tunnels) → `/charly-core:serv
 
 - `/charly-internals:capabilities` — OCI labels emitted during the build stage; `CapabilityLabelMap` completeness check
 
-Live-deploy verification: see /charly-check:check (the 10 Testing Standards) and /charly-internals:disposable.
+Live-deploy verification: see /charly-check:check (the 11 Testing Standards) and /charly-internals:disposable.

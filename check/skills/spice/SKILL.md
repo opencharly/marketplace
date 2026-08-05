@@ -28,7 +28,11 @@ device.
 charly core owns NO go-libvirt. The out-of-process spice plugin resolves its own
 dialable endpoint through the GENERIC `cc.ResolveGraphicsEndpoint("spice")`
 reverse-leg; the host side of that leg (`resolveVerbGraphics` in
-`charly/check_endpoint_resolve.go`) DELEGATES the vm.yml → libvirt-domain →
+`charly/check_graphics_endpoint.go` — a permanent core STAY on its own x/crypto/ssh
+containment reason, a DIFFERENT file from the endpoint-resolve reverse-leg
+`charly/check_endpoint_resolve.go`, whose resolution bodies relocated to
+`candy/plugin-check` under the compiled-in-REQUIRED placement class, #55 W3 B7)
+DELEGATES the vm.yml → libvirt-domain →
 live-XML → `<graphics type='spice'>` resolution to the out-of-process vm plugin
 (`invokeVmPlugin("resolve-spice", …)` → candy/plugin-vm's `ResolveVmTarget` /
 `SpiceEndpoint`, where the go-libvirt deps live), passing the resolved per-deploy DOMAIN
@@ -182,11 +186,14 @@ charly's core (which carries no SPICE library and no opus/portaudio cgo deps).
 
 Host side:
 
-- `charly/check_endpoint_resolve.go` — `resolveVerbGraphics("spice")`, the host side
+- `charly/check_graphics_endpoint.go` — `resolveVerbGraphics("spice")`, the host side
   of the `cc.ResolveGraphicsEndpoint` reverse-leg: delegates vm.yml → libvirt domain →
   live XML → SPICE endpoint to the vm plugin, opens any qemu+ssh:// side tunnel, and
   returns a dialable endpoint (+ ticket) to the spice plugin. Stays in core (it owns no
-  go-libvirt); shared with `vnc:` (the venue-aware vnc/spice resolution is one function).
+  go-libvirt, and directly imports spec/sshx — x/crypto/ssh containment); shared with
+  `vnc:` (the venue-aware vnc/spice resolution is one function). NOT
+  `charly/check_endpoint_resolve.go` — that is the DIFFERENT, sibling reverse-leg file
+  whose resolution bodies relocated to `candy/plugin-check/resolve_endpoint.go` (#55 W3 B7).
 - `candy/plugin-vm/vm_target.go` — the OUT-OF-PROCESS VM target resolution
   (`ResolveVmTarget` / `SpiceEndpoint`, go-libvirt); `VmTarget.XML` gives the live
   `libvirtxml.Domain`. The host reaches it via `invokeVmPlugin("resolve-spice", …)`,

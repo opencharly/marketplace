@@ -233,7 +233,9 @@ for low-level protocol work.
 | Use case | Web automation | Desktop automation |
 
 Source: `candy/plugin-vnc` (the out-of-process RFB client); host-side endpoint
-resolution (`resolveVerbGraphics`) + the VNC credential store in `charly/vnc_helpers.go`.
+resolution (`resolveVerbGraphics`) in `charly/check_graphics_endpoint.go` + the VNC
+credential store (`resolveVNCPassword`) in `charly/check_endpoint_resolve.go` (folded in
+from the former `vnc_helpers.go`, FLOOR-SLIM Unit 4 — that file no longer exists).
 
 ## VNC as Anti-Detection Fallback
 

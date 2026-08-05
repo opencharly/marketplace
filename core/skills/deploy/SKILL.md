@@ -1176,4 +1176,4 @@ The loader raises a hard load-time error on obsolete deploy names (the retired `
 **Workflow position:** After `/charly-build:build`, before `/charly-core:service`.
 Previous step: `/charly-build:build` (build the image). Next step: `/charly-core:service` (start, status, logs).
 
-Live-deploy verification: see /charly-check:check (the 10 Testing Standards) and /charly-internals:disposable.
+Live-deploy verification: see /charly-check:check (the 11 Testing Standards) and /charly-internals:disposable.

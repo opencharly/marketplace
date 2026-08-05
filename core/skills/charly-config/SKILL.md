@@ -602,4 +602,4 @@ Source: `charly/envfile.go` (`normalizeNoProxy`), `charly/deploy.go` (`mergeEnvV
 
 Source: `candy/plugin-deploy-pod/` — `config_setup.go` (the setup leaf and data seeding), `config_write.go` (writes the rendered units), `config_remove.go`, `secrets_resolve.go` (secret provisioning); `sdk/deploykit/quadlet.go` (quadlet generation); `sdk/deploykit/enc_probe.go` + `sdk/deploykit/enc_passphrase.go` (encrypted volumes); `candy/plugin-deploy-pod/deploy_save_state.go` (deploy state) and `charly/host_build_pod_config.go` (the core-side host seam).
 
-Live-deploy verification: see /charly-check:check (the 10 Testing Standards) and /charly-internals:disposable.
+Live-deploy verification: see /charly-check:check (the 11 Testing Standards) and /charly-internals:disposable.

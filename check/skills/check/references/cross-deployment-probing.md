@@ -135,7 +135,7 @@ check-cross-pod-cdp:
                   cdp:
                       method: text
                       tab: "1"       # the first page (cdp `open` lands on tab 1)
-                  eventually: 30s
+                  eventually: 90s   # one wedged CDP call cycle measured 37.8s under load — 30s made retries vacuous
                   retry_interval: 3s
                   stdout:
                       - contains: charly-fixture-web-content-marker

@@ -133,7 +133,7 @@ charly-cachyos-app:
 ## Cross-References
 
 - `/charly-local:local-deploy` — the `target: local` deployment surface that consumes this template.
-- `/charly-internals:local-infra` — Go file map (`local_spec.go`, `LocalSpec` struct, `findLocalSpec` lookup).
+- `/charly-internals:local-infra` — Go file map (`candy/plugin-bundle/node_resolve.go`'s `lookupLocalTemplate`, the plugin-side template resolver).
 - `/charly-image:layer` — candy authoring (the building blocks composed by templates).
 - `/charly-build:migrate` — `charly migrate` migrates legacy `kind: host`/`host.yml` projects up to the node-form schema (every entity name-first inline in `charly.yml`). The `charly-cachyos` deploy applies the suffixed `charly-cachyos-app` `kind: local` template — within one document top-level names are globally unique, so the deploy keeps the user-facing name and the template it deploys is suffixed (see "Globally-unique names within one document" below).
 

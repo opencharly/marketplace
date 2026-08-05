@@ -31,7 +31,7 @@ then runs analysis + visualisation cells.
 | # | Purpose | Returns |
 |---|---|---|
 | 1 | imports | mo, os, time, textwrap, requests, Path, polars, folium |
-| 2 | **`_resolved_urls`** — diagnostic cell: renders a polars DataFrame of the seven URL env vars (purpose / env_var / value / side / is_default) and exports each as a typed value so downstream map cells consume them as parameters instead of re-reading `os.environ` per cell. The user's first window into "what URLs am I actually using" — verifies `port: [auto]` allocations and any cross-pod URL overrides without inspecting charly.yml. | `urls`, `martin`, `airflow_api_internal`, `airflow_public`, `airflow_dags_dir`, `versatiles_public`, `versatiles_style`, `versatiles_assets` |
+| 2 | **`_resolved_urls`** — diagnostic cell: renders a polars DataFrame of the seven URL env vars (purpose / env_var / value / side / is_default) and exports each as a typed value so downstream map cells consume them as parameters instead of re-reading `os.environ` per cell. The user's first window into "what URLs am I actually using" — verifies the auto-allocated port mappings and any cross-pod URL overrides without inspecting charly.yml. | `urls`, `martin`, `airflow_api_internal`, `airflow_public`, `airflow_dags_dir`, `versatiles_public`, `versatiles_style`, `versatiles_assets` |
 | 3 | markdown header (mo.md) | rendered intro + URL strategy table |
 | 4 | self-author **all six** DAG files (osm + gtfs + gpqtiles + duckdb-mvt + duckdb-freestiler + shortbread) | `dag_files`, `dag_ids = [6 ids]`, `dags_dir` |
 | 5 | trigger ALL SIX DAGs in parallel + poll until each succeeds | `dag_run_states = {6 ids → success}` |
