@@ -55,9 +55,17 @@ charly docs generate --out docs/src/content/docs --root .
 The generator owns five top-level entries — `index.md`, `grievances.md`, `vision.md`,
 `reference/` and `recipes/` — and rewrites them wholesale each run, so a deleted source entity
 disappears from the site instead of lingering as an orphan page. (The table below expands
-`reference/` into its five sub-trees, so it runs to nine rows.) What stays hand-authored is the
-teaching narrative this repository has no equivalent of: `start/`, `concepts/` and `guides/`,
-never read or written.
+`reference/` into its four sub-trees plus the single file `reference/providers.md`, so it runs to
+nine rows.) What stays hand-authored is the teaching narrative this repository has no equivalent
+of: `start/`, `concepts/` and `guides/`.
+
+**Hand-authored pages are never WRITTEN — but they are read.** The boundary is the `DO-NOT-EDIT`
+header, not the path: the prune pass reads every `.md`/`.mdx` under `--out` and removes only those
+carrying it, so a page is matched by its content, never inferred from where it sits. The
+whole-site link gate then reads hand-authored pages too, deliberately — **a dead site-absolute
+link in a `concepts/` or `guides/` page fails generation**, exactly as it would in a generated one.
+Treating "hand-authored" as "the generator ignores it" is the trap; it will not overwrite your
+page, and it will refuse to build if you link somewhere that does not exist.
 
 The home page is the newest arrival and the one people get wrong: it used to be a hand-authored
 `index.mdx` restating `README.md`, and roughly two thirds of it was README prose maintained twice
