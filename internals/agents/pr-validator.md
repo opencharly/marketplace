@@ -600,9 +600,19 @@ until the author supplies the proof. If ANY item fails, go to Phase 2 with
 ## Phase 1b — Documentation scrutiny (reader-facing prose)
 
 **Applies when the diff touches a reader-facing narrative page**: `README.md`,
-`VISION.md`, `GRIEVANCES.md`, `AGENTS.md`, or anything hand-authored under the
-docs site (`start/`, `concepts/`, `guides/`). Generated trees are exempt — fix
-their source, not the projection. Note that the site's HOME PAGE is generated
+`VISION.md`, `GRIEVANCES.md`, `AGENTS.md`, anything hand-authored under the docs
+site (`start/`, `concepts/`, `guides/`), **and any `SKILL.md` or agent spec under
+`plugins/`**. Generated trees are exempt — fix their source, not the projection.
+
+**Skills are in scope, and the reason needs stating because it is easy to get
+wrong.** A `SKILL.md` reads like an internal note, which invites the assumption
+that 1b is about the website and skills are something else. They are not: every
+skill is PUBLISHED to opencharly.ai and read by strangers, and the checks below —
+source liveness above all — are exactly what a skill needs, because a skill's
+whole job is describing code. This clause exists because the PR that ADDED
+Phase 1b shipped three `SKILL.md` files documenting code in no repository state,
+and a validator reading the earlier version of this line literally would not have
+been required to look. Note that the site's HOME PAGE is generated
 from `README.md`, so a change to the front page arrives as a README diff.
 
 A documentation-only change class buys a LIGHTER runtime gate. It does not buy a
@@ -632,6 +642,14 @@ Spawn a `general-purpose` sub-agent and brief it EXACTLY this way:
 - Ask one more thing, which only it can answer: **"Which section would you have
   DELETED, and which section is MISSING?"**
 - Tell it to be blunt and that praise is worthless.
+
+**Scope the reader, and skip it honestly when it cannot help.** Name at most a
+handful of pages — a reader pointed at a thirty-file diff produces mush. For a
+NARRATIVE page the questions above are right. For a REFERENCE page (a skill, a
+verb catalog) "would you have kept reading?" is the wrong question: ask instead
+whether it answers what it claims to, and where it sends the reader next. If the
+diff touches no page a stranger would read start-to-finish, say so in the verdict
+and skip 1b.0 rather than running it hollow.
 
 **Its findings are FINDINGS, not suggestions.** A page a competent engineer
 cannot follow is defective. Weigh them: a taste disagreement is not a defect, but
@@ -726,9 +744,21 @@ Each of these caught a real defect that survived author review:
     `gh pr list` in the named repo rather than accepting the reference. A docs PR
     describing behaviour that lives only in an uncommitted working tree will
     publish the inverse of shipped reality the moment it merges.
-12. **Every abbreviation expanded on first use, or linked.** Extract the
-    uppercase tokens from the prose (excluding fenced and inline code, where they
-    are identifiers) and check each one resolves: expanded inline the first time
+12. **Every abbreviation expanded on first use, or linked.** Stripping code before
+    extracting is a real parse, not a grep, so this item ships a runnable form
+    rather than leaving it to eyeballing:
+
+    ```
+    python3 - "$FILE" <<'EOF'
+    import re,sys
+    s=open(sys.argv[1]).read()
+    s=re.sub(r'```.*?```','',s,flags=re.S)   # fenced code: identifiers, not prose
+    s=re.sub(r'`[^`]*`','',s)                # inline code: same
+    print(sorted(set(re.findall(r'\b[A-Z]{2,6}\b', s))))
+    EOF
+    ```
+
+    Then check each survivor resolves: expanded inline the first time
     the document uses it, or linked to the abbreviations table in
     `concepts/00-vocabulary.md`. `IR`, `CUE`, `OCI`, `MCP`, `RPC`, `CalVer`,
     `ADE`, `RDD`, `SDD` and the probe protocols (`CDP`, `VNC`, `ADB`) all read as
