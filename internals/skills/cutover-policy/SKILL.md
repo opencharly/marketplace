@@ -152,4 +152,4 @@ The policy kicks in when the change is **visible to consumers** (YAML authors, o
 - `/charly-internals:install-plan` — shared IR that survived the cutover unchanged (non-example — additive extension of the DeployTarget surface)
 - the project rulebook "Hard Cutover by Default" — summary pointing at this skill
 
-Live-deploy verification: see /charly-check:check (the 10 Testing Standards) and /charly-internals:disposable.
+Live-deploy verification: see /charly-check:check (the 11 Testing Standards) and /charly-internals:disposable.

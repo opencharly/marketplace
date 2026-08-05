@@ -107,7 +107,7 @@ checks failed. For those classes, a `--dry-run`, a green `go test`, or
 
 | Level | Requirements |
 |-------|-------------|
-| `fully tested and validated` | *(runtime classes)* All 10 standards + a fresh-rebuild R10 (`charly check run <bed>` / `charly check live` on a `disposable: true` target) for EVERY affected target + the new/changed code path actually exercised + both R10 outputs (exploratory + fresh-rebuild) pasted |
+| `fully tested and validated` | *(runtime classes)* All 11 standards + a fresh-rebuild R10 (`charly check run <bed>` / `charly check live` on a `disposable: true` target) for EVERY affected target + the new/changed code path actually exercised + both R10 outputs (exploratory + fresh-rebuild) pasted |
 | `analysed on a live system` | *(runtime classes)* A live invocation of the runner / verb evaluation / deploy probe the change touched actually ran AND its output is pasted. A rebuild WITHOUT the subsequent invocation does NOT qualify; NEVER this tier on a `--dry-run` alone |
 | `documentation reviewed` | *(the Documentation-only change class)* The change touches ONLY documentation (`*.md`, comment-only code edits, or a submodule pointer bump to an all-documentation submodule commit, ZERO behavior change) and ALL non-runtime standards passed. No runtime test exists to run; FORBIDDEN once any code/config behavior is touched (runtime tier, docs ride along) |
 | `syntax check only` | *(runtime classes)* Compile + unit tests + validators / dry-run passed; the live runner did NOT execute. The honest default when a runtime R10 hasn't run — pair with explicit "R10 not yet run" AND do NOT commit (pairing this tier with a commit is a violation; STOP and ask) |

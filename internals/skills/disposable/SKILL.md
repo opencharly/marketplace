@@ -401,8 +401,8 @@ on shared hosts.
   fully-stocked, secured box safe to destroy and rebuild — and the live surface
   you prove a high-risk assumption on BEFORE editing (RDD), never trusting a doc
   or the code for a high-risk call.
-- `/charly-check:check` — the 10 testing standards; disposable-only deployment
-  is Standard 4, fresh-rebuild re-verification is Standard 10.
+- `/charly-check:check` — the 11 testing standards; disposable-only deployment
+  is Standard 4, fresh-rebuild re-verification is Standard 11.
 - `/charly-vm:vms-catalog` — kind:vm schema, including `disposable:` and
   `lifecycle:` fields.
 - `/charly-vm:arch-cloud-vm` — canonical worked example.
