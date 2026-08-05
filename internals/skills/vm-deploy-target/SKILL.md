@@ -9,7 +9,7 @@ description: |
   candy/plugin-bundle's Invoke(OpDeployDispatch), replacing the deleted
   grpcSubstrateLifecycle/externalDeployTarget).
   SSHExecutor, VmDeployState persistence, and the host-side ledger.
-  Source: candy/plugin-deploy-vm/lifecycle.go, charly/vm_lifecycle_preresolve.go,
+  Source: candy/plugin-deploy-vm/lifecycle.go,
   charly/unified_targets.go, charly/deploy_target_dispatch.go,
   candy/plugin-bundle/deploy_target.go, spec/exec/deploy_executor*.go,
   charly/bundle_add_cmd_vm.go.
@@ -133,9 +133,14 @@ more.
 
 Core provides ONLY the residual pieces the plugin genuinely cannot do:
 
-- **The F12 `vmAttachResolver`** (`charly/vm_lifecycle_preresolve.go`): builds
-  the live-session script for `charly shell`/`charly cmd` against a vm deploy
-  — a live-session concern the plugin cannot derive itself.
+- **The F12 attach plan for a vm deploy** is now derived PLUGIN-SIDE: the former
+  `vmAttachResolver` (`charly/vm_lifecycle_preresolve.go`) is DELETED (K-wave 2
+  cone CONTESTED) — its body was `strings.Join(cmd, " ")`, derivable from the raw
+  cmd candy/plugin-bundle threads over the wire for OpAttach
+  (`lifecycleParams.Cmd`); `candy/plugin-deploy-vm/lifecycle.go`'s `vmAttach`
+  resolves it itself. `charly/unified_targets.go`'s Attach threads the raw cmd
+  for a HOOKLESS lifecycle substrate instead of requiring a host attach hook
+  (the lifecycleAttachPlanHooks map keeps only "pod").
 - **The ephemeral Add-time side effect** (`charly/host_build_ephemeral_register.go`,
   the generic `"ephemeral-register"` HostBuild seam): a systemd transient-timer
   registration with panic-vs-warning classification (RCA #5) that must run
@@ -190,7 +195,7 @@ from the executor), so the reverse ops run IN THE GUEST.
 |---|---|
 | `charly/unified_targets.go` + `charly/deploy_target_dispatch.go` + `charly/host_build_arbiter_bracket.go` | S3b: `pluginDeployTarget` — the thin, data-only generic out-of-process adapter for all five external substrates, dispatching via `dispatchDeployTarget` to `candy/plugin-bundle`'s `Invoke(OpDeployDispatch)`; `Del` replays recorded `ReverseOps`. Replaces the DELETED `charly/deploy_target_external.go` (`externalDeployTarget`), `charly/substrate_lifecycle_grpc.go` (`grpcSubstrateLifecycle`), `charly/deploy_preresolve.go` (`wireDeployPreresolver`), and `charly/deploy_substrate_lifecycle.go` (the `substrateLifecycle` interface + `registerPluginSubstrateLifecycle`) |
 | `candy/plugin-bundle/deploy_target.go` | S3b: `runDeployDispatch`'s `lifecycleInvoke`/`preresolveSubstrate` — Invokes the substrate's `OpPrepareVenue`/`OpStart`/`OpStop`/`OpStatus`/`OpRebuild`/`OpPreresolve`/… via its OWN `sdk.Executor.InvokeProvider(class:"deploy", word, op, …)` (S1); re-materializes the plugin's returned `VenueDescriptor`, and persists the returned `VmDeployState` via `saveDeployState` |
-| `charly/vm_lifecycle_preresolve.go` | FINAL/K5 unit 6a, M4b: the vm `lifecyclePrepareHook` DATA-seam is GONE (hard cutover) — the plugin resolves its OWN `spec.LifecyclePrepareInput`. This file keeps only the F12 `vmAttachResolver` + the vm `lifecyclePostTeardownHook` (ephemeral-lifecycle host cleanup) |
+| `charly/vm_lifecycle_preresolve.go` | DELETED (K-wave 2 cone CONTESTED). The FINAL/K5 unit 6a (M4b) move had already removed the `lifecyclePrepareHook` DATA-seam + `lifecyclePostTeardownHook` (the plugin self-resolves `spec.LifecyclePrepareInput`); the last remaining F12 `vmAttachResolver` was then DELETED too — the plugin derives the attach script from the raw wire cmd (`vmAttach` over `lifecycleParams.Cmd`, `candy/plugin-deploy-vm/lifecycle.go`), and `charly/unified_targets.go`'s Attach threads it for hookless lifecycle substrates |
 | `candy/plugin-deploy-vm/lifecycle.go` | the plugin's venue lifecycle — implements every lifecycle Op (`OpPrepareVenue` / `OpPostApply` / `OpStart` / … / `OpPostTeardown`) over `kit` + `HostBuild("cli")` + the served guest executor; `vmEntityForPrepare` + `vmPrepareVenue` (self-resolving `spec.LifecyclePrepareInput` via `sdk/loaderkit.ResolveVmEntityViaExecutor`, K-wave W3a A3-phase-2, ported from the deleted `charly/vm_lifecycle_preresolve.go`'s `vmEntityForAdd`/`vmLifecyclePrepare`) |
 | `candy/plugin-deploy-vm/` | the out-of-process `deploy:vm` plugin (the plan WALK via `kit.WalkPlans` over the guest `SSHExecutor`) |
 | `spec/exec/deploy_executor.go` | `DeployExecutor` interface (RunShell, Scp, Close) + `ShellExecutor` — local shell exec (used host-side for the builder-image step and `RunHostStep`) |

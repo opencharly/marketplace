@@ -949,7 +949,8 @@ selkies-desktop:
 
 A physical host resource can be held by only ONE deployment at a time — the
 canonical case is a GPU passed through to a VM via VFIO. The resource arbiter
-(`charly/preempt.go`) frees such a resource on demand and gives it back.
+(the compiled-in `verb:arbiter`, `candy/plugin-preempt`) frees such a resource
+on demand and gives it back.
 
 ```yaml
 gpu-workstation:                   # HOLDER — a long-running operator VM

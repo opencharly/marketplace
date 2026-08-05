@@ -514,9 +514,10 @@ delete/import/export/migrate-secrets), `candy/plugin-secrets/secrets_gpg.go` (GP
 commands + key management + diagnostics), `candy/plugin-secrets/{store,config_store,
 credential_keyring,credential_config,secret_service,verb_credential,credential_admin}.go`
 (the `verb:credential` backends + the env-less resolve + the doctor health probe). charly's
-core keeps only the thin adapter `charly/credential_plugin.go` (`CredentialStore` /
-`ResolveCredential` / `DefaultCredentialStore` → `verb:credential`) + `charly/secrets.go`
-(podman-secret provisioning). On an
+core keeps only the thin adapter `charly/credential_plugin.go` (`ResolveCredential` /
+`DefaultCredentialStore` → the `credentialResolver` interface → `verb:credential`; the former
+`CredentialStore` interface + Get/Set/Delete/List/Name/awaitUnlock were DELETED at K-wave 2
+cone CONTESTED, zero production callers) + `charly/secrets.go` (podman-secret provisioning). On an
 installed host the plugin lives beside charly at `/usr/lib/charly/plugins` (every native
 package build — the arch PKGBUILD and the fedora `.rpm` / debian `.deb` builds — bakes the
 binary + its `.providers` manifest, off the shared `pkg/host-command-plugins.txt` set).

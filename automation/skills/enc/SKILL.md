@@ -400,10 +400,12 @@ Unix-socket connection).
 
 Source: `candy/plugin-secrets/keyring_unlock_wait.go` (`awaitUnlock`,
 `awaitUnlockLoop`, `awaitUnlockBackstopOnly`, `isCollectionUnlockedSignal`),
-reached via `verb:credential await-unlock`. The core seam is
-`charly/enc.go` (`awaitKeyringUnlockViaPlugin`) +
-`charly/credential_plugin.go` (`pluginCredentialStore.awaitUnlock`, the
-`credentialAwaiter` interface).
+reached via `verb:credential await-unlock`. The wait runs entirely plugin-side
+today: candy/plugin-pod's `enc_cmd.go` (`pluginAwaitKeyringUnlock`) drives
+`deploykit.ResolveEncPassphraseForMount`. Core's former
+`pluginCredentialStore.awaitUnlock`/`credentialAwaiter` seam
+(`charly/credential_plugin.go`) is DELETED (K-wave 2 cone CONTESTED — zero
+production callers; the pod enc path carries its own waiter).
 
 **Bounded retry for `source=unavailable`:** transient
 backend-probe failures (`source=unavailable`) use a bounded poll
@@ -478,8 +480,7 @@ Plain bind mounts do not use encrypted storage commands. They are direct host di
 - `charly/enc.go` — the in-core enc SHIM + deploy-model (C16a). `encMount`/`encUnmount`/`encPasswd`/`ensureEncryptedMounts` are thin shims that HOST-PRELIFT the per-volume plan (`encPlanFor`: resolved cipher/plain dirs + init/mounted flags + scope-unit name) and the passphrase, then `encExecViaPlugin` resolves verb:enc and Invokes OpExecute. Keeps (deploy-model, stays core): `encMount`'s all-mounted short-circuit, `encStatus` (pure probe+print), the path/probe helpers (`encryptedPlainDir`/`isEncryptedMounted`/`isEncryptedInitialized`/`cipherPopulatedPlainEmpty` — the mandatorily-core `ResolveVolumeBacking` + `verifyBindMounts` consume them), `loadEncryptedVolume` (loader), `resolveEncPassphraseForMount` (bounded retry for `source=unavailable` via `retryUnavailable`), `awaitKeyringUnlockViaPlugin` (the `source=locked` waiter — delegates the event-driven DBus wait to `verb:credential await-unlock`, out-of-process in candy/plugin-secrets, so charly's core links no godbus)
 - `candy/plugin-enc/enc.go` — the ENCRYPTED-VOLUME (gocryptfs) MECHANICS plugin (C16a, verb:enc, compiled-in): the gocryptfs / `systemd-run --scope --unit=charly-enc-<dir>-<volume>` / fusermount3 / `gocryptfs -init` / `gocryptfs -passwd` / extpass SHELLING (`mountVolumes`/`unmountVolumes`/`ensureVolumes`/`passwdVolumes`/`runGocryptfsScope`/`encExtpassArgs`), driven by the host-prelifted `spec.EncExecInput`. `-allow_other` for rootless keep-id + the stale-scope retry live here. Wire types: CUE-sourced at `spec/schema/enc.cue`, generated into `spec/spec/cue_types_gen.go` (`#EncExecInput`/`#EncVolumePlan`/`#EncExecReply`, shared by the shim + the plugin); the plain `EncMethod*` string-selector constants stay hand-written in `spec/spec/enc_consts.go` (never a JSON/YAML shape for `gengotypes` to generate)
 - `candy/plugin-secrets/keyring_unlock_wait.go` — `awaitUnlock` (the externalized event-driven DBus signal wait for `source=locked`), `awaitUnlockLoop`, `awaitUnlockBackstopOnly`, `isCollectionUnlockedSignal` (the collection-unlocked signal filter), `awaitSignalBackstop` (30s), `awaitProgressLogInterval` (1h)
-- `charly/credential_plugin.go` — the core seam: `pluginCredentialStore.awaitUnlock` (RPCs `verb:credential await-unlock` over a SIGINT/SIGTERM-cancellable ctx) + the `credentialAwaiter` interface
-- `charly/credential_plugin.go` — the CORE adapter: `DefaultCredentialStore` (→ `pluginCredentialStore`), `ResolveCredential` (the `"unavailable"`-vs-`"default"` source distinction), `resolveSecretBackend`, `resetDefaultCredentialStore` (propagates a keyring re-probe to the plugin over `verb:credential reset`)
+- `charly/credential_plugin.go` — the CORE adapter (THINned 213→109, K-wave 2 cone CONTESTED): `DefaultCredentialStore` (→ the `credentialResolver` interface), `ResolveCredential` (the `"unavailable"`-vs-`"default"` source distinction), `pluginCredentialStore.call`/`callCtx`/`resolve` (the VNC-password resolve path). The former `pluginCredentialStore.awaitUnlock` + `credentialAwaiter` interface + `resolveSecretBackend`/`resetDefaultCredentialStore`/`CredentialStore` interface are DELETED (zero production callers — the keyring-unlock wait lives plugin-side in candy/plugin-pod's `pluginAwaitKeyringUnlock`, driven via `deploykit.ResolveEncPassphraseForMount`).
 - `candy/plugin-secrets/secret_service.go` — godbus-based ssClient, `findItemAcrossCollections` (with locked-vs-broken tracking), `ssOps` interface for test injection, `ErrSSNotFound` / `ErrSSAllBroken` / `ErrSSInteractiveUnlockRequired` sentinel errors
 - `candy/plugin-secrets/credential_keyring.go` — `KeyringStore.Probe` (iterates collections, accepts if ≥1 healthy), `KeyringStore.Get` (delegates to `keyringGetViaSSClient`, maps `ErrSSInteractiveUnlockRequired` to `KeyringLockedError`), index-divergence warning
 - `candy/plugin-secrets/store.go` — `DefaultCredentialStore` (tracks `defaultStoreProbeErr`), `resolveStoreChain` (the env-less store resolution the core adapter's `ResolveCredential` forwards to over `verb:credential`)
