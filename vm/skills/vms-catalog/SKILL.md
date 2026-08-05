@@ -220,4 +220,4 @@ For a config already within the migratable window (`[floor, HEAD)`), `charly mig
 - `/charly-distros:cloud-init` — guest-side cloud-init layer (pairs with host-side `cloud_init:` emission)
 - `/charly-distros:qemu-guest-agent` — virtio-serial channel for host↔guest comms
 
-Live-deploy verification: see /charly-check:check (the 10 Testing Standards) and /charly-internals:disposable.
+Live-deploy verification: see /charly-check:check (the 11 Testing Standards) and /charly-internals:disposable.

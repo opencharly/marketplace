@@ -420,9 +420,9 @@ code via `errors.As`.
 
 Unit tests are not a substitute for running the service — a green `go test ./...` proves compilation and loader behavior, not that a service actually starts.
 
-These are the 10 standards referenced in the project rulebook's AI attribution tier ("fully tested and validated"). Each is keyed to a project-rulebook R-rule. Apply them whenever a change could affect Containerfile generation, OCI labels, init systems, service startup, or deploy code.
+These are the 11 standards referenced in the project rulebook's AI attribution tier ("fully tested and validated"). Each is keyed to a project-rulebook R-rule. Apply them whenever a change could affect Containerfile generation, OCI labels, init systems, service startup, or deploy code.
 
-0. **Prove every high-risk assumption before you edit (RDD — Risk Driven Development)** — the proactive bookend to Standard 10's fresh-rebuild gate. Low-risk orientation ("what does layer X do") is a skill lookup (R0, zero risk); every high-risk assumption — including any a skill or the code merely *asserts*, and above all whether this layer composition at its latest available versions builds / deploys / runs together — is proven on a `disposable: true` bed first (`charly check` it). Never accept docs or code as ground truth for a high-risk decision; if the bed disagrees with a skill, the skill is stale — fix it. Standard 0 (validate forward, riskiest-first) and Standard 10 (re-verify on a fresh rebuild) are the two ends of the same loop.
+0. **Prove every high-risk assumption before you edit (RDD — Risk Driven Development)** — the proactive bookend to Standard 11's fresh-rebuild gate. Low-risk orientation ("what does layer X do") is a skill lookup (R0, zero risk); every high-risk assumption — including any a skill or the code merely *asserts*, and above all whether this layer composition at its latest available versions builds / deploys / runs together — is proven on a `disposable: true` bed first (`charly check` it). Never accept docs or code as ground truth for a high-risk decision; if the bed disagrees with a skill, the skill is stale — fix it. Standard 0 (validate forward, riskiest-first) and Standard 11 (re-verify on a fresh rebuild) are the two ends of the same loop.
 
 1. **Build a real artifact** (R7) — `charly box build <image>` / `go build` / `charly vm build <vm>`. Not just `go test`. Not just `charly box generate`.
 2. **Verify the emitted artifact's content** (R8) — `grep -c supervisord-conf .build/<image>/Containerfile` for any image that uses supervisord; `charly check libvirt domain-xml <vm>` for a VM.
@@ -437,8 +437,9 @@ These are the 10 standards referenced in the project rulebook's AI attribution t
    verb, and any bed that exercises one, proves NOTHING about your rebuild by
    default: it runs the installed plugin and cannot fail on code you just wrote.
    Both a live run and a full bed have shipped green this way before anyone
-   noticed. Stage every packaged plugin, swap in the one under test, and set
-   `CHARLY_PLUGIN_DIR` — then assert the changed path actually executed rather
+   noticed. `CHARLY_PLUGIN_DIR` need only hold the plugin UNDER TEST — the loader
+   falls back to `/usr/lib/charly/plugins` for everything else, so staging the full set is
+   unnecessary. Set it — then assert the changed path actually executed rather
    than inferring it from a PASS. Same failure family as invoking a stale
    `/usr/bin/charly`: "the binary under test must be the one invoked" applies to
    every binary in the chain.
@@ -488,7 +489,7 @@ A green `go test ./...` run does not prove a cutover done — build, deploy, run
 
 If the container needs state that's only available in deploy (volumes, env, tunnel), author the step at `context: [deploy]`. If it needs something at build only (binary path, package presence), author at `context: [build]`. Both contexts must pass for the cutover to be real.
 
-**Confidence tier mapping:** The "fully tested and validated" confidence level in the project rulebook's AI-attribution table requires all 10 standards met — including Standard 10, the fresh-rebuild re-verification. Anything short of that ships at a lower confidence tier.
+**Confidence tier mapping:** The "fully tested and validated" confidence level in the project rulebook's AI-attribution table requires all 11 standards met — including Standard 11, the fresh-rebuild re-verification. Anything short of that ships at a lower confidence tier.
 
 ## Coverage snapshot (7 currently-tested images)
 

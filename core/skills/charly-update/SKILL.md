@@ -169,4 +169,4 @@ When seeding populates a named volume, the output shows
 - `/charly-build:build` -- building images locally
 - `/charly-core:charly-status` -- check service status after update
 
-Live-deploy verification: see /charly-check:check (the 10 Testing Standards) and /charly-internals:disposable.
+Live-deploy verification: see /charly-check:check (the 11 Testing Standards) and /charly-internals:disposable.

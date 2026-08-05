@@ -166,4 +166,4 @@ is `/charly-check:check` Standards 7–8; the dual-path `bin/charly` ↔
 
 **MUST be invoked** before reading or modifying Go source files. Invoke this skill BEFORE launching Explore agents on charly/ code.
 
-Live-deploy verification: see `/charly-check:check` (the 10 Testing Standards) and `/charly-internals:disposable`.
+Live-deploy verification: see `/charly-check:check` (the 11 Testing Standards) and `/charly-internals:disposable`.

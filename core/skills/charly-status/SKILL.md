@@ -351,4 +351,4 @@ charly status --json | jq '.[] | select(.nested) | .nested[].image'
 - `/charly-core:logs` -- view service logs (via `/charly-core:service`)
 - `/charly-core:service` -- full service lifecycle management
 
-Live-deploy verification: see /charly-check:check (the 10 Testing Standards) and /charly-internals:disposable.
+Live-deploy verification: see /charly-check:check (the 11 Testing Standards) and /charly-internals:disposable.
