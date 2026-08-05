@@ -178,7 +178,7 @@ it does not consume the sdk mechanism libraries, and it contains zero aliases/sh
    words→plugins (including the per-node kind-decode resolve+invoke a plugin's `Materializer` seam calls
    back into — the fold/not-found policy itself lives in `candy/plugin-loader`), and broker
    the reverse channel (venue executors + `InvokeProvider`). → P16 gate (a): the import-surface assertion (charly/import_purity_test.go — every charly/ file imports only spec/* + the proto/plugin-api contract + vetted third-party; the per-file allowlist is retired).
-2. **Core does not import the sdk mechanism layer.** Core imports only the protocol contract — `sdk/spec`
+2. **Core does not import the sdk mechanism layer.** Core imports only the protocol contract — `spec/spec`
    (wire types) + the proto/go-plugin packages + the Provider/Op vocabulary. `sdk/{kit,deploykit,
    buildkit,loaderkit,vmshared,…}` are for plugins. → P16 gate (b): import-purity (`charly/` has ZERO
    `github.com/opencharly/sdk` references — prod, test, and go.mod; the #55 terminus closed the last tracked residuals).

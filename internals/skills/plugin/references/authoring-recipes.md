@@ -298,7 +298,7 @@ their `cmd/serve` shim. Shape:
   which detects the kit shape by the exported `NewCheckVerb`) wraps it in a `kitVerbAdapter` (a package-main
   `CheckVerbProvider` that passes the live `*Runner` as a `kit.CheckContext` via `runnerCheckContext` and
   converts `kit.Result`→`CheckResult`), concatenates the candy's schema (via the public
-  `sdk/schemaconcat`), and registers through the SAME `RegisterBuiltinPluginUnit` gate (origin
+  `spec/schemaconcat`), and registers through the SAME `RegisterBuiltinPluginUnit` gate (origin
   `"builtin"`). Dispatch is the SAME `runOne`→`CheckVerbProvider.RunVerb` path a compiled-in candy verb
   uses — full typed fast path, the real `*Runner`, no envelope.
 - OUT-OF-PROCESS: a `cmd/serve/main.go` shim calls `sdk.ServeCheckVerb(pkg.NewCheckVerb(), calver,
@@ -308,7 +308,7 @@ their `cmd/serve` shim. Shape:
   `LocalTransport` when the candy is NOT in `compiled_plugins`; `invokeVerbProvider` (provider_checkenv.go)
   serves BOTH reverse services on one broker id. The verdict round-trips as the same `{status,message}`
   every out-of-process verb returns.
-- `kit` imports the stdlib + `sdk/spec` + `sdk/vmshared` + the pinned external helpers (`gopkg.in/yaml.v3`, `golang.org/x/sys/unix`) — never the `sdk` root module; the candy imports `kit` + `sdk` + `spec` + its `params`.
+- `kit` imports the stdlib + `spec/spec` + `sdk/vmshared` + the pinned external helpers (`gopkg.in/yaml.v3`, `golang.org/x/sys/unix`) — never the `sdk` root module; the candy imports `kit` + `sdk` + `spec` + its `params`.
 
 A kit candy keeps the verb's logic (RunVerb on `kit.CheckContext`) OUTSIDE charly's module while preserving
 the typed fast path — runnable in-proc (compiled-in, the real `*Runner`, no envelope) OR out-of-process (the
@@ -319,9 +319,9 @@ The SDK module (`github.com/opencharly/sdk`) is the ONLY module a plugin imports
 `BuildCapabilities`, `ProvidedCapability`, `Conn`, plus the shared out-of-process check-verb helpers
 `ResultJSON` (the `{status,message}` reply) / `CheckRequiredModifiers` (the required-modifier check) +
 the `*Executor` venue methods `VenueCapture`/`VenueHasTool`/`VenueRunSilent`), `sdk/kit` (the
-pure-helper package, stdlib + `sdk/spec` only — `ShellQuote`, `TrimPreview`, `MethodSpec`,
-`WalkPlans`, …; the SDK root imports it too), `sdk/spec`, and `sdk/proto`. `schemaconcat` is the
-public `sdk/schemaconcat` package (the SDK uses it internally).
+pure-helper package, stdlib + `spec/spec` only — `ShellQuote`, `TrimPreview`, `MethodSpec`,
+`WalkPlans`, …; the SDK root imports it too), `spec/spec`, and `spec/proto`. `schemaconcat` is the
+public `spec/schemaconcat` package (the SDK uses it internally).
 
 ## Authoring an external COMMAND plugin (a `charly <word>` subcommand)
 

@@ -110,20 +110,22 @@ child's plan/step walk ran on the OPERATOR'S HOST instead of the guest venue. Th
   directly-unit-tested method (`unified_targets_test.go`), not inlined at the one call site.
 
 This closes exactly the gap the R10 bed roster (7/7 beds) exercises for a nested-child deploy;
-see `sdk/kit/venue_descriptor.go` above for the promoted `DescriptorFromExecutor`/
+see `spec/exec/venue_descriptor.go` above for the promoted `DescriptorFromExecutor`/
 `VenueFromDescriptor` pair both directions now share.
 
 **What stays core-resident BY DESIGN, wrapping the dispatch rather than living inside it** (Unit-6
 design Q1–Q4, verified against the actual call graph, not assumed):
-- **The arbiter acquire/release bracket** (`charly/arbiter_bracket.go`, `arbiterBracketedStart`/
-  `arbiterBracketedStop`, Start/Stop only) — `CHARLY_PREEMPT_LEASE` is process-ENV state
-  (`os.Setenv`/`os.Getenv`); it behaves correctly only when the acquiring code runs in the SAME OS
-  process as the host, a property that holds only for an IN-PROC placement — a mechanism correct in
-  only one of the two placements every plugin must support is a defect, not a stay-as-is case. So the
-  bracket stays HERE, wrapping the (now plugin-hosted) dispatch: acquire BEFORE dispatch, release on
-  the failure path for Start, release AFTER dispatch for Stop. `hasPlan` is read from the SAME
-  `lifecycleStartPlanHooks`/`lifecycleStopPlanHooks` table the caller already consults (R3 — one
-  source of truth), never a second mirror.
+- **The arbiter acquire/release ENV primitive** (`charly/host_build_arbiter_bracket.go`,
+  `hostBuildArbiterBracketAcquire`/`hostBuildArbiterBracketRelease`, Start/Stop only) —
+  `CHARLY_PREEMPT_LEASE` is process-ENV state (`os.Setenv`/`os.Getenv`); it behaves correctly only
+  when the acquiring code runs in the SAME OS process as the host, so a nested `charly` subprocess of
+  that invocation inherits the lease and skips re-acquiring. Only that ENV read/write stays core, as
+  the two `"arbiter-bracket-acquire"`/`"arbiter-bracket-release"` F10 host-builders. The BRACKET
+  ITSELF — deciding when to acquire and release, around which dispatch — is OWNED by
+  `candy/plugin-bundle/deploy_target.go`: `handleLifecycleSimple` wires the real `exec.HostBuild`
+  calls into the pure, directly-testable `runLifecycleBracket`, which brackets only when `HasPlan`
+  and a non-nil `Node` and op is Start or Stop — acquire BEFORE dispatch, release on the failure
+  path for Start, release AFTER dispatch unconditionally for Stop.
 - **The pod Start/Stop/Attach/Logs plan-hook table read** (`pod_lifecycle_dispatch.go`, unmoved) — a
   pure ctx-opts marshal with zero core-only dependency of its own; the plan resolution the pre-move
   `grpcSubstrateLifecycle` ran as a SEPARATE pre-dispatch call now resolves INSIDE the plugin dispatch
@@ -143,6 +145,6 @@ check live` / `charly check <verb>` route an external deploy host-side via the s
 `checkLocalTarget` classifier (`check_venue.go`) — the host-venue path the externalized `local:`
 substrate itself takes (R3). The wire types (`InstallPlanView`, `DeployVenue`, `DeployReply`,
 `ReverseOp`, `ReverseOpPluginScript`, `DeployTargetDispatchRequest`, `DeployTargetDispatchReply`) are
-CUE-sourced at `sdk/schema/deploy.cue` / `sdk/schema/seam.cue`, generated into `spec/cue_types_gen.go`
+CUE-sourced at `spec/schema/deploy.cue` / `spec/schema/seam.cue`, generated into `spec/spec/cue_types_gen.go`
 — SDK-importable so an out-of-tree deploy plugin constructs the same structs (R3).
 
