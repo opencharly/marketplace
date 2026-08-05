@@ -198,11 +198,11 @@ the short-circuit skips that entirely when no new mount is needed. A broken
 plugin advertising a stub collection — does NOT block restarts.
 
 When a volume IS unmounted and needs to be remounted, the normal path runs:
-`ResolveEncPassphraseForMount` queries the credential store via the
+`resolveEncPassphraseForMount` queries the credential store via the
 iteration-capable `ssClient` (not just the Secret Service default alias), so
 even then the broken-stub scenario still resolves automatically by finding
 the credential in a sibling healthy collection. See `/charly-automation:enc` for the full
-iteration order, the bounded `EncMountDeadline` retry behavior, and the
+iteration order, the bounded `encMountDeadline` retry behavior, and the
 source classification (`env`/`keyring`/`config`/`locked`/`unavailable`/`default`).
 
 ## Resource Caps
@@ -600,6 +600,6 @@ Source: `charly/envfile.go` (`normalizeNoProxy`), `charly/deploy.go` (`mergeEnvV
 
 **Workflow position:** After build, before start. `charly box build` → `charly config` → `charly start`.
 
-Source: `candy/plugin-deploy-pod/` — `config_setup.go` (the setup leaf and data seeding), `config_write.go` (writes the rendered units), `config_remove.go`, `secrets_resolve.go` (secret provisioning); `sdk/deploykit/quadlet.go` (quadlet generation); `sdk/deploykit/enc_probe.go` + `sdk/deploykit/enc_passphrase.go` (encrypted volumes); `candy/plugin-deploy-pod/deploy_save_state.go` (deploy state) and `charly/host_build_pod_config.go` (the core-side host seam).
+Source: `charly/config_image.go` (command structs), `charly/quadlet.go` (quadlet generation), `charly/deploy.go` (deploy state), `charly/enc.go` (encrypted volumes), `charly/secrets.go` (secret provisioning), `charly/data.go` (data seeding).
 
 Live-deploy verification: see /charly-check:check (the 11 Testing Standards) and /charly-internals:disposable.
