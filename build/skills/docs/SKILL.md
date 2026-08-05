@@ -52,11 +52,12 @@ charly docs generate --out docs/src/content/docs --root .
 
 ## What it emits
 
-The generator owns the home page plus four top-level trees — `index.md`, `grievances.md`,
-`vision.md`, `reference/` and `recipes/` — and rewrites them wholesale each run, so a deleted
-source entity disappears from the site instead of lingering as an orphan page. What stays
-hand-authored is the teaching narrative this repository has no equivalent of: `start/`,
-`concepts/` and `guides/`, never read or written.
+The generator owns five top-level entries — `index.md`, `grievances.md`, `vision.md`,
+`reference/` and `recipes/` — and rewrites them wholesale each run, so a deleted source entity
+disappears from the site instead of lingering as an orphan page. (The table below expands
+`reference/` into its five sub-trees, so it runs to nine rows.) What stays hand-authored is the
+teaching narrative this repository has no equivalent of: `start/`, `concepts/` and `guides/`,
+never read or written.
 
 The home page is the newest arrival and the one people get wrong: it used to be a hand-authored
 `index.mdx` restating `README.md`, and roughly two thirds of it was README prose maintained twice
@@ -65,9 +66,9 @@ not the page.**
 
 | Tree | Source |
 |---|---|
-| `index.md` | `README.md`, H1 and tagline dropped (the frontmatter title and hero render them), site-absolute links rewritten site-relative |
-| `grievances.md` | `GRIEVANCES.md`, same treatment as the vision page |
-| `vision.md` | `VISION.md` verbatim, repo-relative links rewritten for a web reader |
+| `index.md` | `README.md`, H1 and tagline dropped (the frontmatter title and hero render them), `https://opencharly.ai/…` links rewritten site-relative, and the repo-relative targets `AGENTS.md`, `plugins/README.md` and `CHANGELOG/README.md` repointed at GitHub or their site equivalent |
+| `grievances.md` | `GRIEVANCES.md`, H1 dropped, repo-relative links rewritten for a web reader |
+| `vision.md` | `VISION.md`, H1 dropped, repo-relative links rewritten for a web reader |
 | `reference/cli/` | one page per `command:` provider word |
 | `reference/candy/` | every defined candy: packages, services, and its `plan:` as an acceptance spec |
 | `reference/box/` | every defined box |
