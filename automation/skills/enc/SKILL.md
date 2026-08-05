@@ -384,9 +384,18 @@ prompts for the passphrase and mounts the volumes inline.
 
 The gate is the capability rather than a store's name; Secret Service satisfying
 it is the consequence, not the definition.
+
+**Where the `[Install]` decision is actually made:** `emitInstallSection`
+(`sdk/deploykit/quadlet.go`) writes `WantedBy=default.target` unless
+`EncryptedMounts && !KeyringBackend`, and `cfg.KeyringBackend` is fed by
+`secretBackendIsKeyring()` (`candy/plugin-deploy-pod/secrets_resolve.go`).
+That is the branch to read if you want to know why a deploy skipped boot.
+
+The **same** capability appears again at mount time:
 `ResolveEncPassphraseForMountWithResolver` (`sdk/deploykit/enc_passphrase.go`)
-expresses it as a `usesWaitingBackend` predicate — a resolution path that can wait
-takes the waiting branch.
+gates its waiting branch on a `usesWaitingBackend` predicate over the identical
+value set. Two predicates, one capability — the boot gate and the mount-time
+wait, expressed separately.
 
 **Flow on reboot, unattended case:**
 1. Boot → systemd starts user instance (linger) → quadlet service starts
