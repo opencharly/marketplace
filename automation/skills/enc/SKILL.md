@@ -496,7 +496,7 @@ kicks in.
 encrypted volume "library": cipher dir at /home/.../charly-immich-library/cipher is populated but plain mount at /home/.../charly-immich-library/plain is empty — refusing to start (would write plaintext over encrypted data); run 'charly config mount immich' first
 ```
 
-This guards against a real data-loss shape: a quadlet missing the `ExecStartPre=charly config mount <image>` auto-mount hook (see "Boot Behavior: Waiting for an Unattended Unlock" above and `/charly-build:migrate` "charly migrate") would silently bind an empty `plain/` over a populated cipher tree, the container's services would `initdb` / first-run-wizard against the empty dir, and plaintext data would accumulate on top of an encrypted vault. This error class fails the start IMMEDIATELY when `charly start` detects that exact pre-start state.
+This guards against a real data-loss shape: a quadlet missing the `ExecStartPre=charly config mount <image>` auto-mount hook (see "Boot Behavior: Which Backend, and Why" above and `/charly-build:migrate` "charly migrate") would silently bind an empty `plain/` over a populated cipher tree, the container's services would `initdb` / first-run-wizard against the empty dir, and plaintext data would accumulate on top of an encrypted vault. This error class fails the start IMMEDIATELY when `charly start` detects that exact pre-start state.
 
 **Important caveat on quadlet-managed services.** This check runs only in the direct-mode (CLI) path. systemd-managed quadlet services bypass it — they go straight to `podman` after `ExecStartPre=charly config mount <image>` succeeds. The actual root-cause fix for those is the `ExecStartPre` hook itself; `VerifyBindMounts` is a belt-and-suspenders safety net for the direct path.
 
