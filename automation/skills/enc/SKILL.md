@@ -366,10 +366,10 @@ An encrypted deploy's quadlet carries `ExecStartPre=charly config mount <image>`
 Whether systemd starts that unit at boot is decided by **which secret backend is
 configured** — nothing else:
 
-| `secret_backend` | `[Install]` | at boot |
+| `secret_backend` | what the quadlet gets | at boot |
 |---|---|---|
-| `keyring`, `auto`, unset | `WantedBy=default.target` + `TimeoutStartSec=0` | starts; `ExecStartPre` blocks in the mount until the keyring unlocks, rather than timing out |
-| `config` | no `WantedBy=` target | does not start; needs an explicit `charly start <image>` |
+| `keyring`, `auto`, unset | `[Install] WantedBy=default.target`, and `[Service] TimeoutStartSec=0` | starts; `ExecStartPre` blocks in the mount until the keyring unlocks, rather than timing out |
+| `config` | no `[Install] WantedBy=` target | does not start; needs an explicit `charly start <image>` |
 
 `auto` is the default and resolves to the keyring, so the first row is the
 out-of-the-box arrangement with nothing to configure.
