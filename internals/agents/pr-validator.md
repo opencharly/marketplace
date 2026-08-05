@@ -707,9 +707,15 @@ Each of these caught a real defect that survived author review:
    nothing would, the gate is decoration and citing it is a false claim, however
    green it is. Mutation-test the load-bearing one. **Mutate the gate's INPUTS,
    not only its logic.** A gate whose logic is sound can still be vacuous because
-   of what it reads: for anything that reads the WORKING TREE, the mutation is
-   `git stash` in every repo it touches. A generator gate run against dirty
-   sibling checkouts measures the author's uncommitted work, not the PR. (Caught twice in one PR body:
+   of what it reads — a generator gate run against dirty sibling checkouts
+   measures the author's uncommitted work, not the PR.
+
+   **Never mutate a shared checkout to test this**, and never `git stash` one:
+   that is the leak class §1b.1a exists to prevent and it discards other agents'
+   in-progress work (R6). Instead, run the gate in a scratch worktree at the PR
+   head with every sibling repo at its **pinned gitlink** — a clean-input run. If
+   it then disagrees with the author's pasted result, the author's gate was
+   reading their working tree, which is the finding. (Caught twice in one PR body:
    a `docs:drift` no-op offered as proof a page was generated, when deleting the
    generator entirely still passed; and a site build offered as proof a config
    line was safe, when a dead sidebar link builds green and renders on 852 pages.)
