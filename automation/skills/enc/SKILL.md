@@ -199,7 +199,7 @@ env-less store chain `resolveStoreChain` in `candy/plugin-secrets/store.go`) ret
 | `keyring`     | Found in the system keyring via the iteration-capable read path | Terminal: use the value |
 | `config`      | Found in `~/.config/charly/config.yml` (fallback or explicit backend) | Terminal: use the value |
 | `locked`      | Primary backend is present but locked (e.g. keyring not yet unlocked after login) | **Wait** for the unlock — unbounded and event-driven under systemd |
-| `unavailable` | Primary backend probe failed (e.g. ssClient saw every collection error out); fell back to `ConfigFileStore` but the credential isn't stored there either | **Retry with backoff** — may be transient at early boot |
+| `unavailable` | Primary backend probe failed (e.g. ssClient saw every collection error out); fell back to `ConfigFileStore` but the credential isn't stored there either | **Retry on a fixed 5s poll (`EncMountPollPeriod`)** — may be transient at early boot |
 | `default`     | Backend queried successfully and the credential is **not stored anywhere** | **Terminal** — prompt the user interactively or fail with remediation |
 
 **The critical distinction** is between `default` and `unavailable`: both
@@ -382,21 +382,32 @@ nothing pulls the unit in — the deploy is simply not running after a reboot, w
 no failure to look at. Start it explicitly with `charly start <image>`, which
 prompts for the passphrase and mounts the volumes inline.
 
-The gate is the capability rather than a store's name; Secret Service satisfying
-it is the consequence, not the definition.
+**The gate is the backend name, and the reason is policy rather than capability.**
+`emitInstallSection` (`sdk/deploykit/quadlet.go`) writes `WantedBy=default.target`
+unless `EncryptedMounts && !KeyringBackend`, and `cfg.KeyringBackend` is fed by
+`secretBackendIsKeyring()` (`candy/plugin-deploy-pod/secrets_resolve.go`), which
+tests membership of `{"keyring", "auto", ""}`. That is the branch to read if you
+want to know why a deploy skipped boot.
 
-**Where the `[Install]` decision is actually made:** `emitInstallSection`
-(`sdk/deploykit/quadlet.go`) writes `WantedBy=default.target` unless
-`EncryptedMounts && !KeyringBackend`, and `cfg.KeyringBackend` is fed by
-`secretBackendIsKeyring()` (`candy/plugin-deploy-pod/secrets_resolve.go`).
-That is the branch to read if you want to know why a deploy skipped boot.
+It is worth being exact about *why*, because the obvious reading is wrong.
+The `config` backend does **not** need a person: `ConfigFileStore.Get`
+(`candy/plugin-secrets/credential_config.go`) reads `~/.config/charly/config.yml`
+with no prompt and no keyring — strictly *less* human-dependent than Secret
+Service, which waits for a session unlock. So a rule phrased as "start it at boot
+if the passphrase can be obtained unattended" would *grant* autostart to the
+cleartext case and deny it to the encrypted one.
 
-The **same** capability appears again at mount time:
-`ResolveEncPassphraseForMountWithResolver` (`sdk/deploykit/enc_passphrase.go`)
-gates its waiting branch on a `usesWaitingBackend` predicate over the identical
-value set — `{"keyring", "auto", ""}` on both sides. Two predicates, one
-capability — the boot gate and the mount-time
-wait, expressed separately.
+The exclusion is a **security decision**: a passphrase sitting in a plaintext file
+must not be auto-mounted, unattended, at every boot. Secret Service qualifies
+because the key is protected until an operator unlocks it — not because it is
+easier to obtain.
+
+The mount-time predicate `usesWaitingBackend`
+(`ResolveEncPassphraseForMountWithResolver`, `sdk/deploykit/enc_passphrase.go`)
+tests the **same set**, `{"keyring", "auto", ""}` — but answers a different
+question: *will the resolver wait rather than fail fast?* Same members, different
+meaning, and deduplicating them would merge an autostart policy with a retry
+policy. See task #27.
 
 **Flow on reboot, unattended case:**
 1. Boot → systemd starts user instance (linger) → quadlet service starts
