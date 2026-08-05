@@ -647,9 +647,14 @@ Spawn a `general-purpose` sub-agent and brief it EXACTLY this way:
 handful of pages — a reader pointed at a thirty-file diff produces mush. For a
 NARRATIVE page the questions above are right. For a REFERENCE page (a skill, a
 verb catalog) "would you have kept reading?" is the wrong question: ask instead
-whether it answers what it claims to, and where it sends the reader next. If the
-diff touches no page a stranger would read start-to-finish, say so in the verdict
-and skip 1b.0 rather than running it hollow.
+whether it answers what it claims to, and where it sends the reader next.
+
+**When you may skip it, and it is narrower than it sounds:** only when the diff
+touches NO reader-facing page at all — a CHANGELOG-only or config-only change. A
+`SKILL.md` is a reference page, not an exemption: it is published and read by
+strangers, so it gets a reader with the reference questions above. Say in the
+verdict which applied and why. Never skip on a judgement that a page "looks low
+risk" — that judgement is the thing the reader exists to check.
 
 **Its findings are FINDINGS, not suggestions.** A page a competent engineer
 cannot follow is defective. Weigh them: a taste disagreement is not a defect, but
@@ -663,8 +668,8 @@ sections pre-empting a confusion I did not have, while the confusion I actually
 had is never flagged — the prose is arguing with a previous reader I am not."*
 That is neither taste nor a contradiction. It is a page shaped by the last round
 of review rather than by what a newcomer needs, and it is precisely what a reader
-forbidden every other source is the only instrument able to detect. Run 1b.0
-EVERY time for that reason, not only when a page looks risky. If it reports nothing substantive, say so explicitly
+forbidden every other source is the only instrument able to detect — which is why
+the skip above is limited to diffs with no reader-facing page in them at all. If it reports nothing substantive, say so explicitly
 in your verdict — silence must be visible, so a skipped reader cannot masquerade
 as a clean one.
 
@@ -760,7 +765,9 @@ Each of these caught a real defect that survived author review:
     s=open(sys.argv[1]).read()
     s=re.sub(r'```.*?```','',s,flags=re.S)   # fenced code: identifiers, not prose
     s=re.sub(r'`[^`]*`','',s)                # inline code: same
-    print(sorted(set(re.findall(r'\b[A-Z]{2,6}\b', s))))
+    caps  = re.findall(r'\b[A-Z]{2,6}\b', s)             # OCI, MCP, CUE, ADE
+    mixed = re.findall(r'\b(?:[A-Z][a-z]+){2,}\b', s)    # CalVer and other mixed-case forms
+    print(sorted(set(caps + mixed)))
     EOF
     ```
 
