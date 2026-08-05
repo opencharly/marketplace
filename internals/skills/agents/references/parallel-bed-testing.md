@@ -102,6 +102,15 @@ common way an in-flight cutover leaks onto shared host state.
   trip that resolves to the host-installed `charly` means you are on the
   wrong path (your worktree's `./bin` isn't ahead of it on `$PATH`) or
   running the wrong bed class (next bullet).
+  **One exemption:** a `--repo` CACHE under `~/.cache/charly/repos` (or
+  `CHARLY_REPO_CACHE`) is skipped entirely — `isUnderRepoCache` short-circuits
+  the check. A cache holds `charly/main.go` + `charly.yml`, so it matches the
+  source-root detector above, but git has just written every file in it: its
+  mtime ALWAYS beats the binary, so the guard fired on every
+  `charly --repo … <heavy verb>` and told a packaged user to rebuild from a tree
+  that is not where their binary came from. The exemption is keyed on the TREE,
+  not on the flag, so it also covers `CHARLY_PROJECT_REPO` and a plain `cd` into
+  a cache. A real checkout is still guarded.
 - **Host-local beds are never a worktree gate.** A `local: {host: local}`
   deploy (or a bed with a nested `local:` member) shells out to bare
   `charly` on `$PATH` — that resolves whatever the host has installed, not

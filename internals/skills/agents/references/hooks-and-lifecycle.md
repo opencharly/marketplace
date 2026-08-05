@@ -110,7 +110,7 @@ orchestrator, never one teammate marching through a queue.
 
 ## Sub-agent operational invariants — the autonomous loop depends on these
 
-Eight mechanics, each proven on this host, that decide whether an
+Nine mechanics, each proven on this host, that decide whether an
 autonomous landing works at all. Violating any one silently breaks the
 loop.
 
@@ -271,6 +271,35 @@ merging is not. See `plugins/internals/agents/pr-validator.md` "Cross-PR
 awareness" for the matching per-PR-validation-run duty — that spec owns the
 PR-validator's own sweep-and-comment mechanics; this item owns the
 orchestrator's standing ledger discipline across the whole session.
+
+**9. A validator spawned into the author's live checkout MOVES THE AUTHOR'S
+HEADs — commit and push every repo before spawning one.** Invariant W0 has the
+validator work in the author's worktree, and its base/head binding legitimately
+checks out the protected base and re-syncs gitlinks. That is correct for the
+validator and destructive for an author who is still mid-edit: observed in one
+session, the superproject silently moved from `feat/<slug>` back to `main` and
+the `plugins` submodule detached from its feat branch to the gitlink SHA, while
+*two other* submodules stayed on theirs — so nothing looked globally wrong.
+
+The tells, in the order they appear:
+- a file you edited and committed reads with its OLD content, and `git status`
+  is **clean** (the giveaway — a revert would leave the tree dirty);
+- `git branch --show-current` is empty in a submodule, or names `main` in the
+  superproject;
+- `git reflog` shows `checkout: moving from feat/<slug> to <sha>` with no
+  corresponding action of yours.
+
+Nothing is lost if the work was pushed — the branch refs survive; only HEAD
+moved. Recover by re-attaching every repo (`git switch <feat-branch>`, per repo)
+and re-verifying content, not just the branch name. Uncommitted work survives
+the switch when the branch tip equals the commit HEAD was moved to, which is the
+usual case, but that is luck rather than design.
+
+The rule that avoids it: **commit and push every repo in the change before
+spawning a validator, and `TaskStop` the validator once it has posted its
+verdict** — a lingering validator keeps re-binding the tree under you. Check all
+repos with one loop (`for d in . plugins docs box/*; do git -C $d branch
+--show-current; done`) after any validator run, before trusting the tree.
 
 ## Hooks doctrine
 
