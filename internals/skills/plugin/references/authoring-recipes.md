@@ -147,12 +147,12 @@ See "Authoring an external COMMAND plugin" below.
   host-side build, via the `sdk.Executor`: `InvokeProvider(class, word, op, params, env)` — the host resolves
   the peer in the registry and Invokes it on the caller's behalf (threading the SAME venue executor into an
   out-of-process target over a nested broker — the host is the dispatch broker, since it owns the registry);
-  and `HostBuild(kind, spec)` — the host runs the registered host-builder for `kind` — ~54 registered kinds
+  and `HostBuild(kind, spec)` — the host runs the registered host-builder for `kind` — ~43 registered kinds
   today (the count drifts per cone; `git grep 'registerHostBuilder(' charly/*.go` resolving the `*BuilderKind` constants is the authoritative list). The build/render-relevant ones: the 8 `buildengine-*` kinds (`buildengine-prep` et al. — the thin host shards the candy's plugin-side `resolveBuildEngine` reaches: the local scan, the registry plugin connect, and the render-seam-floor `renderGenCache` populate; REPLACING the former fat `build-prep`/`build_resolve_host.go` seam, DELETED, whose loader+prep+envelope+drive-model resolve all moved plugin-side), `render-seam` (the #67 render's host-coupled seams: RenderService,
   builder resolves, ValidateEgress, EmitPluginOp, localpkg). `bake_plugin:` baking is INLINE via `deploykit.EmitBakedPlugins` (the former `bake-plugins` host-builder is DELETED — no HostBuild). The rest: `overlay`
   (the pod overlay build), `step-emit` (host-coupled step fragments), `plugin-binary`
   (the F10 plugin host build), `cli` (run-any-charly-command
-  reentry), `hostprobe` (doctor's raw host facts), `feature`, `render-service`, `retention-defaults`, `validate-project-checks`, `remote-image-resolve`, `box-fetch-resolve`, `config-resolve`
+  reentry), `feature`, `retention-defaults`, `validate-project-checks`, `remote-image-resolve`, `box-fetch-resolve`, `config-resolve` (`hostprobe` DIED with doctor's plugin-side hostfacts.go — peer InvokeProvider to verb:gpu/verb:credential; `render-service` DIED in the W3 B4 InvokeProvider move)
   (config-persist is DELETED — persist moved plugin-side to candy/plugin-vm/vm_host_persist.go), the `deploy-*-resolve` / `resolve-target-add` / `deploy-node-del-dispatch` / `deploy-plugins-connect` / `deploy-from-box` family (`deploy-members-*` DIED, K-wave W3a A4 — candy/plugin-bundle calls sdk/deploykit.BringUpMembers/TearDownMembers directly), the `loader-*` and `pod-*` (lifecycle verbs) and `pod-config-*` families, `arbiter-bracket-acquire` + `-release`, `construct-step`, `check-load-plugins`,
   `check-bed-gpu-prereq` (the ONE narrow seam surviving `check-bed`'s full dissolution, K-wave W3 B2-full — every other former responsibility moved into candy/plugin-check/bed_session.go), `check-run`. The build engine is in core TODAY — K3 build-engine
   migration inventory, not permanent core — the box-build podman DRIVE moved to candy/plugin-build in
