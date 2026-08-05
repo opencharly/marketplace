@@ -115,17 +115,17 @@ see `spec/exec/venue_descriptor.go` above for the promoted `DescriptorFromExecut
 
 **What stays core-resident BY DESIGN, wrapping the dispatch rather than living inside it** (Unit-6
 design Q1–Q4, verified against the actual call graph, not assumed):
-- **The arbiter acquire/release ENV primitive** (`charly/host_build_arbiter_bracket.go`,
-  `hostBuildArbiterBracketAcquire`/`hostBuildArbiterBracketRelease`, Start/Stop only) —
-  `CHARLY_PREEMPT_LEASE` is process-ENV state (`os.Setenv`/`os.Getenv`); it behaves correctly only
-  when the acquiring code runs in the SAME OS process as the host, so a nested `charly` subprocess of
-  that invocation inherits the lease and skips re-acquiring. Only that ENV read/write stays core, as
-  the two `"arbiter-bracket-acquire"`/`"arbiter-bracket-release"` F10 host-builders. The BRACKET
-  ITSELF — deciding when to acquire and release, around which dispatch — is OWNED by
-  `candy/plugin-bundle/deploy_target.go`: `handleLifecycleSimple` wires the real `exec.HostBuild`
-  calls into the pure, directly-testable `runLifecycleBracket`, which brackets only when `HasPlan`
-  and a non-nil `Node` and op is Start or Stop — acquire BEFORE dispatch, release on the failure
-  path for Start, release AFTER dispatch unconditionally for Stop.
+- **The arbiter bracket is fully PLUGIN-SIDE now** (K-wave 2 cone R2 bank E — the
+  `charly/host_build_arbiter_bracket.go` F10 host-builders are DELETED): `candy/plugin-bundle/
+  deploy_target.go`'s `handleLifecycleSimple` wires the acquire/release as
+  `InvokeProvider("verb","arbiter",OpRun)` calls (arbiterBracketAcquire/arbiterBracketRelease) into
+  the pure, directly-testable `runLifecycleBracket`, which brackets only when `HasPlan` and a
+  non-nil `Node` and op is Start or Stop — acquire BEFORE dispatch, release on the failure path for
+  Start, release AFTER dispatch unconditionally for Stop. `CHARLY_PREEMPT_LEASE` is process-ENV
+  state (`os.Setenv`/`os.Getenv`); the outer-orchestrator GUARD lives in
+  `candy/plugin-preempt`'s `invokeArbiter` (the arbiter is the one dispatch every acquire/release
+  passes through, and plugin-bundle + plugin-preempt are both compiled-in, sharing charly's
+  process — so a nested `charly` subprocess still inherits the lease and skips re-acquiring).
 - **The pod Start/Stop/Attach/Logs plan-hook table read** (`pod_lifecycle_dispatch.go`, unmoved) — a
   pure ctx-opts marshal with zero core-only dependency of its own; the plan resolution the pre-move
   `grpcSubstrateLifecycle` ran as a SEPARATE pre-dispatch call now resolves INSIDE the plugin dispatch
