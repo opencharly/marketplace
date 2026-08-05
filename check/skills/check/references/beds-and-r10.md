@@ -416,7 +416,12 @@ the sdk owns the error/exit types — `sdk.ExitCodeError` + `sdk.CheckFailExitCo
 `sdk.CheckSkippedExitCode` — and charly's `main()` maps them to the process exit
 code via `errors.As`.
 
-## The 11 Testing Standards (referenced by the project rulebook R1–R10)
+## The 11 Testing Standards
+
+**Numbered 0–11, which is twelve entries.** Standard 0 (RDD) is the *proactive* bookend and is not
+counted among the eleven: the eleven are the verification standards an attribution tier binds
+against. Standard 0 and Standard 11 are the two ends of the same loop, which is why 0 sits in the
+list rather than beside it. (referenced by the project rulebook R1–R10)
 
 Unit tests are not a substitute for running the service — a green `go test ./...` proves compilation and loader behavior, not that a service actually starts.
 
