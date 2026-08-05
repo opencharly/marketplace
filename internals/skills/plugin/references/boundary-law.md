@@ -98,11 +98,14 @@ itself permanent.
 
 **A concrete kind's typed shape is R, not E.** The (E) envelope bucket is ONLY kind-AGNOSTIC carriers —
 `InstallPlan`, `VenueDescriptor`, `#Node`/`#Step`/`#Op`, the wire replies. A struct NAMED after a concrete
-kind, with kind-specific fields and accessors — `Candy`, `VmSpec`, `ResolvedBox` — is that kind's TYPED
-SHAPE: an R-item, moving to its owning kit/plugin (`Candy` → `sdk/buildkit`, alongside the
-already-relocated `ResolvedBox`). "Carries data" is not the E test; kind-AGNOSTIC is. Motivating incident:
-an auditor counted `layers.go`'s `Candy` struct (grep-verified: 60+ accessor methods, every one
-kind-specific) as E because it "carries data," then self-corrected.
+kind, with kind-specific fields and accessors, is that kind's TYPED SHAPE: an R-item, moving to its
+owning kit/plugin. `ResolvedBox` (now `spec.ResolvedBox`, CUE-generated) is the already-relocated
+precedent. "Carries data" is not the E test; kind-AGNOSTIC is. Motivating incident (CLOSED, kept as a
+historical illustration — do not cite `layers.go`'s `Candy` struct as a still-live example, it no longer
+exists in ANY form): an auditor counted `layers.go`'s then-current `Candy` struct (grep-verified: 60+
+accessor methods, every one kind-specific) as E because it "carries data," then self-corrected — the
+struct was later fully dissolved (not relocated wholesale) into the `spec.CandyModel`/`spec.CandyView`
+pair (W9), so `layers.go` today holds only kind-blind scan/parse functions, not the typed shape itself.
 
 **The practical audit framing — invert the default.** Every file is an R-item (it moves to a plugin)
 UNLESS it is LITERALLY one of the tiny kernel whitelist: the three in-core M-mechanisms (plugin loading /
@@ -175,7 +178,7 @@ it does not consume the sdk mechanism libraries, and it contains zero aliases/sh
    words→plugins (including the per-node kind-decode resolve+invoke a plugin's `Materializer` seam calls
    back into — the fold/not-found policy itself lives in `candy/plugin-loader`), and broker
    the reverse channel (venue executors + `InvokeProvider`). → P16 gate (a): the import-surface assertion (charly/import_purity_test.go — every charly/ file imports only spec/* + the proto/plugin-api contract + vetted third-party; the per-file allowlist is retired).
-2. **Core does not import the sdk mechanism layer.** Core imports only the protocol contract — `sdk/spec`
+2. **Core does not import the sdk mechanism layer.** Core imports only the protocol contract — `spec/spec`
    (wire types) + the proto/go-plugin packages + the Provider/Op vocabulary. `sdk/{kit,deploykit,
    buildkit,loaderkit,vmshared,…}` are for plugins. → P16 gate (b): import-purity (`charly/` has ZERO
    `github.com/opencharly/sdk` references — prod, test, and go.mod; the #55 terminus closed the last tracked residuals).

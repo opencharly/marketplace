@@ -1,12 +1,12 @@
 ### How to change the charly.yml schema (CUE is the single source of truth)
 
-CUE (`sdk/schema/*.cue` — the sdk contract module) is the SOLE author-of-record
-for the `charly.yml` ingress schema; the Go param structs in `sdk/spec` and the
+CUE (`spec/schema/*.cue` — the sdk contract module) is the SOLE author-of-record
+for the `charly.yml` ingress schema; the Go param structs in `spec/spec` and the
 reserved-word vocabulary are GENERATED / DERIVED from it (see "CUE is the single
 source of truth"). The recipe:
 
 1. **Edit CUE only.** Add or change the field, kind, verb, or method enum in
-   `sdk/schema/*.cue`. A param-struct field is just a CUE field; a new KIND is a new
+   `spec/schema/*.cue`. A param-struct field is just a CUE field; a new KIND is a new
    `#Node` arm + a per-kind `#Def`; a new VERB is a field on `#Op` (+ a
    `#*Method` enum if it carries methods). Keep the `#Def` CLOSED (closed by
    DEFAULT — that is what catches a misspelled field); for two mutually-exclusive
@@ -18,18 +18,18 @@ source of truth"). The recipe:
    `@go(,type=string)` merged as `@go(GoName,type=string)`; a pointer / tri-state
    field → `@go(GoName,optional=nillable)` (→ `*T`) or `@go(GoName,type=*int|*bool)`;
    a disjunction field → `@go(GoName,type=YourUnionType)` and hand-write that
-   union in `sdk/spec/union_types.go`; a never-authored field → `@go(-)`.
+   union in `spec/spec/union_types.go`; a never-authored field → `@go(-)`.
    NOTE: def-level `@go(CharlyName)` is BROKEN in cue v0.16.1 (it dangles the
    referencing fields) — expose a charly type NAME via a Go alias in
-   `sdk/spec/charly_names.go` (`type BoxConfig = Box`) instead.
-3. **Regenerate: `task cue:gen`** (in the sdk repo, or via the superproject task
-   which chains the sdk generation first, then the per-plugin params loop). It
-   runs `cue exp gengotypes` into `sdk/spec/cue_types_gen.go`, the companion
-   `sdk/internal/schemagen` into `sdk/spec/vocab_gen.go` + `sdk/spec/version_gen.go`,
-   and the principled yaml-tag retag transform (both over the `sdk/schemaconcat`
+   `spec/spec/charly_names.go` (`type BoxConfig = Box`) instead.
+3. **Regenerate: `task cue:gen`** (in the spec repo, or via the superproject task
+   which chains the spec generation first, then the per-plugin params loop). It
+   runs `cue exp gengotypes` into `spec/spec/cue_types_gen.go`, the companion
+   `spec/internal/schemagen` into `spec/spec/vocab_gen.go` + `spec/spec/version_gen.go`,
+   and the principled yaml-tag retag transform (both over the `spec/schemaconcat`
    concatenation). NEVER hand-edit the generated files (they carry the
    `Code generated … DO NOT EDIT` banner).
-   `TestGenReproducible` (`sdk/spec/gen_repro_test.go`) fails if committed ≠ fresh.
+   `TestGenReproducible` (`spec/spec/gen_repro_test.go`) fails if committed ≠ fresh.
 4. **Bind behavior.** A new GENERIC install-VERB (a kernel primitive — rare) adds
    ONE `VerbCatalog` handler in `charly/reserved_registry.go` binding the reserved
    word to its generated param type; the startup
@@ -51,17 +51,17 @@ source of truth"). The recipe:
    matching spec field (name + wire-key + type) FAILS the build at that surface.
    (b) `TestGenReproducible` proves the generated files match a fresh `task
    cue:gen`. (c) The reserved-word bijection gate proves the kind/verb/method
-   wiring matches CUE. New kind also needs its `sdk/schema/<kind>.cue` `#<Kind>` def
+   wiring matches CUE. New kind also needs its `spec/schema/<kind>.cue` `#<Kind>` def
    (reusing the shared defs in `_common.cue`) + a one-line `cue_kind_<kind>.go`
    `registerCueKind` registration + a corpus-test entry
    (`cue_kinds_corpus_test.go`).
 6. **Schema-version bump ONLY on an authored WIRE-key change.** Only if the
    change alters an authored WIRE key (the YAML users write) is it a FORMAT
    change: then it is CROSS-REPO — bump `#SchemaVersion` in
-   `sdk/schema/version.cue`, run `task cue:gen` (which regenerates the
-   `SchemaVersion`/`SchemaFloor` consts in `sdk/spec/version_gen.go` that
-   `kit.LatestSchemaVersion()` parses), land + tag the sdk repo, then in the
-   superproject bump the sdk submodule and append the matching entry to the
+   `spec/schema/version.cue`, run `task cue:gen` (which regenerates the
+   `SchemaVersion`/`SchemaFloor` consts in `spec/spec/version_gen.go` that
+   `kit.LatestSchemaVersion()` parses), land + tag the spec repo, then in the
+   superproject bump the spec submodule and append the matching entry to the
    declarative migration table (`candy/plugin-migrate/migrations.cue` — the TABLE lives in
    the compiled-in `command:migrate` plugin) per `/charly-build:migrate`. A pure
    Go-identifier change via `@go()` is NOT a format change (wire key preserved) —

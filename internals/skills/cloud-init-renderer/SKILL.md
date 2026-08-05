@@ -4,7 +4,7 @@ description: |
   Pure renderer from VmSpec + VmCloudInit to NoCloud seed ISO (user-data +
   meta-data + network-config). Covers composeUsers adopt-merge, SMBIOS vs
   cloud_init additive channels, xorriso ISO emission, and charly_install.strategy
-  state machine. Source: sdk/vmshared/cloud_init_render.go, sdk/vmshared/cloud_init_iso.go, sdk/kit/charly_install.go.
+  state machine. Source: sdk/vmshared/cloud_init_render.go, sdk/vmshared/cloud_init_iso.go, spec/exec/charly_install.go.
   MUST be invoked before editing cloud-init emission paths.
 ---
 
@@ -20,8 +20,8 @@ Lives **host-side**, in the `charly` binary. The **guest-side** `/charly-distros
 |---|---|
 | `sdk/vmshared/cloud_init_render.go` | `RenderCloudInit`, `ResolveKeyInjectionChannels`, `composeUsers`, `composePackages`, `composeBootCmd`, `composeRunCmd` |
 | `sdk/vmshared/cloud_init_iso.go` | `WriteSeedISO` via xorriso; `genisoimage` + `mkisofs` fallbacks |
-| `sdk/kit/charly_install.go` | `kit.EnsureCharlyInGuest` state machine (auto/scp/url/skip strategies) |
-| `sdk/spec/cue_types_gen.go` (generated) | `VmCloudInit`, `VmCloudInitUser`, `VmCloudInitFile`, `VmCloudInitNetwork`, `VmCloudInitMirrors`, `VmCharlyInstall` |
+| `spec/exec/charly_install.go` | `kit.EnsureCharlyInGuest` state machine (auto/scp/url/skip strategies) |
+| `spec/spec/cue_types_gen.go` (generated) | `VmCloudInit`, `VmCloudInitUser`, `VmCloudInitFile`, `VmCloudInitNetwork`, `VmCloudInitMirrors`, `VmCharlyInstall` |
 
 ## RenderCloudInit top-level
 
@@ -163,7 +163,7 @@ The ISO is mounted by QEMU as a CD-ROM; cloud-init's NoCloud datasource reads `/
 
 ## EnsureCharlyInGuest (charly_install.strategy state machine)
 
-Runs post-boot inside the vm deploy preflight (the `candy/plugin-deploy-vm` plugin's `OpPrepareVenue`, via `kit.EnsureCharlyInGuest` in `sdk/kit/charly_install.go`) after cloud-init completes, BEFORE the plugin walks the plans. Dispatches on `spec.CloudInit.CharlyInstall.Strategy`:
+Runs post-boot inside the vm deploy preflight (the `candy/plugin-deploy-vm` plugin's `OpPrepareVenue`, via `kit.EnsureCharlyInGuest` in `spec/exec/charly_install.go`) after cloud-init completes, BEFORE the plugin walks the plans. Dispatches on `spec.CloudInit.CharlyInstall.Strategy`:
 
 | Strategy | Action |
 |---|---|

@@ -48,11 +48,12 @@ candy tree; without this it would build the stale pinned remote candy and serve 
 purpose. An explicit operator `CHARLY_REPO_OVERRIDE` entry for the same repo still
 wins (it is placed first). A bed whose project is its own root needs no override —
 its candies already resolve from the local tree. Source:
-`selfSuperprojectOverridePair` + `mergeRepoOverrides` (`charly/refs.go`, kept
-core), applied by the check-bed setup op in `candy/plugin-check/bed_run.go` —
-which drives the host `check-bed` session seam (`charly/host_build_check_bed.go`);
-the underlying `CHARLY_REPO_OVERRIDE` is the Go-`replace`-style "verify before you
-push" mechanism.
+`proc.SelfSuperprojectOverridePair` + `proc.MergeRepoOverrides` (`spec/proc`,
+shared by `charly/plugin_loader.go` and the plugin), applied by `bedSetup` in
+`candy/plugin-check/bed_session.go` — the check-bed session runs fully plugin-side
+now (K-wave W3 B2-full dissolved the former `charly/host_build_check_bed.go` seam
+entirely); the underlying `CHARLY_REPO_OVERRIDE` is the Go-`replace`-style "verify
+before you push" mechanism.
 
 **Exclusive-resource preemption wraps the sequence.** When a bed declares
 `requires_exclusive: [token...]` (e.g. a GPU-passthrough bed needing the one
@@ -189,8 +190,11 @@ check-sandbox` (the ref must provide charly + nested podman + the configured
 AI CLI; the per-host overlay never ships with the repo). On a host without
 the entry, `charly check run <bed>` fails fast with exactly that
 remediation. The supporting
-`vm: k3s-vm` + `k8s: vm-k3s-vm` entities live in the project `charly.yml`
-alongside its beds. `disposable: true` is the sole authorization
+`vm: k3s-vm` entity lives in the project `charly.yml` alongside its beds, with a
+SEPARATE `kind: k8s` profile per bed that deploys it (`check-k3s-vm-ctx`,
+`check-k8s-deploy-cluster-ctx`) — each pinned to that bed's own per-deploy
+kubeconfig context, so sibling beds sharing the one `vm:` entity never resolve
+through each other's cluster. `disposable: true` is the sole authorization
 for the unattended destroy+rebuild (see `/charly-internals:disposable`). Two
 load-time guards back the beds: `validateCheckBeds` enforces the deploy's substrate
 kind ∈ {pod, vm, local, android}, a resolvable cross-ref, and `disposable: true`;
