@@ -2,6 +2,16 @@
   "name": "charly-openwebui",
   "description": "Self-contained skills for the openwebui chat-frontend image. Consumes the jupyter MCP server (enable charly-jupyter alongside) for in-chat code execution.",
   "version": "1.0.0",
-  "author": { "name": "opencharly" },
-  "repository": "https://github.com/opencharly/charly-plugins"
+  "author": {
+    "name": "opencharly"
+  },
+  "homepage": "https://github.com/opencharly/charly",
+  "repository": "https://github.com/opencharly/charly-plugins",
+  "license": "MIT",
+  "keywords": [
+    "charly",
+    "openwebui",
+    "chat",
+    "llm"
+  ]
 }

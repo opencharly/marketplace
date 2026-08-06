@@ -1,7 +1,7 @@
 {
   "name": "charly-automation",
-  "version": "1.2.0",
-  "description": "Automation and agent control for running deployments — generic agent/Pi/tmux/TUI/federation routes, endpoint replication, incidents/RCA/recovery, plus host-side wrappers and deployment topics.",
+  "version": "1.0.0",
+  "description": "Automation/customization knobs — tmux verb, host-side wrappers (alias, udev), topic flags (encryption, sidecars, openclaw deployment).",
   "author": {
     "name": "opencharly"
   },
@@ -9,8 +9,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "OpenCharly Automation",
-    "shortDescription": "OpenCharly automation workflows.",
-    "longDescription": "Automation and agent control for running deployments — generic agent/Pi/tmux/TUI/federation routes, endpoint replication, incidents/RCA/recovery, plus host-side wrappers and deployment topics. Ships the agent-control-operator agent.",
+    "shortDescription": "Automation/customization knobs — tmux verb, host-side wrappers (alias, udev), topic flags (encryption, sidecars, openclaw deployment).",
+    "longDescription": "Automation/customization knobs — tmux verb, host-side wrappers (alias, udev), topic flags (encryption, sidecars, openclaw deployment).",
     "developerName": "opencharly",
     "category": "commands",
     "capabilities": [
@@ -19,19 +19,5 @@
     "defaultPrompt": [
       "Use OpenCharly Automation for this OpenCharly task."
     ]
-  },
-  "homepage": "https://github.com/opencharly/charly",
-  "license": "MIT",
-  "keywords": [
-    "charly",
-    "tmux",
-    "agent",
-    "pi",
-    "grpc",
-    "ssh",
-    "alias",
-    "udev",
-    "encryption",
-    "sidecar"
-  ]
+  }
 }

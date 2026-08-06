@@ -9,7 +9,7 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "OpenCharly Filebrowser",
-    "shortDescription": "OpenCharly filebrowser workflows.",
+    "shortDescription": "Self-contained skills for the filebrowser image (web-based file management on top of an charly volume).",
     "longDescription": "Self-contained skills for the filebrowser image (web-based file management on top of an charly volume).",
     "developerName": "opencharly",
     "category": "images",

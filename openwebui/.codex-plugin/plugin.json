@@ -9,7 +9,7 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "OpenCharly Openwebui",
-    "shortDescription": "OpenCharly openwebui workflows.",
+    "shortDescription": "Self-contained skills for the openwebui chat-frontend image. Consumes the jupyter MCP server (enable charly-jupyter alongside) for in-chat code execution.",
     "longDescription": "Self-contained skills for the openwebui chat-frontend image. Consumes the jupyter MCP server (enable charly-jupyter alongside) for in-chat code execution.",
     "developerName": "opencharly",
     "category": "images",

@@ -1,7 +1,7 @@
 {
   "name": "charly-jupyter",
-  "version": "2.0.0",
-  "description": "MCP server for JupyterLab notebook operations with real-time collaboration",
+  "version": "1.0.0",
+  "description": "Self-contained skills + MCP wiring for the jupyter image family (jupyter, jupyter-ml, jupyter-ml-notebook, unsloth-studio). Ships the jupyter MCP server (port 8888).",
   "author": {
     "name": "opencharly"
   },
@@ -9,8 +9,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "OpenCharly Jupyter",
-    "shortDescription": "OpenCharly jupyter workflows.",
-    "longDescription": "MCP server for JupyterLab notebook operations with real-time collaboration",
+    "shortDescription": "Self-contained skills + MCP wiring for the jupyter image family (jupyter, jupyter-ml, jupyter-ml-notebook, unsloth-studio). Ships the jupyter MCP server (port 8888).",
+    "longDescription": "Self-contained skills + MCP wiring for the jupyter image family (jupyter, jupyter-ml, jupyter-ml-notebook, unsloth-studio). Ships the jupyter MCP server (port 8888).",
     "developerName": "opencharly",
     "category": "images",
     "capabilities": [

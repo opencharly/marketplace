@@ -1,7 +1,7 @@
 {
   "name": "charly-core",
-  "version": "1.1.0",
-  "description": "Daily-ops verbs for managing charly-built containers — start, stop, restart, charly-status, logs, shell, deploy, charly-update. Every consumer enables this.",
+  "version": "1.0.0",
+  "description": "Runtime/lifecycle CLI verbs — start, stop, restart, charly-status, logs, shell, ssh, deploy, charly-update, remove, charly-config, cmd, charly-version, charly-doctor.",
   "author": {
     "name": "opencharly"
   },
@@ -9,8 +9,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "OpenCharly Core",
-    "shortDescription": "OpenCharly core workflows.",
-    "longDescription": "Daily-ops verbs for managing charly-built containers — start, stop, restart, charly-status, logs, shell, deploy, charly-update. Every consumer enables this.",
+    "shortDescription": "Runtime/lifecycle CLI verbs — start, stop, restart, charly-status, logs, shell, ssh, deploy, charly-update, remove, charly-config, cmd, charly-version, charly-doctor.",
+    "longDescription": "Runtime/lifecycle CLI verbs — start, stop, restart, charly-status, logs, shell, ssh, deploy, charly-update, remove, charly-config, cmd, charly-version, charly-doctor.",
     "developerName": "opencharly",
     "category": "commands",
     "capabilities": [
