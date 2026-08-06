@@ -21,8 +21,10 @@ FIVE substrates (pod/vm/k8s/local/android) are collected by ONE compiled-in
 provider (`candy/plugin-substrate`), served on its kind-provider `Invoke` as
 `sdk.OpStatusCollect`, dispatched by word — there is no `SubstrateCollector`
 interface or `init()`-time registry left in core (both were deleted once the
-last substrate, android, moved out). `Collector.collectFlat` (core) calls each
-word over the registry + reaches the reverse-channel executor so the plugin can
+last substrate, android, moved out). `flatCollector.collectFlat`
+(candy/plugin-substrate/status_flat.go — the former core `Collector.collectFlat`
+is DELETED, K-wave 2) calls each word over the registry + reaches the
+reverse-channel executor so the plugin can
 call back (`InvokeProvider("build","project", OpResolve)` for the resolved-project envelope for vm/k8s — the former `HostBuild("resolved-project")` seam is DELETED, `InvokeProvider`
 for vm→libvirt), merges the rows, applies the DEPLOY-CONE enrichment core alone
 can still do (pod tunnel/volume/port fallback, vm SSH-port/network), and sorts
@@ -52,11 +54,11 @@ fan-out dissolves into a direct in-package call once the orchestration moves
 into the plugin that already owns the per-word collectors, and every other
 dependency was already sdk-portable via K4 #64), the probes, and the
 externalized `charly reap-orphans` command. **Core keeps NO status business
-logic at all** — the plugin InvokeProvider(verb:status-fanout)s directly (the
+logic at all** — the plugin InvokeProvider(verb:status-fanout) directly (the
 former `status-substrate` HostBuild seam is DELETED, K-wave 2).
 
 - `candy/plugin-status/command.go` — the `charly status` Kong grammar + dispatch
-  (the `--nested` and `--json` flags live here); InvokeProvider(verb:status-fanout)s
+  (the `--nested` and `--json` flags live here); InvokeProvider(verb:status-fanout)
   for the flat rows, calls the plugin's own `buildStatusRootsTree`
   for the declared tree, applies the PURE nested overlay + renders.
 - `candy/plugin-status/render.go` — the unified `DeploymentStatus` rendered
