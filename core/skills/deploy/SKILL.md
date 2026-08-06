@@ -23,7 +23,7 @@ description: |
 1. **Execution verbs** — `charly bundle add <name>` / `charly bundle del <name>`. Apply or reverse a deployment. The target is dispatched by which substrate node the deploy carries:
    - `local: {from: <template>}` → the external `deploy:local` plugin (`candy/plugin-deploy-local`) applies to the local filesystem over the executor reverse channel (or, placed under another resource node via tree position, via NestedExecutor into the enclosing deployment). See `/charly-local:local-deploy`.
    - `vm: {from: <entity>}` → the external `deploy:vm` plugin (`candy/plugin-deploy-vm`) applies INSIDE a running VM over SSH via the reverse channel; the plugin auto-boots the venue in its `OpPrepareVenue` (via `HostBuild("cli")`), using the host prepare hook's resolved data. See "VM target" section below and `/charly-internals:vm-deploy-target`.
-   - `pod: {image: <image>}` → the candy `plugin-deploy-pod` renders the overlay Containerfile (in its own code via `deploykit.OCITarget` + `deploykit.NewRenderGeneratorFromProject`) + the quadlet config-write (the quadlet path stays core, #86).
+   - `pod: {image: <image>}` → the candy `plugin-deploy-pod` renders the overlay Containerfile (in its own code via `deploykit.OCITarget` + `deploykit.NewRenderGeneratorFromProject`) + the quadlet config-write (fully plugin-side in `candy/plugin-deploy-pod` + `sdk/deploykit/quadlet_paths.go` — the former core quadlet path is DELETED, K-wave 2).
    - `k8s: {from: <name>}` → Kustomize base/overlays tree. See `/charly-kubernetes:kubernetes`.
 2. **Config-file management** — `charly bundle show/export/import/reset/path/status`. Read and mutate `~/.config/charly/charly.yml` itself.
 
