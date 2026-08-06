@@ -59,7 +59,7 @@ These are **speed-only** — they never change which packages are selected
 (`install_weak_deps` stays on the bootstrap `install_cmd`'s
 `--setopt=install_weak_deps=False`). The block is a `DnfConfig` on `DistroDef`
 and inherits across distro inheritance like the other sub-blocks. Source:
-`charly/generate.go:renderDnfConfWrite`.
+`sdk/deploykit/bootstrap.go:RenderDnfConfWrite` (the former `charly/generate.go` is DELETED, K-wave 2).
 
 ## Derived Boxes
 

@@ -146,10 +146,10 @@ charly-labeled dangling sweep via `pruneDanglingImages`/`selectDanglingImages`
 are both thin wrappers over the ONE shared selection + removal engine (R3 — no duplicated
 listing/removal logic between the two categories). The engine is reached two ways: `charly
 clean`'s own CLI calls `runRetention` in-package (no wire hop); the three OTHER callers reach
-`verb:retention` — core's `BuildCmd.Run` (`charly/build.go`, via `charly/retention_plugin.go`'s
+`verb:retention` — the build command's post-build prune (`candy/plugin-box/box.go`'s
 `pruneAfterBuild`, resolving `defaults.keep_images` itself and passing it pre-resolved) and
-`charly box list tags` (`charly/volume_cp_tags_cmd.go`, via `retention_plugin.go`'s
-`listCharlyImageTags`) resolve+Invoke the compiled-in provider directly (`providerRegistry.resolve
+`charly box list tags` (`candy/plugin-box`'s `listImageTags` via `verb:retention`) resolve+Invoke
+the compiled-in provider directly (`providerRegistry.resolve
 (ClassVerb, "retention")`); `charly check run`'s post-run prune (the `command:check` plugin's
 harness, `candy/plugin-check`) reaches it over the PLUGIN↔PLUGIN `InvokeProvider` peer-dispatch
 leg (F10) instead, since it is itself a plugin and cannot resolve the core registry directly.

@@ -68,7 +68,8 @@ piece LANDED (never a bare "moved" claim) and gives any REMAINDER its own E/M/B/
 inherited from the moved majority; a validator REJECTS a remainder whose only justification is a
 stays-core header, demanding call-chain evidence first; and the orchestrator audits every stays-claim
 against this boundary law with that evidence, never rubber-stamping the header. Precedent:
-`charly/host_build_deploy_add.go`'s header states the `charly bundle add` CLI moved to `command:bundle`
+the former `charly/host_build_deploy_add.go` (the `deploy-add` HostBuild seam, DELETED, K-wave 2)
+documented that the `charly bundle add` CLI moved to `command:bundle`
 (candy/plugin-bundle, P13) while the deploy KERNEL it drives "STAYS CORE" on exactly this "cannot cross
 the process boundary" claim — overruled as a boundary-law violation (the deploy-dispatch kernel is
 tracked K-wave residue, not permanent core). Full three-role breakdown: `/charly-internals:agents`

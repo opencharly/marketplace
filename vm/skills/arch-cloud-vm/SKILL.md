@@ -279,7 +279,7 @@ Root cause: `pacman -S spice-vdagent` pulls in GTK3 + X11 (~200 MB download, ~1 
 
 ## Finding D — SSH key idempotency across rebuilds
 
-`charly vm build` + `charly vm create` called repeatedly should NOT regenerate the SSH keypair. Implementation idempotency lives in `charly/vm_backend_lifecycle.go::generateSSHKeypair` — it checks for `~/.local/share/charly/vm/charly-<name>/id_ed25519.pub` before creating. See `/charly-internals:vm-deploy-target` for the state persistence flow (VmDeployState in `charly.yml`).
+`charly vm build` + `charly vm create` called repeatedly should NOT regenerate the SSH keypair. Implementation idempotency lives in `GenerateSSHKeypair` (`spec/sshx/ssh_keypair.go`, checking for `<vmStateDir>/id_ed25519.pub` before creating — the former `charly/vm_backend_lifecycle.go` is DELETED, K-wave 2). See `/charly-internals:vm-deploy-target` for the state persistence flow (VmDeployState in `charly.yml`).
 
 ## Adopt pattern in action
 

@@ -142,7 +142,7 @@ charly-arch, arch-test, comfyui, charly-fedora, fedora-test, githubrunner, immic
 
 ## Source
 
-`charly/agent_forward.go` (socket detection, mount resolution), `charly/runtime_config.go` (settings).
+`sdk/kit/agent_forward.go` (`ResolveAgentForwarding` — socket detection, mount resolution; the former `charly/agent_forward.go` is DELETED, K-wave 2), `candy/plugin-settings/config.go` (the `forward_ssh_agent`/`forward_gpg_agent` settings; the former `charly/runtime_config.go` is DELETED, K-wave 2).
 
 ## When to Use This Skill
 

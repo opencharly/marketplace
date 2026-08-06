@@ -91,7 +91,8 @@ common way an in-flight cutover leaks onto shared host state.
   merged `main` only, post-landing, by the orchestrator/operator, one
   writer at a time (see "Post-merge resync" below).
 - **Stale-binary guard semantics are per tree.** `CheckBinaryFreshness`
-  (`charly/main_freshness.go`) walks up from cwd to find the opencharly
+  (now `verb:freshness-guard`, `candy/plugin-doctor/freshness.go` — folding the former
+  `charly/main_freshness.go`, DELETED, K-wave 2) walks up from cwd to find the opencharly
   source root (the dir containing both `charly/main.go` and `charly.yml`),
   stats the invoked binary via `os.Executable()`, and compares it against
   the newest `.go` mtime under `<root>/charly/` (60s slack; info-only verbs

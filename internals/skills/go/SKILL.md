@@ -88,7 +88,7 @@ Submodule convention: `plugins/` is a submodule rooted at the
 
 ### Add a New Validation Rule
 
-A host-natural check that needs the raw loader goes in `charly/validate.go`; the
+A host-natural check that needs the raw loader goes in `candy/plugin-box/validate_schema_rules.go` (the former `charly/validate.go` is DELETED, K-wave 2); the
 per-kind/op/candy/graph rule engine lives in the compiled-in `command:box` plugin
 (`candy/plugin-box`) over the resolved-project envelope — add per-entity/op rules
 there.

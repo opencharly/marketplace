@@ -101,11 +101,11 @@ charly check feature run web                # agent-check steps agent-graded aga
 charly check feature run web --no-agent     # deterministic-only (CI): agent-check steps report unbound
 ```
 
-Implementation: `charly/check_feature_run.go` (the verbs), `sdk/kit/grader.go`
+Implementation: `candy/plugin-check/feature_cmd.go` (`CheckFeatureRunCmd`) + `feature_run_gather.go` + `feature_box_gather.go` (the `charly box feature run` engine — the former `charly/check_feature_run.go` is DELETED, K-wave 2), `sdk/kit/grader.go`
 (`AgentGrader` + `RunAgentOnce` + `parseVerdict`, moved from `charly/check_feature_grader.go` (now `sdk/kit/grader.go`)
 in P12a — core constructs `&AgentGrader{}` directly, so it lives in `kit`, reachable from
-core code), and `charly/description_collect.go` (`charly feature (`charly feature
-list/pending/validate`). The `Runner.Grader` dispatch is `kit.RunPlan` (`sdk/kit/planrun.go`)
+core code), and `sdk/deploykit/description_collect.go` (`CollectDescriptions`; the former `charly/description_collect.go` is DELETED, K-wave 2) for the `charly feature
+list/pending/validate` surface. The `Runner.Grader` dispatch is `kit.RunPlan` (`sdk/kit/planrun.go`)
 directly — the former 1-line `charly/description_run.go` wrapper was dissolved in P12a.
 Target resolution is shared with the harness loop and `charly check box`/`live` (R3).
 

@@ -12,7 +12,8 @@ description: |
   Source: candy/plugin-deploy-vm/lifecycle.go,
   charly/unified_targets.go, charly/deploy_target_dispatch.go,
   candy/plugin-bundle/deploy_target.go, spec/exec/deploy_executor*.go,
-  charly/bundle_add_cmd_vm.go.
+  sdk/deploykit/vm_deploy_state.go, candy/plugin-vm/vm_util_copies.go.
+  (The former charly/bundle_add_cmd_vm.go is DELETED, K-wave 2.)
   MUST be invoked before editing VM-target deploy code.
 ---
 
@@ -179,7 +180,7 @@ Each Op:
 - The `pod` substrate is EXTERNAL (`deploy:pod`, candy/plugin-deploy-pod); the pod overlay render MOVED to the candy (P11c — `candy/plugin-deploy-pod/overlay.go`, via `deploykit.OCITarget`), and `charly/build_overlay.go` is now the host-side prep+resolve M-seam the candy reaches over `HostBuild("overlay")`. Its teardown record is keyed HOST-SIDE by `computeDeployID(name)` like every external deploy (the in-proc pod was record-free).
 - `vmNameFromDeployName` strips the `vm:` prefix. `vmEntityForPrepare` (`candy/plugin-deploy-vm/lifecycle.go`, ported verbatim from the DELETED `charly/vm_lifecycle_preresolve.go`'s `vmEntityForAdd` — FINAL/K5 unit 6a, M4b) resolves the `kind:vm` entity from a deploy node: the node's `vm:` cross-ref (`node.From`) wins, then a legacy `vm:<entity>` prefix, then the leaf of a nested dotted path.
 - `UnifiedDeployTarget` / `LifecycleTarget` interfaces (`spec/spec/deploy_target_unified.go`, the kind-agnostic contract — the option types repoint to the CUE-sourced `spec.DeployTarget*` wire types) + the `ResolveTarget` dispatcher (`charly/unified_targets.go`) provide the full lifecycle contract (`Add` / `Del` / `Update` / `Start` / `Stop` / `Status` / `Logs` / `Shell` / `Rebuild` — `Test` DELETED, #55 W3 B3 remainder: zero real callers anywhere in the tree). `ResolveTarget` returns a `pluginDeployTarget` (S3b) for every externalized substrate (local/vm/pod/k8s/android — all five).
-- Disposability is read per-`BundleNode` via `charly/deploy.go::BundleNode.IsDisposable()` (`disposable: true`, or ephemeral); it is NOT a `VmSpec` field. The disposability-as-authorization gate is NOT applied in the `charly update` path — `charly update <vm>` rebuilds on explicit invocation regardless (it only NOTES non-disposability, never refuses). `pluginDeployTarget.Rebuild` dispatches via `candy/plugin-bundle`'s `Invoke(OpDeployDispatch)` to the plugin's `OpRebuild` (over `HostBuild("cli")`), which recreates the domain THEN re-applies the deploy node's layers via the shared `charly bundle add <node>` path — the same layer-apply primitive the local/pod Rebuild use (R3).
+- Disposability is read per-`spec.Deploy` via `Deploy.IsDisposable()` (`spec/spec/charly_methods.go` — `disposable: true`, or ephemeral); it is NOT a `VmSpec` field. The disposability-as-authorization gate is NOT applied in the `charly update` path — `charly update <vm>` rebuilds on explicit invocation regardless (it only NOTES non-disposability, never refuses). `pluginDeployTarget.Rebuild` dispatches via `candy/plugin-bundle`'s `Invoke(OpDeployDispatch)` to the plugin's `OpRebuild` (over `HostBuild("cli")`), which recreates the domain THEN re-applies the deploy node's layers via the shared `charly bundle add <node>` path — the same layer-apply primitive the local/pod Rebuild use (R3).
 
 The `vm` substrate brings `charly bundle add vm:<name>` online: the same
 `InstallPlan` IR that drives pod builds and host deploys runs **inside a VM**
@@ -201,7 +202,7 @@ from the executor), so the reverse ops run IN THE GUEST.
 | `candy/plugin-deploy-vm/` | the out-of-process `deploy:vm` plugin (the plan WALK via `kit.WalkPlans` over the guest `SSHExecutor`) |
 | `spec/exec/deploy_executor.go` | `DeployExecutor` interface (RunShell, Scp, Close) + `ShellExecutor` — local shell exec (used host-side for the builder-image step and `RunHostStep`) |
 | `spec/exec/deploy_executor_ssh.go` | `SSHExecutor` — ssh client with passt-friendly timeouts + WaitForSSH + WaitForCloudInit |
-| `charly/bundle_add_cmd_vm.go` | VM-only host-side deploy helpers that REMAIN: `vmNameFromDeployName`, `sshReverseRunner`, `resolveVmSshUser` / `resolveVmSshPort`, `saveVmDeployState`, `removeVmDeployEntry` |
+| `sdk/deploykit/vm_deploy_state.go` + `candy/plugin-vm/vm_util_copies.go` | VM-only deploy helpers (the former `charly/bundle_add_cmd_vm.go` is DELETED, K-wave 2): `vmshared.VmNameFromDeployName` (`spec/spec/vm_domain.go`), `resolveVmSshUser` / `resolveVmSshPort` (`candy/plugin-vm/vm_util_copies.go`), `deploykit.SaveVmDeployState` / `deploykit.RemoveVmDeployEntry` (`sdk/deploykit/vm_deploy_state.go`) |
 | `candy/plugin-vm/vm_create_orchestrate.go` | `VmCreateCmd.runVmSpecCreate` — prereq: VM must be created before deploy (the `command:vm` plugin; the backend-specific `runVmSpecCreateLibvirt`/`-Qemu` are in `vm_create_spec.go`) |
 
 ## DeployExecutor interface
@@ -280,7 +281,7 @@ The env.d-sourcing managed block is written by `kit.WalkPlans`'s finalizer
 deploy it lands in the guest's detected login-shell init via the reverse legs
 (`GetFile` the existing rc, merge the fenced block, `PutFile` it back). The
 shared body/path helpers (`ManagedBlockBody`, `ShellInitFilePath`)
-live in `charly/shell_profile.go`; the block-splice itself is kit's (`sdk/kit/profile.go`); the plugin renders the equivalent via
+live in `sdk/kit/profile.go` (the former `charly/shell_profile.go` is DELETED, K-wave 2); the block-splice itself is kit's (`sdk/kit/profile.go`); the plugin renders the equivalent via
 `sdk/kit/profile.go`. Without this block the per-layer env.d files
 exist but are never sourced, so PATH never picks up `~/.npm-global/bin` etc. The
 shell is detected from the GUEST `/etc/passwd` (getent), because the guest's
@@ -388,7 +389,7 @@ Persisted in `~/.config/charly/charly.yml` as the `vm_state:` field on the VM's 
 
 ## SSH key idempotency
 
-`generateSSHKeypair` in `charly/vm_backend_lifecycle.go` (the core-retained seam) checks for `<vmStateDir>/id_ed25519.pub` before creating. Rebuilding a VM doesn't regenerate the keypair. First `charly vm build` writes the keypair; subsequent calls leave it untouched — so iterated rebuilds keep a stable pubkey and SSH stays valid.
+`GenerateSSHKeypair` (`spec/sshx/ssh_keypair.go` — the former `charly/vm_backend_lifecycle.go` is DELETED, K-wave 2) checks for `<vmStateDir>/id_ed25519.pub` before creating. Rebuilding a VM doesn't regenerate the keypair. First `charly vm build` writes the keypair; subsequent calls leave it untouched — so iterated rebuilds keep a stable pubkey and SSH stays valid.
 
 ## CLI dispatch: bundle add → ResolveTarget → pluginDeployTarget
 

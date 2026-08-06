@@ -30,8 +30,10 @@ builds and as a worked example of the `from: builder:pacstrap` +
 Earlier this path was unusable: the privileged pacstrap step rejected the
 CachyOS `x86_64_v3` packages (`package architecture is not valid`) and, on the
 VM path, tripped GPGME signature checks (`GPGME error: No data`). **Fixed as of
-charly 2026.141.1850** by the shared `renderPacstrapExtraConf` helper (`charly/build.go`,
-used by both `runPrivilegedBootstrap` and `charly/vm_bootstrap.go`):
+charly 2026.141.1850** by the shared `renderPacstrapExtraConf` helper
+(`candy/plugin-vm/vm_bootstrap_engine.go:57`,
+used by both `runPrivilegedBootstrap` and the VM bootstrap engine — the former
+`charly/build.go`/`charly/vm_bootstrap.go` are DELETED, K-wave 2):
 
 1. it derives an `[options] Architecture = x86_64 x86_64_v3` directive from the
    cachyos-v3 repos' microarch token, so pacman accepts `linux-cachyos` etc.;
