@@ -91,7 +91,9 @@ image is present in local podman storage (LocalImageExists →
 `charly box pull` → fall back to `charly box build` for short names that
 resolve via `cfg.Images`). Operators who never run `charly check run`
 never pay the image-fetch cost. See `/charly-check:check` "Image
-preflight" and `charly/check_image_preflight.go`.
+preflight" and `candy/plugin-check/preflight_images.go` (the check-run
+preflight arm, K-wave 2 cone R4 — the former `charly/check_image_preflight.go`
+is DELETED).
 
 This invariant — "deploy fetches NOTHING speculative" — is codified
 as a project-rulebook Key Rule (`AGENTS.md` / `CLAUDE.md`) and enforced at the type level: the
