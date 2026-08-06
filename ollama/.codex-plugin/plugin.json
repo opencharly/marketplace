@@ -9,7 +9,7 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "OpenCharly Ollama",
-    "shortDescription": "OpenCharly ollama workflows.",
+    "shortDescription": "Self-contained skills for running the ollama LLM-server image. Pair with charly-jupyter to expose Ollama models to Jupyter notebooks via the jupyter MCP.",
     "longDescription": "Self-contained skills for running the ollama LLM-server image. Pair with charly-jupyter to expose Ollama models to Jupyter notebooks via the jupyter MCP.",
     "developerName": "opencharly",
     "category": "images",

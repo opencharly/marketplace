@@ -1,7 +1,7 @@
 {
   "name": "charly-languages",
   "version": "1.0.0",
-  "description": "Programming language runtimes and package managers — python, python-ml, golang, rust, nodejs, pixi, uv.",
+  "description": "Programming language runtimes and package managers — python, python-ml, pixi (others like golang/rust/nodejs live in `charly-coder`).",
   "author": {
     "name": "opencharly"
   },
@@ -9,8 +9,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "OpenCharly Languages",
-    "shortDescription": "OpenCharly languages workflows.",
-    "longDescription": "Programming language runtimes and package managers — python, python-ml, golang, rust, nodejs, pixi, uv.",
+    "shortDescription": "Programming language runtimes and package managers — python, python-ml, pixi (others like golang/rust/nodejs live in `charly-coder`).",
+    "longDescription": "Programming language runtimes and package managers — python, python-ml, pixi (others like golang/rust/nodejs live in `charly-coder`).",
     "developerName": "opencharly",
     "category": "images",
     "capabilities": [
@@ -19,16 +19,5 @@
     "defaultPrompt": [
       "Use OpenCharly Languages for this OpenCharly task."
     ]
-  },
-  "homepage": "https://github.com/opencharly/charly",
-  "license": "MIT",
-  "keywords": [
-    "charly",
-    "python",
-    "golang",
-    "rust",
-    "nodejs",
-    "pixi",
-    "uv"
-  ]
+  }
 }

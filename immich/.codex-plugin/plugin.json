@@ -9,7 +9,7 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "OpenCharly Immich",
-    "shortDescription": "OpenCharly immich workflows.",
+    "shortDescription": "Self-contained skills for the immich photo-management image (immich + immich-ml variants).",
     "longDescription": "Self-contained skills for the immich photo-management image (immich + immich-ml variants).",
     "developerName": "opencharly",
     "category": "images",

@@ -1,7 +1,17 @@
 {
   "name": "charly-core",
-  "description": "Daily-ops verbs for managing charly-built containers — start, stop, restart, charly-status, logs, shell, deploy, charly-update. Every consumer enables this.",
-  "version": "1.1.0",
-  "author": { "name": "opencharly" },
-  "repository": "https://github.com/opencharly/charly-plugins"
+  "description": "Runtime/lifecycle CLI verbs — start, stop, restart, charly-status, logs, shell, ssh, deploy, charly-update, remove, charly-config, cmd, charly-version, charly-doctor.",
+  "version": "1.0.0",
+  "author": {
+    "name": "opencharly"
+  },
+  "homepage": "https://github.com/opencharly/charly",
+  "repository": "https://github.com/opencharly/charly-plugins",
+  "license": "MIT",
+  "keywords": [
+    "charly",
+    "lifecycle",
+    "containers",
+    "verbs"
+  ]
 }

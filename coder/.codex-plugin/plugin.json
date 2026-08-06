@@ -1,7 +1,7 @@
 {
   "name": "charly-coder",
   "version": "1.0.0",
-  "description": "Self-contained skills + MCP wiring for the charly coder/dev images (arch-coder, debian-coder, fedora-coder, ubuntu-coder, charly-arch, check-target). Ships the charly MCP server (port 18765) for programmatic access to the running pod.",
+  "description": "Self-contained skills + MCP wiring for charly coder/dev images (arch-coder, debian-coder, fedora-coder, ubuntu-coder, charly-arch). Ships the charly MCP server (port 18765). Bundles language runtimes (golang, rust, nodejs).",
   "author": {
     "name": "opencharly"
   },
@@ -9,8 +9,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "OpenCharly Coder",
-    "shortDescription": "OpenCharly coder workflows.",
-    "longDescription": "Self-contained skills + MCP wiring for the charly coder/dev images (arch-coder, debian-coder, fedora-coder, ubuntu-coder, charly-arch, check-target). Ships the charly MCP server (port 18765) for programmatic access to the running pod.",
+    "shortDescription": "Self-contained skills + MCP wiring for charly coder/dev images (arch-coder, debian-coder, fedora-coder, ubuntu-coder, charly-arch). Ships the charly MCP server (port 18765). Bundles language runtimes (golang, rust, nodejs).",
+    "longDescription": "Self-contained skills + MCP wiring for charly coder/dev images (arch-coder, debian-coder, fedora-coder, ubuntu-coder, charly-arch). Ships the charly MCP server (port 18765). Bundles language runtimes (golang, rust, nodejs).",
     "developerName": "opencharly",
     "category": "images",
     "capabilities": [

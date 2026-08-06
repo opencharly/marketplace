@@ -1,7 +1,7 @@
 {
   "name": "charly-infrastructure",
   "version": "1.0.0",
-  "description": "Infrastructure services and system layers — databases (postgresql, redis, valkey, vectorchord), k3s cluster, traefik, supervisord, tailscale, gocryptfs, virtualization, system tooling.",
+  "description": "Infrastructure services and system layers — postgresql, redis, valkey, vectorchord, k3s cluster, traefik, supervisord, tailscale, gocryptfs, virtualization, dbus-layer, tmux-layer.",
   "author": {
     "name": "opencharly"
   },
@@ -9,8 +9,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "OpenCharly Infrastructure",
-    "shortDescription": "OpenCharly infrastructure workflows.",
-    "longDescription": "Infrastructure services and system layers — databases (postgresql, redis, valkey, vectorchord), k3s cluster, traefik, supervisord, tailscale, gocryptfs, virtualization, system tooling.",
+    "shortDescription": "Infrastructure services and system layers — postgresql, redis, valkey, vectorchord, k3s cluster, traefik, supervisord, tailscale, gocryptfs, virtualization, dbus-layer, tmux-layer.",
+    "longDescription": "Infrastructure services and system layers — postgresql, redis, valkey, vectorchord, k3s cluster, traefik, supervisord, tailscale, gocryptfs, virtualization, dbus-layer, tmux-layer.",
     "developerName": "opencharly",
     "category": "images",
     "capabilities": [
@@ -19,16 +19,5 @@
     "defaultPrompt": [
       "Use OpenCharly Infrastructure for this OpenCharly task."
     ]
-  },
-  "homepage": "https://github.com/opencharly/charly",
-  "license": "MIT",
-  "keywords": [
-    "charly",
-    "postgresql",
-    "redis",
-    "k3s",
-    "traefik",
-    "tailscale",
-    "supervisord"
-  ]
+  }
 }
