@@ -52,12 +52,12 @@ fan-out dissolves into a direct in-package call once the orchestration moves
 into the plugin that already owns the per-word collectors, and every other
 dependency was already sdk-portable via K4 #64), the probes, and the
 externalized `charly reap-orphans` command. **Core keeps NO status business
-logic at all** — only the generic `status-substrate` HostBuild seam, a thin
-forward with zero status-specific code.
+logic at all** — the plugin InvokeProvider(verb:status-fanout)s directly (the
+former `status-substrate` HostBuild seam is DELETED, K-wave 2).
 
 - `candy/plugin-status/command.go` — the `charly status` Kong grammar + dispatch
-  (the `--nested` and `--json` flags live here); drives the `status-substrate`
-  HostBuild seam for the flat rows, calls the plugin's own `buildStatusRootsTree`
+  (the `--nested` and `--json` flags live here); InvokeProvider(verb:status-fanout)s
+  for the flat rows, calls the plugin's own `buildStatusRootsTree`
   for the declared tree, applies the PURE nested overlay + renders.
 - `candy/plugin-status/render.go` — the unified `DeploymentStatus` rendered
   shape + `RenderTable` / `RenderDetail` / `RenderJSON` / `RenderJSONOne` +
