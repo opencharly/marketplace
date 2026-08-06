@@ -131,7 +131,9 @@ masking entirely), this is the least-privilege fix available.
 ## Subuid / subgid layout (must fit inside the outer namespace)
 
 `charly shell` launches the outer container with `--userns=keep-id:uid=1000,gid=1000`
-(default — see `charly/shell.go:254`). That creates a uid_map inside the
+(default — the keep-id userns arg is emitted by `candy/plugin-deploy-pod/resolve_f12.go`;
+the `charly shell` command itself is `candy/plugin-pod/command.go`, the former
+`charly/shell.go` is DELETED, K-wave 2). That creates a uid_map inside the
 outer of:
 
 ```
@@ -282,8 +284,9 @@ OCI env of any box composing this candy.
 
 ## Box-level compatibility (union semantics)
 
-`charly/security.go:66-97` **unions** box-level `CapAdd`, `SecurityOpt`,
-`Devices` onto the candy-level merged set (via `appendUnique`). Box
+`sdk/deploykit/security.go` (`SecurityArgs`'s merge, via `AppendUnique`) **unions**
+box-level `CapAdd`, `SecurityOpt`,
+`Devices` onto the candy-level merged set. Box
 values can only ADD, never strip.
 
 Consequence: boxes that want the old full-hammer posture

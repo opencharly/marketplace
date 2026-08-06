@@ -81,8 +81,9 @@ preemptible: <l|blk>  # LOAD-BEARING resource-arbitration. Default absent.
 
 `lifecycle: dev` does NOT make a deploy disposable. A reader
 might assume it would, so the anti-derivation invariant is enforced
-by `charly/classification.go` and a unit test
-`TestVmSpec_LifecycleAloneDoesNotAuthorize`. If you find yourself
+by `spec/spec/charly_methods.go` (`Deploy.IsDisposable()` / `Deploy.IsPreemptible()` —
+the former `charly/classification.go` is DELETED, K-wave 2) and a unit test
+`TestVmSpec_LifecycleAloneDoesNotAuthorize` (`charly/classification_test.go`). If you find yourself
 tempted to add "if lifecycle in {scratch,dev,test} then
 disposable=true": don't. That hidden logic is the entire failure
 mode this design avoids.
@@ -223,7 +224,7 @@ implies nor is implied by any other axis. A deploy may legitimately be BOTH
 preemptible (the arbiter stops it) AND disposable (R10 may rebuild it); a test
 holder is often both. Stopping a holder is graceful + reversible (disk + state
 preserved) — the OPPOSITE of `disposable`'s destroy authorization. Enforced by
-`charly/classification.go` (`IsPreemptible()` is independent of `IsDisposable()`).
+`spec/spec/charly_methods.go` (`Deploy.IsPreemptible()` is independent of `Deploy.IsDisposable()`).
 
 ## Where the fields live
 
@@ -425,5 +426,6 @@ on shared hosts.
   `IsDisposable()` / `IsDisposableFields()`, never derive from
   lifecycle).
 
-Invoke this skill BEFORE reading `charly/classification.go` or the
+Invoke this skill BEFORE reading `spec/spec/charly_methods.go` (the
+`Deploy.IsDisposable()` / `Deploy.IsPreemptible()` predicates) or the
 related YAML files.

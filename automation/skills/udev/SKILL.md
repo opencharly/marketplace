@@ -88,7 +88,7 @@ Idempotent: skips if rules are already up to date.
 
 ## Source
 
-`charly/udev.go`.
+`candy/plugin-udev` (the `command:udev` plugin — the former `charly/udev.go` is DELETED, K-wave 2).
 
 ## When to Use This Skill
 

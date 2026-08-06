@@ -100,7 +100,7 @@ How it works:
 
 This makes loopback-only services accessible through normal podman/docker port mappings and `tailscale serve`.
 
-Source: `sdk/deploykit/routes.go` (`GenerateTraefikRoutes` / `EmitTraefikRouteStage`, relocated from `charly/generate.go` in #67), `charly/layers.go` (`PortRelayYAML`).
+Source: `sdk/deploykit/routes.go` (`GenerateTraefikRoutes` / `EmitTraefikRouteStage`, relocated from `charly/generate.go` in #67), `sdk/deploykit/init.go` (`InitRenderRelayTemplate`, the relay-template renderer).
 
 ## Device Auto-Detection
 
@@ -142,7 +142,7 @@ Kong `sep:"none"` on `-e` means commas in values are safe (e.g., `NO_PROXY=local
 
 `.env` file format (Docker-compatible): `KEY=VALUE`, `KEY="VALUE"`, `KEY='VALUE'`, `KEY` (inherits from host), `#` comments, blank lines ignored.
 
-Source: `charly/envfile.go` (`ParseEnvFile`, `ResolveEnvVars`, `LoadWorkspaceEnv`).
+Source: `spec/hostenv/envfile.go` (`ParseEnvFile`, `ResolveEnvVars`, `LoadWorkspaceEnv`).
 
 ## Remote Image References
 
@@ -170,7 +170,7 @@ Source: `dispatchBuildEnsure` (`charly/dispatch_build_ensure.go`) dispatches to 
 
 All containers are connected to a shared `charly` network by default, enabling inter-container DNS resolution by container name. Override with `network: host` in charly.yml.
 
-Source: `charly/network.go`.
+Source: `sdk/deploykit/quadlet_pod.go` / `sdk/deploykit/quadlet.go` (the shared-`charly`-network quadlet emission — the former `charly/network.go` is DELETED, K-wave 2).
 
 ## `charly cmd` vs `charly shell -c`
 

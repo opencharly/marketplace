@@ -21,8 +21,10 @@ FIVE substrates (pod/vm/k8s/local/android) are collected by ONE compiled-in
 provider (`candy/plugin-substrate`), served on its kind-provider `Invoke` as
 `sdk.OpStatusCollect`, dispatched by word — there is no `SubstrateCollector`
 interface or `init()`-time registry left in core (both were deleted once the
-last substrate, android, moved out). `Collector.collectFlat` (core) calls each
-word over the registry + reaches the reverse-channel executor so the plugin can
+last substrate, android, moved out). `flatCollector.collectFlat`
+(candy/plugin-substrate/status_flat.go — the former core `Collector.collectFlat`
+is DELETED, K-wave 2) calls each word over the registry + reaches the
+reverse-channel executor so the plugin can
 call back (`InvokeProvider("build","project", OpResolve)` for the resolved-project envelope for vm/k8s — the former `HostBuild("resolved-project")` seam is DELETED, `InvokeProvider`
 for vm→libvirt), merges the rows, applies the DEPLOY-CONE enrichment core alone
 can still do (pod tunnel/volume/port fallback, vm SSH-port/network), and sorts
@@ -52,12 +54,12 @@ fan-out dissolves into a direct in-package call once the orchestration moves
 into the plugin that already owns the per-word collectors, and every other
 dependency was already sdk-portable via K4 #64), the probes, and the
 externalized `charly reap-orphans` command. **Core keeps NO status business
-logic at all** — only the generic `status-substrate` HostBuild seam, a thin
-forward with zero status-specific code.
+logic at all** — the plugin InvokeProvider(verb:status-fanout) directly (the
+former `status-substrate` HostBuild seam is DELETED, K-wave 2).
 
 - `candy/plugin-status/command.go` — the `charly status` Kong grammar + dispatch
-  (the `--nested` and `--json` flags live here); drives the `status-substrate`
-  HostBuild seam for the flat rows, calls the plugin's own `buildStatusRootsTree`
+  (the `--nested` and `--json` flags live here); InvokeProvider(verb:status-fanout)
+  for the flat rows, calls the plugin's own `buildStatusRootsTree`
   for the declared tree, applies the PURE nested overlay + renders.
 - `candy/plugin-status/render.go` — the unified `DeploymentStatus` rendered
   shape + `RenderTable` / `RenderDetail` / `RenderJSON` / `RenderJSONOne` +
@@ -70,10 +72,11 @@ forward with zero status-specific code.
   `[]spec.StatusNestedNode` shape the overlay folds, including the `--nested`
   live-probe leg (`ResolveDeployChain` + `NestedExecutor`, the SAME primitive
   `charly bundle add` / `charly check live parent.child` use).
-- `charly/status_substrate_host.go` — the generic `status-substrate` F10
-  host-builder, now a THIN forward (K6): resolve `verb:status-fanout`, thread
-  the reverse-channel executor, invoke, return the reply verbatim. No
-  status-specific logic remains in core.
+- `candy/plugin-status/command.go` (`hostStatusSubstrate`) — the generic
+  `status-substrate` F10 forward is DELETED with `charly/status_substrate_host.go`
+  (K-wave 2): `command:status` now `InvokeProvider(verb:status-fanout)` DIRECTLY over
+  the in-proc reverse channel, threads the executor, and returns the reply verbatim.
+  No status-specific logic remains in core.
 - `candy/plugin-substrate/status_flat.go` — `flatCollector.collectFlat` (the
   substrate fan-out + merge + sort) / `flatCollector.collectSingle`;
   `collectWord` (a DIRECT in-package call to `statusCollect` for ALL FIVE

@@ -49,7 +49,7 @@ in a root-owned path the guest user couldn't write. See
 
 ## `ReverseOp` catalogue
 
-See `/charly-local:local-deploy` for the user-facing reverse-op table. The Go-level source of truth is `ReverseOpKind` in `install_plan.go`; each step's `Reverse()` method emits ops tagged with kind + targets + scope. Execution lives in `sdk/kit/reverse_ops.go` (moved from `charly/reverse_ops.go`) — one handler per kind, all routed through `runReverseOps(ops, executor)` in LIFO order.
+See `/charly-local:local-deploy` for the user-facing reverse-op table. The Go-level source of truth is `ReverseOpKind` in `spec/spec/deploy_consts.go` (the IR's step kinds; `spec/spec/install_plan.go` — the former `charly/install_plan.go` is DELETED, K-wave 2); each step's `Reverse()` method emits ops tagged with kind + targets + scope. Execution lives in `sdk/kit/reverse_ops.go` (moved from `charly/reverse_ops.go`) — one handler per kind, all routed through `runReverseOps(ops, executor)` in LIFO order.
 
 Adding a new reverse kind requires:
 1. Add the `ReverseOpKind` constant in `install_plan.go`.

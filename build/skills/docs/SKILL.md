@@ -52,12 +52,12 @@ charly docs generate --out docs/src/content/docs --root .
 
 ## What it emits
 
-The generator owns five top-level entries — `index.md`, `grievances.md`, `vision.md`,
-`reference/` and `recipes/` — and rewrites them wholesale each run, so a deleted source entity
-disappears from the site instead of lingering as an orphan page. (The table below expands
-`reference/` into its four sub-trees plus the single file `reference/providers.md`, so it runs to
-nine rows.) What stays hand-authored is the teaching narrative this repository has no equivalent
-of: `start/`, `concepts/` and `guides/`.
+The generator owns six top-level entries — `index.md`, `grievances.md`, `vision.md`,
+`liberation.md`, `reference/` and `recipes/` — and rewrites them wholesale each run, so a deleted
+source entity disappears from the site instead of lingering as an orphan page. (The table below
+expands `reference/` into its four sub-trees plus the single file `reference/providers.md`, so it
+runs to ten rows.) What stays hand-authored is the teaching narrative this repository has no
+equivalent of: `start/`, `concepts/` and `guides/`.
 
 **Hand-authored pages are never WRITTEN — but they are read.** The boundary is the `DO-NOT-EDIT`
 header, not the path: the prune pass reads every `.md`/`.mdx` under `--out` and removes only those
@@ -77,6 +77,7 @@ not the page.**
 | `index.md` | `README.md`, H1 and tagline dropped (the frontmatter title and hero render them), `https://opencharly.ai/…` links rewritten site-relative, and the repo-relative targets `AGENTS.md`, `plugins/README.md` and `CHANGELOG/README.md` repointed at GitHub or their site equivalent |
 | `grievances.md` | `GRIEVANCES.md`, H1 dropped, repo-relative links rewritten for a web reader |
 | `vision.md` | `VISION.md`, H1 dropped, repo-relative links rewritten for a web reader |
+| `liberation.md` | `LIBERATION.md`, H1 dropped, repo-relative links rewritten — the deliberate easter-egg page, entered last in the sidebar as "Agents only" |
 | `reference/cli/` | one page per `command:` provider word |
 | `reference/candy/` | every defined candy: packages, services, and its `plan:` as an acceptance spec |
 | `reference/box/` | every defined box |
