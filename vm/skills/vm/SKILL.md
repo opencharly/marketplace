@@ -168,7 +168,9 @@ runs a read-only probe for a true device_lock wedge (a `D`-state task in
 card it rebinds the whole group to vfio-pci and clears any stale poison marker.
 
 Implementation + full RCA: `candy/plugin-gpu/switch.go` (the switch primitive, cutover
-C9 — reached from core via the `charly/gpu_shim.go` driver-switch shims), the arbiter's
+C9 — reached from core via the plugin's `verb:gpu` dispatch; the former
+`charly/gpu_shim.go` driver-switch shims are DELETED, K-wave 2 cone R3 — the file now
+holds only `gpuProbeReply` + `DetectVFIO`), the arbiter's
 poisoning in `candy/plugin-preempt` (`arbiter_support.go`), `candy/plugin-vm/vm_gpu_cmd.go`
 (status/recover/plan); the arbiter side is `/charly-internals:disposable`
 "resource-arbitration axis".

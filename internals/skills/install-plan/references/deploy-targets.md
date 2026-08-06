@@ -48,8 +48,9 @@ DATA-ONLY proxy:
   "del"|…}` and calls its own `dispatch()`, which threads the current venue (`t.venueJSON`, reused
   across calls once the first "add" dispatch reports one back) and calls `dispatchDeployTarget`.
 - **`dispatchDeployTarget`** (`charly/deploy_target_dispatch.go`) threads a live executor onto the
-  ctx via the SAME "compiled-in in-proc reverse channel" pattern `arbiterInvoke`/
-  `dispatchEphemeralOp` use (no broker hop needed — `command:bundle` is COMPILED-IN today), then
+  ctx via the SAME "compiled-in in-proc reverse channel" pattern `arbiterInvoke` uses (the former
+  `dispatchEphemeralOp` is DELETED — only a comment survives; no broker hop needed —
+  `command:bundle` is COMPILED-IN today), then
   `Invoke`s `command:bundle`'s `sdk.OpDeployDispatch` with the marshalled request. Core never touches
   the substrate's `*grpcProvider` directly once this call returns.
 - **`runDeployDispatch`** (`candy/plugin-bundle/deploy_target.go`) is the plugin-side handler: it

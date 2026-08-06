@@ -141,16 +141,17 @@ Core provides ONLY the residual pieces the plugin genuinely cannot do:
   resolves it itself. `charly/unified_targets.go`'s Attach threads the raw cmd
   for a HOOKLESS lifecycle substrate instead of requiring a host attach hook
   (the lifecycleAttachPlanHooks map keeps only "pod").
-- **The ephemeral Add-time side effect** (`charly/host_build_ephemeral_register.go`,
-  the generic `"ephemeral-register"` HostBuild seam): a systemd transient-timer
+- **The ephemeral Add-time side effect**: a systemd transient-timer
   registration with panic-vs-warning classification (RCA #5) that must run
-  host-side; `vmPrepareVenue` Invokes it as its FIRST action, matching the
-  deleted host-side hook's own ordering.
-- **The `lifecyclePostTeardownHook`** (same file): the one residual host
-  cleanup the plugin can't do — vm's ephemeral-lifecycle teardown (systemd
-  timers + libvirt snapshot refcounts), consulted GENERICALLY by word
-  (`lifecyclePostTeardownHookFor`) from `pluginDeployTarget.Del`
-  (`charly/unified_targets.go`); pod registers none.
+  host-side. The former `charly/host_build_ephemeral_register.go` + the generic
+  `"ephemeral-register"` HostBuild seam are DELETED (K-wave 2); the plugin
+  (`candy/plugin-deploy-vm/lifecycle.go`) Invokes `command:bundle`'s
+  `OpEphemeralRegister` DIRECTLY over the peer reverse channel as its FIRST
+  action, matching the deleted host-side hook's own ordering.
+- **The `lifecyclePostTeardownHook`** is DELETED (K-wave 2 — zero refs; only an
+  "is deleted" comment survives at `charly/unified_targets.go:302`). vm's
+  ephemeral-lifecycle teardown (systemd timers + libvirt snapshot refcounts) is
+  plugin-side (`vmPostTeardown` / `OpEphemeralTeardown`).
 - **`saveDeployState`**, called from `candy/plugin-bundle/deploy_target.go`'s
   lifecycle dispatch, persists the plugin's returned `VmDeployState` patch
   (extended with `VmState` / `VmCrossRef`), and removes the charly.yml entry
@@ -166,11 +167,11 @@ Each Op:
 
 | Op | What it does |
 |---|---|
-| `OpPrepareVenue` | The full venue preflight, run BEFORE the walk. `vmPrepareVenue` resolves its OWN `spec.LifecyclePrepareInput` (via `vmEntityForPrepare` + `sdk/loaderkit.ResolveVmEntityViaExecutor` — see above), first Invoking the `"ephemeral-register"` HostBuild seam as its FIRST action; writes the managed ssh-config Host stanza (`kit.WriteVmSshStanza` + `kit.EnsureSshConfigInclude`), auto-boots the domain via `HostBuild("cli")`, waits (`kit.WaitForSSH` / `WaitForCloudInit` / `WaitForPackageLock`), `kit.EnsureCharlyInGuest`, then returns the guest-`SSHExecutor` `VenueDescriptor` (`candy/plugin-bundle`'s `lifecycleInvoke` re-materializes + serves it) and the `VmDeployState` patch (`saveDeployState` persists it). |
+| `OpPrepareVenue` | The full venue preflight, run BEFORE the walk. `vmPrepareVenue` resolves its OWN `spec.LifecyclePrepareInput` (via `vmEntityForPrepare` + `sdk/loaderkit.ResolveVmEntityViaExecutor` — see above), first Invoking `command:bundle`'s `OpEphemeralRegister` DIRECTLY over the peer reverse channel (the former `"ephemeral-register"` HostBuild seam is DELETED, K-wave 2); writes the managed ssh-config Host stanza (`kit.WriteVmSshStanza` + `kit.EnsureSshConfigInclude`), auto-boots the domain via `HostBuild("cli")`, waits (`kit.WaitForSSH` / `WaitForCloudInit` / `WaitForPackageLock`), `kit.EnsureCharlyInGuest`, then returns the guest-`SSHExecutor` `VenueDescriptor` (`candy/plugin-bundle`'s `lifecycleInvoke` re-materializes + serves it) and the `VmDeployState` patch (`saveDeployState` persists it). |
 | `OpArtifactKey` | Keys candy artifacts (+ the k3s `ClusterProfile`) under `vm:<entity>`, NOT the deploy name — one k3s cluster per VM is reached by several beds, so its profile lands under the shared `vm-<entity>` name the `cluster:` refs use. |
 | `OpPostApply` | Deploys nested `target: pod` children as persistent in-guest quadlets over the served guest executor, AFTER the walk (so the VM's own candies + any kernel-driver reboot are already applied). Add only; skipped under `--node-only`. |
 | `OpTeardownExecutor` | Returns the guest-`SSHExecutor` `VenueDescriptor` (against the managed alias, no boot) the recorded `ReverseOps` replay over IN THE GUEST. |
-| `OpPostTeardown` | Removes the managed ssh-config stanza (`kit.RemoveVmSshStanza`) and ships the charly.yml entry keys to strip in `PostTeardownReply.RemoveEntries`; the core `lifecyclePostTeardownHook` runs the residual ephemeral-lifecycle teardown. |
+| `OpPostTeardown` | Removes the managed ssh-config stanza (`kit.RemoveVmSshStanza`) and ships the charly.yml entry keys to strip in `PostTeardownReply.RemoveEntries`; the ephemeral-lifecycle teardown is plugin-side (`vmPostTeardown` / `OpEphemeralTeardown` — the former core `lifecyclePostTeardownHook` is DELETED, K-wave 2). |
 | `OpStart` / `OpStop` / `OpStatus` / `OpLogs` / `OpShell` / `OpRebuild` | Drive the `charly vm` family via `HostBuild("cli")`. `OpRebuild` does `charly vm destroy` + `build` + `create` + `start` + `charly bundle add <name>` (re-applying the deploy's candies to the fresh guest via the shared layer-apply primitive, R3) — the path `charly update <vm-bed>` routes through. |
 
 ## Implementation notes
@@ -228,9 +229,10 @@ inside the plugin** — the DELETED `lifecyclePrepareHook`/`vmLifecyclePrepare`
 (`charly/vm_lifecycle_preresolve.go`) is gone; `candy/plugin-deploy-vm/lifecycle.go`'s
 `vmPrepareVenue` now does it all, BEFORE the walk:
 
-0. **Register the ephemeral Add-time side effect** — Invokes the generic
-   `HostBuild("ephemeral-register")` seam FIRST (a panic-safe systemd
-   transient-timer registration the plugin cannot do itself, RCA #5),
+0. **Register the ephemeral Add-time side effect** — Invokes `command:bundle`'s
+   `OpEphemeralRegister` DIRECTLY over the peer reverse channel FIRST (a
+   panic-safe systemd transient-timer registration the plugin cannot do itself,
+   RCA #5; the former `HostBuild("ephemeral-register")` seam is DELETED, K-wave 2),
    matching the deleted host-side hook's own ordering.
 1. **Resolve its own DATA.** `vmEntityForPrepare` resolves the `kind:vm`
    entity from the node's `vm:` cross-ref / a legacy `vm:<name>` prefix / the
