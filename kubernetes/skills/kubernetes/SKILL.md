@@ -139,7 +139,8 @@ New cluster = write a new `kind: k8s` template; zero deploy changes.
 
 Apply: `kubectl apply -k .opencharly/k8s/<name>/overlays/<instance>` (or `charly bundle sync <name>`).
 
-**Egress validation.** Every manifest is validated through `writeK8sYAML` before it
+**Egress validation.** Every manifest is validated through `validateEgressValue`/`writeYAML`
+(candy/plugin-kube/materialize.go) before it
 is written: workload / service / pvc / ingress against the `#K8sObject` envelope
 (non-empty `apiVersion`/`kind` + named `metadata`), and the base + overlay
 `kustomization.yaml` against `#Kustomization`. A structurally-broken manifest fails
