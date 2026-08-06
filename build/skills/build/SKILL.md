@@ -228,7 +228,8 @@ the dominant warm-rebuild win. podman reads `.containerignore`; docker reads
 `.dockerignore` — emitting both keeps the two engines in lockstep. Only add a
 directory you've confirmed no Containerfile COPY/ADDs from (generated
 Containerfiles COPY only from `candy/`, `templates/`, `.build/`). Source:
-`charly/generate.go:writeContextIgnore` + `baselineContextIgnore`.
+`sdk/deploykit/generate.go:writeContextIgnore` + `baselineContextIgnore` (the former
+`charly/generate.go` is DELETED, K-wave 2).
 
 ## Image-tag retention (`defaults.keep_images`)
 
@@ -463,7 +464,7 @@ If you see `cannot unmarshal !!str ... into int` or similar YAML parsing errors 
 
 ### Stale `charly` binary produces stale Containerfiles
 
-Beyond the YAML-unmarshal symptom above, a stale `charly` binary can produce *syntactically valid but outdated* Containerfile output — e.g. emitting an old broken form of a template that HEAD's source has already fixed. Symptom: build fails on a step whose generated shell clearly doesn't match the source you see in `git grep`. Quick diagnostic: `ls -la $(which charly)` vs. `git log -1 charly/generate.go` — if the binary predates the fix, rebuild:
+Beyond the YAML-unmarshal symptom above, a stale `charly` binary can produce *syntactically valid but outdated* Containerfile output — e.g. emitting an old broken form of a template that HEAD's source has already fixed. Symptom: build fails on a step whose generated shell clearly doesn't match the source you see in `git grep`. Quick diagnostic: `ls -la $(which charly)` vs. `git log -1 sdk/deploykit/generate.go` (the former `charly/generate.go` is DELETED, K-wave 2) — if the binary predates the fix, rebuild:
 
 ```bash
 task build:binary && task install-portable   # rebuild + refresh the $HOME/.local/bin copy

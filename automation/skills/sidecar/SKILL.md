@@ -293,4 +293,4 @@ Chrome requires large `/dev/shm`. In pod mode, per-container `ShmSize=` is ignor
 
 ## Source
 
-`charly/sidecar.go` (types, merge, resolution), `charly/charly.yml` (the embedded default config — its `sidecar:` section is the template library, read via `UnifiedFile.Sidecar`), `charly/embed_defaults.go` (the embed + `embeddedDefaults()`), `charly/quadlet_pod.go` (pod + sidecar quadlet generation).
+`candy/plugin-deploy-pod/sidecar_embedded.go` (types, merge, resolution — the former `charly/sidecar.go` is DELETED, K-wave 2), `charly/charly.yml` (the embedded default config — its `sidecar:` section is the template library, read via `UnifiedFile.Sidecar`), `charly/embed_defaults.go` (the embed + `embeddedDefaults()`), `candy/plugin-deploy-pod` (pod + sidecar quadlet generation — the former `charly/quadlet_pod.go` is DELETED, K-wave 2).

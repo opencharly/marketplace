@@ -207,7 +207,7 @@ ALL pure/portable and run plugin-side directly, returning a
   loop with retry + uninstall reverse ops); `install.go` — the shared installer.
 - `deploykit.ApkInstallStep` (`sdk/deploykit/steps.go`); `sdk/deploykit/install_build.go` —
   `compileApkStep` (the plugin-side preresolver reads this step; no DeployTarget executes it).
-- `charly/unified.go` — loader wiring (mirrors every `k8s` site).
+- `sdk/loaderkit/load_unified.go` — loader wiring (mirrors every `k8s` site; the former `charly/unified.go` is DELETED, K-wave 2).
 - `charly/deploy.go` `BundleNode.Android`; `charly/bundle_add_cmd.go` dispatch +
   `--node-only`; `sdk/deploykit/deploy_chain.go` / `charly/deploy_tree.go` passthrough.
 

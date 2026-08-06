@@ -70,7 +70,7 @@ consumer's authoritative R10.
 ## Implementation
 
 `charly/reconcile.go` — `ImageReconcileCmd` (wired under `charly box` in `charly/image.go`).
-Reuses `ParseRemoteRef` / `IsRemoteCandyRef` / `StripVersion` (`charly/refs.go`),
+Reuses `ParseRemoteRef` / `IsRemoteCandyRef` / `StripVersion` (`sdk/kit/remote_ref.go` — the former `charly/refs.go` is DELETED, K-wave 2),
 `compareSemver` / `GitLatestTag` / `RepoGitURL` (`charly/refs_git.go`), and the
 comment-preserving load/`yaml.Marshal` pattern from `sdk/kit/yaml.go`. Covered
 by `charly/reconcile_test.go` (newest-referenced alignment, comment preservation,
