@@ -215,9 +215,10 @@ charly's core binary.
     W3a A3-phase-2, `sdk/loaderkit.ResolveMergedTreeViaExecutor` /
     `ResolveVmEntityViaExecutor` — no HostBuild round trip remains for this
     leg, then reads the PERSISTED port-forward allocation ledger via the
-    `"config-resolve"` HostBuild seam — `hostConfigResolveVmState`, the SAME
-    seam `candy/plugin-vm`'s own `hostConfigResolve` uses for its OWN VmState
-    reuse, R3 — a FIX-ROUND regression fix: a direct
+    PLUGIN-SIDE `hostConfigResolveVmState` → `sdk/loaderkit.ResolveVmStateViaExecutor`
+    read (the config-resolve HostBuild seam is DELETED, K-wave 2 cone R2 bank D —
+    the SAME read `candy/plugin-vm`'s own `hostConfigResolve` + `candy/plugin-deploy-vm`'s
+    `resolvePriorVmState` use, R3 — a FIX-ROUND regression fix: a direct
     `deploykit.LoadDeployConfigForRead` call from this out-of-process plugin
     silently found nothing every time, since `deploykit.DeployStateHost` is
     wired only by charly-core's own `init()`), then calls `mergeKubeconfig`

@@ -121,7 +121,9 @@ necessarily ephemeral; ephemeral resources are always disposable.
 A physical host resource can sometimes be held by only ONE deployment at a
 time — the canonical case is a GPU passed through to a VM via VFIO (exactly one
 VM can bind the card). `preemptible` (HOLDER side) + `requires_exclusive`
-(CLAIMANT side) let the resource arbiter (`charly/preempt.go`) free such a resource
+(CLAIMANT side) let the resource arbiter (the compiled-in `verb:arbiter`,
+`candy/plugin-preempt` — its only in-core caller is the op="remove" release
+bracket in `charly/host_build_pod_lifecycle_dispatch.go`) free such a resource
 on demand and give it back afterward.
 
 ```yaml
@@ -259,7 +261,7 @@ Resolves `<name>` as either a kind:vm entity (vm.yml) or a deploys entry
 (charly.yml). It **NEVER refuses** on disposability: an explicit
 `charly update` rebuilds ANY target — for a non-disposable, non-ephemeral
 target it prints a one-line transparency note
-(`noteUpdateDisposability` in `charly/update_deploy_dispatch.go`) and
+(`noteUpdateDisposability` in `candy/plugin-pod/pod_cmd.go`) and
 proceeds. Sequence: destroy → rebuild → restart, ending in the shared
 `charly bundle add <node>` layer re-apply for every live substrate (so a
 config change — a newly-added layer or nested pod — takes effect on the

@@ -80,19 +80,22 @@ Detail lives in sibling `references/*.md` files, loaded on demand:
 - `/charly-build:inspect` — view the merged plan / description structure as JSON.
 - `/charly-build:migrate` — `charly migrate` brings legacy configs up to the
   current schema (one flat ordered `plan:` list per entity).
-- `/charly-internals:go` — implementation map. Core keeps the gathering,
-  validation, and host seams: `checkspec.go`, `checkrun.go`,
-  `checkrun_verbs.go`, `checkrun_charly_verbs.go`, `description_collect.go`,
-  `check_cmd.go` (the CLI-free live-check gather engine), `check_runner_cmd.go`
-  (now only `scorePodTargetEntry`), `check_runner_live.go` (the "score" mode body),
-  `check_image_preflight.go` (the "preflight" body), `check_feature_run.go`,
-  the `host_build_check_*.go` check seams, `mcp.go`,
-  `mcp_client.go`, plus the `LabelDescriptionSet` type in `labels.go`. The
+- `/charly-internals:go` — implementation map. Core keeps the check-harness
+  host seams + verb-catalog semantics: `checkspec.go` (`opActsInBuildDeploy`),
+  `planrun_adapter.go` (the op-context grammar `opEffectiveContexts`/`opInContext`
+  + `hostVerbResolver`/`hostCheckCarrier`), `checkrun.go` (verdict helpers +
+  committed-APK anchoring data), `checkrun_charly_verbs.go`,
+  `check_endpoint_resolve.go`, `check_graphics_endpoint.go`, `checkrun_act.go`,
+  `check_venue_resolve.go`, `provider_checkenv.go`, the `host_build_check_*.go`
+  check seams (`host_build_check_load_plugins.go`, `host_build_check_bed_gpu_prereq.go`),
+  plus the `LabelDescriptionSet` type in `labels.go`. The
   op-level check validation (`validateOps` / `validateCheck`) moved out of core
   to `candy/plugin-box/validate_check.go`. The
   `charly check` CLI + AI-iteration harness (the management Cmds, the iteration
-  loop, the watchdog, clone/note/synccreds/runlocal) live in the compiled-in
-  `command:check` plugin `candy/plugin-check/`.
+  loop, the watchdog, clone/note/synccreds/runlocal) + EVERY check-run mode body
+  (box/live/feature-live/feature-box/score/preflight) live in the compiled-in
+  `command:check` plugin `candy/plugin-check/` (the former "check-run" HostBuild
+  seam is DELETED, K-wave 2 cone R4).
 - `/charly-internals:generate-source` — how `LabelDescriptionSet` is written into the Containerfile
   via `writeJSONLabel`, and why the LABEL block lives at the end of the
   final stage.

@@ -35,7 +35,7 @@ NVIDIA runtime candy providing `nvidia-container-toolkit` for CDI device injecti
 
 ## CDI Support
 
-The `nvidia-container-toolkit` provides `nvidia-ctk` which generates CDI (Container Device Interface) specs. `charly` calls `EnsureCDI()` before launching containers with GPU — if CDI specs don't exist at `/etc/cdi/nvidia.yaml`, it runs `nvidia-ctk cdi generate` to create them. This enables GPU access in nested containers where host CDI specs are not inherited.
+The `nvidia-container-toolkit` provides `nvidia-ctk` which generates CDI (Container Device Interface) specs. `charly` triggers CDI regeneration plugin-side (`pluginEnsureCDI` in `candy/plugin-preempt/holder_dispatch.go`, via `spec.GpuSwitchActionEnsureCDI` — the former in-core `EnsureCDI()` shim is DELETED, K-wave 2 cone R3) before launching containers with GPU — if CDI specs don't exist at `/etc/cdi/nvidia.yaml`, it runs `nvidia-ctk cdi generate` to create them. This enables GPU access in nested containers where host CDI specs are not inherited.
 
 ### Build-time noise on GPU-less hosts (Arch)
 
@@ -51,7 +51,7 @@ error: command failed to execute correctly
 This is **benign for the build** — pacman still exits 0 (hooks don't
 affect the parent transaction's status), the candy finishes installing,
 and the resulting image works at runtime on a GPU-bearing host (where
-the CDI spec is generated via `EnsureCDI()` at container-launch time,
+the CDI spec is generated via `pluginEnsureCDI` (`candy/plugin-preempt`) at container-launch time,
 not build time). You can ignore the error message. RPM installs don't
 trigger the hook, so Fedora-based boxes don't see this noise.
 

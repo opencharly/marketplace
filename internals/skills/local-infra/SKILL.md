@@ -4,7 +4,8 @@ description: |
   Go file map for the host side of the `local:` (external deploy:local plugin) +
   VM deploy execution surface. Files: deploy_chain.go,
   sdk/kit/sshconfig.go, sdk/vmshared/hostdistro.go, install_ledger.go, builder_run.go,
-  shell_profile.go, reverse_ops.go, service_render.go, deploy_ref.go.
+  shell_profile.go, reverse_ops.go, candy/plugin-bundle/deploy_ref.go (the former
+  `charly/deploy_ref.go` is DELETED, K-wave 2).
   MUST be invoked before reading or modifying any of those files, or when
   debugging `local:` / VM deploy behaviour (ledger state, sudo batching,
   managed-block insertion, glibc preflight, ssh-config fragment, ref resolution).
@@ -33,8 +34,8 @@ The `InstallPlan` IR (see `/charly-internals:install-plan`) is the central data 
 | `sdk/kit/reverse_ops.go` | Execute `ReverseOp` slices in LIFO order via per-kind handlers + render each `ReverseOpPackageRemove`'s host removal command from the format's `uninstall_template` at record time (moved from `charly/reverse_ops.go`) | `runReverseOps`, `ReverseExecutor` interface, 15 reverse handlers, `fillReverseUninstallCmds` (called by `candy/plugin-bundle`'s `recordDeploy`, S3b, before ledger-persist — the aur builder emits an EMPTY `UninstallCmd` and defers to this host render; `reversePackageRemove` errors loudly on an empty command at teardown) |
 
 **Managed block is written by the deploy walk's finalizer.** The env.d-sourcing block is written by `kit.WalkPlans`'s finalizer (`ensureVenueManagedBlock`) over the served executor — `GetFile` the existing rc, merge the fenced block, `PutFile` it back — for BOTH the external `local:` deploy (the host executor) AND the external `vm:` deploy (the guest `SSHExecutor`, so it lands on the guest fs). The shared body/path helpers stay in `shell_profile.go` (`ManagedBlockBody`, `ShellInitFilePath`); the block-splice itself is kit's (`sdk/kit/profile.go`); the plugin renders the equivalent via the kit primitives (`sdk/kit/profile.go`). The env.d-sourcing global block's teardown is the symmetric concern of that same walk; the per-candy `shell_snippet:` block is stripped on teardown by `reverseRemoveManaged` → `RemoveManagedBlockAt` (local) or its rendered in-place strip script (remote). `home` is the DESTINATION user's home — the guest home for a VM deploy (see `/charly-internals:vm-deploy-target`).
-| `charly/service_render.go` | Render `ServiceEntry` → systemd unit / supervisord INI | `ServiceEntry`, `ServiceOverrides`, `RenderService`, `RenderedService` |
-| `charly/deploy_ref.go` | Unified 4-form ref resolver | `DeployRef`, `RefKind`, `RefSource`, `ResolveDeployRef`, `classifyYAMLFile` |
+| `sdk/deploykit/compile_service_steps.go` | Render `ServiceEntry` → systemd unit / supervisord INI (relocated from the deleted `charly/service_render.go`, #55 W3 B4) | `ServiceEntry`, `ServiceOverrides`, `RenderService`, `RenderedService` |
+| `candy/plugin-bundle/deploy_ref.go` | Unified 4-form ref resolver (relocated from the deleted `charly/deploy_ref.go`, K-wave 2) | `DeployRef`, `RefKind`, `RefSource`, `ResolveDeployRef`, `classifyYAMLFile` |
 
 ## Credential-free SSHExecutor
 

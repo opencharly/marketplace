@@ -235,8 +235,10 @@ openclaw-desktop:
     - container-nesting   # donates /dev/fuse + /dev/net/tun devices (VMs only need /dev/kvm)
 ```
 
-`/dev/kvm` is auto-detected at `charly shell`/`charly start` time by
-`charly/devices.go` (scans `/dev/kvm`, `/dev/fuse`, `/dev/dri/renderD*`,
+`/dev/kvm` is auto-detected at `charly shell`/`charly start`/`charly config` time by the
+pod-config device detection (candy/plugin-deploy-pod's `detectDevices`, a peer
+`verb:gpu` dispatch — the former `charly/devices.go` + `DetectHostDevices` shim are
+DELETED, K-wave 2 cone R3; it scans `/dev/kvm`, `/dev/fuse`, `/dev/dri/renderD*`,
 `/dev/net/tun`, `/dev/vhost-*`, `/dev/hwrng`) — no box-level
 `security.devices:` entry needed for the typical deployment.
 

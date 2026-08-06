@@ -9,7 +9,7 @@ description: |
   candy/plugin-bundle's Invoke(OpDeployDispatch), replacing the deleted
   grpcSubstrateLifecycle/externalDeployTarget).
   SSHExecutor, VmDeployState persistence, and the host-side ledger.
-  Source: candy/plugin-deploy-vm/lifecycle.go, charly/vm_lifecycle_preresolve.go,
+  Source: candy/plugin-deploy-vm/lifecycle.go,
   charly/unified_targets.go, charly/deploy_target_dispatch.go,
   candy/plugin-bundle/deploy_target.go, spec/exec/deploy_executor*.go,
   charly/bundle_add_cmd_vm.go.
@@ -133,19 +133,25 @@ more.
 
 Core provides ONLY the residual pieces the plugin genuinely cannot do:
 
-- **The F12 `vmAttachResolver`** (`charly/vm_lifecycle_preresolve.go`): builds
-  the live-session script for `charly shell`/`charly cmd` against a vm deploy
-  — a live-session concern the plugin cannot derive itself.
-- **The ephemeral Add-time side effect** (`charly/host_build_ephemeral_register.go`,
-  the generic `"ephemeral-register"` HostBuild seam): a systemd transient-timer
+- **The F12 attach plan for a vm deploy** is now derived PLUGIN-SIDE: the former
+  `vmAttachResolver` (`charly/vm_lifecycle_preresolve.go`) is DELETED (K-wave 2
+  cone CONTESTED) — its body was `strings.Join(cmd, " ")`, derivable from the raw
+  cmd candy/plugin-bundle threads over the wire for OpAttach
+  (`lifecycleParams.Cmd`); `candy/plugin-deploy-vm/lifecycle.go`'s `vmAttach`
+  resolves it itself. `charly/unified_targets.go`'s Attach threads the raw cmd
+  for a HOOKLESS lifecycle substrate instead of requiring a host attach hook
+  (the lifecycleAttachPlanHooks map keeps only "pod").
+- **The ephemeral Add-time side effect**: a systemd transient-timer
   registration with panic-vs-warning classification (RCA #5) that must run
-  host-side; `vmPrepareVenue` Invokes it as its FIRST action, matching the
-  deleted host-side hook's own ordering.
-- **The `lifecyclePostTeardownHook`** (same file): the one residual host
-  cleanup the plugin can't do — vm's ephemeral-lifecycle teardown (systemd
-  timers + libvirt snapshot refcounts), consulted GENERICALLY by word
-  (`lifecyclePostTeardownHookFor`) from `pluginDeployTarget.Del`
-  (`charly/unified_targets.go`); pod registers none.
+  host-side. The former `charly/host_build_ephemeral_register.go` + the generic
+  `"ephemeral-register"` HostBuild seam are DELETED (K-wave 2); the plugin
+  (`candy/plugin-deploy-vm/lifecycle.go`) Invokes `command:bundle`'s
+  `OpEphemeralRegister` DIRECTLY over the peer reverse channel as its FIRST
+  action, matching the deleted host-side hook's own ordering.
+- **The `lifecyclePostTeardownHook`** is DELETED (K-wave 2 — zero refs; only an
+  "is deleted" comment survives at `charly/unified_targets.go:302`). vm's
+  ephemeral-lifecycle teardown (systemd timers + libvirt snapshot refcounts) is
+  plugin-side (`vmPostTeardown` / `OpEphemeralTeardown`).
 - **`saveDeployState`**, called from `candy/plugin-bundle/deploy_target.go`'s
   lifecycle dispatch, persists the plugin's returned `VmDeployState` patch
   (extended with `VmState` / `VmCrossRef`), and removes the charly.yml entry
@@ -161,18 +167,18 @@ Each Op:
 
 | Op | What it does |
 |---|---|
-| `OpPrepareVenue` | The full venue preflight, run BEFORE the walk. `vmPrepareVenue` resolves its OWN `spec.LifecyclePrepareInput` (via `vmEntityForPrepare` + `sdk/loaderkit.ResolveVmEntityViaExecutor` — see above), first Invoking the `"ephemeral-register"` HostBuild seam as its FIRST action; writes the managed ssh-config Host stanza (`kit.WriteVmSshStanza` + `kit.EnsureSshConfigInclude`), auto-boots the domain via `HostBuild("cli")`, waits (`kit.WaitForSSH` / `WaitForCloudInit` / `WaitForPackageLock`), `kit.EnsureCharlyInGuest`, then returns the guest-`SSHExecutor` `VenueDescriptor` (`candy/plugin-bundle`'s `lifecycleInvoke` re-materializes + serves it) and the `VmDeployState` patch (`saveDeployState` persists it). |
+| `OpPrepareVenue` | The full venue preflight, run BEFORE the walk. `vmPrepareVenue` resolves its OWN `spec.LifecyclePrepareInput` (via `vmEntityForPrepare` + `sdk/loaderkit.ResolveVmEntityViaExecutor` — see above), first Invoking `command:bundle`'s `OpEphemeralRegister` DIRECTLY over the peer reverse channel (the former `"ephemeral-register"` HostBuild seam is DELETED, K-wave 2); writes the managed ssh-config Host stanza (`kit.WriteVmSshStanza` + `kit.EnsureSshConfigInclude`), auto-boots the domain via `HostBuild("cli")`, waits (`kit.WaitForSSH` / `WaitForCloudInit` / `WaitForPackageLock`), `kit.EnsureCharlyInGuest`, then returns the guest-`SSHExecutor` `VenueDescriptor` (`candy/plugin-bundle`'s `lifecycleInvoke` re-materializes + serves it) and the `VmDeployState` patch (`saveDeployState` persists it). |
 | `OpArtifactKey` | Keys candy artifacts (+ the k3s `ClusterProfile`) under `vm:<entity>`, NOT the deploy name — one k3s cluster per VM is reached by several beds, so its profile lands under the shared `vm-<entity>` name the `cluster:` refs use. |
 | `OpPostApply` | Deploys nested `target: pod` children as persistent in-guest quadlets over the served guest executor, AFTER the walk (so the VM's own candies + any kernel-driver reboot are already applied). Add only; skipped under `--node-only`. |
 | `OpTeardownExecutor` | Returns the guest-`SSHExecutor` `VenueDescriptor` (against the managed alias, no boot) the recorded `ReverseOps` replay over IN THE GUEST. |
-| `OpPostTeardown` | Removes the managed ssh-config stanza (`kit.RemoveVmSshStanza`) and ships the charly.yml entry keys to strip in `PostTeardownReply.RemoveEntries`; the core `lifecyclePostTeardownHook` runs the residual ephemeral-lifecycle teardown. |
+| `OpPostTeardown` | Removes the managed ssh-config stanza (`kit.RemoveVmSshStanza`) and ships the charly.yml entry keys to strip in `PostTeardownReply.RemoveEntries`; the ephemeral-lifecycle teardown is plugin-side (`vmPostTeardown` / `OpEphemeralTeardown` — the former core `lifecyclePostTeardownHook` is DELETED, K-wave 2). |
 | `OpStart` / `OpStop` / `OpStatus` / `OpLogs` / `OpShell` / `OpRebuild` | Drive the `charly vm` family via `HostBuild("cli")`. `OpRebuild` does `charly vm destroy` + `build` + `create` + `start` + `charly bundle add <name>` (re-applying the deploy's candies to the fresh guest via the shared layer-apply primitive, R3) — the path `charly update <vm-bed>` routes through. |
 
 ## Implementation notes
 
 - The `pod` substrate is EXTERNAL (`deploy:pod`, candy/plugin-deploy-pod); the pod overlay render MOVED to the candy (P11c — `candy/plugin-deploy-pod/overlay.go`, via `deploykit.OCITarget`), and `charly/build_overlay.go` is now the host-side prep+resolve M-seam the candy reaches over `HostBuild("overlay")`. Its teardown record is keyed HOST-SIDE by `computeDeployID(name)` like every external deploy (the in-proc pod was record-free).
 - `vmNameFromDeployName` strips the `vm:` prefix. `vmEntityForPrepare` (`candy/plugin-deploy-vm/lifecycle.go`, ported verbatim from the DELETED `charly/vm_lifecycle_preresolve.go`'s `vmEntityForAdd` — FINAL/K5 unit 6a, M4b) resolves the `kind:vm` entity from a deploy node: the node's `vm:` cross-ref (`node.From`) wins, then a legacy `vm:<entity>` prefix, then the leaf of a nested dotted path.
-- `UnifiedDeployTarget` / `LifecycleTarget` interfaces (`charly/deploy_target_unified.go`) + the `ResolveTarget` dispatcher (`charly/unified_targets.go`) provide the full lifecycle contract (`Add` / `Del` / `Update` / `Start` / `Stop` / `Status` / `Logs` / `Shell` / `Rebuild` — `Test` DELETED, #55 W3 B3 remainder: zero real callers anywhere in the tree). `ResolveTarget` returns a `pluginDeployTarget` (S3b) for every externalized substrate (local/vm/pod/k8s/android — all five).
+- `UnifiedDeployTarget` / `LifecycleTarget` interfaces (`spec/spec/deploy_target_unified.go`, the kind-agnostic contract — the option types repoint to the CUE-sourced `spec.DeployTarget*` wire types) + the `ResolveTarget` dispatcher (`charly/unified_targets.go`) provide the full lifecycle contract (`Add` / `Del` / `Update` / `Start` / `Stop` / `Status` / `Logs` / `Shell` / `Rebuild` — `Test` DELETED, #55 W3 B3 remainder: zero real callers anywhere in the tree). `ResolveTarget` returns a `pluginDeployTarget` (S3b) for every externalized substrate (local/vm/pod/k8s/android — all five).
 - Disposability is read per-`BundleNode` via `charly/deploy.go::BundleNode.IsDisposable()` (`disposable: true`, or ephemeral); it is NOT a `VmSpec` field. The disposability-as-authorization gate is NOT applied in the `charly update` path — `charly update <vm>` rebuilds on explicit invocation regardless (it only NOTES non-disposability, never refuses). `pluginDeployTarget.Rebuild` dispatches via `candy/plugin-bundle`'s `Invoke(OpDeployDispatch)` to the plugin's `OpRebuild` (over `HostBuild("cli")`), which recreates the domain THEN re-applies the deploy node's layers via the shared `charly bundle add <node>` path — the same layer-apply primitive the local/pod Rebuild use (R3).
 
 The `vm` substrate brings `charly bundle add vm:<name>` online: the same
@@ -190,7 +196,7 @@ from the executor), so the reverse ops run IN THE GUEST.
 |---|---|
 | `charly/unified_targets.go` + `charly/deploy_target_dispatch.go` + `charly/host_build_arbiter_bracket.go` | S3b: `pluginDeployTarget` — the thin, data-only generic out-of-process adapter for all five external substrates, dispatching via `dispatchDeployTarget` to `candy/plugin-bundle`'s `Invoke(OpDeployDispatch)`; `Del` replays recorded `ReverseOps`. Replaces the DELETED `charly/deploy_target_external.go` (`externalDeployTarget`), `charly/substrate_lifecycle_grpc.go` (`grpcSubstrateLifecycle`), `charly/deploy_preresolve.go` (`wireDeployPreresolver`), and `charly/deploy_substrate_lifecycle.go` (the `substrateLifecycle` interface + `registerPluginSubstrateLifecycle`) |
 | `candy/plugin-bundle/deploy_target.go` | S3b: `runDeployDispatch`'s `lifecycleInvoke`/`preresolveSubstrate` — Invokes the substrate's `OpPrepareVenue`/`OpStart`/`OpStop`/`OpStatus`/`OpRebuild`/`OpPreresolve`/… via its OWN `sdk.Executor.InvokeProvider(class:"deploy", word, op, …)` (S1); re-materializes the plugin's returned `VenueDescriptor`, and persists the returned `VmDeployState` via `saveDeployState` |
-| `charly/vm_lifecycle_preresolve.go` | FINAL/K5 unit 6a, M4b: the vm `lifecyclePrepareHook` DATA-seam is GONE (hard cutover) — the plugin resolves its OWN `spec.LifecyclePrepareInput`. This file keeps only the F12 `vmAttachResolver` + the vm `lifecyclePostTeardownHook` (ephemeral-lifecycle host cleanup) |
+| `charly/vm_lifecycle_preresolve.go` | DELETED (K-wave 2 cone CONTESTED). The FINAL/K5 unit 6a (M4b) move had already removed the `lifecyclePrepareHook` DATA-seam + `lifecyclePostTeardownHook` (the plugin self-resolves `spec.LifecyclePrepareInput`); the last remaining F12 `vmAttachResolver` was then DELETED too — the plugin derives the attach script from the raw wire cmd (`vmAttach` over `lifecycleParams.Cmd`, `candy/plugin-deploy-vm/lifecycle.go`), and `charly/unified_targets.go`'s Attach threads it for hookless lifecycle substrates |
 | `candy/plugin-deploy-vm/lifecycle.go` | the plugin's venue lifecycle — implements every lifecycle Op (`OpPrepareVenue` / `OpPostApply` / `OpStart` / … / `OpPostTeardown`) over `kit` + `HostBuild("cli")` + the served guest executor; `vmEntityForPrepare` + `vmPrepareVenue` (self-resolving `spec.LifecyclePrepareInput` via `sdk/loaderkit.ResolveVmEntityViaExecutor`, K-wave W3a A3-phase-2, ported from the deleted `charly/vm_lifecycle_preresolve.go`'s `vmEntityForAdd`/`vmLifecyclePrepare`) |
 | `candy/plugin-deploy-vm/` | the out-of-process `deploy:vm` plugin (the plan WALK via `kit.WalkPlans` over the guest `SSHExecutor`) |
 | `spec/exec/deploy_executor.go` | `DeployExecutor` interface (RunShell, Scp, Close) + `ShellExecutor` — local shell exec (used host-side for the builder-image step and `RunHostStep`) |
@@ -223,9 +229,10 @@ inside the plugin** — the DELETED `lifecyclePrepareHook`/`vmLifecyclePrepare`
 (`charly/vm_lifecycle_preresolve.go`) is gone; `candy/plugin-deploy-vm/lifecycle.go`'s
 `vmPrepareVenue` now does it all, BEFORE the walk:
 
-0. **Register the ephemeral Add-time side effect** — Invokes the generic
-   `HostBuild("ephemeral-register")` seam FIRST (a panic-safe systemd
-   transient-timer registration the plugin cannot do itself, RCA #5),
+0. **Register the ephemeral Add-time side effect** — Invokes `command:bundle`'s
+   `OpEphemeralRegister` DIRECTLY over the peer reverse channel FIRST (a
+   panic-safe systemd transient-timer registration the plugin cannot do itself,
+   RCA #5; the former `HostBuild("ephemeral-register")` seam is DELETED, K-wave 2),
    matching the deleted host-side hook's own ordering.
 1. **Resolve its own DATA.** `vmEntityForPrepare` resolves the `kind:vm`
    entity from the node's `vm:` cross-ref / a legacy `vm:<name>` prefix / the

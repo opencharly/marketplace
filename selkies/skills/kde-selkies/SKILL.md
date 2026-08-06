@@ -21,7 +21,7 @@ no DRM seat, no SDDM, no `graphical.target`. So:
 
 - ONE supervisord service `kde-selkies-session` (priority 12, `scope: user`,
   `%(ENV_HOME)s` exec — resolves for both supervisord pods AND systemd-user
-  targets via `service_render.go`). **No `after: graphical-session.target`** —
+  targets via the service render (`sdk/deploykit`'s renderSeamCaller). **No `after: graphical-session.target`** —
   the wrapper's poll-for-`/tmp/wayland-1` IS the ordering primitive (identical to
   `labwc-wrapper`).
 - `kde-selkies-session` waits for pixelflux's `wayland-1`, sets

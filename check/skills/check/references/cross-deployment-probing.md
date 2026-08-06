@@ -35,11 +35,11 @@ verb. Operators with legacy YAML run `charly migrate`. See
 `/charly-local:local-spec` "What the deploy does NOT do" and the project rulebook
 "Deploy fetches NOTHING speculative".
 
-Lives in `charly/check_image_preflight.go`
-(`EnsureImagePresent`, `ensureScoreImages` — the "preflight" mode body); reached
-via the `host_build_check_run.go` "preflight" seam, which the `command:check`
-plugin (`candy/plugin-check`) drives for the host-target run (the former
-`case TargetKindHost:` arm). Pod / VM / k8s
+Lives in `candy/plugin-check`
+(`preflight_images.go`'s `preflightImageCandidates` + `command.go`'s
+`pluginCheckRunPreflight` — the "preflight" mode body, fully plugin-side since
+K-wave 2 cone R4); the `command:check` plugin drives it for the host-target run
+(the former `case TargetKindHost:` arm). Pod / VM / k8s
 targets carry their own image inside their respective deploy schema
 and never trigger the preflight.
 
