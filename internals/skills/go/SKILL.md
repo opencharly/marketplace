@@ -141,7 +141,7 @@ See the project rulebook's R9 mandate (`CLAUDE.md`/`AGENTS.md`). Applied to the 
   a synced host.
 
 The verification side (checking the deployed binary + deps on a live target)
-is `/charly-check:check` Standards 7–8; the dual-path `bin/charly` ↔
+is `/charly-check:check` Standards 7–9; the dual-path `bin/charly` ↔
 `candy/charly/bin/charly` gotcha is above and in `/charly-tools:charly`.
 
 ## Style Guide
@@ -166,4 +166,4 @@ is `/charly-check:check` Standards 7–8; the dual-path `bin/charly` ↔
 
 **MUST be invoked** before reading or modifying Go source files. Invoke this skill BEFORE launching Explore agents on charly/ code.
 
-Live-deploy verification: see `/charly-check:check` (the 10 Testing Standards) and `/charly-internals:disposable`.
+Live-deploy verification: see `/charly-check:check` (the 11 Testing Standards) and `/charly-internals:disposable`.

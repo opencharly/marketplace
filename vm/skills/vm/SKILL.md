@@ -577,4 +577,4 @@ Expected. The agent needs a `virtio-serial` channel that charly's QEMU backend d
 
 **Workflow position:** Standalone workflow. VM management is separate from container lifecycle, but `charly bundle add vm:<name>` bridges into the shared InstallPlan + DeployTarget machinery.
 
-Live-deploy verification: see /charly-check:check (the 10 Testing Standards) and /charly-internals:disposable.
+Live-deploy verification: see /charly-check:check (the 11 Testing Standards) and /charly-internals:disposable.

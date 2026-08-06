@@ -654,4 +654,4 @@ The main repo imports all three submodules (`arch` / `cachyos` / `fedora` namesp
 - `/charly-build:migrate` — `charly migrate` migrates legacy configs into the canonical single-`charly.yml` layout
 - `/charly-internals:capabilities` — OCI label contract emitted at build time and consumed by deploy commands
 
-Live-deploy verification: see /charly-check:check (the 10 Testing Standards) and /charly-internals:disposable.
+Live-deploy verification: see /charly-check:check (the 11 Testing Standards) and /charly-internals:disposable.

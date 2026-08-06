@@ -393,13 +393,13 @@ Path: `~/.config/containers/systemd/charly-<image>.container` (or `charly-<image
 Contents include:
 - `[Container]` section: image reference, container name, port mappings, volumes, environment
 - `[Service]` section: restart policy, lifecycle hooks
-- `[Install]` section: `WantedBy=default.target` (omitted for encrypted services without keyring backend)
+- `[Install]` section: `WantedBy=default.target` (omitted only when encrypted volumes are backed by the `config` secret backend)
 - `PodmanArgs=` for security settings (privileged, capabilities, devices)
 - `Volume=` for named volumes and plain bind mounts
 - `Environment=` / `EnvironmentFile=` for env vars
 - `ExecStartPost=` / `ExecStopPost=` for tunnel commands
 
-Service name: `charly-<image>.service`. Container name: `charly-<image>`. Entrypoint: determined by the embedded `init:` vocabulary for the configured init system. Encrypted volumes are mounted via `ExecStartPre=charly config mount` in the quadlet, which creates transient `charly-enc-<image>-<volume>.scope` units for each encrypted volume. These scope units are independent of the container service — they survive stop/restart (see `/charly-automation:enc`). With Secret Service backend: auto-starts after login (ExecStartPre waits for keyring unlock, `TimeoutStartSec=0`). With KeePass or no backend: requires `charly start` (no `WantedBy=default.target`).
+Service name: `charly-<image>.service`. Container name: `charly-<image>`. Entrypoint: determined by the embedded `init:` vocabulary for the configured init system. Encrypted volumes are mounted via `ExecStartPre=charly config mount` in the quadlet, which creates transient `charly-enc-<image>-<volume>.scope` units for each encrypted volume. These scope units are independent of the container service — they survive stop/restart (see `/charly-automation:enc`). The boot gate is the **secret backend**: with a keyring-class backend (`keyring`, `auto`, or unset) the deploy starts at boot, and `ExecStartPre` blocks in the mount until the keyring unlocks (`TimeoutStartSec=0`, so it waits indefinitely rather than failing); with `secret_backend: config` there is no `WantedBy=default.target` and the deploy needs an explicit `charly start` — a security decision recorded at sdk#121, because a passphrase stored in cleartext must not be auto-mounted, unattended, at every boot.
 
 ### Security in Quadlet
 
@@ -1175,4 +1175,4 @@ The loader raises a hard load-time error on obsolete deploy names (the retired `
 **Workflow position:** After `/charly-build:build`, before `/charly-core:service`.
 Previous step: `/charly-build:build` (build the image). Next step: `/charly-core:service` (start, status, logs).
 
-Live-deploy verification: see /charly-check:check (the 10 Testing Standards) and /charly-internals:disposable.
+Live-deploy verification: see /charly-check:check (the 11 Testing Standards) and /charly-internals:disposable.

@@ -61,7 +61,7 @@ Detail lives in sibling `references/*.md` files, loaded on demand:
 
 | Topic | Reference | Covers |
 |---|---|---|
-| Disposable beds, R10 acceptance gate | `references/beds-and-r10.md` | The bed roster, the "R10 gate by change class" matrix (sole owner), the 10 Testing Standards, "Flag discipline" (sole owner), exit codes, the three primary modes, wall-clock/timing data |
+| Disposable beds, R10 acceptance gate | `references/beds-and-r10.md` | The bed roster, the "R10 gate by change class" matrix (sole owner), the 11 Testing Standards, "Flag discipline" (sole owner), exit codes, the three primary modes, wall-clock/timing data |
 | Deterministic verb catalog | `references/verb-catalog.md` | The `plan:` authoring model, the file/package/service/port/process/command/http/... verb catalog, shared modifiers, matcher forms, verb routing (executor selection), runtime variables, `charly.yml` overlay rules |
 | Live-container probe verbs | `references/live-probe-verbs.md` | The out-of-process `cdp`/`wl`/`dbus`/`vnc`/`mcp` verbs — method allowlists, worked examples, artifact-validation modifiers |
 | Authoring gotchas, ADE, AI harness | `references/authoring-gotchas.md` | Agent Driven Evaluation (the six-stage loop, the agent-grader contract), the 12 numbered authoring gotchas, the AI-iteration harness pgrep-deadlock defense |
