@@ -223,7 +223,7 @@ charly config selkies-desktop -i 192.241.92.221 --memory-max=8g
 charly config jupyter --memory-max=16g --cpus=8
 ```
 
-Merge rules (see `charly/security.go`):
+Merge rules (see `sdk/deploykit/security.go`):
 
 - **Layers → image**: smallest value wins (`minCap` / `minCpus`). A tighter
   cap is a smaller blast radius, so it's the safer default.
@@ -403,7 +403,7 @@ Result in `charly.yml` `provides.mcp`:
 
 Consumers (e.g., hermes) see both as distinct MCP servers in `CHARLY_MCP_SERVERS`. On re-config, stale MCP entries from the same source are automatically cleaned before new entries are injected.
 
-Source: `charly/config_image.go` (`injectMCPProvides`).
+Source: `candy/plugin-deploy-pod/provides_inject.go` (`injectMCPProvidesInto`).
 
 ## Hermes LLM Provider Auto-Configuration Example
 
@@ -459,7 +459,7 @@ Set them with -e flags, --env-file, or charly.yml env:
   charly config openwebui -e WEBUI_ADMIN_EMAIL=...
 ```
 
-Source: `charly/config_image.go` (`checkMissingEnvRequires`).
+Source: `candy/plugin-deploy-pod/config_setup_helpers.go` (`checkMissingEnvRequires`).
 
 ## secret_require Enforcement
 
@@ -479,7 +479,7 @@ Alternatively, pass the value once via -e; it will be auto-imported:
   charly config openwebui -e WEBUI_ADMIN_PASSWORD=...
 ```
 
-Source: `charly/config_image.go` (`checkMissingSecretRequires`).
+Source: `candy/plugin-deploy-pod/config_setup_helpers.go` (`checkMissingSecretRequires`).
 
 ## Plaintext-to-Credential Migration Hook
 
@@ -493,7 +493,7 @@ When `charly config <image>` runs, it automatically migrates any existing plaint
 
 Idempotent — running on a clean host is a no-op. This gives pre-upgrade hosts an automatic one-time cleanup with a rollback point preserved.
 
-Source: `charly/config_secret_migration.go` (`MigratePlaintextEnvSecrets`).
+Source: `candy/plugin-deploy-pod/secret_migration.go` (`migratePlaintextEnvSecret`).
 
 ## `-e` Auto-Import for `secret_accept` / `secret_require`
 
@@ -508,7 +508,7 @@ The normal secret resolution path then picks up the value from the backend on th
 
 Plain `env_accept` / `env_require` entries are unaffected — their `-e` values continue to flow through the plaintext env merge into `charly.yml` and the quadlet as before.
 
-Source: `charly/config_secret_migration.go` (`scrubSecretCLIEnv`).
+Source: `candy/plugin-deploy-pod/secret_migration.go` (`scrubSecretCLIEnv`).
 
 ## Provides Filtering (env_accept / env_require opt-in)
 
@@ -532,7 +532,7 @@ Source: `charly/config_secret_migration.go` (`scrubSecretCLIEnv`).
 
 **`--update-all` effect.** When filtering rules change (e.g., a candy adds a new `env_accept` entry), `charly config <any-image> --update-all` re-runs the resolution pipeline for every deployed image and writes updated `provides:` blocks to their quadlets. Propagation is atomic per-image.
 
-Source: `charly/provides.go` (resolution, filtering, `{{.ContainerName}}` templating), `charly/config_image.go` (`injectEnvProvides`, `injectMCPProvides`, `checkMissingEnvRequires`).
+Source: `candy/plugin-deploy-pod/provides_inject.go` (`injectEnvProvidesInto` / `injectMCPProvidesInto` — resolution, filtering, `{{.ContainerName}}` templating), `candy/plugin-deploy-pod/config_setup_helpers.go` (`checkMissingEnvRequires`).
 
 ## Sidecar Attachment
 
@@ -562,13 +562,13 @@ Kong `sep:"none"` on all `-e` flags means commas in values are preserved (no spl
 
 `normalizeNoProxy()` auto-converts semicolons to commas in `NO_PROXY`/`no_proxy` values during env resolution. Legacy semicolon values in charly.yml are auto-healed.
 
-**NO_PROXY enrichment:** When `HTTP_PROXY` or `HTTPS_PROXY` is present, `charly config` automatically appends all deployed container hostnames to `NO_PROXY`. This is necessary because Chrome does not support CIDR ranges in NO_PROXY (unlike curl) — without explicit hostnames, Chrome routes internal traffic like `http://charly-immich-ml:2283` through the external proxy, causing Bad Gateway errors. Applied in both the main config path and `--update-all`. Source: `charly/envfile.go` (`enrichNoProxy`), `charly/deploy.go` (`DeployedContainerNames`).
+**NO_PROXY enrichment:** When `HTTP_PROXY` or `HTTPS_PROXY` is present, `charly config` automatically appends all deployed container hostnames to `NO_PROXY`. This is necessary because Chrome does not support CIDR ranges in NO_PROXY (unlike curl) — without explicit hostnames, Chrome routes internal traffic like `http://charly-immich-ml:2283` through the external proxy, causing Bad Gateway errors. Applied in both the main config path and `--update-all`. Source: `spec/hostenv/envfile.go` (`EnrichNoProxy`), `sdk/deploykit/bundle_derive.go` (`DeployedContainerNames`).
 
 **Tunnel persistence:** `charly config setup` automatically persists tunnel config from charly.yml back to charly.yml via `saveDeployState`. Tunnel is a deploy-time concern — see `/charly-core:deploy` for tunnel configuration.
 
 **Tunnel is charly.yml-only:** `labels.go:238` deliberately skips parsing the `ai.opencharly.tunnel` OCI image label. Tunnel config is ONLY sourced from `charly.yml`. New instances created with `charly config setup -i <name>` do NOT inherit tunnel config from the base image's charly.yml entry — you must manually add `tunnel: {provider: tailscale, private: all}` to the instance's charly.yml entry, then re-run `charly config setup` to regenerate the quadlet with `ExecStartPost=tailscale serve` commands.
 
-Source: `charly/envfile.go` (`normalizeNoProxy`), `charly/deploy.go` (`mergeEnvVars`, `saveDeployState`), `sep:"none"` in config_image.go/shell.go/commands.go/start.go.
+Source: `spec/hostenv/envfile.go` (`normalizeNoProxy`), `sdk/deploykit/deploy_state.go` (`MergeEnvVars`, `SaveDeployState`), `sep:"none"` in `candy/plugin-bundle/bundle_cmd.go` + `candy/plugin-pod/pod_cmd.go` (the former `charly/config_image.go`/`shell.go`/`start.go` are DELETED, K-wave 2).
 
 ## Cross-References
 
@@ -600,6 +600,6 @@ Source: `charly/envfile.go` (`normalizeNoProxy`), `charly/deploy.go` (`mergeEnvV
 
 **Workflow position:** After build, before start. `charly box build` → `charly config` → `charly start`.
 
-Source: `charly/config_image.go` (command structs), `charly/quadlet.go` (quadlet generation), `charly/deploy.go` (deploy state), `candy/plugin-pod/enc_cmd.go` (encrypted volumes — the former `charly/enc.go` is DELETED, K-wave 2), `candy/plugin-bundle/secrets_artifacts.go` (secret provisioning — the former `charly/secrets.go` is DELETED, K-wave 2), `charly/data.go` (data seeding).
+Source: `candy/plugin-deploy-pod/config_setup.go` / `plugin.go` (the `charly config` command grammar + `OpConfigSetup` drive — the former `charly/config_image.go` is DELETED, K-wave 2), `sdk/deploykit/quadlet.go` / `quadlet_pod.go` + `candy/plugin-deploy-pod/config_write.go` (quadlet generation — the former `charly/quadlet.go`/`charly/quadlet_pod.go` are DELETED, K-wave 2), `sdk/deploykit/deploy_state.go` (deploy state — the former `charly/deploy.go` is DELETED, K-wave 2), `candy/plugin-pod/enc_cmd.go` (encrypted volumes — the former `charly/enc.go` is DELETED, K-wave 2), `candy/plugin-bundle/secrets_artifacts.go` (secret provisioning — the former `charly/secrets.go` is DELETED, K-wave 2), `sdk/deploykit/data.go` (data seeding — the former `charly/data.go` is DELETED, K-wave 2).
 
 Live-deploy verification: see /charly-check:check (the 11 Testing Standards) and /charly-internals:disposable.

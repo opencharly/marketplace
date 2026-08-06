@@ -23,7 +23,7 @@ description: |
 1. **Execution verbs** — `charly bundle add <name>` / `charly bundle del <name>`. Apply or reverse a deployment. The target is dispatched by which substrate node the deploy carries:
    - `local: {from: <template>}` → the external `deploy:local` plugin (`candy/plugin-deploy-local`) applies to the local filesystem over the executor reverse channel (or, placed under another resource node via tree position, via NestedExecutor into the enclosing deployment). See `/charly-local:local-deploy`.
    - `vm: {from: <entity>}` → the external `deploy:vm` plugin (`candy/plugin-deploy-vm`) applies INSIDE a running VM over SSH via the reverse channel; the plugin auto-boots the venue in its `OpPrepareVenue` (via `HostBuild("cli")`), using the host prepare hook's resolved data. See "VM target" section below and `/charly-internals:vm-deploy-target`.
-   - `pod: {image: <image>}` → the candy `plugin-deploy-pod` renders the overlay Containerfile (in its own code via `deploykit.OCITarget` + `deploykit.NewRenderGeneratorFromProject`) + the quadlet config-write (the quadlet path stays core, #86).
+   - `pod: {image: <image>}` → the candy `plugin-deploy-pod` renders the overlay Containerfile (in its own code via `deploykit.OCITarget` + `deploykit.NewRenderGeneratorFromProject`) + the quadlet config-write (fully plugin-side in `candy/plugin-deploy-pod` + `sdk/deploykit/quadlet_paths.go` — the former core quadlet path is DELETED, K-wave 2).
    - `k8s: {from: <name>}` → Kustomize base/overlays tree. See `/charly-kubernetes:kubernetes`.
 2. **Config-file management** — `charly bundle show/export/import/reset/path/status`. Read and mutate `~/.config/charly/charly.yml` itself.
 
@@ -410,13 +410,13 @@ Layer and image-level security settings become `PodmanArgs=` in the quadlet file
 - `devices` -> `PodmanArgs=--device=<DEV>`
 - `security_opt` -> `PodmanArgs=--security-opt=<OPT>`
 
-Source: `charly/security.go`, `charly/quadlet.go`.
+Source: `sdk/deploykit/security.go`, `sdk/deploykit/quadlet.go`.
 
 ### Image Transfer
 
 When `engine.build=docker`, `charly config` auto-detects if the image is missing from podman and transfers via `docker save | podman load`. `charly update` re-transfers if needed.
 
-Source: `charly/quadlet.go` (generation), `charly/commands.go` (command structs).
+Source: `sdk/deploykit/quadlet.go` + `sdk/deploykit/quadlet_pod.go` (generation), `charly/commands.go` (command structs).
 
 ## Tunnel Configuration
 
@@ -436,7 +436,7 @@ tunnel:
 
 **`bind_address` must be `127.0.0.1` (the default).** Setting `0.0.0.0` causes the container to bind on the Tailscale interface, preventing Tailscale from intercepting TLS. Result: HTTPS fails with `wrong version number`.
 
-**Port form in `charly.yml`.** The canonical form is bare `H:C` (e.g. `8888:8888`); `charly config` prepends `127.0.0.1:` automatically when a tunnel is set. The IP-prefixed form `127.0.0.1:8888:8888` (and IPv6 `[::1]:8888:8888`) is also accepted — the canonical `ParsePortMapping` helper in `charly/ports.go` normalizes both shapes to a single-prefixed `PublishPort=` line, so neither form produces a doubled `127.0.0.1:127.0.0.1:8888:8888` quadlet. Unparseable port strings are logged loudly to stderr rather than silently dropped (a silent skip would otherwise suppress the entire `ExecStartPost=tailscale serve` block when even one port couldn't be parsed).
+**Port form in `charly.yml`.** The canonical form is bare `H:C` (e.g. `8888:8888`); `charly config` prepends `127.0.0.1:` automatically when a tunnel is set. The IP-prefixed form `127.0.0.1:8888:8888` (and IPv6 `[::1]:8888:8888`) is also accepted — the canonical `ParsePortMapping` helper in `spec/spec/port_mapping.go` normalizes both shapes to a single-prefixed `PublishPort=` line, so neither form produces a doubled `127.0.0.1:127.0.0.1:8888:8888` quadlet. Unparseable port strings are logged loudly to stderr rather than silently dropped (a silent skip would otherwise suppress the entire `ExecStartPost=tailscale serve` block when even one port couldn't be parsed).
 
 ### Tailscale Funnel (public internet)
 
@@ -531,7 +531,7 @@ Port protocols are stored in the `ai.opencharly.port_proto` image label so deplo
 
 `tunnel` inherits from defaults (image -> defaults -> nil). The shorthand `tunnel: tailscale` defaults to `private: all` (all ports on tailnet). The shorthand `tunnel: cloudflare` defaults to `public: all`.
 
-Source: `charly/tunnel.go` (resolution + the shared `schemeTarget`/`tailscaleFlag`/`isTCPFamily` helpers), `charly/tunnel_plugin.go` (the core adapter forwarding `TunnelStart`/`TunnelStop`/`cloudflareTunnelSetup` to `verb:tunnel`), `candy/plugin-tunnel` (the externalized tailscale/cloudflared EXECUTION leg — C16b), `charly/quadlet.go` (systemd integration). Tunnel config is a deploy-time concern (charly.yml only) — not validated at image-validate time.
+Source: `sdk/deploykit/tunnel_resolve.go` (resolution + the shared `schemeTarget`/`tailscaleFlag`/`isTCPFamily` helpers — the former `charly/tunnel.go` is DELETED, K-wave 2), `candy/plugin-tunnel` (the `verb:tunnel` EXECUTION leg — `tunnel_exec.go` runs the tailscale serve/funnel + cloudflared lifecycle; the former core dispatch adapter `charly/tunnel_plugin.go` is DELETED, K-wave 2), `candy/plugin-deploy-pod` / `candy/plugin-pod` (the pod-lifecycle plugins that resolve a `TunnelConfig` and drive `verb:tunnel` directly), `sdk/deploykit/quadlet.go` (systemd integration). Tunnel config is a deploy-time concern (charly.yml only) — not validated at image-validate time.
 
 ## charly.yml — Source of Truth
 
@@ -545,7 +545,7 @@ Source: `charly/tunnel.go` (resolution + the shared `schemeTarget`/`tailscaleFla
 
 ### Legacy-schema rejection
 
-The per-host config is compact node-form: top-level name-first `<name>: {<substrate-kind>: <full body>}` entries (the substrate-kind being `pod`/`vm`/`k8s`/`local`/`android`/`group`, its value carrying the deploy config INLINE, projected internally into the `BundleConfig.Bundle` map; the only named children are member sub-entities), preceded by a `version:` stamp and an optional `provides:` directive. `LoadBundleConfig` reads it through the unified node-form loader (`LoadUnified` → `ProjectBundleConfig`). A host still on a legacy root shape — the obsolete `image:`/`images:` root key, or the legacy `deploy.yml` filename — is detected and fails loud, so a misparse can never silently drop a `volume:` entry with `type: encrypted` from `loadEncryptedVolumes` and quietly void the encryption guarantee; the failure points at `charly migrate`.
+The per-host config is compact node-form: top-level name-first `<name>: {<substrate-kind>: <full body>}` entries (the substrate-kind being `pod`/`vm`/`k8s`/`local`/`android`/`group`, its value carrying the deploy config INLINE, projected internally into the `BundleConfig.Bundle` map; the only named children are member sub-entities), preceded by a `version:` stamp and an optional `provides:` directive. `LoadBundleConfig` reads it through the unified node-form loader (`LoadUnified` → `ProjectBundleConfig`). A host still on a legacy root shape — the obsolete `image:`/`images:` root key, or the legacy `deploy.yml` filename — is detected and fails loud, so a misparse can never silently drop a `volume:` entry with `type: encrypted` — the encrypted-volume load is `LoadEncryptedVolume` (sdk/deploykit/enc_probe.go) — and quietly void the encryption guarantee; the failure points at `charly migrate`.
 
 `charly status` surfaces this as a non-fatal warning (graceful degradation falls back to image-label-driven display); the strictly-charly.yml-driven verbs (`charly bundle show`, `charly config status`, `charly start`) hard-fail. Run `charly migrate` to convert in place — it backs the original up to `<file>.bak.<unix-ts>` and rewrites to the latest schema. See `/charly-build:migrate` "charly migrate".
 
@@ -632,7 +632,7 @@ selkies-desktop:
       cpus: "4.0"
 ```
 
-**Merge semantics** (authoritative, from `charly/security.go`):
+**Merge semantics** (authoritative, from `sdk/deploykit/security.go`):
 
 | Source | Merge rule |
 |---|---|
@@ -648,7 +648,7 @@ Quadlet emission (`[Service]` section of `.container` file):
 - `memory_swap_max` → `MemorySwapMax=2G`
 - `cpus` → `CPUQuota=400%` (systemd percentage form: 1 core = 100%)
 
-Direct-mode emission (podman run flags, for `engine.run=direct`): `--memory`, `--memory-reservation`, `--memory-swap`, `--cpus`. `SecurityArgs` in `charly/security.go` emits both forms from the same source of truth.
+Direct-mode emission (podman run flags, for `engine.run=direct`): `--memory`, `--memory-reservation`, `--memory-swap`, `--cpus`. `SecurityArgs` in `sdk/deploykit/security.go` emits both forms from the same source of truth.
 
 **Unset fields pass through** — setting `--memory-max=6g` alone will not wipe an existing `shm_size` from charly.yml. Only the fields you pass on the CLI get overwritten; everything else is preserved from the current charly.yml state.
 
@@ -739,7 +739,7 @@ charly start selkies-desktop -i work
 charly start selkies-desktop -i personal
 ```
 
-**Deploy key convention:** Base images use `selkies-desktop` as the charly.yml key. Instances use `selkies-desktop/work` (slash-separated). Functions: `deployKey()` constructs keys, `parseDeployKey()` splits them back. Source: `charly/deploy.go`.
+**Deploy key convention:** Base images use `selkies-desktop` as the charly.yml key. Instances use `selkies-desktop/work` (slash-separated). Functions: `DeployKey()` constructs keys, `ParseDeployKey()` splits them back (`spec/spec/deploy_key.go` — the former `charly/deploy.go` is DELETED, K-wave 2).
 
 **Container naming:** `charly-<image>-<instance>` (e.g., `charly-selkies-desktop-work`). Quadlet file: `charly-selkies-desktop-work.container`.
 
@@ -826,7 +826,7 @@ immich:
 
 ### Resolution Flow
 
-`ResolveVolumeBacking()` in `charly/deploy.go` splits image volumes into named volumes and bind-backed mounts:
+`ResolveVolumeBacking()` in `sdk/deploykit/deploy_volume.go` splits image volumes into named volumes and bind-backed mounts:
 
 1. Load all volumes from image labels (`ai.opencharly.volume`)
 2. Load charly.yml volume overrides for this image
@@ -1107,7 +1107,7 @@ webapp:                            # an operator deploy + a companion member
   a hard load error) and carry **no `.`** (same rules as nested-member keys + bed
   names); the author keeps member **host ports disjoint** (the loader does not check
   ports — port absence, i.e. auto-allocation, avoids fixed-port collisions).
-- **One shared lifecycle (R3).** `bringUpMembers` / `tearDownMembers` (`charly/bundle_members.go`)
+- **One shared lifecycle (R3).** `BringUpMembers` / `TearDownMembers` (`sdk/deploykit/bundle_members.go`)
   bring members up after the owner and tear them down with it, by shelling out to the
   SAME verbs — a pod member via `charly config` + `charly start` (+ readiness wait), a
   non-pod member via `charly bundle add` / `charly bundle del`. Wired into `charly bundle add` /

@@ -55,7 +55,7 @@ Key details: passwordless sudo is required because yay calls `pacman -U` as root
 
 The pixi/npm/aur stages above are NOT rendered from an in-core `builders.<name>` vocabulary. Since C10 **both** the four DETECTION-builders (pixi/npm/cargo/aur — selected by a candy's `pixi.toml` / `package.json` / `Cargo.toml` / `aur:` section) **and** an OUT-OF-TREE builder selected by a candy's `external_builder: <word>` field emit their build-time multi-stage through the SAME `OpResolve` seam: the plugin returns a `spec.BuilderResolveReply` the generator splices. The stage TEMPLATES for the four detection-builders live in the shared `sdk/kit.BuilderResolve` (imported by each `candy/plugin-builder-<word>`); the former embedded vocabulary's `stage_template`/`copy_artifact`/`copy_binary`/cargo `install_template` are gone.
 
-- **`EmitBuilderStages`** (PRE-main-FROM, deploykit) — for each candy a builder DETECTS (`candyNeedsBuilder`), connects the externalized builder plugin on-demand (`ensureBuildersConnected` — the SAME scoped connect the deploy build pre-pass uses, R3) and `Invoke(OpResolve)`s it (the shared `resolveBuilderStage` in `charly/generate.go`, STAYS), writing the returned `Stage` (a `FROM <ref> AS <name>` block) verbatim and caching the reply per (candy, builder) on the `Generator`. The HOST computes the render context (builder ref, stage name, copy src, uid/gid/home, filesystem-detected manifest/lockfile/build-script, aur packages/options, PRE-RENDERED cache-mount flag strings) into a `spec.BuilderResolveInput`; the plugin (kit.BuilderResolve) owns the stage template.
+- **`EmitBuilderStages`** (PRE-main-FROM, deploykit) — for each candy a builder DETECTS (`candyNeedsBuilder`), connects the externalized builder plugin on-demand (`ensureBuildersConnected` — the SAME scoped connect the deploy build pre-pass uses, R3) and `Invoke(OpResolve)`s it (the shared `renderSeamCaller.resolveBuilderStage`, `sdk/deploykit/render_generator_from_project.go` — the former `charly/generate.go` is DELETED, K-wave 2), writing the returned `Stage` (a `FROM <ref> AS <name>` block) verbatim and caching the reply per (candy, builder) on the `Generator`. The HOST computes the render context (builder ref, stage name, copy src, uid/gid/home, filesystem-detected manifest/lockfile/build-script, aur packages/options, PRE-RENDERED cache-mount flag strings) into a `spec.BuilderResolveInput`; the plugin (kit.BuilderResolve) owns the stage template.
 - **`EmitBuilderArtifacts`** (POST-main-FROM, deploykit) — writes the cached reply's `CopyArtifacts` (`COPY --from=<stage> …`) + the once-per-builder `CopyBinary` (pixi → `/usr/local/bin/pixi`), deduped across candies.
 - An INLINE detection builder (cargo) has no separate FROM stage — its OpResolve reply carries an `InlineFragment` (the in-candy `RUN … cargo install --path /ctx`) that `WriteCandySteps` (deploykit) splices in the candy's step sequence.
 - **`EmitExternalBuilderStages` / `EmitExternalBuilderArtifacts`** (the `external_builder:` path, deploykit) run right after their detection counterparts and share `resolveBuilderStage`: a candy sets `external_builder: <word>`, the word resolves to an EXTERNAL `*grpcProvider`, and its OpResolve reply's `Stage`/`CopyArtifacts` splice the same way (it sends a MINIMAL input — candy name only — since an out-of-tree builder renders a self-contained stage).
@@ -87,7 +87,7 @@ appends `-uid<N>` to the intermediate name so OCI tags don't collide
 with the default-UID variant.
 
 ```go
-// charly/intermediates.go (abridged)
+// sdk/deploykit/intermediates.go (abridged)
 type siblingKey struct {
     base string
     uid  int
@@ -115,9 +115,9 @@ protection against any future uid=0 image — it stays in place because
 the defensive grouping is cheap (one extra struct field) and prevents
 a whole class of silent PATH regressions.
 
-Covered by `charly/intermediates_test.go` (the test images construct
+Covered by `sdk/deploykit/intermediates_move_test.go` (the test images construct
 `ResolvedBox{}` without an explicit UID, so they trip `uid=0` →
-`-uid0` naming).
+`-uid0` naming; the former `charly/intermediates_test.go` is DELETED, K-wave 2).
 
 ## Intermediate Images
 
@@ -152,7 +152,7 @@ distro:
     base_user: { name: ubuntu, uid: 1000, gid: 1000, home: /home/ubuntu }
 ```
 
-`charly/config.go:ResolveBox` reconciles this against the image's `user_policy:`:
+`sdk/buildkit/config_resolve.go:ResolveBox` reconciles this against the image's `user_policy:`:
 
 - `auto` (default) — adopt `base_user` when declared AND image didn't explicitly set `user:`.
 - `adopt` — always adopt; hard-errors without a declaration.

@@ -88,14 +88,14 @@ CHARLY_PROJECT_REPO=opencharly/charly charly box list boxes
 
 **`--repo` additionally resolves EARLIER, in the pre-parse prescan** (`projectDirPreParse`, `charly/plugin_command_prescan.go`). The chdir above happens after `kong.Parse`, which has already FROZEN the grammar — so a command word that exists only in the `--repo` target would never be registered, and `charly --repo <owner/repo> <word>` reported an unknown verb. Reading `charly.yml` worked (that is after the chdir); finding the verb did not. Resolution there is attempted only when the flag or env var is present, so a bare invocation never touches the network, and an unresolvable spec falls through to cwd so the local grammar survives.
 
-**Repo spec normalization** (in `charly/main_repo.go`):
+**Repo spec normalization** (`spec.NormalizeRepoSpec`, `spec/spec/repo_identity.go` — the former `charly/main_repo.go` is DELETED, K-wave 2):
 
 - `default` → `github.com/opencharly/charly` at the default branch
 - bare `owner/repo` → `github.com/owner/repo` (auto-prefix when first segment has no dot)
 - bare `owner/repo@ref` → pinned to `ref`
 - `host.tld/owner/repo[@ref]` → used literally (the dot in the host disambiguates)
 
-Remote repos are cloned into `~/.cache/charly/repos/<repoPath>@<version>/` (override via `CHARLY_REPO_CACHE`). The cache is shared with the existing remote-layer fetcher (`charly/refs.go`, `charly/refs_git.go`) — both go through `EnsureRepoDownloaded`.
+Remote repos are cloned into `~/.cache/charly/repos/<repoPath>@<version>/` (override via `CHARLY_REPO_CACHE`). The cache is shared with the existing remote-layer fetcher (`sdk/loaderkit`'s refs seams — the former `charly/refs.go`/`charly/refs_git.go` are DELETED, K-wave 2) — both go through `EnsureRepoDownloaded`.
 
 **Canonical use case**: running `charly mcp serve` inside a container. The container's cwd is `/workspace` (set by the `charly-mcp` layer's env + volume declaration). There are three deployment patterns, in order of progressively less local setup:
 
@@ -146,7 +146,7 @@ Each verb below is also auto-exposed as an MCP tool (`box.new.project`, `box.new
 
 **Safety boundary**: `charly box write` / `charly box cat` resolve the path against `os.Getwd()` (the project root) and reject absolute paths or `..` traversal that would escape the root. They are the deliberate escape hatch for free-form auxiliary files (`pixi.toml`, `package.json`, `root.yml`, `*.service`, scripts) that the schema-aware setters don't cover.
 
-**Comment preservation**: every YAML edit (`set`, `add-layer`, `rm-layer`, `add-rpm`, etc.) goes through the `yaml.v3` *node* API rather than the value API, so human-authored comments and key order are preserved across edits. Tested in `sdk/kit/yaml_test.go` and `charly/scaffold_project_test.go`.
+**Comment preservation**: every YAML edit (`set`, `add-layer`, `rm-layer`, `add-rpm`, etc.) goes through the `yaml.v3` *node* API rather than the value API, so human-authored comments and key order are preserved across edits. Tested in `sdk/kit/yaml_test.go` and `sdk/kit/scaffold_test.go` (the former `charly/scaffold_project_test.go` is DELETED, K-wave 2).
 
 **Project scaffold contents**: `charly box new project` writes a minimal `charly.yml` with `discover: [box, candy]` + empty `box/`/`candy/` dirs. The default distro/builder/init/resource build vocabulary (and the default sidecar templates) are EMBEDDED in the `charly` binary (`charly/charly.yml`, `//go:embed` — the single embedded default config, plain compact-node-form YAML parsed by the same unified loader as any project `charly.yml`), so a new project is immediately usable with no build vocabulary to copy; declare `distro:`/`builder:`/`init:`/`resource:`/`sidecar:` (inline in `charly.yml` or an imported vocab file) only to extend or override the embedded default.
 
@@ -284,7 +284,7 @@ Self-reference protection: after merging defaults/base, any `builder` entry poin
 
 Validation checks that every builder referenced in `builder:` declares the matching capability in `produce:`.
 
-Source: `sdk/deploykit/order.go` (`BuilderRefForFormat`), `sdk/deploykit/graph.go` (`ResolveBoxOrder`, `BoxNeedsBuilder` — thin `charly/graph_shim.go` wrappers delegate to it), `candy/plugin-box/validate_graph.go` (`validateBuilders`).
+Source: `sdk/deploykit/order.go` (`BuilderRefForFormat`), `sdk/deploykit/graph.go` (`ResolveBoxOrder`, `BoxNeedsBuilder` — the former thin `charly/graph_shim.go` wrappers are DELETED, K-wave 2), `candy/plugin-box/validate_graph.go` (`validateBuilders`).
 
 ## Internal Base Images
 
@@ -326,7 +326,7 @@ The mechanism: a **declarative** fact (what the base image ships, in the embedde
 
 This is why `ubuntu-coder`'s resolved identity is `ubuntu:/home/ubuntu` while the other three coder images are `user:/home/user`. The charly.yml for all four coder images is identical on the user-related fields (no explicit `user:`); the policy + base_user together decide the outcome.
 
-### How resolution flows (`charly/config.go ResolveBox`)
+### How resolution flows (`sdk/buildkit/config_resolve.go` `ResolveBox`)
 
 1. Resolve `User`, `UID`, `GID` from defaults → image overrides → hardcoded fallback `user` / `1000` / `1000`.
 2. Load the distro config (`DistroConfig` from the embedded build vocabulary), resolve the image's `DistroDef` by walking `distro:` tags.
@@ -404,7 +404,7 @@ Auto-intermediates are marked with `Auto: true` and appear in `charly box list t
 3. The trie is walked to detect branch points (where sibling layer sequences diverge). At each branch, an auto-intermediate image is created.
 4. Original images are rebased to the nearest intermediate, so shared layers are built once.
 
-Source: `sdk/deploykit/intermediates.go` (moved from `charly/intermediates.go`; `charly/intermediates_shim.go` delegates to it) (`ComputeIntermediates`, `GlobalCandyOrder`, `walkTrieScoped`).
+Source: `sdk/deploykit/intermediates.go` (moved from `charly/intermediates.go`; the former `charly/intermediates_shim.go` is DELETED, K-wave 2) (`ComputeIntermediates`, `GlobalCandyOrder`, `walkTrieScoped`).
 
 ## Versioning
 
@@ -433,7 +433,7 @@ my-app:
 
 These are the lowest priority in the env resolution chain. CLI flags (`-e`, `--env-file`) and workspace `.env` take precedence. See `/charly-core:charly-config` and `/charly-core:start` for the full priority chain at config-time and run-time respectively.
 
-Source: `charly/envfile.go` (`ResolveEnvVars`).
+Source: `spec/hostenv/envfile.go` (`ResolveEnvVars`).
 
 ## Security Configuration
 
@@ -452,7 +452,7 @@ my-app:
 
 Box `security.privileged` replaces the candy-derived value. `cap_add`, `devices`, `security_opt` are appended to candy-collected values (deduplicated). Applied as container run arguments at runtime (not build time).
 
-Source: `charly/security.go` (`CollectSecurity`).
+Source: `sdk/deploykit/security.go` (`CollectSecurity`).
 
 ## VM Configuration
 
@@ -477,7 +477,7 @@ See `/charly-vm:vms-catalog` for the full VmSpec schema, `/charly-vm:vm` for the
 
 ## Ports — inherited from candies, auto-allocated at deploy
 
-**Boxes do NOT declare ports.** A box's published ports are inherited from EVERY candy in its base chain — the candy that runs a service declares the container port (the candy body's `port:` list), and `CollectBoxPorts` (`charly/ports.go`, over the shared `boxCandyChain` walk) collects the full set. The same set feeds both the `ai.opencharly.port` OCI label and the Containerfile `EXPOSE` directives, so they can never diverge. A residual box-level `port:` is a hard load error pointing at `charly migrate`.
+**Boxes do NOT declare ports.** A box's published ports are inherited from EVERY candy in its base chain — the candy that runs a service declares the container port (the candy body's `port:` list), and `CollectBoxPorts` (`sdk/deploykit/ports_collect.go`, over the shared `boxCandyChain` walk in `sdk/kit/ports.go`) collects the full set. The same set feeds both the `ai.opencharly.port` OCI label and the Containerfile `EXPOSE` directives, so they can never diverge. A residual box-level `port:` is a hard load error pointing at `charly migrate`.
 
 ```bash
 charly box inspect android-emulator --format ports

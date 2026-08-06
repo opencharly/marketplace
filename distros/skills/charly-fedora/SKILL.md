@@ -67,9 +67,10 @@ kernel `mount_too_revealing()` RCA.
 
 `charly-fedora` uses host networking (unlike `charly-arch`, which uses bridge)
 so the box can reach host services and the host namespace directly.
-charly-mcp's `rewriteMCPURLForHost` handles host-networked containers via
-`HostConfig.NetworkMode=host` detection (see
-`charly/mcp_client.go:lookupHostPort`), so host networking does not break
+charly-mcp's MCP URL rewriting (`candy/plugin-mcp/resolve.go`, the host-port
+mapping via the `cc.ResolveEndpoint` reverse-leg) handles host-networked containers via
+`HostConfig.NetworkMode=host` detection (see `sdk/kit/checkvars.go`'s
+`ContainerInspection.IsHostNetworked()`), so host networking does not break
 MCP URL rewriting. If you want charly-mcp on charly-fedora, compose it
 into the candy list — it will work on either networking mode.
 
