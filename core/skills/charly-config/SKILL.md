@@ -600,6 +600,6 @@ Source: `charly/envfile.go` (`normalizeNoProxy`), `charly/deploy.go` (`mergeEnvV
 
 **Workflow position:** After build, before start. `charly box build` → `charly config` → `charly start`.
 
-Source: `charly/config_image.go` (command structs), `charly/quadlet.go` (quadlet generation), `charly/deploy.go` (deploy state), `charly/enc.go` (encrypted volumes), `charly/secrets.go` (secret provisioning), `charly/data.go` (data seeding).
+Source: `charly/config_image.go` (command structs), `charly/quadlet.go` (quadlet generation), `charly/deploy.go` (deploy state), `candy/plugin-pod/enc_cmd.go` (encrypted volumes — the former `charly/enc.go` is DELETED, K-wave 2), `candy/plugin-bundle/secrets_artifacts.go` (secret provisioning — the former `charly/secrets.go` is DELETED, K-wave 2), `charly/data.go` (data seeding).
 
 Live-deploy verification: see /charly-check:check (the 11 Testing Standards) and /charly-internals:disposable.

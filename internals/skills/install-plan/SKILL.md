@@ -67,7 +67,7 @@ This skill is the single source of truth for the IR shape. Add a new step kind b
 
 ## Cross-References
 
-- `/charly-internals:local-infra` — supporting files (hostdistro, ledger, builder_run, shell_profile, reverse_ops, service_render, deploy_ref)
+- `/charly-internals:local-infra` — supporting files (hostdistro, ledger, builder_run, shell_profile, reverse_ops, `sdk/deploykit/compile_service_steps.go` (service_render, relocated), `candy/plugin-bundle/deploy_ref.go` (deploy_ref, relocated))
 - `/charly-internals:vm-deploy-target` — the external `vm` deploy (candy/plugin-deploy-vm) + the plugin-implemented venue lifecycle reached through `pluginDeployTarget`/`candy/plugin-bundle`'s `OpDeployDispatch` + DeployExecutor + SSHExecutor + VmDeployState
 - `/charly-internals:vm-spec` — VmSpec shape the vm deploy reads
 - `/charly-internals:go` — overall Go code map; Kong CLI framework; mode-purity invariant

@@ -127,7 +127,9 @@ The `/charly-distros:nvidia` candy provides NVIDIA GPU runtime:
 - `nvidia-container-toolkit` — CDI spec generation (driver userspace libs provided by CDI at runtime, matching host kernel module)
 - `libva-nvidia-driver` — VA-API acceleration
 
-`charly` automatically calls `EnsureCDI()` before launching GPU
+`charly` triggers CDI regeneration plugin-side (`pluginEnsureCDI` in
+`candy/plugin-preempt/holder_dispatch.go`, via `spec.GpuSwitchActionEnsureCDI` — the
+former in-core `EnsureCDI()` shim is DELETED, K-wave 2 cone R3) before launching GPU
 containers. GPU access works at any nesting depth.
 
 ## Verification
