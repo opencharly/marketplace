@@ -82,7 +82,7 @@ charly box inspect my-image --format layers      # Shows layer list for an image
 - `/charly-build:validate` — User-facing validation rules (what `validateCandyTasks` enforces).
 - `/charly-build:build` — Building from generated Containerfiles.
 - `/charly-internals:egress` — the emitted Containerfile is egress-validated (`writeContainerfile` → `#RenderedText`, rejecting the `<no value>` template-failure marker) before it is written; the traefik-routes scratch-stage input is likewise validated (`#TraefikRoutes`).
-- Source: `sdk/deploykit` (render DRIVE, relocated in #67), `charly/tasks.go` (`emitTasks` shim), `charly/generate.go` (staying helpers), `sdk/deploykit/intermediates.go` (moved from `charly/intermediates.go`; `charly/intermediates_shim.go` delegates to it), `sdk/deploykit/graph.go` (thin `charly/graph_shim.go` wrappers delegate to it).
+- Source: `sdk/deploykit` (render DRIVE, relocated in #67), `charly/tasks.go` (`emitTasks` shim), `sdk/deploykit` (the generator helpers — the former `charly/generate.go` is DELETED, K-wave 2), `sdk/deploykit/intermediates.go` (moved from `charly/intermediates.go`; `charly/intermediates_shim.go` delegates to it), `sdk/deploykit/graph.go` (thin `charly/graph_shim.go` wrappers delegate to it).
 
 ## When to Use This Skill
 
