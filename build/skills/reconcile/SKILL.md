@@ -69,11 +69,13 @@ consumer's authoritative R10.
 
 ## Implementation
 
-`charly/reconcile.go` — `ImageReconcileCmd` (wired under `charly box` in `charly/image.go`).
-Reuses `ParseRemoteRef` / `IsRemoteCandyRef` / `StripVersion` (`sdk/kit/remote_ref.go` — the former `charly/refs.go` is DELETED, K-wave 2),
-`compareSemver` / `GitLatestTag` / `RepoGitURL` (`charly/refs_git.go`), and the
+`candy/plugin-box/reconcile.go` — `dispatchReconcile` (wired as a `charly box` word in
+`candy/plugin-box/box.go`; the former `charly/reconcile.go` is DELETED, K-wave 2).
+Reuses `ParseRemoteRef` (`spec/spec/ref_parse.go`, re-exported via `sdk/kit/remote_ref.go`),
+`IsRemoteCandyRef` / `StripVersion` (`sdk/deploykit/candy_ref.go`),
+`CompareSemver` / `GitLatestTag` / `RepoGitURL` (`spec/refs/git.go`), and the
 comment-preserving load/`yaml.Marshal` pattern from `sdk/kit/yaml.go`. Covered
-by `charly/reconcile_test.go` (newest-referenced alignment, comment preservation,
+by `candy/plugin-box/reconcile_test.go` (newest-referenced alignment, comment preservation,
 idempotency, single-version-untouched, no-pins no-op).
 
 ## Cross-References

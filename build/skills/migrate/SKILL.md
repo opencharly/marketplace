@@ -77,11 +77,11 @@ Per-step backups follow the established `<file>.bak.<unix-ts>` convention.
 
 ### Remote-cache auto-migration (project-only)
 
-`sdk/loaderkit`'s refs seams (the former `charly/refs.go` is DELETED, K-wave 2) auto-run `RunProjectMigrations` on a freshly-cloned remote-repo cache so external repos pull through at the latest schema. It skips every `touches_host` step and leaves the host-deploy path empty, so a remote fetch **never mutates the user's per-host state** — even the final re-stamp touches only the cache's project files. A remote whose config predates the floor **fails the fetch** with the same predates-floor error (an old remote is unmigratable — the accepted clean-slate consequence).
+`sdk/loaderkit`'s refs seams (the former `charly/refs.go` is DELETED, K-wave 2) auto-run the remote-cache migration (`migrateCacheViaPeer`, `sdk/loaderkit/refs_seams_executor.go`) on a freshly-cloned remote-repo cache so external repos pull through at the latest schema. It skips every `touches_host` step and leaves the host-deploy path empty, so a remote fetch **never mutates the user's per-host state** — even the final re-stamp touches only the cache's project files. A remote whose config predates the floor **fails the fetch** with the same predates-floor error (an old remote is unmigratable — the accepted clean-slate consequence).
 
 ## Load-time gate
 
-The load-time gate `gateSchemaVersion` (`sdk/loaderkit/load_unified.go` — the former `charly/unified.go` is DELETED, K-wave 2) is unchanged: `LoadUnified` parses the merged `version:` and rejects anything below HEAD (or absent, or non-CalVer):
+The load-time gate `GateSchemaVersion` (`sdk/loaderkit/load_unified.go` — the former `charly/unified.go` is DELETED, K-wave 2) is unchanged: `LoadUnified` parses the merged `version:` and rejects anything below HEAD (or absent, or non-CalVer):
 
 ```
 charly.yml: schema 2026.186.2323 is required (found "4"). Run: charly migrate

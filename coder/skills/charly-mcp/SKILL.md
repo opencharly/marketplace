@@ -132,11 +132,11 @@ boxes that also expose `jupyter` or `chrome-devtools` servers
 ## Host networking caveat
 
 Host-networked containers have an empty `NetworkSettings.Ports`. The
-`charly/mcp_client.go` `lookupHostPort()` function detects
-`HostConfig.NetworkMode == "host"` and returns the container port
-verbatim (container ports ARE host ports under `network: host`). See
-`sdk/kit/checkvars.go` `ContainerInspection.IsHostNetworked()` (moved from
-`charly/checkvars.go` in P12a) + the matching `mergeRuntimeVars()`
+MCP host-port mapping (`candy/plugin-mcp/resolve.go`'s `cc.ResolveEndpoint`
+reverse-leg — the host maps the container port to a host address) returns
+the container port verbatim under `network: host` (container ports ARE host
+ports there), detected via `sdk/kit/checkvars.go`'s
+`ContainerInspection.IsHostNetworked()` + the matching `mergeRuntimeVars()`
 handling for `HOST_PORT:<N>` env-var population.
 
 Practical impact: charly-mcp works on both bridge-networked boxes

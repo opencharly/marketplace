@@ -12,7 +12,7 @@ Invoked as `charly box build`. See `/charly-image:image` for the family overview
 
 `charly box build` generates Containerfiles from `charly.yml` and layer definitions, then builds images in dependency order using the configured build engine (Docker or Podman). Images at the same dependency level are built in parallel (up to `--jobs` concurrent builds).
 
-**Mode purity**: `charly box build` reads `charly.yml` only. `charly.yml` is never read during build — this is enforced by `LoadConfig` in `charly/config.go`, which calls `LoadConfigRaw` (no `MergeDeployOverlay`) to guarantee OCI labels are baked strictly from authored configuration, never from local deploy-time overrides. See `/charly-internals:go` "Mode purity" for the architectural invariant this protects and the bug it prevents.
+**Mode purity**: `charly box build` reads `charly.yml` only. `charly.yml` is never read during build — this is enforced by `LoadConfig` in `charly/loader_threaded.go` (it reads the PROJECT `charly.yml` only and never merges the per-host `charly.yml` overlay — no `MergeDeployOverlay`), to guarantee OCI labels are baked strictly from authored configuration, never from local deploy-time overrides. See `/charly-internals:go` "Mode purity" for the architectural invariant this protects and the bug it prevents.
 
 **Build-engine dispatch**: `charly box build` does NOT call `NewGenerator` inline — `BuildCmd.Run` computes the build tag, holds the build-activity retention lock, and dispatches through the COMPILED-IN `build:box` plugin (candy/plugin-build) over the F10 reverse channel; on return it runs the retention prune host-side. The plugin's `runBoxBuild` → `resolveBuildEngine` (candy/plugin-build/resolve.go) runs the ENTIRE build-engine RESOLVE plugin-side — loader, vocab, scan, connect, validate, box resolve, intermediates, order, effective versions, host-fs prep, render-seam-cache prep, render-prep, user-context, envelope projection, and drive-model — and returns `spec.BuildResolveReply` (the resolved-project envelope + a serializable drive-model: engine/platform, build order, per-image descriptors, resolved tunables; NO Containerfile content). This is the plugin-side replacement for the DELETED host `build-prep` fat seam (`charly/build_resolve_host.go`'s `hostBuildBuildResolve`). The plugin **OWNS the podman DRIVE** (the build-order loop, per-image build lock, `podman build`, push, and the inline-merge gate) IN the candy — it imports only the sdk module. It reaches the host ONLY for thin `buildengine-*` shards a sdk-only candy cannot hold: `buildengine-scan-local` (local candy scan), `buildengine-connect-plugins` (registry plugin connect), and `buildengine-prep` (the render-seam-floor `renderGenCache` — `hostBuildPrep` stores a CHEAP candy-scan-only Generator for the render-seam floor's reverse-channel consumers and returns an EMPTY map; the host-fs PREP itself moved plugin-side in the K3 host-prep move — `runHostFSPrep` in candy/plugin-build/host_prep.go). The resolved-project envelope + drive-model are NOT returned by `buildengine-prep` — they come from `resolveBuildEngine`'s reply. The render DRIVE is `sdk/deploykit.Generator`, driven by the candy over the envelope + `HostBuild("render-seam")` for the host-coupled render seams (#67 — the host no longer renders the `.build/` tree); `bake_plugin:` binary baking is INLINE via `deploykit.EmitBakedPlugins` (no `HostBuild("bake-plugins")` round-trip — that host-builder + `host_build_bake_plugins.go` are DELETED). `charly box generate` mirrors this via `build:generate` → `runBoxGenerate` → `resolveBuildEngine(..., generateOnly=true)`: `generateOnly` is a PLUGIN-SIDE parameter (NOT a `HostBuild("buildengine-prep")` argument — that host leg takes `spec.ResolvedProjectRequest`, which has no `GenerateOnly` field) that returns after the envelope projection (no engine/order drive-model); the candy renders the `.build/` tree itself via `deploykit.Generator` + returns the written Containerfile paths; no podman. (The resolved-project envelope that OTHER verbs fetch — `charly box inspect`, `charly bundle compile`, `charly check`, … — comes over the separate `InvokeProvider("build","project",OpResolve)` peer seam, the `build:project` word; the build/generate path projects its own envelope inside `resolveBuildEngine`.) See `/charly-internals:plugin` (the `build` provider class + the in-proc reverse channel) and `/charly-build:generate`.
 
@@ -106,7 +106,7 @@ The embedded `charly/charly.yml`'s build vocabulary has three top-level sections
 - **`init:`** — Init system definitions (supervisord, systemd) including detection rules, fragment templates, entrypoint commands, and service management commands. Optional — images can omit this if they don't need an init system.
 - **`resource:`** — Exclusive host-resource vocabulary: maps an arbitration token (the name used by a deploy/bed's `requires_exclusive:` and a holder's `preemptible.holds:`) to an optional hardware selector. A `gpu:` selector (`resource: {nvidia-gpu: {gpu: {vendor: "0x10de"}}}`) lets `charly vm create` AUTO-ALLOCATE the matching PCI `<hostdev>` for a GPU-requiring VM (detect → persist into the per-host `instance.yml` → inject) — or FAIL HARD when no matching card is present. The selector lives in YAML, never hardcoded in Go: adding a resource is a config edit. Optional + additive (configs without it load unchanged). See `/charly-internals:disposable` "resource-arbitration axis", `/charly-vm:vm` "GPU passthrough", `/charly-core:deploy` `requires_exclusive`.
 
-All sections use Go `text/template` syntax with access to layer config data. Source: `charly/format_config.go` (loader + distro/builder types, including `DistroDef.BaseUser`), `charly/init_config.go` (init type), `charly/format_template.go` (rendering).
+All sections use Go `text/template` syntax with access to layer config data. Source: `sdk/buildkit/format_config.go` (the distro/builder type aliases, including `DistroDef = spec.ResolvedDistro` with its `BaseUser`), `sdk/buildkit/init_config.go` (`InitConfig = spec.InitConfig`), `sdk/buildkit/render.go` (`RenderTemplate` — the former `charly/format_config.go`/`init_config.go`/`format_template.go` are DELETED, K-wave 2).
 
 ### `base_user:` — declaring a pre-existing base-image account
 
@@ -124,9 +124,9 @@ distro:
     # ... bootstrap inherited from debian
 ```
 
-All four fields (`name`, `uid`, `gid`, `home`) are required when the block is present. Inherited across distro inheritance chains — if the child has no `base_user:` but the parent does, the child inherits it (see `resolveInherits` in `charly/format_config.go`).
+All four fields (`name`, `uid`, `gid`, `home`) are required when the block is present. Inherited across distro inheritance chains — if the child has no `base_user:` but the parent does, the child inherits it (see `ResolveInherits` in `spec/spec/distro_config_methods.go`).
 
-Consumed by the `user_policy:` reconciliation in `charly/config.go:ResolveBox` — see `/charly-image:image` "user_policy" for the three-value policy (`auto` / `adopt` / `create`) and the decision matrix.
+Consumed by the `user_policy:` reconciliation in `sdk/buildkit/config_resolve.go:ResolveBox` — see `/charly-image:image` "user_policy" for the three-value policy (`auto` / `adopt` / `create`) and the decision matrix.
 
 No `base_user:` currently declared for Fedora, Arch, or Debian (their canonical base images ship no pre-existing uid-1000 account). Add one in your project's `charly.yml` build-vocabulary override if you're basing on a distro-cloud variant that DOES ship one (e.g. `debian:13-cloud`).
 
@@ -198,9 +198,10 @@ CHARLY_PODMAN_JOBS=8 charly update <image> --build    # via env
 charly box build <image> --podman-jobs 1              # fully serialised, worst-case debugging
 ```
 
-Source: `charly/build.go:resolvePodmanJobs(override, cap)` + `podmanJobsCapFallback`
-/ `jobsFallback`; config fill in `BuildCmd.Run`. Covered by
-`charly/build_jobs_test.go`. The outer `--jobs` knob and the inner `--podman-jobs`
+Source: `candy/plugin-build/resolve.go` (`resolveDrivePodmanJobs`, feeding
+`buildkit.ResolvePodmanJobs`; the host-resolved `PodmanJobs` value feeds `--jobs`
+directly in `candy/plugin-build/podman.go`). Covered by
+`candy/plugin-build/podman_test.go`. The outer `--jobs` knob and the inner `--podman-jobs`
 are separate fields so the two semantics don't get conflated.
 
 ## Build-context excludes (`defaults.context_ignore`)
@@ -228,8 +229,10 @@ the dominant warm-rebuild win. podman reads `.containerignore`; docker reads
 `.dockerignore` — emitting both keeps the two engines in lockstep. Only add a
 directory you've confirmed no Containerfile COPY/ADDs from (generated
 Containerfiles COPY only from `candy/`, `templates/`, `.build/`). Source:
-`sdk/deploykit/generate.go:writeContextIgnore` + `baselineContextIgnore` (the former
-`charly/generate.go` is DELETED, K-wave 2).
+`candy/plugin-build/host_prep.go:writeContextIgnore` + `charly/host_build_buildengine.go`
+(`baselineContextIgnore`, the embedded `context_ignore_baseline` directive the
+`buildengine-context-ignore-baseline` seam serves; the former `charly/generate.go` is
+DELETED, K-wave 2).
 
 ## Image-tag retention (`defaults.keep_images`)
 
@@ -351,7 +354,7 @@ Three kinds of source changes are real cache invalidators — if you see a long 
 
 Podman manifest push uses retry with exponential backoff (3 attempts, 5s/10s/20s delays) to handle transient registry errors (e.g., GHCR 500 errors after long builds).
 
-Source: `charly/build.go` (`retryCmd`).
+Source: `candy/plugin-build/podman.go` (`retryCmd`).
 
 ## Layer Merging
 
@@ -545,7 +548,7 @@ charly box build <image> --cache=none      # or equivalently --no-cache at the c
 ```
 
 Both `--cache=none` and `--no-cache` short-circuit `cacheArgs()` in
-`charly/build.go:cacheArgs` and do NOT pass `--cache-from` to podman, so
+`candy/plugin-build/podman.go` (`driveConfig.cacheArgs`) and do NOT pass `--cache-from` to podman, so
 the broken resolution path never fires. `--no-cache` is charly-level only — it
 does *not* pass `--no-cache` to podman, it just skips `--cache-from`.
 

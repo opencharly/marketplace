@@ -87,7 +87,7 @@ Tag priority: entries in `distro:` are in priority order (e.g.
 `["fedora:43", fedora]`), so `package_map:` can be keyed on either the
 version-specific or the family tag, and the more-specific tag wins
 naturally. An empty-string map value falls through to the next tag
-(see `TestResolvePackageName` in `charly/checkrun_verbs_test.go`).
+(see `TestResolvePackageName` in `sdk/kit/kit_test.go`).
 
 ### Verb catalog (goss-parity feature set)
 
