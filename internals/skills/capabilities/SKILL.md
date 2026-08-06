@@ -1,7 +1,7 @@
 ---
 name: capabilities
 description: |
-  MUST be invoked before any work involving: OCI label contract, Capabilities / BoxMetadata struct, CapabilityLabelMap completeness check, LabelService structured round-trip, source-less deploy via `charly bundle from-box`, or adding a new OCI label. Developer-facing; users author via `/charly-image:layer` and `/charly-image:image`.
+  MUST be invoked before any work involving: OCI label contract, Capabilities / BoxMetadata struct, CapabilityLabelMap completeness check, LabelService structured round-trip, source-less deploy via `charly fleet from-box`, or adding a new OCI label. Developer-facing; users author via `/charly-image:layer` and `/charly-image:image`.
 ---
 
 # Capabilities — the OCI-label runtime contract
@@ -33,7 +33,7 @@ Key entries:
 | `ServiceNames` | `LabelInit` | Per-init active-name list; baked alongside `LabelInit` for CLI ergonomics (e.g., `charly service status`). |
 | `Description` | `LabelDescription` (`ai.opencharly.description`) | **Three-section `{candy, box, deploy}` `LabelDescriptionSet`** — the self-description baked into the image. Each `LabeledDescription` carries a `Description` string plus a `Plan []Step` list (each step is an intent keyword `run:`/`check:`/`agent-run:`/`agent-check:` + an inline Op); the deterministic `check:` steps are the acceptance checks consumed by `charly check live` / `charly check box`. See `/charly-check:check`. |
 | `CheckLevel` | `LabelCheckLevel` (`ai.opencharly.check_level`) | The per-box acceptance-depth rung (`none` / `build` / `noagent` (default) / `agent`) gating how deep `charly check run <bed>` drives acceptance. |
-| `Shell` | `LabelShell` | Three-section `{candy, box, deploy}` JSON shell-init manifest. Each entry carries an Origin (candy name / "box"), an ID for overlay keying, an optional Generic body (intrinsic init + path_append) and a per-shell ByShell map (bash/zsh/fish/sh sub-blocks). `CollectShell` (`sdk/deploykit/shell_collect.go`) populates the Candy + Box sections at `charly box build` time; `ExtractMetadata` parses the label at deploy time. Consumed by `charly box inspect` and `charly bundle from-box`. The Deploy section is now permanently empty: the validation-correctness batch retired the deploy-scope `shell:` overlay AUTHORING FIELD itself (`#Deploy.shell`/`#DeployShellOverlay` deleted from `spec/schema/deploy.cue`) — a config still carrying it is migrated away by `charly migrate`'s `strip-deploy-shell-overlay` step — so it is no longer merely "parsed but unapplied" (as an earlier pass of this doc described a transitional state); the field cannot be authored at all anymore. See `/charly-image:layer` "Shell Init Surface". |
+| `Shell` | `LabelShell` | Three-section `{candy, box, deploy}` JSON shell-init manifest. Each entry carries an Origin (candy name / "box"), an ID for overlay keying, an optional Generic body (intrinsic init + path_append) and a per-shell ByShell map (bash/zsh/fish/sh sub-blocks). `CollectShell` (`sdk/deploykit/shell_collect.go`) populates the Candy + Box sections at `charly box build` time; `ExtractMetadata` parses the label at deploy time. Consumed by `charly box inspect` and `charly fleet from-box`. The Deploy section is now permanently empty: the validation-correctness batch retired the deploy-scope `shell:` overlay AUTHORING FIELD itself (`#Deploy.shell`/`#DeployShellOverlay` deleted from `spec/schema/deploy.cue`) — a config still carrying it is migrated away by `charly migrate`'s `strip-deploy-shell-overlay` step — so it is no longer merely "parsed but unapplied" (as an earlier pass of this doc described a transitional state); the field cannot be authored at all anymore. See `/charly-image:layer` "Shell Init Surface". |
 | `EnvProvide` / `MCPProvide` | `LabelEnvProvide` / `LabelMCPProvide` | Cross-container discovery: what env vars / MCP servers this image advertises to pod peers. |
 | `EnvRequire` / `MCPRequire` | `LabelEnvRequire` / `LabelMCPRequire` | What this image *needs* from peers — validated at `charly config` time. |
 
@@ -99,11 +99,11 @@ type CapabilityService struct {
 }
 ```
 
-**Why this matters**: `charly bundle from-box` (see below) reconstructs the full deploy surface from OCI labels alone. A names-only `Service` label would leave deploy-time K8s manifest generation blind to whether a process needs `start_retries: 3` or is an eventlistener. The structured label carries every supervisord directive faithfully, and the K8s Kustomize generator (see `/charly-kubernetes:kubernetes`) reads from it without touching the source repo.
+**Why this matters**: `charly fleet from-box` (see below) reconstructs the full deploy surface from OCI labels alone. A names-only `Service` label would leave deploy-time K8s manifest generation blind to whether a process needs `start_retries: 3` or is an eventlistener. The structured label carries every supervisord directive faithfully, and the K8s Kustomize generator (see `/charly-kubernetes:kubernetes`) reads from it without touching the source repo.
 
-## Source-less deploy: `charly bundle from-box`
+## Source-less deploy: `charly fleet from-box`
 
-`deploykit.CapabilitiesFromLabels(engine, imageRef)` (`sdk/deploykit/capabilities.go`) is the source-less entry point: given an engine + image ref, it runs `ExtractMetadata` (which pulls labels via `podman inspect` / `docker inspect`), returns a fully-populated `*spec.BoxMetadata`, and every downstream consumer (deploy target, K8s generator, quadlet generator) reads from that struct. `candy/plugin-bundle/deploy_from_box.go` is `charly bundle from-box`'s own caller.
+`deploykit.CapabilitiesFromLabels(engine, imageRef)` (`sdk/deploykit/capabilities.go`) is the source-less entry point: given an engine + image ref, it runs `ExtractMetadata` (which pulls labels via `podman inspect` / `docker inspect`), returns a fully-populated `*spec.BoxMetadata`, and every downstream consumer (deploy target, K8s generator, quadlet generator) reads from that struct. `candy/plugin-fleet/deploy_from_box.go` is `charly fleet from-box`'s own caller.
 
 ```go
 caps, err := deploykit.CapabilitiesFromLabels("podman", "ghcr.io/opencharly/fedora-coder:latest")
@@ -118,7 +118,7 @@ The long-term direction (aspirational — not yet started in code or schema) is 
 
 - `box.build:` — Containerfile inputs (base image, layers, distro/builder selection). Consumed only by `charly box build`.
 - `box.capabilities:` — the runtime contract documented here. Emitted as OCI labels.
-- `box.deploy:` — target-specific defaults (K8s storage class, container-target port defaults). Consumed by `charly bundle add`.
+- `box.deploy:` — target-specific defaults (K8s storage class, container-target port defaults). Consumed by `charly fleet add`.
 
 Today these co-exist in a single `BoxConfig`. The `CapabilityLabelMap` completeness test will keep the contract honest across the migration (once the schema split lands, `spec.BoxMetadata` will project the `capabilities:` subsection directly instead of the whole struct).
 
@@ -139,7 +139,7 @@ See `/charly-image:image` for current user-facing structure and `/charly-build:m
 
 - `/charly-image:image` — user-facing `candy:` image entries (with `base:`/`from:`) in `charly.yml`
 - `/charly-image:layer` — user-facing `candy:` authoring, including `service:` which feeds `LabelService`
-- `/charly-core:deploy` — `charly bundle add` / `from-image` / `sync` commands
+- `/charly-core:deploy` — `charly fleet add` / `from-image` / `sync` commands
 - `/charly-kubernetes:kubernetes` — K8s deploy target that reads `LabelService` to generate Kustomize
 - `/charly-check:check` — three-section `LabelDescription` (candy/box/deploy) — same label-contract pattern
 - `/charly-build:migrate` — `charly migrate` — emits the schema that populates these labels

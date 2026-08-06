@@ -42,7 +42,7 @@ This skill is the **decision log** for every non-obvious choice in the entry —
 | Video model | `virtio-gpu` | Modern default for Linux guests (Finding B, secondary) |
 | SPICE listener | `type: socket` (UNIX, auto-path) | Enables zero-config remote GUI via `qemu+ssh://` (see "Connecting from a remote workstation" below). virt-manager and `remote-viewer` auto-forward UNIX sockets through libvirt RPC fd-passing; TCP-loopback listeners are never auto-tunneled. No TCP port bound. |
 
-Disposability is **not** a field on the VM entity — the `check-arch-vm` bundle carries `disposable: true` (LOAD-BEARING), which authorizes the unattended destroy + rebuild + restart driven by `charly check run check-arch-vm` (and the equivalent `charly update check-arch-vm`, since the bundle is folded into the Bundle map). See `/charly-internals:disposable`.
+Disposability is **not** a field on the VM entity — the `check-arch-vm` deploy carries `disposable: true` (LOAD-BEARING), which authorizes the unattended destroy + rebuild + restart driven by `charly check run check-arch-vm` (and the equivalent `charly update check-arch-vm`, since the deploy is folded into the Fleet map). See `/charly-internals:disposable`.
 
 ## Disposable verification target
 
@@ -357,7 +357,7 @@ Pass: `active` + version printed.
 - `/charly-vm:vms-catalog` — VmSpec authoring reference (schema, source.kind, adopt pattern)
 - `/charly-vm:vm` — VM lifecycle commands + BIOS/UEFI decision matrix + video model choice (disposability lives on the `disposable: true` deploy)
 - `/charly-build:migrate` — `charly migrate` legacy conversion
-- `/charly-core:deploy` — `charly bundle add vm:arch <layer>` for in-guest layer application
+- `/charly-core:deploy` — `charly fleet add vm:arch <layer>` for in-guest layer application
 - `/charly-internals:vm-spec` — Go types and validation rules
 - `/charly-internals:libvirt-renderer` — `<backend type='passt'/>` for portForward, virtio-gpu video model
 - `/charly-internals:cloud-init-renderer` — `composeUsers` adopt-merge, seed ISO, `charly_install.strategy: auto`

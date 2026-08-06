@@ -30,7 +30,7 @@ never by stripping the candy.
 
 1. `charly box build <image> --dev-local-pkg` — build the test artifact (pod beds only). The check-bed runner sets `--dev-local-pkg` automatically, so a bed bakes the **in-development** charly toolchain (any `localpkg:` candy built from local source) — never a stale published release. A bed thus always tests the code under development; a production box build downloads the released package. See `/charly-tools:charly` "Check-vs-production binary source" + `/charly-internals:install-plan` "Check-vs-production charly toolchain".
 2. `charly check box <image>` — box-section + baked candy-section probes.
-3. `charly bundle add <bed> <ref>` — apply the bed (or `charly vm create` for vm beds).
+3. `charly fleet add <bed> <ref>` — apply the bed (or `charly vm create` for vm beds).
 4. (pod beds) `charly config <bed>` + `charly start <bed>`.
 5. `charly check live <bed>` — full three-section live probe pass.
 6. `charly update <bed>` — fresh-rebuild re-verification (R10 acceptance gate).
@@ -185,7 +185,7 @@ hardcodes that name — it flows from the `iterate.sandbox:` field through
 `ResolveIterateSandbox`, and prompts reference it via the `${TARGET_NAME}`
 substitution token. **The sandbox is an operator-provisioned per-host
 deploy** — the runner restarts-but-never-creates it: provision once with
-`charly bundle add check-sandbox <ref> --disposable` + `charly start
+`charly fleet add check-sandbox <ref> --disposable` + `charly start
 check-sandbox` (the ref must provide charly + nested podman + the configured
 AI CLI; the per-host overlay never ships with the repo). On a host without
 the entry, `charly check run <bed>` fails fast with exactly that
@@ -437,7 +437,7 @@ These are the 11 standards referenced in the project rulebook's AI attribution t
 1. **Build a real artifact** (R7) — `charly box build <image>` / `go build` / `charly vm build <vm>`. Not just `go test`. Not just `charly box generate`.
 2. **Verify the emitted artifact's content** (R8) — `grep -c supervisord-conf .build/<image>/Containerfile` for any image that uses supervisord; `charly check libvirt domain-xml <vm>` for a VM.
 3. **Verify critical OCI / capability labels post-build** (R8) — `charly box labels <ref> --format init` (or any `ai.opencharly.<key>` shorthand) prints the built ref's label and exits non-zero when absent; `charly box labels <ref>` lists the whole capability contract (`/charly-internals:capabilities`). Empty / missing label → the detection path silently returned nil → regression.
-4. **Deploy to a disposable target** (R10) — never experiment on a resource that doesn't carry `disposable: true`. If no suitable disposable target exists, create one first (`charly bundle add <name> <ref> --disposable` or mark a VM `disposable: true` in `charly.yml` and `charly vm create`). The setup is part of the task. On a disposable target: `charly update <name>` (unattended). On anything else: confirm with the user before any irreversible destroy — except preempting a declared-`preemptible:` holder, which is standing-authorized (reversible: graceful stop + guaranteed restore).
+4. **Deploy to a disposable target** (R10) — never experiment on a resource that doesn't carry `disposable: true`. If no suitable disposable target exists, create one first (`charly fleet add <name> <ref> --disposable` or mark a VM `disposable: true` in `charly.yml` and `charly vm create`). The setup is part of the task. On a disposable target: `charly update <name>` (unattended). On anything else: confirm with the user before any irreversible destroy — except preempting a declared-`preemptible:` holder, which is standing-authorized (reversible: graceful stop + guaranteed restore).
 5. **Target must reach steady-state** — `charly status <image>` → `running`; `charly check libvirt info <vm>` → state `running`; SPICE socket file exists and accepts a handshake. If the service start-limit is hit, the container is crashing — read `charly logs <image>` and reproduce in a disposable shell (`charly shell <image>`, running the service command manually).
 6. **Run the declarative test suite** — `charly check live <image>` full three-section pass against the live container (or `--uri` / `--host` remote equivalent for a remote target).
 7. **Verify the deployed binary is the one you built** (R9) — `charly version` on the target matches the expected CalVer, and `charly status <image>` (detail `Image ref:` line; JSON `image_ref`) shows the running container's image ref carries THIS build's CalVer tag, not the prior one. Source-only changes (Syncthing, git push) do not update the deployed binary; you must build AND deploy on the target host.
@@ -464,7 +464,7 @@ These are the 11 standards referenced in the project rulebook's AI attribution t
 `DeployExecutor` chain that lands probes inside the leaf's actual
 venue — `command: id` for a pod-in-VM leaf returns the inner pod's user, not
 the parent VM's. Live-check and AI-iteration-scoring chain construction go
-through the same code path `charly bundle add` uses.
+through the same code path `charly fleet add` uses.
 For deeply-nested paths, each segment adds one hop:
 
 ```bash
@@ -473,7 +473,7 @@ charly check live check-vm.inner                      # → SSH + podman exec ch
 charly check live check-vm.inner.deeper               # → SSH + 2× podman exec (3 hops)
 ```
 
-Same chain primitive (`NestedExecutor`) used everywhere — `charly bundle
+Same chain primitive (`NestedExecutor`) used everywhere — `charly fleet
 add`, `charly check live`, `charly check run` (AI iteration scoring).
 
 **Exception — a pod leaf nested in a VM delegates its check to the guest.** Because

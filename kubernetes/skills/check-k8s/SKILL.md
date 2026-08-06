@@ -67,10 +67,10 @@ resolves the `cluster:` profile to a concrete kubeconfig context via the generic
 4. None given → current-context of the default kubeconfig (matches
    `kubectl` with no flags).
 
-`charly bundle add vm:k3s-srv` (or any deploy whose layers include
+`charly fleet add vm:k3s-srv` (or any deploy whose layers include
 `k3s-server`) provisions a cluster whose kubeconfig is merged into the
 default kubeconfig under a context named after the deploy (the plugin-side
-`k3s-post-provision` finalization dispatched by `candy/plugin-bundle`'s
+`k3s-post-provision` finalization dispatched by `candy/plugin-fleet`'s
 `k3sPostProvision` (InvokeProviding `verb:kube` peer-to-peer — the former
 core `invokeKubePluginWithBroker` seam is deleted), which retrieves the
 kubeconfig, rewrites its
@@ -231,7 +231,7 @@ charly's core binary.
 - `charly/k8s_plugin.go` / `charly/k3s_post.go` / `charly/k8s_config.go` are
   ALL DELETED — the former core seam that built a synthetic `kube:` `#Op` and
   dispatched it to the plugin WITH the reverse-channel broker
-  (`invokeKubePluginWithBroker`) is gone. `candy/plugin-bundle`'s own
+  (`invokeKubePluginWithBroker`) is gone. `candy/plugin-fleet`'s own
   `k3sPostProvision` (`secrets_artifacts.go`) InvokeProviders `verb:kube`
   peer-to-peer directly (`exec.InvokeProvider(ctx, "verb", "kube", …)`, with
   an explicit `kit.ShellExecutor{}` venue override reproducing the original
@@ -253,7 +253,7 @@ all were removed when the verb was externalized.
   run), the plan-step vocabulary, and how the provider registry dispatches
   declarative verbs.
 - `/charly-kubernetes:kubernetes` — deploying images to a K8s cluster
-  (`kind: k8s` cluster templates, Kustomize generation, `charly bundle`).
+  (`kind: k8s` cluster templates, Kustomize generation, `charly fleet`).
 - `/charly-internals:plugin` — the Provider model and the out-of-process
   plugin dispatch the `kube:` verb rides on.
 - `/charly-infrastructure:k3s` — the k3s-server / k3s-agent candies whose

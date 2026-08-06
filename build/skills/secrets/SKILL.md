@@ -517,7 +517,7 @@ credential_keyring,credential_config,secret_service,verb_credential,credential_a
 core keeps only the thin adapter `charly/credential_plugin.go` (`ResolveCredential` /
 `DefaultCredentialStore` → the `credentialResolver` interface → `verb:credential`; the former
 `CredentialStore` interface + Get/Set/Delete/List/Name/awaitUnlock were DELETED at K-wave 2
-cone CONTESTED, zero production callers) + `candy/plugin-bundle/secrets_artifacts.go` + `candy/plugin-deploy-pod/secrets_resolve.go` (podman-secret provisioning — the former `charly/secrets.go` is DELETED, K-wave 2). On an
+cone CONTESTED, zero production callers) + `candy/plugin-fleet/secrets_artifacts.go` + `candy/plugin-deploy-pod/secrets_resolve.go` (podman-secret provisioning — the former `charly/secrets.go` is DELETED, K-wave 2). On an
 installed host the plugin lives beside charly at `/usr/lib/charly/plugins` (every native
 package build — the arch PKGBUILD and the fedora `.rpm` / debian `.deb` builds — bakes the
 binary + its `.providers` manifest, off the shared `pkg/host-command-plugins.txt` set).

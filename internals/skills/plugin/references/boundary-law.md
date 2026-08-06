@@ -69,8 +69,8 @@ inherited from the moved majority; a validator REJECTS a remainder whose only ju
 stays-core header, demanding call-chain evidence first; and the orchestrator audits every stays-claim
 against this boundary law with that evidence, never rubber-stamping the header. Precedent:
 the former `charly/host_build_deploy_add.go` (the `deploy-add` HostBuild seam, DELETED, K-wave 2)
-documented that the `charly bundle add` CLI moved to `command:bundle`
-(candy/plugin-bundle, P13) while the deploy KERNEL it drives "STAYS CORE" on exactly this "cannot cross
+documented that the `charly fleet add` CLI moved to `command:fleet`
+(candy/plugin-fleet, P13) while the deploy KERNEL it drives "STAYS CORE" on exactly this "cannot cross
 the process boundary" claim — overruled as a boundary-law violation (the deploy-dispatch kernel is
 tracked K-wave residue, not permanent core). Full three-role breakdown: `/charly-internals:agents`
 "Enforcement — 'host-coupled' is never a permanence reason".
@@ -128,7 +128,7 @@ The kernel consumes the generic envelope; the plugin owns the schema, the valida
 the resolution. The build-time `OpEmit` (step/verb fragment), the F6 lifecycle/preresolve legs a substrate
 provider serves over its own `InvokeProvider(class:"deploy", word, OpPrepareVenue/OpPreresolve/…)`
 (`VenueDescriptor`; S3b generalized this off the former dedicated `grpcSubstrateLifecycle` proxy into the ONE
-generic `candy/plugin-bundle` `OpDeployDispatch` dispatch every substrate now shares), and the
+generic `candy/plugin-fleet` `OpDeployDispatch` dispatch every substrate now shares), and the
 `HostArbiter`/`HostBuild`/`InvokeProvider`/`RunHostStep` reverse legs are the
 existing seams a de-typing rides — no new seam is usually needed, only the consumer stops re-typing.
 
@@ -146,7 +146,7 @@ or delete the duplicate — rarely invent a new one; most seams the boundary law
 **Realized architecture (present state).** The SDK boundary (`github.com/opencharly/sdk`) is extracted;
 every verb / kind / step / builder / command, all five deploy substrates (local/pod/vm/k8s/android) with
 their pod + vm venue lifecycles, and egress / k8sgen / gpu / arbiter / secrets / enc / tunnel are plugin
-candies over the generic seams (`HostBuild("overlay"/"cli"/"step-emit")`, the `candy/plugin-bundle`
+candies over the generic seams (`HostBuild("overlay"/"cli"/"step-emit")`, the `candy/plugin-fleet`
 `OpDeployDispatch` orchestration + each substrate's own `InvokeProvider` lifecycle/preresolve legs (S3b,
 replacing the former dedicated `grpcSubstrateLifecycle` proxy), the
 `ExecutorService` reverse legs, the opaque `Substrate`/`DeployVenue.Substrate` payloads). Where a concrete
@@ -203,7 +203,7 @@ registry + plugin cache/loading (~1k); the provider registry + in-proc/gRPC tran
 words, kinds) + the per-node kind-decode resolve+invoke (~2k); the reverse-channel broker (executor
 re-materialization + `InvokeProvider`, ~1–1.5k). Everything else in today's LOC total moves to sdk
 mechanism libraries (loaderkit / enginekit + the existing kit / deploykit / buildkit) consumed by plugin
-candies (plugin-project, plugin-build, plugin-bundle, plugin-check, plugin-box, plugin-status, plugin-oci,
+candies (plugin-project, plugin-build, plugin-fleet, plugin-check, plugin-box, plugin-status, plugin-oci,
 the deploy-substrate plugins, the command plugins).
 
 The active migration-wave sequencing and each wave's tracked residue exit live in the cutover plan and

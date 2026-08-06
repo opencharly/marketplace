@@ -73,7 +73,7 @@ asciinema play demo.cast                     # play back the copied-out artifact
 
 ## Note
 
-Also available via the `dev-tools` candy (which includes asciinema among many other tools). This standalone candy is for boxes that need terminal recording without the full dev-tools bundle.
+Also available via the `dev-tools` candy (which includes asciinema among many other tools). This standalone candy is for boxes that need terminal recording without the full dev-tools set.
 
 ## Used In Boxes
 

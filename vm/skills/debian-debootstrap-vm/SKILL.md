@@ -46,7 +46,7 @@ charly binary, which the unified loader makes available to the submodule's
 (`vm: {from: debian-debootstrap, disposable: true}`), so
 `charly -C box/debian check run check-debian-debootstrap-vm` runs the full R10 sequence
 unattended (the equivalent `charly update check-debian-debootstrap-vm` rebuild also works,
-since the bundle is folded into the Bundle map).
+since the deploy is folded into the Fleet map).
 
 ## debootstrap path
 

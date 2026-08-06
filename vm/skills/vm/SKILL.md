@@ -12,7 +12,7 @@ description: |
 
 - **Disposability is a deployment property, never a VM-entity field.** A `kind: vm` entity carries no `disposable:` / `lifecycle:` field. Put `disposable: true` on the deploy that deploys it. The `vm:` entity only describes VM shape (disk, RAM, SSH, cloud-init, libvirt), never authorization.
 - **VM cross-ref**: a `vm:` deploy names its VM entity via the `from:` field (`<bed>: {vm: {from: <entity-name>, disposable: true}}`).
-- **`charly update <vm-entity-name>`** does NOT gate on `disposable:` — an explicit invocation rebuilds ANY target (destroy→create the domain, reuse the qcow2 disk unless `--build`, then re-apply the deploy's layers via the shared `bundle add` path). For a non-disposable, non-ephemeral target it prints a one-line transparency note (`noteUpdateDisposability`) and proceeds. The `disposable: true` flag stays load-bearing as the authorization for UNATTENDED autonomous destroy + rebuild (the project rulebook R10 (`AGENTS.md` / `CLAUDE.md`)) and the check-runner's unattended fresh rebuild, NOT as an `charly update` capability check. See `/charly-internals:disposable` and `/charly-core:charly-update`.
+- **`charly update <vm-entity-name>`** does NOT gate on `disposable:` — an explicit invocation rebuilds ANY target (destroy→create the domain, reuse the qcow2 disk unless `--build`, then re-apply the deploy's layers via the shared `fleet add` path). For a non-disposable, non-ephemeral target it prints a one-line transparency note (`noteUpdateDisposability`) and proceeds. The `disposable: true` flag stays load-bearing as the authorization for UNATTENDED autonomous destroy + rebuild (the project rulebook R10 (`AGENTS.md` / `CLAUDE.md`)) and the check-runner's unattended fresh rebuild, NOT as an `charly update` capability check. See `/charly-internals:disposable` and `/charly-core:charly-update`.
 
 ## Overview
 
@@ -87,7 +87,7 @@ To pass a physical GPU through to a VM and (e.g.) run a CUDA container inside it
 3. **In-guest driver** — a passthrough guest needs the actual kernel module, not
    just the userspace container toolkit. Apply a kernel-driver layer (it
    blacklists the in-tree driver, regenerates the initramfs, and declares
-   `reboot: true` so `charly bundle add vm:<name>` reboots the guest and waits for it
+   `reboot: true` so `charly fleet add vm:<name>` reboots the guest and waits for it
    to return). The `nvidia`-toolkit layer + `nvidia-ctk cdi generate` then makes
    the GPU available to containers via CDI (`--device nvidia.com/gpu=all`).
 
@@ -422,12 +422,12 @@ charly vm ssh <bootc-vm>
 
 ```bash
 charly vm create arch
-charly bundle add vm:arch ripgrep         # apply ripgrep layer over SSH
-charly bundle add vm:arch fedora-coder --add-candy team-extras
-charly bundle del vm:arch                 # reverse all applied layers
+charly fleet add vm:arch ripgrep         # apply ripgrep layer over SSH
+charly fleet add vm:arch fedora-coder --add-candy team-extras
+charly fleet del vm:arch                 # reverse all applied layers
 ```
 
-See `/charly-core:deploy` "vm: target" for the `charly bundle add vm:<name>` surface and `/charly-internals:vm-deploy-target` for the executor model.
+See `/charly-core:deploy` "vm: target" for the `charly fleet add vm:<name>` surface and `/charly-internals:vm-deploy-target` for the executor model.
 
 ### Debug VM boot issues
 
@@ -519,11 +519,11 @@ no such VM "charly-definitely-not-a-vm-xyz": no libvirt domain and no qemu state
 exit=1
 ```
 
-### `charly bundle add vm:<vm> <localpkg-candy>` exits 0 WITHOUT installing
+### `charly fleet add vm:<vm> <localpkg-candy>` exits 0 WITHOUT installing
 
 A `localpkg:` candy (the `charly` candy: `pkg/arch` via makepkg + `pacman -U`) needs the
 package built from local source, which only the check-bed runner does (it sets
-`--dev-local-pkg` automatically — see `/charly-check:check`). A bare `charly bundle add
+`--dev-local-pkg` automatically — see `/charly-check:check`). A bare `charly fleet add
 vm:<vm> charly` returns **rc=0** and prints:
 
 ```
@@ -565,7 +565,7 @@ Expected. The agent needs a `virtio-serial` channel that charly's QEMU backend d
 - `/charly-internals:ovmf` — UEFI firmware path resolution; per-VM NVRAM; bios-skips-loader sentinel
 - `/charly-internals:cutover-policy` — hard cutover policy
 - `/charly-build:migrate` — `charly migrate` legacy conversion
-- `/charly-core:deploy` — `charly bundle add vm:<name> <ref>` in-guest layer application
+- `/charly-core:deploy` — `charly fleet add vm:<name> <ref>` in-guest layer application
 - `/charly-build:pull` — fetch container images into local storage (prereq for bootc VM builds)
 - `/charly-build:build` — building container images before VM disk builds
 - `/charly-image:layer` — `libvirt.snippets:` field in charly.yml
@@ -577,6 +577,6 @@ Expected. The agent needs a `virtio-serial` channel that charly's QEMU backend d
 
 **MUST be invoked** when the task involves virtual machines, charly vm commands, kind:vm entities, cloud_image vs bootc source types, libvirt/QEMU backends, BIOS vs UEFI firmware choice, or VM lifecycle management. Invoke this skill BEFORE reading source code or launching Explore agents.
 
-**Workflow position:** Standalone workflow. VM management is separate from container lifecycle, but `charly bundle add vm:<name>` bridges into the shared InstallPlan + DeployTarget machinery.
+**Workflow position:** Standalone workflow. VM management is separate from container lifecycle, but `charly fleet add vm:<name>` bridges into the shared InstallPlan + DeployTarget machinery.
 
 Live-deploy verification: see /charly-check:check (the 11 Testing Standards) and /charly-internals:disposable.

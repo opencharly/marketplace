@@ -74,8 +74,8 @@ M16 (egress) move those in-core capabilities onto this phase machinery.
 
 **A kind decode is FLAT or STRUCTURAL (F5).** A FLAT kind (the default) lands its `OpLoad` body OPAQUELY in
 `uf.PluginKinds[disc][name]` (F4). A STRUCTURAL kind sets `ProvidedCapability.Structural = true` (the proto
-`structural` field) in its Describe — its `OpLoad` returns a `spec.Deploy` (BundleNode) MEMBER TREE the host
-folds into `uf.Bundle`, the SAME map the in-proc pod/candy decoders populate, so the entity participates in
+`structural` field) in its Describe — its `OpLoad` returns a `spec.Deploy` (FleetNode) MEMBER TREE the host
+folds into `uf.Fleet`, the SAME map the in-proc pod/candy decoders populate, so the entity participates in
 deploy/check exactly like a builtin (the folded member goes through the SAME `validateDeploy`). This is the
 channel that externalizes the structural kind decoders — ALL of them are now DONE: **`group` (C2-group,
 candy/plugin-group)**, **the 5 deploy-substrate kinds pod/vm/k8s/local/android (C2-substrate,
@@ -83,7 +83,7 @@ candy/plugin-substrate — one provider serving all 5)**, and **the LAST one, th
 (C2-candy, candy/plugin-candy-kind)** — all COMPILED-IN. The substrate consumer added the TEMPLATE-map fold
 arm: a substrate node in standalone-TEMPLATE shape (a bare `vm:`/`pod:` — no from:/image:, no members) folds
 into the typed map `uf.Pod`/`uf.VM`/`uf.K8s`/`uf.Local`/`uf.Android`, alongside the deploy-shape fold into
-`uf.Bundle`; candy folds into `uf.Box` (image) / `uf.Candy` (layer). So EVERY authoring kind is plugin-served:
+`uf.Fleet`; candy folds into `uf.Box` (image) / `uf.Candy` (layer). So EVERY authoring kind is plugin-served:
 the `#Node` disjunction has ZERO built-in arms (`#Node: {...}` — a structural gate only) and `spec.KindWords`
 is EMPTY. (candy's bootstrap-critical box⊻layer routing — candyIsImage + buildCandy — STAYS core: the
 discovered-candy pre-check calls it directly, and the COMPILED-IN candy plugin registers at init before any
@@ -94,12 +94,12 @@ to the host's foldCandyKind by an explicit disc branch.)
 structural kind's whole POINT is preserving the node's AUTHORED resource-member children (peers, nested
 pod-in-pod, cross-member `${HOST:…}` checks) — but they CANNOT ride `op.Params`: that JSON is unified against
 the plugin's CLOSED `#<Kind>Input` def, which the member subtree would violate. So the HOST pre-decodes the
-authored member children via the SAME `sdk/loaderkit.BuildBundleNode` recursion the builtin path uses,
+authored member children via the SAME `sdk/loaderkit.BuildFleetNode` recursion the builtin path uses,
 reached through the ProjectLoader seam (`loaderkit.BuildResourceMemberChildren` — ONE member-decode source of
 truth, R3) and threads the decoded subtree to
 `OpLoad` via `op.Env` (`spec.StructuralKindLoadEnv{Members}`). The plugin decodes only its kind-specific scalar
 body from `op.Params` and ATTACHES the host-threaded members to its `spec.Deploy` reply — Members for a
-targetless kind (group), Children for a workload — so the reconstructed `uf.Bundle` entry is BYTE-EQUIVALENT to
+targetless kind (group), Children for a workload — so the reconstructed `uf.Fleet` entry is BYTE-EQUIVALENT to
 the FORMER builtin `group`'s in-proc decode — the invariant C2-group's `check-group` bed + the
 `TestExternalStructKind_StructuralDecode` byte-equivalence test both prove (`${HOST:…}` refs survive as
 literals, resolved later by tree position). A
@@ -115,11 +115,11 @@ works for a kind whose value is SCALAR-simple (group's `#GroupInput`). The 5 sub
 (`#Vm`/`#Deploy`/`#LibvirtDomain`/`#Candy`/`#Box`/… with host-canonicalized shorthand like `tunnel:`/`port:`)
 that a plugin CANNOT re-decode soundly from `op.Params` nor validate with a self-contained schema. So
 candy/plugin-substrate AND candy/plugin-candy-kind use the `spec.StructuralKindLoadEnv.Standalone` channel: the
-HOST pre-decodes the WHOLE CANONICAL node via the core loader (`buildBundleNode` deploy / `decodeNodeValue`
+HOST pre-decodes the WHOLE CANONICAL node via the core loader (`buildFleetNode` deploy / `decodeNodeValue`
 template for substrate; `candyIsImage` + `buildCandy` for candy — the bootstrap-critical routing that STAYS
 core), validates its value host-side against the KEPT `#<Kind>Value` / `#CandyValue` def
 (`validateKindValueCUE`), and threads the canonical result via `op.Env`; the plugin is a PURE ECHO
-(`InputDef:""`, no `validateAuthoredPluginInput`), and the host folds the echo into `uf.Bundle` (deploy) / the
+(`InputDef:""`, no `validateAuthoredPluginInput`), and the host folds the echo into `uf.Fleet` (deploy) / the
 typed template map `uf.Pod`/`uf.VM`/… (template) / `uf.Box` (candy-image) / `uf.Candy` (candy-layer).
 Byte-equivalence over ALL shapes: `TestSubstrateKind_BothShapesByteEquivalent` +
 `TestCandyKind_BothShapesByteEquivalent` (against the direct core decode) + box validate across all repos (candy
@@ -153,7 +153,7 @@ See "Authoring an external COMMAND plugin" below.
   (the pod overlay build), `step-emit` (host-coupled step fragments), `plugin-binary`
   (the F10 plugin host build), `cli` (run-any-charly-command
   reentry), `validate-project-checks`, `remote-image-resolve`, `box-fetch-resolve` (`hostprobe` DIED with doctor's plugin-side hostfacts.go — peer InvokeProvider to verb:gpu/verb:credential; `retention-defaults` DIED at K-wave 2 cone R6 — the defaults resolve plugin-side via loaderkit.ResolveRetentionDefaultsViaExecutor; `feature` DIED at K-wave 2 cone R6 — the enumeration loads the project plugin-side via loaderkit; `render-service` DIED in the W3 B4 InvokeProvider move; `config-resolve` DIED at K-wave 2 cone R2 bank D — the consumers self-serve via loaderkit)
-  (config-persist is DELETED — persist moved plugin-side to candy/plugin-vm/vm_host_persist.go), the `deploy-*-resolve` / `resolve-target-add` / `deploy-node-del-dispatch` / `deploy-plugins-connect` / `deploy-from-box` family (`deploy-members-*` DIED, K-wave W3a A4 — candy/plugin-bundle calls sdk/deploykit.BringUpMembers/TearDownMembers directly), the `loader-*` and `pod-*` (lifecycle verbs) and `pod-config-*` families, `arbiter-bracket-acquire` + `-release`, `construct-step`, `check-load-plugins`,
+  (config-persist is DELETED — persist moved plugin-side to candy/plugin-vm/vm_host_persist.go), the `deploy-*-resolve` / `resolve-target-add` / `deploy-node-del-dispatch` / `deploy-plugins-connect` / `deploy-from-box` family (`deploy-members-*` DIED, K-wave W3a A4 — candy/plugin-fleet calls sdk/deploykit.BringUpMembers/TearDownMembers directly), the `loader-*` and `pod-*` (lifecycle verbs) and `pod-config-*` families, `arbiter-bracket-acquire` + `-release`, `construct-step`, `check-load-plugins`,
   `check-bed-gpu-prereq` (the ONE narrow seam surviving `check-bed`'s full dissolution, K-wave W3 B2-full — every other former responsibility moved into candy/plugin-check/bed_session.go), `check-run`. The build engine is in core TODAY — K3 build-engine
   migration inventory, not permanent core — the box-build podman DRIVE moved to candy/plugin-build in
   P8b, and the Containerfile RENDER DRIVE moved to `sdk/deploykit` (#67, driven by plugin-build over the
@@ -168,25 +168,25 @@ See "Authoring an external COMMAND plugin" below.
   provider connects) and routed host-side by the shared check classifier. **A substrate may ALSO bring its OWN
   host-side venue LIFECYCLE + PRERESOLVE (F6):** a `class:deploy` capability declaring `Lifecycle=true` /
   `Preresolve=true` is read at plugin-connect into plain `hasLifecycle`/`hasPreresolve` booleans threaded
-  through `pluginDeployTarget` (`charly/unified_targets.go`, S3b) and `candy/plugin-bundle`'s generic
+  through `pluginDeployTarget` (`charly/unified_targets.go`, S3b) and `candy/plugin-fleet`'s generic
   `Invoke(OpDeployDispatch)` — there is no longer a SEPARATE wire-backed `substrateLifecycle`/
   `deployPreresolver` object registered at plugin-load (both interfaces, and the core files that implemented
   them, `charly/substrate_lifecycle_grpc.go` + `charly/deploy_preresolve.go`, are DELETED). Instead
-  `candy/plugin-bundle`'s `lifecycleInvoke`/`preresolveSubstrate` (`deploy_target.go`) reach the substrate's
+  `candy/plugin-fleet`'s `lifecycleInvoke`/`preresolveSubstrate` (`deploy_target.go`) reach the substrate's
   `OpPrepareVenue`/`OpStart`/`OpStop`/`OpStatus`/`OpRebuild`/`OpPreresolve` via its OWN
   `sdk.Executor.InvokeProvider(class:"deploy", word, op, …)` (S1) — the SAME PLUGIN↔PLUGIN dispatch every
   other peer-invoke uses. `OpPrepareVenue` still returns a `spec.VenueDescriptor` the host re-materializes
   into a real executor (the live executor never crosses the wire), and `OpPreresolve` still returns the
   opaque `DeployVenue.Substrate` payload, generalizing the in-core k8s/android preresolvers. Reference
   (out-of-process-only): `candy/plugin-example-lifecycle`; mechanism: `/charly-internals:install-plan`
-  (`candy/plugin-bundle/deploy_target.go`). This is the channel M4 reuses to externalize the pod/vm lifecycles. An external **`run:` plugin verb /
+  (`candy/plugin-fleet/deploy_target.go`). This is the channel M4 reuses to externalize the pod/vm lifecycles. An external **`run:` plugin verb /
   step** composed INSIDE a deploy (a `local:`/`vm:` target, where the install runs ON the target, not baked
   into an image) likewise EXECUTES at deploy: it lowers to an `ExternalPluginStep` IR node which the external
   `local:`/`vm:` deploy walk reaches as a host-engine step over `RunHostStep`, where the shared `invokeExternalStep`
   dispatch (`charly/plugin_executor_reverse.go`, S4/R3) `Invoke(OpExecute)`s over the PLUGIN↔PLUGIN
   `InvokeProvider` leg (a nested reverse channel delegating to the SAME venue executor), so the plugin runs
   its deploy-context effect on the target and RETURNS its teardown `ReverseOp`s, which the host records to
-  the ledger and replays at `charly bundle del` (record-and-replay, the SAME `spec.DeployReply` wire the
+  the ledger and replays at `charly fleet del` (record-and-replay, the SAME `spec.DeployReply` wire the
   deploy-substrate dispatch uses — R3). Only an EXTERNAL provider is routed there (the `executorInvoker` discriminator,
   satisfied SOLELY by the out-of-process `grpcProvider`); a builtin `ProvisionActor` verb keeps its in-proc
   shell path. So the verb/step class is external-capable at BOTH build (`OpEmit`, next bullet) AND deploy

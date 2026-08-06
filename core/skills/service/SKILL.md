@@ -338,9 +338,9 @@ single object. `ports` is a structured array (not `[]string`):
 
 Use the top-level `charly reap-orphans` command. It walks charly.yml
 ephemeral entries marked `active`, probes the underlying engine
-(libvirt for VM, podman for pod, kubectl for k8s) and runs `charly bundle
+(libvirt for VM, podman for pod, kubectl for k8s) and runs `charly fleet
 del <name> --assume-yes` for orphans (NOT `--force` — that flag does not
-exist on `bundle del`; `deployDelArgv` is the single source of the correct
+exist on `fleet del`; `deployDelArgv` is the single source of the correct
 flag, guarded by a regression test).
 
 Source: `candy/plugin-substrate/status_flat.go` (the collection engine — substrate fan-out + deploy enrichment; K6 relocated the LAST core-side status logic, incl. the deploy-cone enrichment, out of `charly/status_collector.go`, which is now deleted — core keeps only a thin generic HostBuild forward), `candy/plugin-substrate/command_reap_orphans.go` (orphan reaping, K5, relocated from charly/status_reap.go — its vm-liveness probe reaches verb:libvirt over `Executor.InvokeProvider`, F10). The status CLI + render live in `candy/plugin-status`; the live tool probes in `candy/plugin-substrate/status_probes.go` (P14a).
