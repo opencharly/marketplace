@@ -1,7 +1,7 @@
 {
   "name": "charly-versa",
-  "version": "1.1.0",
-  "description": "MCP server registration + skill coverage for the versa image — marimo reactive notebooks + Airflow + OSM/GTFS analytics + martin vector tiles + 3D terrain",
+  "version": "1.0.0",
+  "description": "Self-contained skills + MCP wiring for the versa image — a marimo notebook environment (marimo + Airflow + OSM/GTFS analytics + martin vector tiles + five PMTiles generation pipelines: tippecanoe / gpq-tiles / DuckDB ST_AsMVT / DuckDB → freestiler / Shortbread-via-Tilemaker, plus PMTiles Viewer SPA on port 28001 + VersaTiles Frontend on port 28002 + versatiles serve as second tile server on port 28090). Ships marimo (port 22718) and airflow (port 29999) MCP servers.",
   "author": {
     "name": "opencharly"
   },
@@ -9,8 +9,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "OpenCharly Versa",
-    "shortDescription": "OpenCharly versa workflows.",
-    "longDescription": "MCP server registration + skill coverage for the versa image — marimo reactive notebooks + Airflow + OSM/GTFS analytics + martin vector tiles + 3D terrain",
+    "shortDescription": "Self-contained skills + MCP wiring for the versa image — a marimo notebook environment (marimo + Airflow + OSM/GTFS analytics + martin vector tiles + five PMTiles generation pipelines: tippecanoe / gpq-tiles / DuckDB ST_AsMVT / DuckDB → freestiler / Shortbread-via-Tilemaker, plus PMTiles Viewer SPA on port 28001 + VersaTiles Frontend on port 28002 + versatiles serve as second tile server on port 28090). Ships marimo (port 22718) and airflow (port 29999) MCP servers.",
+    "longDescription": "Self-contained skills + MCP wiring for the versa image — a marimo notebook environment (marimo + Airflow + OSM/GTFS analytics + martin vector tiles + five PMTiles generation pipelines: tippecanoe / gpq-tiles / DuckDB ST_AsMVT / DuckDB → freestiler / Shortbread-via-Tilemaker, plus PMTiles Viewer SPA on port 28001 + VersaTiles Frontend on port 28002 + versatiles serve as second tile server on port 28090). Ships marimo (port 22718) and airflow (port 29999) MCP servers.",
     "developerName": "opencharly",
     "category": "images",
     "capabilities": [

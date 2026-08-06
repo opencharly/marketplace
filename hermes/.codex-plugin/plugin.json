@@ -9,7 +9,7 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "OpenCharly Hermes",
-    "shortDescription": "OpenCharly hermes workflows.",
+    "shortDescription": "Self-contained skills for the hermes agent image (hermes + hermes-playwright variants). Consumes the jupyter MCP server for notebook manipulation — enable charly-jupyter alongside.",
     "longDescription": "Self-contained skills for the hermes agent image (hermes + hermes-playwright variants). Consumes the jupyter MCP server for notebook manipulation — enable charly-jupyter alongside.",
     "developerName": "opencharly",
     "category": "images",

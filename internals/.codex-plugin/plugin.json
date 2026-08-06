@@ -1,7 +1,7 @@
 {
   "name": "charly-internals",
-  "version": "1.2.0",
-  "description": "Development internals for charly contributors — Go source map, generate-source, install-plan IR, capabilities/OCI labels, vm-spec, libvirt/cloud-init renderers, cutover-policy, strict-policy, disposable, ovmf, local-infra, skill maintenance, and the agents/workflows/teams guide. Ships five agents — enforcers root-cause-analyzer, layer-validator, testing-validator plus check-bed-runner and deploy-verifier (executors that drive charly check beds) — and the github MCP server.",
+  "version": "1.0.0",
+  "description": "Development internals for charly contributors — Go source map, install-plan IR, capabilities/OCI labels, vm-spec, libvirt/cloud-init renderers, cutover-policy, strict-policy, disposable, ovmf, generate-source, skill maintenance, and the agents/workflows/teams guide. Ships five agents (root-cause-analyzer, layer-validator, testing-validator, check-bed-runner, deploy-verifier) and the github MCP server.",
   "author": {
     "name": "opencharly"
   },
@@ -9,8 +9,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "OpenCharly Internals",
-    "shortDescription": "OpenCharly internals workflows.",
-    "longDescription": "Development internals for charly contributors — Go source map, generate-source, install-plan IR, capabilities/OCI labels, vm-spec, libvirt/cloud-init renderers, cutover-policy, strict-policy, disposable, ovmf, local-infra, skill maintenance, and the agents/workflows/teams guide. Ships five agents — enforcers root-cause-analyzer, layer-validator, testing-validator plus check-bed-runner and deploy-verifier (executors that drive charly check beds) — and the github MCP server.",
+    "shortDescription": "Development internals for charly contributors — Go source map, install-plan IR, capabilities/OCI labels, vm-spec, libvirt/cloud-init renderers, cutover-policy, strict-policy, disposable, ovmf, generate-source, skill maintenance, and the agents/workflows/teams guide. Ships five agents (root-cause-analyzer, layer-validator, testing-validator, check-bed-runner, deploy-verifier) and the github MCP server.",
+    "longDescription": "Development internals for charly contributors — Go source map, install-plan IR, capabilities/OCI labels, vm-spec, libvirt/cloud-init renderers, cutover-policy, strict-policy, disposable, ovmf, generate-source, skill maintenance, and the agents/workflows/teams guide. Ships five agents (root-cause-analyzer, layer-validator, testing-validator, check-bed-runner, deploy-verifier) and the github MCP server.",
     "developerName": "opencharly",
     "category": "development",
     "capabilities": [
