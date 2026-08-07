@@ -1,7 +1,7 @@
 {
   "name": "charly-selkies",
   "version": "1.0.0",
-  "description": "Self-contained skills + MCP wiring for the selkies-desktop images (Wayland desktop in a container with VNC + Chrome). Ships the chrome-devtools MCP server (port 9224).",
+  "description": "Self-contained skills + MCP wiring for the selkies-desktop family (Wayland desktop in a container with VNC + Chrome). Ships the chrome-devtools MCP server (port 9224).",
   "author": {
     "name": "opencharly"
   },
@@ -9,8 +9,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "OpenCharly Selkies",
-    "shortDescription": "OpenCharly selkies workflows.",
-    "longDescription": "Self-contained skills + MCP wiring for the selkies-desktop images (Wayland desktop in a container with VNC + Chrome). Ships the chrome-devtools MCP server (port 9224).",
+    "shortDescription": "Self-contained skills + MCP wiring for the selkies-desktop family (Wayland desktop in a container with VNC + Chrome). Ships the chrome-devtools MCP server (port 9224).",
+    "longDescription": "Self-contained skills + MCP wiring for the selkies-desktop family (Wayland desktop in a container with VNC + Chrome). Ships the chrome-devtools MCP server (port 9224).",
     "developerName": "opencharly",
     "category": "images",
     "capabilities": [

@@ -1,7 +1,7 @@
 {
   "name": "charly-build",
-  "version": "1.1.0",
-  "description": "Build/authoring CLI verbs — `charly box build`, `generate`, `list`, `inspect`, `merge`, `new`, `pull`, `validate`, plus secrets/settings/migrate/charly-mcp-cmd. Schema authoring (`image`, `layer`, `local-spec`) moved to `kind/*` plugins; check orchestrator moved to `check/`.",
+  "version": "1.0.0",
+  "description": "Build/authoring CLI verbs — build, generate, list, inspect, merge, new, pull, validate, secrets, settings, migrate, charly-mcp-cmd.",
   "author": {
     "name": "opencharly"
   },
@@ -9,8 +9,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "OpenCharly Build",
-    "shortDescription": "OpenCharly build workflows.",
-    "longDescription": "Build/authoring CLI verbs — `charly box build`, `generate`, `list`, `inspect`, `merge`, `new`, `pull`, `validate`, plus secrets/settings/migrate/charly-mcp-cmd. Schema authoring (`image`, `layer`, `local-spec`) moved to `kind/*` plugins; check orchestrator moved to `check/`.",
+    "shortDescription": "Build/authoring CLI verbs — build, generate, list, inspect, merge, new, pull, validate, secrets, settings, migrate, charly-mcp-cmd.",
+    "longDescription": "Build/authoring CLI verbs — build, generate, list, inspect, merge, new, pull, validate, secrets, settings, migrate, charly-mcp-cmd.",
     "developerName": "opencharly",
     "category": "commands",
     "capabilities": [

@@ -1,7 +1,7 @@
 {
   "name": "charly-distros",
-  "version": "1.1.0",
-  "description": "Base OS images and hardware runtime layers — archlinux, fedora, debian, ubuntu, aurora, bazzite, GPU runtime (nvidia/cuda/rocm), bootc bootstrap, and per-distro builders.",
+  "version": "1.0.0",
+  "description": "Base OS images and hardware runtime — arch, fedora, debian, ubuntu, aurora, bazzite, GPU runtime (nvidia/cuda/rocm), bootc bootstrap, per-distro builders.",
   "author": {
     "name": "opencharly"
   },
@@ -9,8 +9,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "OpenCharly Distros",
-    "shortDescription": "OpenCharly distros workflows.",
-    "longDescription": "Base OS images and hardware runtime layers — archlinux, fedora, debian, ubuntu, aurora, bazzite, GPU runtime (nvidia/cuda/rocm), bootc bootstrap, and per-distro builders.",
+    "shortDescription": "Base OS images and hardware runtime — arch, fedora, debian, ubuntu, aurora, bazzite, GPU runtime (nvidia/cuda/rocm), bootc bootstrap, per-distro builders.",
+    "longDescription": "Base OS images and hardware runtime — arch, fedora, debian, ubuntu, aurora, bazzite, GPU runtime (nvidia/cuda/rocm), bootc bootstrap, per-distro builders.",
     "developerName": "opencharly",
     "category": "images",
     "capabilities": [
@@ -19,18 +19,5 @@
     "defaultPrompt": [
       "Use OpenCharly Distros for this OpenCharly task."
     ]
-  },
-  "homepage": "https://github.com/opencharly/charly",
-  "license": "MIT",
-  "keywords": [
-    "charly",
-    "distro",
-    "fedora",
-    "archlinux",
-    "debian",
-    "ubuntu",
-    "nvidia",
-    "cuda",
-    "bootc"
-  ]
+  }
 }
