@@ -45,7 +45,7 @@ beside it.
 
 ## The compact node form (name-first, one kind key)
 
-Every charly.yml is self-describing. A candy flattens to a top-level `<name>:` key (the entity NAME) with EXACTLY ONE kind key — `candy:` — whose value is the COMPLETE body: scalars, every collection (`package`, `env`, `service`, `volume`, …) inline, and the operational steps as an ordered UNNAMED list under `plan:`. A step that needs a stable name for reports/overlays carries an `id:` field. This name-first shape is globally addressable, so candy files stay mergeable — stack the top-level keys (or concatenate with `---` separators) to form a single file containing many candies. (The only other children an entity may carry are sub-ENTITY members, and only under a deployable kind — see `/charly-core:deploy`; a candy nests no members.)
+Every charly.yml is self-describing. A candy flattens to a top-level `<name>:` key (the entity NAME) with EXACTLY ONE kind key — `candy:` — whose value is the COMPLETE body: scalars, every collection (`package`, `env`, `service`, `volume`, …) inline, and the operational steps as an ordered UNNAMED list under `plan:`. A step that needs a stable name for reports/overlays carries an `id:` field. This name-first shape is globally addressable, so candy files stay fleet-mergeable — stack the top-level keys (or concatenate with `---` separators) to form a single file containing many candies. (The only other children an entity may carry are sub-ENTITY members, and only under a deployable kind — see `/charly-core:deploy`; a candy nests no members.)
 
 ```yaml
 # candy/chrome/charly.yml

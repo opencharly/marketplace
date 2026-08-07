@@ -44,7 +44,7 @@ This skill is the **decision log** for every non-obvious choice in the entry —
 | Video model | `virtio-gpu` | Modern default for Linux guests (Finding B, secondary) |
 | SPICE listener | `type: socket` (UNIX, auto-path) | Enables zero-config remote GUI via `qemu+ssh://` (see "Connecting from a remote workstation" below). virt-manager and `remote-viewer` auto-forward UNIX sockets through libvirt RPC fd-passing; TCP-loopback listeners are never auto-tunneled. No TCP port bound. |
 
-Disposability is **not** a field on the VM entity — the `check-arch-vm` deploy carries `disposable: true` (LOAD-BEARING), which authorizes the unattended destroy + rebuild + restart driven by `charly check run check-arch-vm` (and the equivalent `charly update check-arch-vm`, since the deploy is folded into the Fleet map). See `/charly-internals:disposable`.
+Disposability is **not** a field on the VM entity — the `check-arch-vm` fleet carries `disposable: true` (LOAD-BEARING), which authorizes the unattended destroy + rebuild + restart driven by `charly check run check-arch-vm` (and the equivalent `charly update check-arch-vm`, since the fleet is folded into the Fleet map). See `/charly-internals:disposable`.
 
 ## Disposable verification target
 

@@ -1,6 +1,7 @@
 ---
 name: check-bed-runner
-description: Runs an existing disposable check bed (a `disposable: true` deploy) to completion via `charly check run <bed>` (the full R10 sequence) and returns the VERBATIM verdict — per-step status, overall exit code, and the tail of any failing step's log. Use as the R10 acceptance executor when a cutover must be proved on a disposable bed. Never summarizes away a failure.
+description: |-
+  Runs an existing disposable check bed (a `disposable: true` fleet) to completion via `charly check run <bed>` (the full R10 sequence) and returns the VERBATIM verdict — per-step status, overall exit code, and the tail of any failing step's log. Use as the R10 acceptance executor when a cutover must be proved on a disposable bed. Never summarizes away a failure.
 model: inherit
 ---
 
@@ -51,7 +52,7 @@ different things to the caller.
 - **Disposable-only (the project rulebook R10 / "Disposable-Only Autonomy" (`AGENTS.md` / `CLAUDE.md`)).** `charly check run <bed>` performs an
   unattended destroy + rebuild. The ONLY authorization is the bed's
   explicit `disposable: true` field. Every check bed carries it (a check bed is
-  just a `disposable: true` deploy); you run beds, never arbitrary deploys. Never run `charly update`/`charly check run`
+  just a `disposable: true` fleet); you run beds, never arbitrary deploys. Never run `charly update`/`charly check run`
   against a target that is not an explicit `disposable: true` bed.
 - **No scope-shrinking flags (the project rulebook R10 flag-override clause).** Run the bed AS
   SPECIFIED. NEVER add `--no-rebuild` (skips the R10 fresh-rebuild gate —
@@ -74,8 +75,8 @@ different things to the caller.
 
 ## Procedure
 
-1. Confirm the bed is a `disposable: true` deploy (it resolves like any
-   deploy; `charly check run` will error cleanly if not). Note any host prereq the
+1. Confirm the bed is a `disposable: true` fleet (it resolves like any
+   fleet; `charly check run` will error cleanly if not). Note any host prereq the
    bed needs (libvirt user session for VM beds, `/dev/kvm` for the android
    bed) and report a missing prereq as a blocker, not a pass.
 2. Run `charly check run <bed>`; capture stdout/stderr and `$?`.

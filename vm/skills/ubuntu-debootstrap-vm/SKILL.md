@@ -49,7 +49,7 @@ without an import. The embedded vocabulary carries BOTH distro configs, so
 (`vm: {from: ubuntu-debootstrap, disposable: true}`), so
 `charly -C box/ubuntu check run check-ubuntu-debootstrap-vm` runs the full R10 sequence
 unattended (the equivalent `charly update check-ubuntu-debootstrap-vm` rebuild also works,
-since the deploy is folded into the Fleet map).
+since the fleet is folded into the Fleet map).
 
 ## debootstrap path
 

@@ -29,7 +29,7 @@ my-image:
 - (none currently enabled)
 
 ## Related Candies
-- `/charly-coder:devops-tools` — common companion collection in observability boxes
+- `/charly-coder:devops-tools` — common companion bundle in observability boxes
 - `/charly-coder:kubernetes-layer` — pairs with Grafana for cluster observability
 - `/charly-coder:dev-tools` — typically paired in devops boxes
 

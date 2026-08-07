@@ -1,6 +1,6 @@
 ---
 name: kubernetes
-description: |
+description: |-
   MUST be invoked before any work involving: `charly fleet add --target kubernetes`, `charly fleet from-box`, Kustomize manifest generation, cluster profiles, K8s deployments, `kubernetes:` block in deploy spec, or OCI-label capabilities.
 ---
 

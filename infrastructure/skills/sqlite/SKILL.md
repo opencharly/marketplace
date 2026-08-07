@@ -36,7 +36,7 @@ my-box:
 - `openclaw-full` (via `openclaw-full` metalayer)
 
 ## Related Candies
-- `/charly-coder:dev-tools` -- common dev CLI set that pairs with sqlite
+- `/charly-coder:dev-tools` -- common dev CLI bundle that pairs with sqlite
 - `/charly-openclaw:openclaw-full` -- parent metalayer that bundles sqlite
 
 ## Related Commands

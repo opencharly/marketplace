@@ -1,6 +1,6 @@
 ---
 name: deploy
-description: |
+description: |-
   MUST be invoked before any work involving: `charly fleet add`/`charly fleet del` commands, quadlet generation, volume backing, tunnels (Tailscale/Cloudflare), `add_candy:` overlay, or per-machine deploy overlays.
 ---
 
@@ -69,7 +69,7 @@ dotted-path `charly fleet add pod.device`). See `/charly-check:android`. K8s-spe
 | Reset instance config | `charly fleet reset <image> -i <instance>` | Remove instance overrides |
 | Push to registry | `charly box build --push` | Multi-platform push |
 
-For service lifecycle commands (start/stop/status/logs/update/remove), see `/charly-core:service`. For VM lifecycle (build/create/start/stop/ssh), see `/charly-vm:vm`; for in-VM layer deploys via `charly fleet add vm:<name>`, see the "VM target" section below and `/charly-internals:vm-deploy-target`. For encrypted storage, see `/charly-automation:enc`. For host-target semantics, see `/charly-local:local-deploy`. For Kubernetes targets, see `/charly-kubernetes:kubernetes`. For the Go IR that drives all four targets, see `/charly-internals:install-plan`.
+For service lifecycle commands (start/stop/status/logs/update/remove), see `/charly-core:service`. For VM lifecycle (build/create/start/stop/ssh), see `/charly-vm:vm`; for in-VM layer deploys via `charly fleet add vm:<name>`, see the "VM target" section below and `/charly-internals:vm-deploy-target`. For encrypted storage, see `/charly-automation:enc`. For host-target semantics, see `/charly-local:local-deploy`. For Kubernetes targets, see `/charly-kubernetes:kubernetes`. For the Go IR that drives all five targets, see `/charly-internals:install-plan`.
 
 ## Command Family: `add` / `del`
 
@@ -1168,7 +1168,7 @@ A deploy's name lives alongside every other top-level entity in its document. Cr
 
 `ResolveDeployRef` (used by `charly fleet add <name> <ref>`) is box-first: when a name exists as BOTH a box and a candy, the box wins for the primary `<ref>` positional. The `--add-candy <ref>` path goes through `ResolveDeployRefAsCandy`, which is candy-first. A same-name box and candy (in separate files) is permitted.
 
-The loader raises a hard load-time error on obsolete deploy names (the retired `qc` / `cachyos-dx` keys) and on any obsolete root shape (a `kind: deployment` / `deployment:` / `kind: deploy` / `deploy:` / `bundle:` document — the kind is now the name-first substrate-node (`pod:`/`vm:`/`k8s:`/`local:`/`android:`/`group:`) discriminator); every such error points at `charly migrate`. See `/charly-build:migrate`.
+The loader raises a hard load-time error on obsolete deploy names (the retired `qc` / `cachyos-dx` keys) and on any obsolete root shape (a `kind: deployment` / `deployment:` / `kind: deploy` / `deploy:` / `fleet:` document — the kind is now the name-first substrate-node (`pod:`/`vm:`/`k8s:`/`local:`/`android:`/`group:`) discriminator); every such error points at `charly migrate`. See `/charly-build:migrate`.
 
 ## When to Use This Skill
 

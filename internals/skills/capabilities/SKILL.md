@@ -1,6 +1,6 @@
 ---
 name: capabilities
-description: |
+description: |-
   MUST be invoked before any work involving: OCI label contract, Capabilities / BoxMetadata struct, CapabilityLabelMap completeness check, LabelService structured round-trip, source-less deploy via `charly fleet from-box`, or adding a new OCI label. Developer-facing; users author via `/charly-image:layer` and `/charly-image:image`.
 ---
 
