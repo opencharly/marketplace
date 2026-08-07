@@ -75,7 +75,7 @@ type EmitOpts struct {
 }
 ```
 
-CLI flags on `BundleAddCmd` / `BundleDelCmd` populate this struct; each target reads what it needs. `AssumeYes` enables all three opt-in gates (via `GateEnabled`).
+CLI flags on `FleetAddCmd` / `FleetDelCmd` populate this struct; each target reads what it needs. `AssumeYes` enables all three opt-in gates (via `GateEnabled`).
 
 ## Testing
 

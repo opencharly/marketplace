@@ -564,13 +564,13 @@ Kong `sep:"none"` on all `-e` flags means commas in values are preserved (no spl
 
 `normalizeNoProxy()` auto-converts semicolons to commas in `NO_PROXY`/`no_proxy` values during env resolution. Legacy semicolon values in charly.yml are auto-healed.
 
-**NO_PROXY enrichment:** When `HTTP_PROXY` or `HTTPS_PROXY` is present, `charly config` automatically appends all deployed container hostnames to `NO_PROXY`. This is necessary because Chrome does not support CIDR ranges in NO_PROXY (unlike curl) — without explicit hostnames, Chrome routes internal traffic like `http://charly-immich-ml:2283` through the external proxy, causing Bad Gateway errors. Applied in both the main config path and `--update-all`. Source: `spec/hostenv/envfile.go` (`EnrichNoProxy`), `sdk/deploykit/bundle_derive.go` (`DeployedContainerNames`).
+**NO_PROXY enrichment:** When `HTTP_PROXY` or `HTTPS_PROXY` is present, `charly config` automatically appends all deployed container hostnames to `NO_PROXY`. This is necessary because Chrome does not support CIDR ranges in NO_PROXY (unlike curl) — without explicit hostnames, Chrome routes internal traffic like `http://charly-immich-ml:2283` through the external proxy, causing Bad Gateway errors. Applied in both the main config path and `--update-all`. Source: `spec/hostenv/envfile.go` (`EnrichNoProxy`), `sdk/deploykit/fleet_derive.go` (`DeployedContainerNames`).
 
 **Tunnel persistence:** `charly config setup` automatically persists tunnel config from charly.yml back to charly.yml via `saveDeployState`. Tunnel is a deploy-time concern — see `/charly-core:deploy` for tunnel configuration.
 
 **Tunnel is charly.yml-only:** `labels.go:238` deliberately skips parsing the `ai.opencharly.tunnel` OCI image label. Tunnel config is ONLY sourced from `charly.yml`. New instances created with `charly config setup -i <name>` do NOT inherit tunnel config from the base image's charly.yml entry — you must manually add `tunnel: {provider: tailscale, private: all}` to the instance's charly.yml entry, then re-run `charly config setup` to regenerate the quadlet with `ExecStartPost=tailscale serve` commands.
 
-Source: `spec/hostenv/envfile.go` (`normalizeNoProxy`), `sdk/deploykit/deploy_state.go` (`MergeEnvVars`, `SaveDeployState`), `sep:"none"` in `candy/plugin-fleet/bundle_cmd.go` + `candy/plugin-pod/pod_cmd.go` (the former `charly/config_image.go`/`shell.go`/`start.go` are DELETED, K-wave 2).
+Source: `spec/hostenv/envfile.go` (`normalizeNoProxy`), `sdk/deploykit/deploy_state.go` (`MergeEnvVars`, `SaveDeployState`), `sep:"none"` in `candy/plugin-fleet/fleet_cmd.go` + `candy/plugin-pod/pod_cmd.go` (the former `charly/config_image.go`/`shell.go`/`start.go` are DELETED, K-wave 2).
 
 ## Cross-References
 

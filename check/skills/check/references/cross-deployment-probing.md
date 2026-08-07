@@ -63,7 +63,7 @@ Two pieces compose it:
   position: a step in the `plan:` of member `M` runs on `M` (bare name), a step in the
   `plan:` of a nested child `C` of parent path `P` runs on `P.C` (dotted). There is no authored
   `on:`/`pod:` step field — both are retired; tree position is the sole source of
-  venue (`flattenBundleVenues` stamps it at load time). A `cdp:`/`vnc:`/`mcp:` step
+  venue (`flattenFleetVenues` stamps it at load time). A `cdp:`/`vnc:`/`mcp:` step
   placed under a driver member connects to that member's CDP/VNC/MCP endpoint; a
   `command:` step runs in that member's venue. Members are brought up by the same
   deploy verbs and are never check-live'd (instruments, not subjects). A GROUP
