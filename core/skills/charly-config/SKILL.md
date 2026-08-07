@@ -15,9 +15,9 @@ description: |-
 
 This is the **single entry point** for **container** deployment setup. `charly start` requires `charly config` to have been run first in quadlet mode.
 
-**Relationship to `charly bundle add`** — `charly config` remains the primary way to create/update a quadlet and provision secrets/volumes/sidecars for a container deploy. `charly bundle add <name> <ref>` (container target) wraps both `charly config` and `charly start` and additionally handles `--add-candy` overlay synthesis (an overlay Containerfile is built before the quadlet references the resulting overlay image). `charly bundle add host` bypasses `charly config` entirely — the host target has no quadlet; it writes systemd units directly (when `--with-services` is enabled) and records every action in the ledger at `~/.config/opencharly/installed/`. See `/charly-core:deploy` for the command family and `/charly-local:local-deploy` for host-target semantics.
+**Relationship to `charly fleet add`** — `charly config` remains the primary way to create/update a quadlet and provision secrets/volumes/sidecars for a container deploy. `charly fleet add <name> <ref>` (container target) wraps both `charly config` and `charly start` and additionally handles `--add-candy` overlay synthesis (an overlay Containerfile is built before the quadlet references the resulting overlay image). `charly fleet add host` bypasses `charly config` entirely — the host target has no quadlet; it writes systemd units directly (when `--with-services` is enabled) and records every action in the ledger at `~/.config/opencharly/installed/`. See `/charly-core:deploy` for the command family and `/charly-local:local-deploy` for host-target semantics.
 
-**`charly config` vs `charly settings` — common verb confusion.** `charly config <image>` configures an image for deployment (quadlet + secrets + volumes + data seed). `charly settings list` shows runtime config keys (secret_backend, vm.backend, etc.). A trailing `charly config show` parses as `charly config setup show` with `show` as the image positional — and errors with `image "show" is not available locally`. To inspect runtime configuration use `charly settings list`; to inspect a configured image's resolved deploy state use `charly box inspect <image>` or `charly bundle show <name>`.
+**`charly config` vs `charly settings` — common verb confusion.** `charly config <image>` configures an image for deployment (quadlet + secrets + volumes + data seed). `charly settings list` shows runtime config keys (secret_backend, vm.backend, etc.). A trailing `charly config show` parses as `charly config setup show` with `show` as the image positional — and errors with `image "show" is not available locally`. To inspect runtime configuration use `charly settings list`; to inspect a configured image's resolved deploy state use `charly box inspect <image>` or `charly fleet show <name>`.
 
 ## Quick Reference
 
@@ -319,7 +319,7 @@ charly config my-app --bind workspace=/new/path
 
 ```bash
 charly config remove <image> -i <instance>     # 1. Stop & disable service
-charly bundle reset <image> -i <instance>       # 2. Remove charly.yml entry
+charly fleet reset <image> -i <instance>       # 2. Remove charly.yml entry
 charly remove <image> -i <instance>         # 3. Remove container + quadlet (reloads systemd)
 charly reap-orphans                         # 4. Clear ghost units (optional)
 ```
@@ -490,7 +490,7 @@ When `charly config <image>` runs, it automatically migrates any existing plaint
 1. Scan `dc.Images[deployKey(image, instance)].Env` for names that match `meta.SecretAccepts` / `meta.SecretRequires`
 2. For each match: copy the value to the credential store at the layer-declared `(service, key)` path (default `charly/secret/<NAME>`), remove the entry from `dc.Env`, mark the deploy config dirty
 3. On first mutation, back up `charly.yml` → `charly.yml.bak.<unix-timestamp>`
-4. Persist the cleaned deploy config via `SaveBundleConfig`
+4. Persist the cleaned deploy config via `SaveFleetConfig`
 5. Log each migrated entry on stderr: `"Migrated plaintext OPENROUTER_API_KEY from charly.yml to credential store (charly/api-key/openrouter)"`
 
 Idempotent — running on a clean host is a no-op. This gives pre-upgrade hosts an automatic one-time cleanup with a rollback point preserved.
@@ -564,13 +564,13 @@ Kong `sep:"none"` on all `-e` flags means commas in values are preserved (no spl
 
 `normalizeNoProxy()` auto-converts semicolons to commas in `NO_PROXY`/`no_proxy` values during env resolution. Legacy semicolon values in charly.yml are auto-healed.
 
-**NO_PROXY enrichment:** When `HTTP_PROXY` or `HTTPS_PROXY` is present, `charly config` automatically appends all deployed container hostnames to `NO_PROXY`. This is necessary because Chrome does not support CIDR ranges in NO_PROXY (unlike curl) — without explicit hostnames, Chrome routes internal traffic like `http://charly-immich-ml:2283` through the external proxy, causing Bad Gateway errors. Applied in both the main config path and `--update-all`. Source: `spec/hostenv/envfile.go` (`EnrichNoProxy`), `sdk/deploykit/bundle_derive.go` (`DeployedContainerNames`).
+**NO_PROXY enrichment:** When `HTTP_PROXY` or `HTTPS_PROXY` is present, `charly config` automatically appends all deployed container hostnames to `NO_PROXY`. This is necessary because Chrome does not support CIDR ranges in NO_PROXY (unlike curl) — without explicit hostnames, Chrome routes internal traffic like `http://charly-immich-ml:2283` through the external proxy, causing Bad Gateway errors. Applied in both the main config path and `--update-all`. Source: `spec/hostenv/envfile.go` (`EnrichNoProxy`), `sdk/deploykit/fleet_derive.go` (`DeployedContainerNames`).
 
 **Tunnel persistence:** `charly config setup` automatically persists tunnel config from charly.yml back to charly.yml via `saveDeployState`. Tunnel is a deploy-time concern — see `/charly-core:deploy` for tunnel configuration.
 
 **Tunnel is charly.yml-only:** `labels.go:238` deliberately skips parsing the `ai.opencharly.tunnel` OCI image label. Tunnel config is ONLY sourced from `charly.yml`. New instances created with `charly config setup -i <name>` do NOT inherit tunnel config from the base image's charly.yml entry — you must manually add `tunnel: {provider: tailscale, private: all}` to the instance's charly.yml entry, then re-run `charly config setup` to regenerate the quadlet with `ExecStartPost=tailscale serve` commands.
 
-Source: `spec/hostenv/envfile.go` (`normalizeNoProxy`), `sdk/deploykit/deploy_state.go` (`MergeEnvVars`, `SaveDeployState`), `sep:"none"` in `candy/plugin-bundle/bundle_cmd.go` + `candy/plugin-pod/pod_cmd.go` (the former `charly/config_image.go`/`shell.go`/`start.go` are DELETED, K-wave 2).
+Source: `spec/hostenv/envfile.go` (`normalizeNoProxy`), `sdk/deploykit/deploy_state.go` (`MergeEnvVars`, `SaveDeployState`), `sep:"none"` in `candy/plugin-fleet/fleet_cmd.go` + `candy/plugin-pod/pod_cmd.go` (the former `charly/config_image.go`/`shell.go`/`start.go` are DELETED, K-wave 2).
 
 ## Cross-References
 
@@ -602,6 +602,6 @@ Source: `spec/hostenv/envfile.go` (`normalizeNoProxy`), `sdk/deploykit/deploy_st
 
 **Workflow position:** After build, before start. `charly box build` → `charly config` → `charly start`.
 
-Source: `candy/plugin-deploy-pod/config_setup.go` / `plugin.go` (the `charly config` command grammar + `OpConfigSetup` drive — the former `charly/config_image.go` is DELETED, K-wave 2), `sdk/deploykit/quadlet.go` / `quadlet_pod.go` + `candy/plugin-deploy-pod/config_write.go` (quadlet generation — the former `charly/quadlet.go`/`charly/quadlet_pod.go` are DELETED, K-wave 2), `sdk/deploykit/deploy_state.go` (deploy state — the former `charly/deploy.go` is DELETED, K-wave 2), `candy/plugin-pod/enc_cmd.go` (encrypted volumes — the former `charly/enc.go` is DELETED, K-wave 2), `candy/plugin-bundle/secrets_artifacts.go` (secret provisioning — the former `charly/secrets.go` is DELETED, K-wave 2), `sdk/deploykit/data.go` (data seeding — the former `charly/data.go` is DELETED, K-wave 2).
+Source: `candy/plugin-deploy-pod/config_setup.go` / `plugin.go` (the `charly config` command grammar + `OpConfigSetup` drive — the former `charly/config_image.go` is DELETED, K-wave 2), `sdk/deploykit/quadlet.go` / `quadlet_pod.go` + `candy/plugin-deploy-pod/config_write.go` (quadlet generation — the former `charly/quadlet.go`/`charly/quadlet_pod.go` are DELETED, K-wave 2), `sdk/deploykit/deploy_state.go` (deploy state — the former `charly/deploy.go` is DELETED, K-wave 2), `candy/plugin-pod/enc_cmd.go` (encrypted volumes — the former `charly/enc.go` is DELETED, K-wave 2), `candy/plugin-fleet/secrets_artifacts.go` (secret provisioning — the former `charly/secrets.go` is DELETED, K-wave 2), `sdk/deploykit/data.go` (data seeding — the former `charly/data.go` is DELETED, K-wave 2).
 
 Live-deploy verification: see /charly-check:check (the 11 Testing Standards) and /charly-internals:disposable.

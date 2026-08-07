@@ -70,10 +70,10 @@ former `status-substrate` HostBuild seam is DELETED, K-wave 2).
 - `candy/plugin-status/nested_tree.go` — the declared-nested-tree pre-resolution
   (K5, relocated from charly/status_nested.go's buildStatusRootsTree): resolves
   the merged project + per-machine deploy tree directly (`HostBuild("resolved-
-  project")` + `deploykit.LoadBundleConfig`) into the wire-safe
+  project")` + `deploykit.LoadFleetConfig`) into the wire-safe
   `[]spec.StatusNestedNode` shape the overlay folds, including the `--nested`
   live-probe leg (`ResolveDeployChain` + `NestedExecutor`, the SAME primitive
-  `charly bundle add` / `charly check live parent.child` use).
+  `charly fleet add` / `charly check live parent.child` use).
 - `candy/plugin-status/command.go` (`hostStatusSubstrate`) — the generic
   `status-substrate` F10 forward is DELETED with `charly/status_substrate_host.go`
   (K-wave 2): `command:status` now `InvokeProvider(verb:status-fanout)` DIRECTLY over
@@ -201,7 +201,7 @@ match keeps the synthesized declared row (`Source="nested"`).
   subprocesses.
 - **`charly status --nested`**: each child's LIVE venue is probed through the real
   multi-hop chain (`ResolveDeployChain` → `NestedExecutor`, the SAME primitive
-  `charly bundle add` and `charly check live parent.child` use — no bespoke nested dial)
+  `charly fleet add` and `charly check live parent.child` use — no bespoke nested dial)
   under a STRICT 4-second per-child context deadline. A timed-out / failing
   child renders `unreachable`; the table is NEVER blocked. The deadline is a
   context cancellation, never a sleep/retry loop. `--nested` also turns on live
@@ -319,7 +319,7 @@ Authoritative direct queries (when you need the raw mount data):
 
 ```bash
 charly status <image> --json    # volumes[] carries the live mounts
-charly bundle show <image>
+charly fleet show <image>
 ```
 
 ## Usage

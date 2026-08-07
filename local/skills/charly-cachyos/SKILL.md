@@ -78,7 +78,7 @@ the root's own locals are. See `/charly-internals:go` "Remote-layer resolver".)
 - `/charly-local:local-spec` — `kind: local` template authoring reference
 - `/charly-local:local-deploy` — the `target: local` deployment surface
 - `/charly-distros:cachyos` — the CachyOS base of the same family
-- `/charly-core:deploy` — bundle entry semantics (globally-unique names within a document: the `charly-cachyos` bundle deploys the suffixed `charly-cachyos-app` `kind: local` template)
+- `/charly-core:deploy` — fleet entry semantics (globally-unique names within a document: the `charly-cachyos` fleet deploys the suffixed `charly-cachyos-app` `kind: local` template)
 
 ## When to Use This Skill
 

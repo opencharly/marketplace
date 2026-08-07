@@ -11,7 +11,7 @@ description: |-
 
 # vms
 
-`vm.yml` is the authoring surface for `kind: vm` entities — VM primitives that pair with either a remote cloud-image URL (`source.kind: cloud_image`) or an in-repo bootc container image (`source.kind: bootc`). Loaded through `charly.yml`'s `import:` (or inline under its root). Entries are resolved by `LoadUnified` into `VmSpec` Go types (generated in `spec/spec/`) and consumed by `charly vm build`, `charly vm create`, and `charly bundle add vm:<name>`.
+`vm.yml` is the authoring surface for `kind: vm` entities — VM primitives that pair with either a remote cloud-image URL (`source.kind: cloud_image`) or an in-repo bootc container image (`source.kind: bootc`). Loaded through `charly.yml`'s `import:` (or inline under its root). Entries are resolved by `LoadUnified` into `VmSpec` Go types (generated in `spec/spec/`) and consumed by `charly vm build`, `charly vm create`, and `charly fleet add vm:<name>`.
 
 The VM surface parallels the `candy:` image surface: one YAML entry per entity, kind-keyed, discovered through includes. The Go types that back it live in `/charly-internals:vm-spec`; the rendering paths in `/charly-internals:libvirt-renderer` and `/charly-internals:cloud-init-renderer`.
 
@@ -185,7 +185,7 @@ Leave `base_user:` empty **only** when the upstream has no default account — i
 
 ## charly_install.strategy: auto (cloud_image)
 
-`charly_install.strategy: auto` in `cloud_init:` wires `charly`'s in-guest installer (`/charly-internals:cloud-init-renderer` → emitted `runcmd:` entries) so the provisioned VM comes up with `charly` already installed. Lets `charly bundle add vm:<name>` apply host-deploy-style layer recipes inside the VM over SSH without a bootstrap round-trip. See `/charly-internals:cloud-init-renderer` for the emission + handshake.
+`charly_install.strategy: auto` in `cloud_init:` wires `charly`'s in-guest installer (`/charly-internals:cloud-init-renderer` → emitted `runcmd:` entries) so the provisioned VM comes up with `charly` already installed. Lets `charly fleet add vm:<name>` apply host-deploy-style layer recipes inside the VM over SSH without a bootstrap round-trip. See `/charly-internals:cloud-init-renderer` for the emission + handshake.
 
 `strategy: none` skips the step entirely — useful when the VM will be managed by something other than `charly` after provisioning.
 
@@ -211,7 +211,7 @@ For a config already within the migratable window (`[floor, HEAD)`), `charly mig
 
 - `/charly-vm:vm` — the `charly vm build/create/start/stop/ssh/console` command family
 - `/charly-build:migrate` — `charly migrate` conversion from legacy
-- `/charly-core:deploy` — `charly bundle add vm:<name>` for in-guest layer application
+- `/charly-core:deploy` — `charly fleet add vm:<name>` for in-guest layer application
 - `/charly-vm:arch-cloud-vm` — canonical cloud_image VM
 - `/charly-internals:vm-spec` — Go type reference
 - `/charly-internals:libvirt-renderer` — libvirt XML emission

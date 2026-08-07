@@ -61,7 +61,7 @@ Auto-generated, stored in credential store (keyring/config-file fallback):
 | Secret | Env Fallback | Purpose | Auto-gen path |
 |--------|-------------|---------|---------------|
 | `webui-secret-key` | `WEBUI_SECRET_KEY` | JWT + encryption key (CRITICAL: losing it breaks all sessions and OAuth tokens) | `charly config` time, `ProvisionPodmanSecrets` |
-| `admin-password` | `WEBUI_ADMIN_PASSWORD` | Admin account password — declared as `secret_require:` | `charly bundle add` time, `ensureCandySecret` |
+| `admin-password` | `WEBUI_ADMIN_PASSWORD` | Admin account password — declared as `secret_require:` | `charly fleet add` time, `ensureCandySecret` |
 
 Provisioned as `Secret=charly-openwebui-<name>,type=env,target=<ENV>` in the quadlet. The entrypoint checks env vars first (from `type=env` injection), then file mounts at `/run/secrets/` as fallback.
 

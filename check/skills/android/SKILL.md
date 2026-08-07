@@ -105,11 +105,11 @@ android-stack:
                 - my-android-apps        # layers whose apk: packages install onto the device
 ```
 
-`charly bundle add android-stack.device` resolves the device, gates on
+`charly fleet add android-stack.device` resolves the device, gates on
 `sys.boot_completed`, and installs the `add_candy:` candies' `apk:` packages via
 the **external `deploy:android` substrate** (F1 — served out-of-process by
 candy/plugin-adb). Apps ride in on `add_candy:` (the same overlay mechanism
-local/vm targets use) — there is no separate apk-list field. `charly bundle del`
+local/vm targets use) — there is no separate apk-list field. `charly fleet del`
 best-effort `pm uninstall`s each `package:` id (replayed from the deploy's
 recorded reverse ops; the device/pod lifecycle is owned by the pod deploy).
 
@@ -124,8 +124,8 @@ apps deploy onto the device. `target: android` is a **passthrough** hop in the
 deploy chain (the device shares its host pod's adb venue / the endpoint addr —
 there is no shell venue to "enter"), so `charly check live pod.android` runs the
 device's checks against the pod's published adb port. A pod's children can only
-deploy AFTER `charly start` (the container doesn't exist at `charly bundle add` time),
-so `charly bundle add --node-only` brings the pod up first and the children deploy
+deploy AFTER `charly start` (the container doesn't exist at `charly fleet add` time),
+so `charly fleet add --node-only` brings the pod up first and the children deploy
 afterwards by dotted path; `charly check run <bed>` automates this (deploy pod →
 config → start → deploy nested children → check-live).
 
@@ -156,7 +156,7 @@ round trip remains in this leg:
 - **Plugin** (`candy/plugin-adb/deploy.go`, the `deploy:android` provider) gates
   on `sys.boot_completed`, installs each app with retry (reusing the SAME
   `install`/`install-app` method handlers the `adb:` verb dispatches), and returns
-  the `pm uninstall` teardown ops the host records + replays at `charly bundle del`.
+  the `pm uninstall` teardown ops the host records + replays at `charly fleet del`.
 
 So the apk format, the check verbs, and the deploy substrate can never drift on
 single/split/`.xapk` handling — they all flow through the one provider.
@@ -173,7 +173,7 @@ results (`apk-fdroid-present`/`-launch`, `apk-net-apidemos-present`).
 
 `target: android` is an EXTERNAL deploy substrate (F1): it resolves to
 `pluginDeployTarget` (`charly/unified_targets.go`, S3b), dispatched via
-`candy/plugin-bundle`'s `Invoke(OpDeployDispatch)` to the substrate's own
+`candy/plugin-fleet`'s `Invoke(OpDeployDispatch)` to the substrate's own
 `InvokeProvider`, served by candy/plugin-adb. There is no in-proc android
 deploy target.
 
@@ -210,7 +210,7 @@ ALL pure/portable and run plugin-side directly, returning a
 - `deploykit.ApkInstallStep` (`sdk/deploykit/steps.go`); `sdk/deploykit/install_build.go` —
   `compileApkStep` (the plugin-side preresolver reads this step; no DeployTarget executes it).
 - `sdk/loaderkit/load_unified.go` — loader wiring (mirrors every `k8s` site; the former `charly/unified.go` is DELETED, K-wave 2).
-- `spec.Deploy` (the deploy node — the former `charly/deploy.go`'s `BundleNode` is DELETED, K-wave 2) with `target: android`; `charly/bundle_add_cmd.go` dispatch +
+- `spec.Deploy` (the deploy node — the former `charly/deploy.go`'s `FleetNode` is DELETED, K-wave 2) with `target: android`; `charly/fleet_add_cmd.go` dispatch +
   `--node-only`; `sdk/deploykit/deploy_chain.go` / `charly/deploy_tree.go` passthrough.
 
 ## Related skills

@@ -88,7 +88,7 @@ Note: `charly config <key>` persists `image: <key>` (it assumes deploy-key ==
 image-name; see `/charly-core:deploy`). Because this bed's key
 (`check-sway-browser-vnc-pod`) differs from its image (`sway-browser-vnc`), set
 the operator ref to `sway-browser-vnc` in `~/.config/charly/charly.yml` (the check
-runner / `charly bundle add` does this for you — `charly` "never clobbers
+runner / `charly fleet add` does this for you — `charly` "never clobbers
 operator-authored refs").
 
 ## Related Skills

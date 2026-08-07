@@ -45,12 +45,12 @@ my-vm-image:
   candy:
     - qemu-guest-agent
 # or applied to a VM guest at deploy time:
-#   charly bundle add vm:<name> qemu-guest-agent
+#   charly fleet add vm:<name> qemu-guest-agent
 ```
 
 ## Used In Boxes
 
-Composed into bootc images directly, or applied to a VM guest at deploy time (`charly bundle add vm:<name> qemu-guest-agent`).
+Composed into bootc images directly, or applied to a VM guest at deploy time (`charly fleet add vm:<name> qemu-guest-agent`).
 
 ## virtio-serial channel (libvirt XML contribution)
 

@@ -492,7 +492,7 @@ charly box inspect android-emulator --format ports
 
 ## OCI Labels
 
-Every image `charly` builds carries a set of `ai.opencharly.*` OCI labels embedding the resolved image config so that `charly config` and `charly bundle` can work without the project source tree. The full list is assembled in `sdk/deploykit/write_labels.go` (emission) / read back via `ExtractMetadata` (`spec/container/box_metadata_coneb.go`) — label names in `spec/spec/label_consts.go`, the `spec.BoxMetadata` struct in `spec/schema/boxmetadata.cue` (see `/charly-internals:capabilities`):
+Every image `charly` builds carries a set of `ai.opencharly.*` OCI labels embedding the resolved image config so that `charly config` and `charly fleet` can work without the project source tree. The full list is assembled in `sdk/deploykit/write_labels.go` (emission) / read back via `ExtractMetadata` (`spec/container/box_metadata_coneb.go`) — label names in `spec/spec/label_consts.go`, the `spec.BoxMetadata` struct in `spec/schema/boxmetadata.cue` (see `/charly-internals:capabilities`):
 
 | Label | Contents |
 |---|---|
@@ -520,7 +520,7 @@ The label→config apply path **explicitly skips reading** any tunnel label when
 2. **`--update-all` safety.** Propagating config changes across deployed services must not accidentally rewrite tunnel settings from image labels and blow away per-instance overrides.
 3. **Instance inheritance gap.** Tunnel config is **not** auto-inherited from the base `charly config <image>` call to an `charly config <image> -i <instance>` call. This is a deliberate gap — see `/charly-selkies:selkies-labwc` (Multi-Instance Proxy Deployment) for the manual workaround and `/charly-core:deploy` (Instance Tunnel Inheritance) for the full lifecycle.
 
-**Practical implication:** you can inspect an image's tunnel declaration with `charly box inspect <image>` and see nothing useful — that's correct. To see a tunnel's actual state, read `charly.yml` directly (`charly bundle show <image>`) or the generated quadlet (`charly status <image>`).
+**Practical implication:** you can inspect an image's tunnel declaration with `charly box inspect <image>` and see nothing useful — that's correct. To see a tunnel's actual state, read `charly.yml` directly (`charly fleet show <image>`) or the generated quadlet (`charly status <image>`).
 
 ## Common Workflows
 

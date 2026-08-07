@@ -690,8 +690,8 @@ Each of these caught a real defect that survived author review:
    a section opening *"used precisely throughout"*.)
 2. **Undefined-term sweep.** Every term the page uses as jargon must be defined
    BEFORE first use, and a page promising "N terms" must define the ones it then
-   relies on. (Shipped once: `charly bundle add` in the table teaching the
-   workflow, with `bundle` defined nowhere in either document.)
+   relies on. (Shipped once: `charly fleet add` in the table teaching the
+   workflow, with `fleet` defined nowhere in either document.)
 3. **Asserted vs demonstrated.** For each headline capability claim, find the
    artifact that shows it. A claim repeated three times with no example is
    marketing. **Removing an artifact that demonstrated a SURVIVING claim is a

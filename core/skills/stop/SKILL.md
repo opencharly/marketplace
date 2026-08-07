@@ -13,7 +13,7 @@ description: |-
 
 Stops a running service container. In quadlet mode, stops the systemd user service. In direct mode, stops the container via the container engine.
 
-**Relationship to `charly bundle del`** — `charly stop <name>` is the ergonomic wrapper for `charly bundle del <name>` on a container deploy. The two are interchangeable for container deploys; `charly bundle del host` is required for the host-target teardown path (which runs ReverseOps, removes env.d files, and strips the shell managed block). See `/charly-core:deploy` and `/charly-local:local-deploy`.
+**Relationship to `charly fleet del`** — `charly stop <name>` is the ergonomic wrapper for `charly fleet del <name>` on a container deploy. The two are interchangeable for container deploys; `charly fleet del host` is required for the host-target teardown path (which runs ReverseOps, removes env.d files, and strips the shell managed block). See `/charly-core:deploy` and `/charly-local:local-deploy`.
 
 ## Quick Reference
 

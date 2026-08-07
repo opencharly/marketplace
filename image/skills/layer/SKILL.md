@@ -45,7 +45,7 @@ beside it.
 
 ## The compact node form (name-first, one kind key)
 
-Every charly.yml is self-describing. A candy flattens to a top-level `<name>:` key (the entity NAME) with EXACTLY ONE kind key — `candy:` — whose value is the COMPLETE body: scalars, every collection (`package`, `env`, `service`, `volume`, …) inline, and the operational steps as an ordered UNNAMED list under `plan:`. A step that needs a stable name for reports/overlays carries an `id:` field. This name-first shape is globally addressable, so candy files stay bundle-mergeable — stack the top-level keys (or concatenate with `---` separators) to form a single file containing many candies. (The only other children an entity may carry are sub-ENTITY members, and only under a deployable kind — see `/charly-core:deploy`; a candy nests no members.)
+Every charly.yml is self-describing. A candy flattens to a top-level `<name>:` key (the entity NAME) with EXACTLY ONE kind key — `candy:` — whose value is the COMPLETE body: scalars, every collection (`package`, `env`, `service`, `volume`, …) inline, and the operational steps as an ordered UNNAMED list under `plan:`. A step that needs a stable name for reports/overlays carries an `id:` field. This name-first shape is globally addressable, so candy files stay fleet-mergeable — stack the top-level keys (or concatenate with `---` separators) to form a single file containing many candies. (The only other children an entity may carry are sub-ENTITY members, and only under a deployable kind — see `/charly-core:deploy`; a candy nests no members.)
 
 ```yaml
 # candy/chrome/charly.yml
@@ -1180,7 +1180,7 @@ candies coexist in one rc file:
 # opencharly:end <layer>
 ```
 
-`charly bundle del` strips just the candy's fence pair from the rc file
+`charly fleet del` strips just the candy's fence pair from the rc file
 (without touching unrelated content). Fish always uses a per-candy
 drop-in file (`conf.d/` is auto-sourced — no fence needed).
 
@@ -1233,7 +1233,7 @@ by the single idempotent `charly migrate` — see `/charly-build:migrate`.
 
 ## Cross-kind name reuse
 
-A candy is a top-level **name-first** node, so within a single document the top-level node names are **globally unique**. Cross-FILE name reuse across SEPARATE discovered files IS still permitted: the same identifier (e.g. `charly-cachyos`) MAY exist as a layer at `candy/charly-cachyos/charly.yml` AND an image at `box/charly-cachyos/charly.yml` simultaneously — both are `candy:` nodes (the image carries `base:`/`from:`; there is no `box:` KIND), routed to distinct internal maps (`uf.Candy` vs `uf.Box`). Verbs disambiguate by command context. When `charly bundle add <name>` resolves a ref where both an image AND a layer with that name exist, the image wins (image-first precedence); use `--add-candy <name>` to explicitly select the layer for an overlay. See the project rulebook "cross-FILE cross-kind reuse is fine, but a single document's top-level node names are GLOBALLY UNIQUE" and `/charly-core:deploy`.
+A candy is a top-level **name-first** node, so within a single document the top-level node names are **globally unique**. Cross-FILE name reuse across SEPARATE discovered files IS still permitted: the same identifier (e.g. `charly-cachyos`) MAY exist as a layer at `candy/charly-cachyos/charly.yml` AND an image at `box/charly-cachyos/charly.yml` simultaneously — both are `candy:` nodes (the image carries `base:`/`from:`; there is no `box:` KIND), routed to distinct internal maps (`uf.Candy` vs `uf.Box`). Verbs disambiguate by command context. When `charly fleet add <name>` resolves a ref where both an image AND a layer with that name exist, the image wins (image-first precedence); use `--add-candy <name>` to explicitly select the layer for an overlay. See the project rulebook "cross-FILE cross-kind reuse is fine, but a single document's top-level node names are GLOBALLY UNIQUE" and `/charly-core:deploy`.
 
 ---
 

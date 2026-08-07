@@ -32,7 +32,7 @@ fetches and extracts the one binary, so the candy is distro-agnostic.
 charly's **runtime never shells out to `cue`** — every build/deploy/check path
 validates through the **embedded `cuelang.org/go` library** (the `cueSchemaCtx`
 in `charly/cue_schema.go`, and the egress validator in the compiled-in
-`candy/plugin-egress` — M16 — fronted by the `candy/plugin-bundle/egress.go` shim). The `cue`
+`candy/plugin-egress` — M16 — fronted by the `candy/plugin-fleet/egress.go` shim). The `cue`
 CLI is here for the **developer/agent workflow**:
 
 - running the offline schema-vendoring pipeline (`cue import jsonschema:`,
@@ -54,7 +54,7 @@ evaluates CUE — a non-functional binary fails the check.
 ## Install on a dev host
 
 ```bash
-charly bundle add cue cue --target local   # installs /usr/local/bin/cue on this host
+charly fleet add cue cue --target local   # installs /usr/local/bin/cue on this host
 ```
 
 …then the `task cue:vendor` pipeline (see `/charly-internals:egress`) can run.

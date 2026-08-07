@@ -188,7 +188,7 @@ manual remediation covers the actual single-host case.
 # 1. Apply the charly-cachyos template — installs everything, including
 #    tailscale (daemon enabled) + tailscale-up (operator/hostname
 #    setters armed for next-time-up state changes).
-charly bundle add charly-cachyos
+charly fleet add charly-cachyos
 
 # 2. Authenticate the daemon via the user's tailnet (browser SSO):
 sudo tailscale up
@@ -199,10 +199,10 @@ tailscale status | head -2
 
 # 4. Optional re-apply (idempotent) to confirm the runtime task takes
 #    effect now that the daemon is logged in:
-charly bundle add charly-cachyos
+charly fleet add charly-cachyos
 ```
 
-Subsequent `charly bundle add charly-cachyos` invocations re-run the runtime
+Subsequent `charly fleet add charly-cachyos` invocations re-run the runtime
 task and re-confirm the operator + hostname state. Hostname changes
 (`sudo hostnamectl set-hostname new-name`) propagate to the tailnet
 on the next deploy.

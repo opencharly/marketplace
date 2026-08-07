@@ -1,7 +1,7 @@
 ---
 name: check-bed-runner
 description: |-
-  Runs an existing disposable check bed (a `disposable: true` bundle) to completion via `charly check run <bed>` (the full R10 sequence) and returns the VERBATIM verdict — per-step status, overall exit code, and the tail of any failing step's log. Use as the R10 acceptance executor when a cutover must be proved on a disposable bed. Never summarizes away a failure.
+  Runs an existing disposable check bed (a `disposable: true` fleet) to completion via `charly check run <bed>` (the full R10 sequence) and returns the VERBATIM verdict — per-step status, overall exit code, and the tail of any failing step's log. Use as the R10 acceptance executor when a cutover must be proved on a disposable bed. Never summarizes away a failure.
 model: inherit
 ---
 
@@ -30,7 +30,7 @@ charly check run <bed>
 ```
 
 This executes the entire R10 sequence on the bed: `charly box build` (pod
-beds) → `charly check box` → `charly bundle add` / `charly vm create` → `charly config` +
+beds) → `charly check box` → `charly fleet add` / `charly vm create` → `charly config` +
 `charly start` (pod beds) → `charly check live` → fresh `charly update` (the R10
 fresh-rebuild acceptance gate) → teardown. The runner writes
 `.check/<bed>/<calver>/summary.yml` and per-step `.log` files.
@@ -52,7 +52,7 @@ different things to the caller.
 - **Disposable-only (the project rulebook R10 / "Disposable-Only Autonomy" (`AGENTS.md` / `CLAUDE.md`)).** `charly check run <bed>` performs an
   unattended destroy + rebuild. The ONLY authorization is the bed's
   explicit `disposable: true` field. Every check bed carries it (a check bed is
-  just a `disposable: true` bundle); you run beds, never arbitrary deploys. Never run `charly update`/`charly check run`
+  just a `disposable: true` fleet); you run beds, never arbitrary deploys. Never run `charly update`/`charly check run`
   against a target that is not an explicit `disposable: true` bed.
 - **No scope-shrinking flags (the project rulebook R10 flag-override clause).** Run the bed AS
   SPECIFIED. NEVER add `--no-rebuild` (skips the R10 fresh-rebuild gate —
@@ -75,8 +75,8 @@ different things to the caller.
 
 ## Procedure
 
-1. Confirm the bed is a `disposable: true` bundle (it resolves like any
-   bundle; `charly check run` will error cleanly if not). Note any host prereq the
+1. Confirm the bed is a `disposable: true` fleet (it resolves like any
+   fleet; `charly check run` will error cleanly if not). Note any host prereq the
    bed needs (libvirt user session for VM beds, `/dev/kvm` for the android
    bed) and report a missing prereq as a blocker, not a pass.
 2. Run `charly check run <bed>`; capture stdout/stderr and `$?`.

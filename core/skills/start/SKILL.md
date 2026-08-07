@@ -13,7 +13,7 @@ description: |-
 
 Start a container image as a background service. In quadlet mode, `charly config <image>` MUST be run first to generate the systemd quadlet unit. In direct mode, start creates an ephemeral container directly.
 
-**Relationship to `charly bundle add`** — `charly start <image>` is the ergonomic wrapper for `charly bundle add <image> <image>` (container target). New scripts should prefer `charly bundle add <name> <ref>` directly when they need explicit deploy names, `--add-candy` overlays, or the host target. `charly start` covers the common single-image case and is retained for backwards compatibility. See `/charly-core:deploy` for the unified command family and `/charly-local:local-deploy` for the host target.
+**Relationship to `charly fleet add`** — `charly start <image>` is the ergonomic wrapper for `charly fleet add <image> <image>` (container target). New scripts should prefer `charly fleet add <name> <ref>` directly when they need explicit deploy names, `--add-candy` overlays, or the host target. `charly start` covers the common single-image case and is retained for backwards compatibility. See `/charly-core:deploy` for the unified command family and `/charly-local:local-deploy` for the host target.
 
 ## Quick Reference
 
