@@ -105,7 +105,7 @@ former `status-substrate` HostBuild seam is DELETED, K-wave 2).
 - `candy/plugin-substrate/status_local.go` — the local install-ledger collector
   (`Source="ledger"`).
 - `candy/plugin-substrate/status_probes.go` — `Probe` / `HostProbe` /
-  `GuestProbe` interfaces and the 7 concrete probes (`SupervisordProbe`,
+  `GuestProbe` interfaces and the concrete probes (`SupervisordProbe`,
   `DbusProbe`, `CharlyProbe`, `WlProbe`, `SwayProbe` are guest; `CdpProbe`,
   `VncProbe` are host). `runGuestProbes` builds a single concatenated shell
   script with per-probe markers and splits the stdout chunks back out.

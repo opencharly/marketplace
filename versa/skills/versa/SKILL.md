@@ -259,14 +259,14 @@ charly update --build --force-seed versa
 charly check live versa         # → 97 passed · 0 failed · 0 skipped
 ```
 
-The 4 GPU-library probes (cuGraph/cuML/PyG/graphistry) live alongside
+The GPU-library probes (cuGraph/cuML/PyG/graphistry) live alongside
 the 11 OSM/GTFS probes as `context: [deploy]` steps in the box's
 `plan:` in `charly.yml` so they run AFTER every
 per-layer plan section:
 
 | probe id | what it checks |
 |---|---|
-| `versa-notebook-export` | end-to-end `marimo export ipynb` — triggers all 6 self-authored DAGs and renders every cell server-side (the single highest-value probe; 600s timeout) |
+| `versa-notebook-export` | end-to-end `marimo export ipynb` — triggers all the self-authored DAGs and renders every cell server-side (the single highest-value probe; 600s timeout) |
 | `versa-notebook-size` | rendered `.ipynb` is ≥100 KB (catches empty-cell renders) |
 | `versa-martin-monaco` | TileJSON for the canonical `monaco` source returns 200 + body contains `tilejson` + `vector_layers` |
 | `versa-martin-monaco-gpqtiles` | same for `monaco-gpqtiles` |
@@ -278,11 +278,11 @@ per-layer plan section:
 | `versa-artifact-gtfs` | post-DAG `monaco.gtfs.zip` ≥500 KB |
 | `versa-artifact-shortbread` | post-DAG `monaco-shortbread.pmtiles` ≥100 KB |
 | `versa-graph-imports` | cugraph + cuml + torch_geometric + torch_scatter + graphistry import + GPU visible |
-| `versa-graph-cugraph-pagerank` | `nx.pagerank(G, backend="cugraph")` on karate club; returns 34 rows |
+| `versa-graph-cugraph-pagerank` | `nx.pagerank(G, backend="cugraph")` on karate club; returns the rows |
 | `versa-graph-notebook-export` | end-to-end `marimo export ipynb` of `gpu-libraries-demo.py` (600s timeout) |
 | `versa-graph-notebook-size` | rendered `.ipynb` is ≥10 KB (matches the ~18 KB observed live) |
 
-End-to-end notebook test (executes all 13 cells via marimo's own
+End-to-end notebook test (executes all the cells via marimo's own
 export):
 
 ```bash

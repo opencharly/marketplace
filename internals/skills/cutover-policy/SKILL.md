@@ -135,7 +135,7 @@ One PR, one commit, with these deliverables:
 
 The commit uses the Conventional Commits `!` breaking-change marker; the body lists every deleted identifier, every removed YAML field, and every updated test. `charly migrate` is runnable against old projects from that commit forward, with no additional steps.
 
-See `CHANGELOG/` for the catalog of past cutovers that followed this shape — each took the same three steps: **delete old surface + publish migration + hard load error**.
+See `CHANGELOG/` for the catalog of past cutovers that followed this shape — each took the same steps: **delete old surface + publish migration + hard load error**.
 
 ## When the policy might not apply
 

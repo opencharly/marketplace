@@ -165,7 +165,7 @@ common way an in-flight cutover leaks onto shared host state.
   mid-run", rebuild, and re-run fresh — never chase the guard as a bug.
   "Your own" is worktree-scoped, not agent-scoped — a spawned sub-agent
   running a bed in the same worktree its spawner is editing is the
-  identical self-freeze violation viewed across two agents sharing one
+  identical self-freeze violation viewed across agents sharing one
   tree, not an exempt case. One binary-build owner per worktree at a time:
   before dispatching a sub-agent to run a bed in a worktree you (or any
   other agent) are still editing, either finish/pause the edits first, or

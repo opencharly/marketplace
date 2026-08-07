@@ -50,7 +50,7 @@ versa/ecovoyage notebook embeds in its MapLibre HTML.
 
 | Endpoint | Tailnet URL | What it is |
 |---|---|---|
-| chrome-devtools-mcp | `https://ac.armadillo-quail.ts.net:9232/mcp` | Streamable HTTP MCP, 29 tools |
+| chrome-devtools-mcp | `https://ac.armadillo-quail.ts.net:9232/mcp` | Streamable HTTP MCP |
 | Chrome DevTools raw | `https://ac.armadillo-quail.ts.net:9230` | CDP `/json/version` etc. |
 | VNC | `tcp://ac.armadillo-quail.ts.net:5901` | wayvnc, no auth |
 

@@ -150,7 +150,7 @@ If you start `claude` first and then `charly start jupyter`, you'll need
 to exit and restart the claude session before the jupyter MCP tools
 become available.
 
-### 11 MCP tools (`<noun>_<verb>` form)
+### MCP tools (`<noun>_<verb>` form)
 
 | Category | Tools |
 |----------|-------|

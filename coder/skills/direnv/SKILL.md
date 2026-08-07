@@ -28,7 +28,7 @@ my-image:
     - direnv
 ```
 
-Typically used as part of the `agent-forwarding` composition candy rather than directly. Also available in the heavyweight `dev-tools` candy (46 packages).
+Typically used as part of the `agent-forwarding` composition candy rather than directly. Also available in the heavyweight `dev-tools` candy.
 
 ## Runtime Behavior
 
@@ -51,7 +51,7 @@ The primary use case in OpenCharly is the `.secrets` workflow: `.envrc` calls `e
 
 ## Used In Boxes
 
-Part of `agent-forwarding` composition candy, used in 27 application boxes.
+Part of `agent-forwarding` composition candy, used in application boxes.
 
 Also available in the `dev-tools` candy.
 
@@ -59,7 +59,7 @@ Also available in the `dev-tools` candy.
 
 - `/charly-distros:agent-forwarding` -- metalayer that includes gnupg + direnv + ssh-client
 - `/charly-infrastructure:gnupg` -- GPG tools (needed for `.secrets` decryption)
-- `/charly-coder:dev-tools` -- heavyweight candy that also includes direnv (46 packages)
+- `/charly-coder:dev-tools` -- heavyweight candy that also includes direnv
 
 ## Cross-References
 

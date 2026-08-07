@@ -110,7 +110,7 @@ jupyter:
 The `jupyter` candy declares `mcp_provide` for cross-container and pod MCP discovery. The URL template `http://{{.ContainerName}}:8888/mcp` resolves to the actual container name at deploy time (e.g., `http://charly-jupyter:8888/mcp`), or to `http://localhost:8888/mcp` in combined boxes where both services run in the same container.
 
 - **Transport:** Streamable HTTP (`http`)
-- **11 tools** available via the `jupyter-mcp` extension (see below)
+- **The MCP tools** available via the `jupyter-mcp` extension (see below)
 - **Hermes auto-configures** via the `CHARLY_MCP_SERVERS` env var -- no manual MCP registration needed
 - **Pod-aware:** resolves to `localhost` in combined boxes where hermes and jupyter share a container
 
@@ -159,7 +159,7 @@ Clients do not manage CRDT rooms. The server auto-attaches every `notebook_*`/`c
 **Read-only diagnostic (no mutation, no auto-attach):**
 | Tool | Parameters | Returns |
 |------|-----------|---------|
-| `room_list` | — | `[{"room_id": ..., "path": ..., "file_id": ..., "users": [...], "user_count": N, "has_kernel": bool}, ...]` — verify the single-room invariant: never two rows for the same path |
+| `room_list` | — | `[{"room_id": ..., "path": ..., "file_id": ..., "users": [...], "user_count": N, "has_kernel": bool}, ...]` — verify the single-room invariant: never more than one row for the same path |
 
 ### Installation
 
@@ -178,7 +178,7 @@ candy/jupyter-mcp/
 │       ├── __init__.py             # Extension entry point
 │       ├── app.py                  # Registers /mcp handler + ASGI lifespan
 │       ├── tornado_asgi.py         # Tornado↔ASGI bridge (SSE streaming, disconnect handling)
-│       ├── mcp_server.py           # FastMCP tool definitions (11 tools)
+│       ├── mcp_server.py           # FastMCP tool definitions
 │       └── rtc_adapter.py          # CRDT access via YNotebook + kernel execution
 # (in charly.yml tasks:)  # Build-time: pip install fastmcp + extension + enable
 └── charly.yml
@@ -230,7 +230,7 @@ step — tagged with the `context:` axis that selects when it runs:
 ## Related Candies
 
 - `/charly-jupyter:jupyter-ml` -- GPU-accelerated variant with full CUDA ML stack + same CRDT MCP server
-- `/charly-jupyter:jupyter-mcp` -- MCP server implementation (sub-candy, 11 tools for programmatic notebook access using `<noun>_<verb>` naming; clients don't manage CRDT rooms — the server auto-attaches)
+- `/charly-jupyter:jupyter-mcp` -- MCP server implementation (sub-candy, the tools for programmatic notebook access using `<noun>_<verb>` naming; clients don't manage CRDT rooms — the server auto-attaches)
 - `/charly-jupyter:notebook-templates` -- Starter notebooks (data candy, used alongside this candy in boxes)
 - `/charly-hermes:hermes` -- MCP consumer (auto-discovers via `CHARLY_MCP_SERVERS` env var; uses `jupyter` server tools to read/edit/execute cells)
 - `/charly-openwebui:openwebui` -- MCP consumer (sets `CODE_EXECUTION_ENGINE=jupyter` when this server is discovered, routing Open WebUI code-block execution into the Jupyter kernel)

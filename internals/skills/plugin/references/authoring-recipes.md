@@ -80,8 +80,8 @@ M16 (egress) move those in-core capabilities onto this phase machinery.
 folds into `uf.Fleet`, the SAME map the in-proc pod/candy decoders populate, so the entity participates in
 deploy/check exactly like a builtin (the folded member goes through the SAME `validateDeploy`). This is the
 channel that externalizes the structural kind decoders — ALL of them are now DONE: **`group` (C2-group,
-candy/plugin-group)**, **the 5 deploy-substrate kinds pod/vm/k8s/local/android (C2-substrate,
-candy/plugin-substrate — one provider serving all 5)**, and **the LAST one, the `candy` box⊻layer factory
+candy/plugin-group)**, **the deploy-substrate kinds pod/vm/k8s/local/android (C2-substrate,
+candy/plugin-substrate — one provider serving all of them)**, and **the LAST one, the `candy` box⊻layer factory
 (C2-candy, candy/plugin-candy-kind)** — all COMPILED-IN. The substrate consumer added the TEMPLATE-map fold
 arm: a substrate node in standalone-TEMPLATE shape (a bare `vm:`/`pod:` — no from:/image:, no members) folds
 into the typed map `uf.Pod`/`uf.VM`/`uf.K8s`/`uf.Local`/`uf.Android`, alongside the deploy-shape fold into
@@ -112,7 +112,7 @@ Reference (out-of-process-only): `candy/plugin-example-structkind` (decodes depl
 byte-equivalence witness is `TestExternalStructKind_StructuralDecode` + the `check-structkind` runtime bed.
 
 **Rich-value variant (C2-substrate + C2-candy — the HOST-pre-decode+ECHO case).** The `op.Params`-decode above
-works for a kind whose value is SCALAR-simple (group's `#GroupInput`). The 5 substrate kinds
+works for a kind whose value is SCALAR-simple (group's `#GroupInput`). The substrate kinds
 (pod/vm/k8s/local/android) AND the `candy` box⊻layer factory have a RICH, core-referencing value
 (`#Vm`/`#Deploy`/`#LibvirtDomain`/`#Candy`/`#Box`/… with host-canonicalized shorthand like `tunnel:`/`port:`)
 that a plugin CANNOT re-decode soundly from `op.Params` nor validate with a self-contained schema. So
@@ -149,8 +149,8 @@ See "Authoring an external COMMAND plugin" below.
   host-side build, via the `sdk.Executor`: `InvokeProvider(class, word, op, params, env)` — the host resolves
   the peer in the registry and Invokes it on the caller's behalf (threading the SAME venue executor into an
   out-of-process target over a nested broker — the host is the dispatch broker, since it owns the registry);
-  and `HostBuild(kind, spec)` — the host runs the registered host-builder for `kind` — 39 registered kinds
-  today (the count drifts per cone; `git grep 'registerHostBuilder(' charly/*.go` resolving the `*BuilderKind` constants is the authoritative list). The build/render-relevant ones: the 8 `buildengine-*` kinds (`buildengine-prep` et al. — the thin host shards the candy's plugin-side `resolveBuildEngine` reaches: the local scan, the registry plugin connect, and the render-seam-floor `renderGenCache` populate; REPLACING the former fat `build-prep`/`build_resolve_host.go` seam, DELETED, whose loader+prep+envelope+drive-model resolve all moved plugin-side), `render-seam` (the #67 render's host-coupled seams: RenderService,
+  and `HostBuild(kind, spec)` — the host runs the registered host-builder for `kind` — registered kinds
+  today (the count drifts per cone; `git grep 'registerHostBuilder(' charly/*.go` resolving the `*BuilderKind` constants is the authoritative list). The build/render-relevant ones: the `buildengine-*` kinds (`buildengine-prep` et al. — the thin host shards the candy's plugin-side `resolveBuildEngine` reaches: the local scan, the registry plugin connect, and the render-seam-floor `renderGenCache` populate; REPLACING the former fat `build-prep`/`build_resolve_host.go` seam, DELETED, whose loader+prep+envelope+drive-model resolve all moved plugin-side), `render-seam` (the #67 render's host-coupled seams: RenderService,
   builder resolves, ValidateEgress, EmitPluginOp, localpkg). `bake_plugin:` baking is INLINE via `deploykit.EmitBakedPlugins` (the former `bake-plugins` host-builder is DELETED — no HostBuild). The rest: `overlay`
   (the pod overlay build), `step-emit` (host-coupled step fragments), `plugin-binary`
   (the F10 plugin host build), `cli` (run-any-charly-command

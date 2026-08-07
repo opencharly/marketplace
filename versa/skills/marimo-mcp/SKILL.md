@@ -1,7 +1,7 @@
 ---
 name: marimo-mcp
 description: |-
-  marimo's built-in MCP server (10 read-only inspection tools — get_active_notebooks, get_cell_outputs, get_notebook_errors, etc.) at port 2718 path /mcp/server.
+  marimo's built-in MCP server (read-only inspection tools — get_active_notebooks, get_cell_outputs, get_notebook_errors, etc.) at port 2718 path /mcp/server.
   Use when working with the marimo MCP tool catalog, programmatic notebook diagnostics, or the cells-don't-execute-via-MCP gap (marimo MCP is read-only; cells run via WebSocket from a browser OR `marimo export ipynb --include-outputs` for headless execution).
 ---
 
@@ -11,7 +11,7 @@ description: |-
 
 marimo's notebook server has a built-in MCP endpoint enabled by the
 `--mcp` flag (see `/charly-versa:marimo-layer` service spec). It serves
-10 inspection tools for diagnosing active notebook sessions —
+inspection tools for diagnosing active notebook sessions —
 **read-only**: cells cannot be executed via this MCP. Execution
 requires a browser-attached WebSocket session OR
 `marimo export ipynb --include-outputs` for headless runs.
@@ -26,7 +26,7 @@ http://localhost:22718/mcp/server           # host-side (mapped port)
 Transport: Streamable HTTP. Registered in this plugin's `.mcp.json`
 as the `marimo` server.
 
-## Tool catalog (10 tools)
+## Tool catalog
 
 All tools are **read-only**. Each takes an `args` JSON object as
 the sole parameter (often `{}` or `{"session_id": "..."}`).

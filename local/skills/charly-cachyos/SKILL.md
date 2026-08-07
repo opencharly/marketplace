@@ -2,7 +2,7 @@
 name: charly-cachyos
 description: |-
   Operator CachyOS workstation profile — a kind:local template plus a host:local
-  deploy that installs the full dev stack (30 candies) onto a CachyOS host via
+  deploy that installs the full dev stack (a large candy list) onto a CachyOS host via
   ShellExecutor. Lives in the opencharly/distro-cachyos submodule.
   MUST be invoked before editing or applying the charly-cachyos workstation profile.
 ---
@@ -33,7 +33,7 @@ charly --repo opencharly/distro-cachyos update charly-cachyos
 
 ## What it installs
 
-30 candies. Most are pulled from the main repo by **git reference**
+A large candy list. Most are pulled from the main repo by **git reference**
 (`@github.com/opencharly/charly/candy/<name>:<tag>`); the cachyos-exclusive
 `ghostty`, `keepassxc-keyring`, and `wheel-nopasswd` are vendored locally in this
 repo's `candy/` (resolved via its `discover:` block):

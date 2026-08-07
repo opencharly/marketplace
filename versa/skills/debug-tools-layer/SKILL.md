@@ -89,7 +89,7 @@ Single common name (`socat`, `tcpdump`, `lsof`, `file`, `tree`,
 `nano`, `htop`, `strace`, `ltrace`, `iotop`, `iftop`, `sysstat`,
 `tmux`, `rsync`, `wget`) covers all four distros.
 
-## Check coverage (16 probes — locks in headline binaries)
+## Check coverage (probes — locks in headline binaries)
 
 Spot-checks one binary per category. If a future package rename
 breaks one, the build fails loudly at image build time:

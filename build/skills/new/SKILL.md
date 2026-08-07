@@ -95,7 +95,7 @@ The end-to-end scaffold → build flow:
 6. `charly box validate` — check for errors
 7. `charly box build my-app` — build the image
 
-All six steps are also callable as MCP tools (`box.new.project`, `box.new.candy`, `candy.add-rpm`, …), so an agent driving `charly mcp serve` can run this entire flow over RPC. See `/charly-build:charly-mcp-cmd` "Authoring tools" for the worked MCP-only example.
+All the steps are also callable as MCP tools (`box.new.project`, `box.new.candy`, `candy.add-rpm`, …), so an agent driving `charly mcp serve` can run this entire flow over RPC. See `/charly-build:charly-mcp-cmd` "Authoring tools" for the worked MCP-only example.
 
 The scaffolded `charly.yml` from step 3 is minimal — the candy NAME as the node key, then a `candy:` block carrying `version:`, a placeholder `description:`, and a `plan:` with one starter `check:` (there is no `name:` field; the key IS the name). Add sections as needed: a `distro:` map (per-distro `package:` lists, populated by `charly candy add-rpm` / `add-deb` / `add-pac` / `add-aur`) for system packages, `env:` for runtime environment, `port:` / `service:` / `volume:` for services, and `task:` for install operations (mkdir, copy, write, download, link, setcap, cmd, build). The scaffolder does not create separate Taskfile shell scripts — all install logic flows through `task:` in `charly.yml`.
 

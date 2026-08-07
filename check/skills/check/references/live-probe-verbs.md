@@ -57,7 +57,7 @@ carry a tab ID or window handle from one check to the next. Authors rely
 on conventions (new tabs are usually ID 1) and inspect state via
 follow-up `cdp: list` checks if needed.
 
-### Method allowlist — `cdp` (15 methods + 6 SPA-nested)
+### Method allowlist — `cdp` (the methods + the SPA-nested ones)
 
 Queries: `status`, `list`, `url`, `text`, `html`, `eval`, `axtree`,
 `coords`, `raw`, `wait`, `screenshot`.
@@ -126,7 +126,7 @@ plan:
           contains: '"name":"1"'
 ```
 
-### Method allowlist — `dbus` (4 methods)
+### Method allowlist — `dbus` (the methods)
 
 Queries: `list`, `call`, `introspect`.
 Actions: `notify`.
@@ -150,7 +150,7 @@ plan:
           contains: body
 ```
 
-### Method allowlist — `vnc` (8 methods)
+### Method allowlist — `vnc` (the methods)
 
 Queries: `status`, `screenshot`, `rfb`.
 Actions: `click`, `mouse`, `type`, `key`, `passwd`.
@@ -171,7 +171,7 @@ plan:
           artifact_min_bytes: 5000
 ```
 
-### Method allowlist — `mcp` (7 methods)
+### Method allowlist — `mcp` (the methods)
 
 Queries: `ping`, `servers`, `list-tools`, `list-resources`, `list-prompts`,
 `read`.

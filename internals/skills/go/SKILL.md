@@ -61,7 +61,7 @@ project/
 ├── charly.yml                  # Image definitions
 ├── Taskfile.yml               # Bootstrap tasks only
 ├── taskfiles/                 # Build.yml, Cue.yml, Setup.yml
-├── candy/<name>/             # Layer directories (160 layers)
+├── candy/<name>/             # Layer directories
 ├── plugins/                   # Git submodule (opencharly/plugins)
 └── templates/                 # supervisord.header.conf (referenced by init.supervisord.header_file)
 ```

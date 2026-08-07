@@ -1,7 +1,7 @@
 ---
 name: versatiles-fonts
 description: |-
-  VersaTiles SDF font glyphs for MapLibre GL JS. 10 font families (Fira Sans, Lato, Libre Baskerville, Merriweather Sans, Noto Sans, Nunito, Open Sans, PT Sans, Roboto, Source Sans 3) bundled locally from versatiles-org/versatiles-fonts GitHub releases. Installed so the notebook's shortbread MapLibre cell renders labels without hitting tiles.versatiles.org as a runtime font CDN. Re-exported by the versatiles-frontend layer's http.server at /fonts/.
+  VersaTiles SDF font glyphs for MapLibre GL JS. Font families (Fira Sans, Lato, Libre Baskerville, Merriweather Sans, Noto Sans, Nunito, Open Sans, PT Sans, Roboto, Source Sans 3) bundled locally from versatiles-org/versatiles-fonts GitHub releases. Installed so the notebook's shortbread MapLibre cell renders labels without hitting tiles.versatiles.org as a runtime font CDN. Re-exported by the versatiles-frontend layer's http.server at /fonts/.
   MUST be invoked before building, deploying, or troubleshooting the versatiles-fonts layer.
 ---
 
@@ -22,7 +22,7 @@ description: |-
 ## What it ships
 
 `versatiles-org/versatiles-fonts` releases a `fonts.tar.gz` containing
-all 10 font families pre-rendered as SDF (signed distance field) PBFs
+all the font families pre-rendered as SDF (signed distance field) PBFs
 that MapLibre GL JS can fetch via its standard glyph URL template:
 
 ```

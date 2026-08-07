@@ -24,10 +24,10 @@ Headless OpenClaw box with maximal tool/skill coverage. No desktop, no VNC.
 ## Full Candy Stack
 
 1. `cachyos` (external base, Arch-derived — pacman/AUR)
-2. `openclaw-full` metalayer (27 layers, no system browser):
+2. `openclaw-full` metalayer (no system browser):
    - `openclaw` — AI gateway
    - `claude-code` — Claude Code CLI
-   - 25 tool candies (codex, gemini, clawhub, mcporter, oracle, xurl, summarize, playwright, blogwatcher, gifgrep, wacli, goplaces, songsee, sag, camsnap, gogcli, ordercli, himalaya, uv, nano-pdf, gh, tmux, ffmpeg, ripgrep, sqlite)
+   - the tool candies (codex, gemini, clawhub, mcporter, oracle, xurl, summarize, playwright, blogwatcher, gifgrep, wacli, goplaces, songsee, sag, camsnap, gogcli, ordercli, himalaya, uv, nano-pdf, gh, tmux, ffmpeg, ripgrep, sqlite)
 
 ## Ports
 

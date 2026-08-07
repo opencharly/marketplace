@@ -2,7 +2,7 @@
 name: debian-coder
 description: |-
   Kitchen-sink development box on Debian 13 trixie: coding + AI-coding
-  CLIs + DevOps tooling in one container. Debian base, 30+ direct candies
+  CLIs + DevOps tooling in one container. Debian base, a large set of direct candies
   mirroring fedora-coder's stack but with deb: sections. Runs as uid 1000
   (`user`) with passwordless sudo. 143/0 tests pass.
   Use when working with the debian-coder box — or when comparing
@@ -13,11 +13,11 @@ description: |-
 
 # debian-coder
 
-Debian 13 trixie counterpart of `/charly-coder:fedora-coder`. Same 80-line `check:` block, same ~30 candies, same rootless posture (uid 1000 + passwordless sudo). Key wrinkles are all Debian-specific packaging quirks handled inside individual candies: `bat → batcat` symlink, Microsoft's `dotnet-install.sh` cross-distro installer, and package-existence tests (vs binary-path tests) for `virtualization` because Debian bundles libvirt drivers differently.
+Debian 13 trixie counterpart of `/charly-coder:fedora-coder`. Same 80-line `check:` block, same large candy list, same rootless posture (uid 1000 + passwordless sudo). Key wrinkles are all Debian-specific packaging quirks handled inside individual candies: `bat → batcat` symlink, Microsoft's `dotnet-install.sh` cross-distro installer, and package-existence tests (vs binary-path tests) for `virtualization` because Debian bundles libvirt drivers differently.
 
 > **Location:** lives in the **`opencharly/distro-debian`** repo (git submodule at
 > **`box/debian`**), in that repo's config (its `charly.yml` + per-kind
-> sibling files). Its `debian` base is owned by the same submodule; its ~31
+> sibling files). Its `debian` base is owned by the same submodule; its
 > candies are pulled by github reference from the main repo. Build/validate from
 > the submodule:
 > `charly -C box/debian box build debian-coder`, or
@@ -153,7 +153,7 @@ Conflicts with the other three coder-family boxes on the same ports — use `-i 
 
 ## Cross-distro siblings
 
-All four coder-family boxes share the identical 80-line `check:` block + ~30 identical candies; they diverge only in per-candy package-format sections.
+The coder-family boxes share the identical `check:` block + a large set of identical candies; they diverge only in per-candy package-format sections.
 
 - `/charly-coder:fedora-coder` — RPM (Fedora 43 via fedora-nonfree).
 - `/charly-coder:arch-coder` — pacman + optional AUR.

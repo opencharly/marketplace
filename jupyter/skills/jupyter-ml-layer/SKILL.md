@@ -64,7 +64,7 @@ Build order: pixi environment → llama-cpp (binaries) → unsloth (vllm wheel +
 
 ## MCP Server Extension
 
-Same CRDT MCP server as `/charly-jupyter:jupyter` — 11 tools for programmatic notebook access (notebook_list/create/get/watch/list_users, cell_get/update/insert/delete/execute, room_list). Clients no longer manage CRDT rooms — every notebook_*/cell_* call auto-attaches. See `/charly-jupyter:jupyter-mcp` "Usage philosophy and caveats" for the design principles.
+Same CRDT MCP server as `/charly-jupyter:jupyter` — the tools for programmatic notebook access (notebook_list/create/get/watch/list_users, cell_get/update/insert/delete/execute, room_list). Clients no longer manage CRDT rooms — every notebook_*/cell_* call auto-attaches. See `/charly-jupyter:jupyter-mcp` "Usage philosophy and caveats" for the design principles.
 
 Endpoint: `http://localhost:8888/mcp` (Streamable HTTP, MCP spec 2025-11-25)
 
@@ -75,7 +75,7 @@ Endpoint: `http://localhost:8888/mcp` (Streamable HTTP, MCP spec 2025-11-25)
 | Base dep | supervisord | cuda, supervisord |
 | GPU | No | CUDA 13.0 |
 | Platforms | amd64 + arm64 | amd64 only |
-| MCP | CRDT (11 tools) | CRDT (11 tools) |
+| MCP | CRDT | CRDT |
 | ML stack | No | Full (PyTorch, vLLM 0.19, unsloth) |
 | Volume | workspace | workspace |
 

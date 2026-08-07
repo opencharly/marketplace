@@ -40,7 +40,7 @@ No SSH agent runs inside the container — the `SSH_AUTH_SOCK` environment varia
 
 ## Used In Boxes
 
-Part of `agent-forwarding` composition candy, used in 27 application boxes.
+Part of `agent-forwarding` composition candy, used in application boxes.
 
 ## Related Candies
 

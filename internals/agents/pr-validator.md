@@ -514,7 +514,7 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
       `Materializer` seam calls back into — `provider_kind_invoke.go`; the FOLD/
       not-found POLICY itself is a plugin, `candy/plugin-loader`, K1 unit 1), or the
       reverse-channel broker — anything ELSE in core is the wrong layer. sdk ONLY IF it is a kind-blind,
-      reusable MECHANISM consumed by ≥2 plugins (or a plugin + the host) with
+      reusable MECHANISM consumed by more than one plugin (or a plugin + the host) with
       sdk-only deps (→ a kit), or a wire SHAPE (→ `spec`, CUE-first) — a capability
       wearing a library costume is the wrong layer. candy (a plugin) for every
       CAPABILITY (verbs, kinds, commands, deploy/build/check behaviours, policies).

@@ -633,7 +633,7 @@ This pattern works for any page content extraction via JS — the `cdp: eval` st
 - `/charly-core:charly-config` -- Instance deployment, proxy configuration, removal workflow
 - `/charly-image:layer` -- Chrome candy configuration (cdp-proxy service, port declarations)
 - `/charly-selkies:selkies-labwc` -- Full SPA DOM structure, coordinate mapping, session resilience
-- `/charly-selkies:chrome-devtools-mcp` -- MCP-based browser automation (29 tools via Streamable HTTP)
+- `/charly-selkies:chrome-devtools-mcp` -- MCP-based browser automation via Streamable HTTP
 - `/charly-selkies:chrome` -- Chrome candy with cdp-proxy, env_accept (HTTP_PROXY)
 
 ## When to Use This Skill

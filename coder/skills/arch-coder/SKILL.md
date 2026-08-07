@@ -104,7 +104,7 @@ See `/charly-distros:arch-builder` and `/charly-tools:yay`.
 
 ## Cross-distro siblings
 
-`arch-coder` is one of **four cross-distro coder boxes** that share the identical 80-line `check:` block and ~30 identical candies, diverging only in each candy's package-format section (`rpm:` / `pac:` / `deb:`):
+`arch-coder` is one of the **cross-distro coder boxes** that share the identical `check:` block and a large set of identical candies, diverging only in each candy's package-format section (`rpm:` / `pac:` / `deb:`):
 
 - `/charly-coder:fedora-coder` — RPM-based, Fedora 43 via `fedora-nonfree`, uid=1000 `user`.
 - `/charly-coder:arch-coder` — this box; pacman + optional AUR, uid=1000 `user`.

@@ -24,6 +24,6 @@ The layer scaffold writes `rpm:\n  packages:\n  # Add RPM packages here\n` — t
 
 `resolveProjectFile(projectDir, relPath)` in `candy/plugin-authoring/authoring_edit.go` (P14b — moved from core `charly/scaffold_cmds.go`) is the single safety boundary for agent-driven file writes: it rejects absolute paths, calls `filepath.Clean`, then uses `filepath.Rel` + a prefix check to confirm the result stays inside the project root. Any future free-form file read/write verb goes through the same helper.
 
-### Project-dir resolver is a two-step resolver, not one
+### Project-dir resolver is a multi-step resolver, not one
 
-`charly/main.go` resolves the project dir in two steps: `--repo` resolves to a cache path first (`spec.NormalizeRepoSpec` in `spec/spec/repo_identity.go`, then `charly/loader_threaded.go`'s `ResolveProjectRepo` → `loaderkit.EnsureRepoDownloaded` — the former `charly/main_repo.go` is DELETED, K-wave 2), then falls through into the `os.Chdir(cli.Dir)` block. The two paths are mutually exclusive (fast-fail if both are set). Downstream code just reads `os.Getwd()` — no per-command plumbing. Tested in `charly/main_repo_test.go` (hermetic via `CHARLY_REPO_CACHE` pre-seeding).
+`charly/main.go` resolves the project dir in steps: `--repo` resolves to a cache path first (`spec.NormalizeRepoSpec` in `spec/spec/repo_identity.go`, then `charly/loader_threaded.go`'s `ResolveProjectRepo` → `loaderkit.EnsureRepoDownloaded` — the former `charly/main_repo.go` is DELETED, K-wave 2), then falls through into the `os.Chdir(cli.Dir)` block. The two paths are mutually exclusive (fast-fail if both are set). Downstream code just reads `os.Getwd()` — no per-command plumbing. Tested in `charly/main_repo_test.go` (hermetic via `CHARLY_REPO_CACHE` pre-seeding).

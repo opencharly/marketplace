@@ -211,7 +211,7 @@ R6–R9 are **artifact discipline** — what the produced artifact must be.
 
 R10 is **live-system discipline** — what the deployed-and-running system must do.
 
-The three layers compose. A cutover that violates R3 (duplication) but passes R7 (end-to-end gate) is still a violation — the duplication is a future bug. A cutover that passes R3 but fails R10 (fresh-rebuild verification) is still a violation — the artifact failed live. The three layers are AND-gated; **all** must pass. R5 is moreover a PRECONDITION of R10's acceptance run: every deprecated / transitional / dual-mode path is deleted BEFORE that run, so R10 exercises the transitional-free FINAL code — an acceptance run over a still-transitional tree proves nothing about what ships.
+The layers compose. A cutover that violates R3 (duplication) but passes R7 (end-to-end gate) is still a violation — the duplication is a future bug. A cutover that passes R3 but fails R10 (fresh-rebuild verification) is still a violation — the artifact failed live. The layers are AND-gated; **all** must pass. R5 is moreover a PRECONDITION of R10's acceptance run: every deprecated / transitional / dual-mode path is deleted BEFORE that run, so R10 exercises the transitional-free FINAL code — an acceptance run over a still-transitional tree proves nothing about what ships.
 
 Per the project rulebook "AI Attribution" section: a violation at any layer FORBIDS commit. The four-tier table describes the proof level the agent has when committing IS permitted; a known violation means committing is NOT permitted, regardless of tier. The agent fixes the violation or escalates to the operator — never both downgrade and ship.
 
