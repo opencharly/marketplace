@@ -57,8 +57,8 @@ charly docs generate --out docs/src/content/docs --root .
 The generator owns six top-level entries — `index.md`, `grievances.md`, `vision.md`,
 `liberation.md`, `reference/` and `recipes/` — and rewrites them wholesale each run, so a deleted
 source entity disappears from the site instead of lingering as an orphan page. (The table below
-expands `reference/` into its four sub-trees plus the single file `reference/providers.md`, so it
-runs to ten rows.) What stays hand-authored is the teaching narrative this repository has no
+expands `reference/` into its sub-trees plus the single file `reference/providers.md`, so it
+runs to many rows.) What stays hand-authored is the teaching narrative this repository has no
 equivalent of: `start/`, `concepts/` and `guides/`.
 
 **Hand-authored pages are never WRITTEN — but they are read.** The boundary is the `DO-NOT-EDIT`
@@ -107,8 +107,8 @@ So the generator walks **each repo as its own project root** — the superprojec
 
 ## Cross-reference rewriting
 
-The skill corpus is densely self-linked in harness syntax — 3665 references across 257 distinct
-targets in the **skill files** the generator reads, `/charly-check:check` alone appearing 268
+The skill corpus is densely self-linked in harness syntax — references across many distinct
+targets in the **skill files** the generator reads, `/charly-check:check` alone appearing many
 times. (Candy, box and `VISION.md` sources carry references too; those go through other emitters
 and are not counted here.)
 

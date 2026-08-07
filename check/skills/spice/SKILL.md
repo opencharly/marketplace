@@ -154,7 +154,7 @@ for the complete story.
 
 ## Architecture split (vs. the `libvirt:` verb)
 
-The two verbs are single-protocol by design:
+The verbs are single-protocol by design:
 
 - **`spice:`** — every byte flows through the SPICE wire. Use when the thing
   under test is "is SPICE itself healthy?".

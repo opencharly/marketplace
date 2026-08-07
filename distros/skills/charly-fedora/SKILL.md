@@ -170,7 +170,7 @@ and scripts per distro.
 
 - `/charly-distros:fedora` — parent base image
 - `/charly-coder:charly-arch` — Arch counterpart, same layers, same rootless posture
-- `/charly-coder:fedora-coder` — kitchen-sink dev sibling (32 candies, adds coding CLIs + DevOps)
+- `/charly-coder:fedora-coder` — kitchen-sink dev sibling (adds coding CLIs + DevOps)
 - `/charly-openclaw:openclaw-desktop` — streaming-desktop counterpart (charly toolchain + browser-accessible Wayland); shares the rootless-first posture
 - `/charly-distros:githubrunner` — self-hosted GitHub Actions runner; same uid=1000 posture
 

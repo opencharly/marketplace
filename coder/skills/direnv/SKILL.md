@@ -28,7 +28,7 @@ my-image:
     - direnv
 ```
 
-Typically used as part of the `agent-forwarding` composition candy rather than directly. Also available in the heavyweight `dev-tools` candy (46 packages).
+Typically used as part of the `agent-forwarding` composition candy rather than directly. Also available in the heavyweight `dev-tools` candy.
 
 ## Runtime Behavior
 
@@ -59,7 +59,7 @@ Also available in the `dev-tools` candy.
 
 - `/charly-distros:agent-forwarding` -- metalayer that includes gnupg + direnv + ssh-client
 - `/charly-infrastructure:gnupg` -- GPG tools (needed for `.secrets` decryption)
-- `/charly-coder:dev-tools` -- heavyweight candy that also includes direnv (46 packages)
+- `/charly-coder:dev-tools` -- heavyweight candy that also includes direnv
 
 ## Cross-References
 

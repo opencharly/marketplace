@@ -63,7 +63,7 @@ This skill is the single source of truth for the IR shape. Add a new step kind b
 
 | Topic | File |
 |---|---|
-| Core types (`InstallPlan`, `InstallStep`, the Scope/Venue/Phase/Gate/StepKind enums), the full step-kind catalog (thirteen builtin kinds + the open `external:<word>` family), the check-vs-production toolchain distinction, and the `BuildDeployPlan` compiler | `references/step-kinds.md` |
+| Core types (`InstallPlan`, `InstallStep`, the Scope/Venue/Phase/Gate/StepKind enums), the full step-kind catalog (the builtin kinds + the open `external:<word>` family), the check-vs-production toolchain distinction, and the `BuildDeployPlan` compiler | `references/step-kinds.md` |
 | The `DeployTarget` interface and every target implementation: `deploykit.OCITarget` (pod-overlay walker), pod/local/vm/k8s (each an external plugin), and `pluginDeployTarget` + `candy/plugin-fleet` (the S3b unified dispatch, including nested-child venue threading and what stays core-resident) | `references/deploy-targets.md` |
 | The four `Op` selectors (`OpEmit`/`OpResolve`/`OpExecute`/`OpRun`), `StepBatch` batching, deferred home resolution, the `ReverseOp` catalogue, `EmitOpts` flags, and the testing layout | `references/emit-opts-and-testing.md` |
 

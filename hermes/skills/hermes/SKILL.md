@@ -111,7 +111,7 @@ When co-deployed with services that declare `mcp_provide` (e.g., jupyter), herme
 ```bash
 # Verify MCP connection
 charly shell hermes -c "hermes mcp list"                    # Shows registered servers
-charly shell hermes -c "hermes mcp test jupyter"      # Tests connection (expects 11 tools)
+charly shell hermes -c "hermes mcp test jupyter"      # Tests connection (expects the tool catalog)
 ```
 
 ## Key Candies
@@ -145,7 +145,7 @@ charly shell hermes -c "hermes mcp list"              # Should show chrome-devto
 ## Test Coverage
 
 Latest `charly check live hermes` run: **50 passed, 0 failed, 0 skipped**.
-Covers all 4 AI CLIs — `claude` at `/usr/local/bin/claude` (native
+Covers the AI CLIs — `claude` at `/usr/local/bin/claude` (native
 installer), `codex` / `gemini` at `${HOME}/.npm-global/bin/`
 + pixi's `hermes` at `${HOME}/.pixi/envs/default/bin/hermes`, plus
 dev-tools (rg, bat, gh, fastfetch, nvim, htop) and devops-tools (aws,

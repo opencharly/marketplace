@@ -76,7 +76,7 @@ The hermes entrypoint auto-discovers MCP servers from the `CHARLY_MCP_SERVERS` e
 - Tools are registered as `mcp_<server_name>_<tool_name>`
 - Reload MCP servers at runtime: `/reload-mcp` in interactive chat
 
-**Example:** The `jupyter` candy provides 11 tools (notebook_list, cell_execute, cell_update, etc.) via its MCP server at `http://<container>:8888/mcp`. Noun-shaped surface (notebook_*/cell_* + notebook_list_users + room_list); clients do not manage CRDT rooms.
+**Example:** The `jupyter` candy provides the notebook tools (notebook_list, cell_execute, cell_update, etc.) via its MCP server at `http://<container>:8888/mcp`. Noun-shaped surface (notebook_*/cell_* + notebook_list_users + room_list); clients do not manage CRDT rooms.
 
 ## Architecture
 
@@ -162,7 +162,7 @@ hermes:
 - `/charly-hermes:hermes-playwright` -- optional Playwright Chromium browser (standalone headless mode)
 - `/charly-selkies:chrome` -- provides `BROWSER_CDP_URL` via `env_provide` for shared browser in desktop boxes
 - `/charly-jupyter:jupyter` -- MCP server provider (`mcp_provide: jupyter`)
-- `/charly-selkies:chrome-devtools-mcp` -- Chrome DevTools MCP server (`mcp_provide: chrome-devtools`, 29 tools)
+- `/charly-selkies:chrome-devtools-mcp` -- Chrome DevTools MCP server (`mcp_provide: chrome-devtools`, the browser-automation tools)
 
 ## Related Commands
 

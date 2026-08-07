@@ -80,8 +80,8 @@ M16 (egress) move those in-core capabilities onto this phase machinery.
 folds into `uf.Fleet`, the SAME map the in-proc pod/candy decoders populate, so the entity participates in
 deploy/check exactly like a builtin (the folded member goes through the SAME `validateDeploy`). This is the
 channel that externalizes the structural kind decoders — ALL of them are now DONE: **`group` (C2-group,
-candy/plugin-group)**, **the 5 deploy-substrate kinds pod/vm/k8s/local/android (C2-substrate,
-candy/plugin-substrate — one provider serving all 5)**, and **the LAST one, the `candy` box⊻layer factory
+candy/plugin-group)**, **the deploy-substrate kinds pod/vm/k8s/local/android (C2-substrate,
+candy/plugin-substrate — one provider serving all of them)**, and **the LAST one, the `candy` box⊻layer factory
 (C2-candy, candy/plugin-candy-kind)** — all COMPILED-IN. The substrate consumer added the TEMPLATE-map fold
 arm: a substrate node in standalone-TEMPLATE shape (a bare `vm:`/`pod:` — no from:/image:, no members) folds
 into the typed map `uf.Pod`/`uf.VM`/`uf.K8s`/`uf.Local`/`uf.Android`, alongside the deploy-shape fold into
@@ -112,7 +112,7 @@ Reference (out-of-process-only): `candy/plugin-example-structkind` (decodes depl
 byte-equivalence witness is `TestExternalStructKind_StructuralDecode` + the `check-structkind` runtime bed.
 
 **Rich-value variant (C2-substrate + C2-candy — the HOST-pre-decode+ECHO case).** The `op.Params`-decode above
-works for a kind whose value is SCALAR-simple (group's `#GroupInput`). The 5 substrate kinds
+works for a kind whose value is SCALAR-simple (group's `#GroupInput`). The substrate kinds
 (pod/vm/k8s/local/android) AND the `candy` box⊻layer factory have a RICH, core-referencing value
 (`#Vm`/`#Deploy`/`#LibvirtDomain`/`#Candy`/`#Box`/… with host-canonicalized shorthand like `tunnel:`/`port:`)
 that a plugin CANNOT re-decode soundly from `op.Params` nor validate with a self-contained schema. So

@@ -68,7 +68,7 @@ status exists — never `gh pr merge --admin`, never a force-push, never editing
    ] }
    ```
 
-   These clear the prompt for the two commands. **The `success` status POST is fully
+   These clear the prompt for the commands. **The `success` status POST is fully
    cleared by its rule** — a superproject-rooted validator posts `success` with zero
    denials (proven repeatedly). Exact spellings the rules pin: `--method POST` (never
    `-X POST`), a `repos/opencharly/…` path; the POST rule is POST-only, so it can never

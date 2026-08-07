@@ -383,7 +383,7 @@ charly check live selkies-labwc --filter cdp   # cdp: status — CDP available o
 ## Test Coverage
 
 Latest `charly check live selkies-labwc` run: **91 passed, 0 failed, 0 skipped**
-— the largest test suite in the project. Covers all 21 transitive
+— the largest test suite in the project. Covers all the transitive
 candies (selkies, chrome, sshd, chrome-devtools-mcp primary; labwc,
 waybar-labwc, pipewire, swaync, pavucontrol, wl-tools, wl-*-pixelflux,
 a11y-tools, xterm, desktop-fonts, asciinema, fastfetch, tmux
@@ -406,7 +406,7 @@ for `/etc/sudoers.d/charly-user` because it's root-only (`/charly-check:check` G
 - `/charly-check:check` — declarative testing framework + testing gotchas
 - `/charly-check:cdp`, `/charly-check:wl` — desktop automation on this box
 - `/charly-core:charly-config` — deploy setup (tunnel, port remapping, instances)
-- `/charly-build:charly-mcp-cmd` — the box bundles `chrome-devtools-mcp` (transitively via the chrome metalayer), so 2 deploy-scope `mcp:` checks (`ping`, `list-tools`) run against its MCP server on port 9224. `charly check live selkies-labwc --filter mcp` runs them, enumerating the 29 chrome-devtools tools.
+- `/charly-build:charly-mcp-cmd` — the box bundles `chrome-devtools-mcp` (transitively via the chrome metalayer), so 2 deploy-scope `mcp:` checks (`ping`, `list-tools`) run against its MCP server on port 9224. `charly check live selkies-labwc --filter mcp` runs them, enumerating the chrome-devtools tools.
 
 ## Related
 

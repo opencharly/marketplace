@@ -30,7 +30,7 @@ UI and the MCP server.
 
 ## Pixi env — version-pin rationale
 
-The pixi env is large (~270 packages). Headline pins worth
+The pixi env is large. Headline pins worth
 understanding:
 
 ```toml

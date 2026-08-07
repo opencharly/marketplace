@@ -26,7 +26,7 @@ http://localhost:22718/mcp/server           # host-side (mapped port)
 Transport: Streamable HTTP. Registered in this plugin's `.mcp.json`
 as the `marimo` server.
 
-## Tool catalog (10 tools)
+## Tool catalog
 
 All tools are **read-only**. Each takes an `args` JSON object as
 the sole parameter (often `{}` or `{"session_id": "..."}`).

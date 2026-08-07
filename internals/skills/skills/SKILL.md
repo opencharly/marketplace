@@ -36,7 +36,7 @@ Full index: `plugins/README.md`.
 | New candy or box added | Create skill via `charly box new candy` scaffold or manual SKILL.md |
 | Bug fix changes behavior | Document the fix in affected skills |
 | Cross-skill behavior discovered | Update Cross-References in all affected skills |
-| A doc / skill / comment diverges from observed reality (discovered by ANY means — not only a bed or a deleted identifier) | Treat as an incident (R1): RCA it, then sweep EVERY sibling doc/skill/comment carrying the same false/outdated/misleading claim and fix them all in the current cutover (blocking, R2). The two rows below are special cases of this |
+| A doc / skill / comment diverges from observed reality (discovered by ANY means — not only a bed or a deleted identifier) | Treat as an incident (R1): RCA it, then sweep EVERY sibling doc/skill/comment carrying the same false/outdated/misleading claim and fix them all in the current cutover (blocking, R2). The rows below are special cases of this |
 | A live bed contradicts a skill's claim (Risk Driven Development found it stale) | Fix the stale skill in the same change — RDD keeps the living docs honest; for a high-risk claim the running system is ground truth, not the doc |
 | Removed identifier still referenced in skill paragraph (R5 self-test failed) | Update / delete the paragraph in the same commit as the removal (R5) |
 | Project-rulebook heading / R-number / clause name changes (they are a public API) | Sweep every mirroring surface in the same commit — see "Mirroring surfaces" below (R5) |
@@ -155,7 +155,7 @@ swept in the same commit as any rename or removal (R5):
 
 - the 2 hooks in `.claude/hooks/` (`pre-commit-gate.sh`, `pre-push-gate.sh` — deterministic
   command-mechanics gates only; there is no reminder-hook layer),
-- the 6 agents in `plugins/internals/agents/*.md`,
+- the agents in `plugins/internals/agents/*.md`,
 - the 8 per-directory signpost `CLAUDE.md` files (`charly/`, `candy/`,
   `plugins/`, each `box/<distro>`),
 - the workflows in `.claude/workflows/*.js`,

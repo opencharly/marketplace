@@ -25,7 +25,7 @@ meant to be accessed via `ssh -p 2222` or `charly shell`.
 > **`box/fedora`**), discovered as a `box/<name>/charly.yml` box. Its base
 > stack (`fedora-nonfree` → `fedora`) is bare-local in the same self-contained
 > submodule (`import: []`) — `base: fedora-nonfree`, which itself roots on the
-> bare-local `fedora` base — and its 32 candies are pulled by github reference.
+> bare-local `fedora` base — and its candies are pulled by github reference.
 > Build/validate from
 > the submodule: `charly -C box/fedora box build fedora-coder`, or
 > `charly --repo opencharly/distro-fedora box build fedora-coder`. Deploy-mode verbs

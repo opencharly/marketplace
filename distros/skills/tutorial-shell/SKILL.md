@@ -34,7 +34,7 @@ charly -C box/fedora check run check-tutorial-shell
 | Init | supervisord — **auto-injected**, not composed (see below) |
 | Bed | `check-tutorial-shell` (`disposable: true`, pod) |
 
-## Why these two candies
+## Why these candies
 
 Each one is there to teach exactly one thing, and the composed list is kept to two so it stays
 readable when quoted in full on a documentation page:
@@ -90,7 +90,7 @@ consequences:
 
 - `/charly-distros:fedora` — the parent base image
 - `/charly-distros:charly-fedora` — the next box up in size: the same shape plus the charly toolchain
-- `/charly-coder:fedora-coder` — the kitchen-sink end of the same spectrum (~32 candies)
+- `/charly-coder:fedora-coder` — the kitchen-sink end of the same spectrum
 
 ## Related Commands
 

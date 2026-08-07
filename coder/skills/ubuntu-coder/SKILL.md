@@ -14,10 +14,10 @@ description: |-
 
 # ubuntu-coder
 
-Ubuntu 24.04 noble counterpart of `/charly-coder:fedora-coder`. Same 80-line test block, same ~30 candies, same rootless posture — but **the resolved user is `ubuntu` (not `user`)** because the upstream `ubuntu:24.04` base image ships a pre-existing `ubuntu:ubuntu` account at uid 1000, and the embedded `distro.ubuntu` vocabulary declares `base_user:` to adopt it. Everything that touches the user account — `${HOME}`, npm prefix, pixi env, sudoers — derives from `resolved.User = "ubuntu"`.
+Ubuntu 24.04 noble counterpart of `/charly-coder:fedora-coder`. Same 80-line test block, same large candy list, same rootless posture — but **the resolved user is `ubuntu` (not `user`)** because the upstream `ubuntu:24.04` base image ships a pre-existing `ubuntu:ubuntu` account at uid 1000, and the embedded `distro.ubuntu` vocabulary declares `base_user:` to adopt it. Everything that touches the user account — `${HOME}`, npm prefix, pixi env, sudoers — derives from `resolved.User = "ubuntu"`.
 
 > **Location:** lives in the **`opencharly/distro-ubuntu`** repo (git submodule at
-> **`box/ubuntu`**) — a SEPARATE repo from `opencharly/distro-debian`. Its ~31
+> **`box/ubuntu`**) — a SEPARATE repo from `opencharly/distro-debian`. Its
 > candies are pulled by github reference from the main repo. Build/validate from
 > the submodule: `charly -C box/ubuntu box build ubuntu-coder`, or
 > `charly --repo opencharly/distro-ubuntu box build ubuntu-coder`. Deploy-mode verbs

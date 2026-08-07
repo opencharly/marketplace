@@ -33,7 +33,7 @@ type InstallStep interface {
 }
 ```
 
-All thirteen builtin concrete step kinds (plus the open `external:<word>` family — F3's `externalStep`) implement this interface. `Reverse()` is called at install time (not teardown) so the ledger records the exact reversal ops tied to the specific artifacts created. (`ExternalPluginStep` is the exception that proves the rule: its `Reverse()` is static-nil — its reversal ops are DYNAMIC, recorded from the plugin's `OpExecute` reply at emit time, not from the step itself.)
+All the builtin concrete step kinds (plus the open `external:<word>` family — F3's `externalStep`) implement this interface. `Reverse()` is called at install time (not teardown) so the ledger records the exact reversal ops tied to the specific artifacts created. (`ExternalPluginStep` is the exception that proves the rule: its `Reverse()` is static-nil — its reversal ops are DYNAMIC, recorded from the plugin's `OpExecute` reply at emit time, not from the step itself.)
 
 ### Enums
 
@@ -66,7 +66,7 @@ Gates apply only to the host target. `EmitOpts.AssumeYes` enables all three. See
 - The CLOSED builtin set: `SystemPackages`, `Builder`, `Op`, `File`, `ServicePackaged`, `ServiceCustom`, `ShellHook`, `ShellSnippet`, `RepoChange`, `ApkInstall`, `LocalPkgInstall`, `Reboot`, `ExternalPlugin`.
 - The OPEN external family (F3): `external:<word>` — a PLUGIN-contributed step kind served by a `class:step` provider. Not a fixed enum entry; carried OPAQUELY (see `externalStep` in the table below).
 
-The Go-internal builtin vocabulary is the `allStepKinds` slice in `provider_step.go` (all thirteen kinds — each round-trips through `stepToView`/`stepFromView`, the deploy view). `checkStepProviderBijection` asserts every kind is SERVED, split by how: a kind in `pluginEmitStepWords` (the plugin-served build-emit kinds — the PURE `File`/`ShellHook`/`ShellSnippet`/`ServicePackaged`/`ServiceCustom`/`RepoChange`/`ApkInstall` (C1.1) + the no-op-emit `Reboot` (C1.6, `Emits=false`) + the HOST-COUPLED `SystemPackages` (C1.2) + `Builder` (C1.3) + `LocalPkgInstall` (C1.4) + `Op` (C1.5) — 12 kinds) resolves to a compiled-in `class:step` plugin declaring a `StepContract` (`candy/plugin-installstep`, NO in-proc `StepProvider`); the ONE remaining kind (`ExternalPlugin`) resolves to its in-proc `StepProvider` (its `EmitOCI`). Add an in-proc kind → add it to `allStepKinds` + a dedicated `StepProvider`; externalize a kind's build-emit → move it to `pluginEmitStepWords` + the plugin. An `external:<word>` kind is NOT in `allStepKinds` and registers no per-word `StepProvider` — it is recognized by the `external:` prefix (`isExternalStepKind`) and dispatched by the OPEN DEFAULT ARM in `kit.WalkPlans` + `RunHostStep`, so the closed bijection deliberately never sees it.
+The Go-internal builtin vocabulary is the `allStepKinds` slice in `provider_step.go` (all the builtin kinds — each round-trips through `stepToView`/`stepFromView`, the deploy view). `checkStepProviderBijection` asserts every kind is SERVED, split by how: a kind in `pluginEmitStepWords` (the plugin-served build-emit kinds — the PURE `File`/`ShellHook`/`ShellSnippet`/`ServicePackaged`/`ServiceCustom`/`RepoChange`/`ApkInstall` (C1.1) + the no-op-emit `Reboot` (C1.6, `Emits=false`) + the HOST-COUPLED `SystemPackages` (C1.2) + `Builder` (C1.3) + `LocalPkgInstall` (C1.4) + `Op` (C1.5)) resolves to a compiled-in `class:step` plugin declaring a `StepContract` (`candy/plugin-installstep`, NO in-proc `StepProvider`); the remaining kind (`ExternalPlugin`) resolves to its in-proc `StepProvider` (its `EmitOCI`). Add an in-proc kind → add it to `allStepKinds` + a dedicated `StepProvider`; externalize a kind's build-emit → move it to `pluginEmitStepWords` + the plugin. An `external:<word>` kind is NOT in `allStepKinds` and registers no per-word `StepProvider` — it is recognized by the `external:` prefix (`isExternalStepKind`) and dispatched by the OPEN DEFAULT ARM in `kit.WalkPlans` + `RunHostStep`, so the closed bijection deliberately never sees it.
 
 The IR carries no image-fetch step kind. Deploys (any target) emit
 zero image-pull / image-build steps; test-bed image preflight is a
@@ -75,7 +75,7 @@ separate, check-time concern handled by `candy/plugin-check/preflight_images.go`
 `charly/check_image_preflight.go` is DELETED)
 (the project rulebook "Deploy fetches NOTHING speculative" (`AGENTS.md` / `CLAUDE.md`)).
 
-## The step kinds (thirteen builtin + the open `external:<word>` family)
+## The step kinds (the builtin kinds + the open `external:<word>` family)
 
 | Kind | What it carries | Venue default | Scope derivation |
 |---|---|---|---|

@@ -158,7 +158,7 @@ memory) is always preserved. Set `defaults.keep_check_runs` in `charly.yml`
 | Bed | Target | Ref | Surface |
 |---|---|---|---|
 | `check-sway-browser-vnc-pod` | pod | `image: sway-browser-vnc` | cdp/wl/vnc/dbus/mcp/record + pod-side file/service/port/process/http |
-| `check-k3s-vm` | vm | `from: k3s-vm` | kube (all 13 methods) + guest-side file/service/port/process, http via port-forward, the external vm deploy end-to-end |
+| `check-k3s-vm` | vm | `from: k3s-vm` | kube (all the methods) + guest-side file/service/port/process, http via port-forward, the external vm deploy end-to-end |
 | `check-pod` | pod | `image: check-pod` | combined mechanism bed: `candy:` image build (a `candy:` carrying `base:`/`from:`) + `candy:` layer composition order + `kind: pod` runtime (nc :18794 + supervisord) + every DeployTarget rendering path |
 | `check-local` | local | `from: check-local-app` | `kind: local` layer apply via ShellExecutor |
 | `check-jupyter-pod` | pod | `image: jupyter` | jupyter-mcp regression coverage |
@@ -432,7 +432,7 @@ list rather than beside it. (referenced by the project rulebook R1–R10)
 
 Unit tests are not a substitute for running the service — a green `go test ./...` proves compilation and loader behavior, not that a service actually starts.
 
-These are the 11 standards referenced in the project rulebook's AI attribution tier ("fully tested and validated"). Each is keyed to a project-rulebook R-rule. Apply them whenever a change could affect Containerfile generation, OCI labels, init systems, service startup, or deploy code.
+These are the standards referenced in the project rulebook's AI attribution tier ("fully tested and validated"). Each is keyed to a project-rulebook R-rule. Apply them whenever a change could affect Containerfile generation, OCI labels, init systems, service startup, or deploy code.
 
 0. **Prove every high-risk assumption before you edit (RDD — Risk Driven Development)** — the proactive bookend to Standard 11's fresh-rebuild gate. Low-risk orientation ("what does layer X do") is a skill lookup (R0, zero risk); every high-risk assumption — including any a skill or the code merely *asserts*, and above all whether this layer composition at its latest available versions builds / deploys / runs together — is proven on a `disposable: true` bed first (`charly check` it). Never accept docs or code as ground truth for a high-risk decision; if the bed disagrees with a skill, the skill is stale — fix it. Standard 0 (validate forward, riskiest-first) and Standard 11 (re-verify on a fresh rebuild) are the two ends of the same loop.
 
@@ -501,7 +501,7 @@ A green `go test ./...` run does not prove a cutover done — build, deploy, run
 
 If the container needs state that's only available in deploy (volumes, env, tunnel), author the step at `context: [deploy]`. If it needs something at build only (binary path, package presence), author at `context: [build]`. Both contexts must pass for the cutover to be real.
 
-**Confidence tier mapping:** The "fully tested and validated" confidence level in the project rulebook's AI-attribution table requires all 11 standards met — including Standard 11, the fresh-rebuild re-verification. Anything short of that ships at a lower confidence tier.
+**Confidence tier mapping:** The "fully tested and validated" confidence level in the project rulebook's AI-attribution table requires all the standards met — including the fresh-rebuild re-verification. Anything short of that ships at a lower confidence tier.
 
 ## Coverage snapshot (7 currently-tested images)
 

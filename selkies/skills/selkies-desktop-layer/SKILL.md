@@ -54,7 +54,7 @@ A browser-accessible desktop at `http://localhost:3000` with:
 - **pcmflux** audio capture → Opus encoding at 320kbps
 - **PipeWire** audio server with PulseAudio compatibility
 - **NGINX** web frontend on port 3000
-- **Full `wl:` verb automation:** ~40 methods all working — screenshots (pixelflux), input (wtype, wlrctl), window management (wlrctl toplevel), clipboard (wl-copy/paste), resolution (wlr-randr), accessibility (AT-SPI2), XWayland tools (xdotool, xprop)
+- **Full `wl:` verb automation:** the methods all working — screenshots (pixelflux), input (wtype, wlrctl), window management (wlrctl toplevel), clipboard (wl-copy/paste), resolution (wlr-randr), accessibility (AT-SPI2), XWayland tools (xdotool, xprop)
 - **`cdp: coords` + `wl: click`:** CSS selector → desktop X/Y → Wayland pointer click (no VNC needed)
 - **`cdp: axtree`:** Chrome accessibility tree via the `cdp:` verb
 - **Desktop video recording** via the `record:` check verb (`record_mode: desktop`, capture bridge → H.264 → ffmpeg MP4, with optional audio)

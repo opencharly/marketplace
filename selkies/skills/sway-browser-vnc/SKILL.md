@@ -164,7 +164,7 @@ Latest `charly check live sway-browser-vnc` run: **84 passed, 0 failed, 1 skippe
 (`chrome-devtools-mcp-port` references `${HOST_PORT:9224}` which isn't
 mapped here — correct skip behavior).
 
-Covers all 19 transitive candies: wayvnc (VNC), sway (compositor),
+Covers all the transitive candies: wayvnc (VNC), sway (compositor),
 chrome-sway, xdg-portal, waybar, swaync, pavucontrol, thunar,
 xfce4-terminal, pipewire, wl-screenshot-grim, wl-overlay, wf-recorder,
 desktop-fonts, fastfetch, asciinema, tmux, dbus, charly. Deploy-scope: VNC

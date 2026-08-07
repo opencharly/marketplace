@@ -18,7 +18,7 @@ The `record:` check verb manages recording sessions inside running containers. I
 out-of-process by its plugin (`candy/plugin-record`), parallel to the
 `mcp:`/`adb:`/`appium:` plugin verbs. Author a `record:` step in a candy/box plan and
 run it against a live deployment with `charly check live <image> --filter record`. It
-supports two modes:
+supports these modes:
 
 1. **Terminal recording** (asciinema) — Records terminal sessions as `.cast` files
 2. **Desktop video recording** — Records full-screen video as MP4 files via pixelflux (selkies-desktop) or wf-recorder (sway-desktop)

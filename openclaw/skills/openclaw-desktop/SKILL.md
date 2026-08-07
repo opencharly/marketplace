@@ -26,7 +26,7 @@ openclaw-desktop:
   candy:
     - agent-forwarding
     - selkies-desktop          # full streaming desktop stack
-    - openclaw-full            # gateway + 27 tools incl. claude-code/codex/gemini
+    - openclaw-full            # gateway + the OpenClaw tools incl. claude-code/codex/gemini
     - ollama                   # CPU ollama (GPU-agnostic layer)
     - charly                       # the full toolchain: charly binary + virtualization + gocryptfs + socat
     - container-nesting        # nested rootless podman/buildah/skopeo
@@ -220,7 +220,7 @@ ollama API, chrome-devtools-mcp port). The R10 bed is
 ## Key Candies
 
 - `/charly-selkies:selkies-desktop-layer` — the streaming desktop metalayer
-- `/charly-openclaw:openclaw-full` — gateway + 27 tools (claude-code/codex/gemini)
+- `/charly-openclaw:openclaw-full` — gateway + the OpenClaw tools (claude-code/codex/gemini)
 - `/charly-ollama:ollama` — CPU/GPU-agnostic Ollama candy (GPU is box-level)
 - `/charly-tools:charly` — the full toolchain: charly binary + virtualization + gocryptfs + socat
 - `/charly-distros:container-nesting` — rootless nested podman recipe (RCA for `unmask=/proc/*`)

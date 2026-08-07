@@ -70,7 +70,7 @@ charly shell <image> -c "rm /opt/data/config.yaml"
 charly service restart <image> hermes
 ```
 
-After restart, `hermes mcp list` should show `chrome-devtools` as enabled with all 29 tools.
+After restart, `hermes mcp list` should show `chrome-devtools` as enabled with all the browser-automation tools.
 
 ## Automatically Included Via
 

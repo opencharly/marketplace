@@ -278,11 +278,11 @@ per-layer plan section:
 | `versa-artifact-gtfs` | post-DAG `monaco.gtfs.zip` ≥500 KB |
 | `versa-artifact-shortbread` | post-DAG `monaco-shortbread.pmtiles` ≥100 KB |
 | `versa-graph-imports` | cugraph + cuml + torch_geometric + torch_scatter + graphistry import + GPU visible |
-| `versa-graph-cugraph-pagerank` | `nx.pagerank(G, backend="cugraph")` on karate club; returns 34 rows |
+| `versa-graph-cugraph-pagerank` | `nx.pagerank(G, backend="cugraph")` on karate club; returns the rows |
 | `versa-graph-notebook-export` | end-to-end `marimo export ipynb` of `gpu-libraries-demo.py` (600s timeout) |
 | `versa-graph-notebook-size` | rendered `.ipynb` is ≥10 KB (matches the ~18 KB observed live) |
 
-End-to-end notebook test (executes all 13 cells via marimo's own
+End-to-end notebook test (executes all the cells via marimo's own
 export):
 
 ```bash
