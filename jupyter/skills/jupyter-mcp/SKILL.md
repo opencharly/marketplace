@@ -163,7 +163,7 @@ Use when the user asks about:
 
 - The jupyter-mcp candy or its MCP server implementation
 - How the CRDT collaboration works in JupyterLab
-- The 11 MCP tools for notebook manipulation
+- The MCP tools for notebook manipulation
 - The auto-attach single-room invariant
 - The path canonicalization rules
 - The idle-room sweeper / cleanup behavior

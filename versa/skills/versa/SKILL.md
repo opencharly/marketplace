@@ -259,7 +259,7 @@ charly update --build --force-seed versa
 charly check live versa         # → 97 passed · 0 failed · 0 skipped
 ```
 
-The 4 GPU-library probes (cuGraph/cuML/PyG/graphistry) live alongside
+The GPU-library probes (cuGraph/cuML/PyG/graphistry) live alongside
 the 11 OSM/GTFS probes as `context: [deploy]` steps in the box's
 `plan:` in `charly.yml` so they run AFTER every
 per-layer plan section:
