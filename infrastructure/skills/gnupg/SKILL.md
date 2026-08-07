@@ -38,7 +38,7 @@ The container has its own keyring (public keys must be imported separately with 
 
 ## Used In Boxes
 
-Part of `agent-forwarding` composition candy, used in 27 application boxes including: `charly-arch`, `charly-fedora`, `nvidia`, `jupyter`, `ollama`, `openclaw`, `immich`, `comfyui`, `selkies-desktop`, and all other non-base boxes.
+Part of `agent-forwarding` composition candy, used in application boxes including: `charly-arch`, `charly-fedora`, `nvidia`, `jupyter`, `ollama`, `openclaw`, `immich`, `comfyui`, `selkies-desktop`, and all other non-base boxes.
 
 ## Related Candies
 

@@ -423,7 +423,7 @@ Default `:18765` chosen for non-collision with other MCP layers:
 
 ## Policy note
 
-The server registers destructive tools with `DestructiveHint: true` rather than withholding them. The LLM runtime (Claude Code, Open WebUI) is responsible for acting on the hint — e.g. prompting the user before calling an annotated tool. For hostile-LLM scenarios or untrusted network deployments, run with `--read-only` (drops the 51 mutating tools at registration time) and/or restrict reach via the tunnel / Traefik candy.
+The server registers destructive tools with `DestructiveHint: true` rather than withholding them. The LLM runtime (Claude Code, Open WebUI) is responsible for acting on the hint — e.g. prompting the user before calling an annotated tool. For hostile-LLM scenarios or untrusted network deployments, run with `--read-only` (drops the mutating tools at registration time) and/or restrict reach via the tunnel / Traefik candy.
 
 ---
 

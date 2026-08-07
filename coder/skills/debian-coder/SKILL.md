@@ -153,7 +153,7 @@ Conflicts with the other three coder-family boxes on the same ports — use `-i 
 
 ## Cross-distro siblings
 
-All four coder-family boxes share the identical 80-line `check:` block + ~30 identical candies; they diverge only in per-candy package-format sections.
+The coder-family boxes share the identical `check:` block + a large set of identical candies; they diverge only in per-candy package-format sections.
 
 - `/charly-coder:fedora-coder` — RPM (Fedora 43 via fedora-nonfree).
 - `/charly-coder:arch-coder` — pacman + optional AUR.

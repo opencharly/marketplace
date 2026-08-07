@@ -2,8 +2,8 @@
 name: fedora-coder
 description: |-
   Kitchen-sink development box: coding + AI-coding CLIs + DevOps tooling
-  in one container. Fedora-nonfree base, 32 direct candies spanning language
-  runtimes, build tooling, five AI coding CLIs, and the full cloud/devops
+  in one container. Fedora-nonfree base, direct candies spanning language
+  runtimes, build tooling, AI coding CLIs, and the full cloud/devops
   stack. Runs as uid 1000 with passwordless sudo — rootless-first, matches
   the /charly-openclaw:openclaw-desktop security posture.
   Use when working with the fedora-coder box — specifically any task that
@@ -244,7 +244,7 @@ google-cloud-npm) by forking charly.yml. See `/charly-image:image` for authoring
 
 ## Cross-distro siblings
 
-`fedora-coder` is one of **four cross-distro coder boxes** that share the identical 80-line `check:` block + ~30 identical candies; they diverge only in each candy's package-format section (`rpm:` / `pac:` / `deb:`) and a handful of distro-specific quirks handled inside individual candies.
+`fedora-coder` is one of the **cross-distro coder boxes** that share the identical `check:` block + a large set of identical candies; they diverge only in each candy's package-format section (`rpm:` / `pac:` / `deb:`) and a handful of distro-specific quirks handled inside individual candies.
 
 | Box | Base | Package mgr | User model |
 |---|---|---|---|

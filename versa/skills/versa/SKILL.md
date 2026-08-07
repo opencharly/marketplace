@@ -266,7 +266,7 @@ per-layer plan section:
 
 | probe id | what it checks |
 |---|---|
-| `versa-notebook-export` | end-to-end `marimo export ipynb` — triggers all 6 self-authored DAGs and renders every cell server-side (the single highest-value probe; 600s timeout) |
+| `versa-notebook-export` | end-to-end `marimo export ipynb` — triggers all the self-authored DAGs and renders every cell server-side (the single highest-value probe; 600s timeout) |
 | `versa-notebook-size` | rendered `.ipynb` is ≥100 KB (catches empty-cell renders) |
 | `versa-martin-monaco` | TileJSON for the canonical `monaco` source returns 200 + body contains `tilejson` + `vector_layers` |
 | `versa-martin-monaco-gpqtiles` | same for `monaco-gpqtiles` |

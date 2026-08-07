@@ -152,8 +152,8 @@ kind exactly like `ApkInstall` (C1.1) — it declares `Emits=false`, and the pod
 (`candy/plugin-installstep`'s `"oci-dispatch"` word, K5-A item 2) skips its
 `OpEmit` entirely (the plugin's `renderFragment` returns an empty fragment as a belt-and-suspenders
 fallback). With C1.6 landed, the LAST host-coupled step kind's build-emit is externalized: EVERY builtin
-InstallStep kind is now plugin-served — the 12 compiler-emitted kinds via `candy/plugin-installstep`, and
-`ExternalPlugin` (the 13th) via its own per-verb `class:step` plugin dispatch — leaving `ExternalPlugin` the
+InstallStep kind is now plugin-served — the compiler-emitted kinds via `candy/plugin-installstep`, and
+`ExternalPlugin` via its own per-verb `class:step` plugin dispatch — leaving `ExternalPlugin` the
 ONLY kind with an in-proc `StepProvider.EmitOCI`.
 
 **`compileActOp` non-regression (the C1.1 verb-first fix).** C1.5 moves ONLY the `OpStep` BUILD-emit; `compileActOp`

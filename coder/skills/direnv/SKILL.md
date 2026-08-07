@@ -51,7 +51,7 @@ The primary use case in OpenCharly is the `.secrets` workflow: `.envrc` calls `e
 
 ## Used In Boxes
 
-Part of `agent-forwarding` composition candy, used in 27 application boxes.
+Part of `agent-forwarding` composition candy, used in application boxes.
 
 Also available in the `dev-tools` candy.
 
