@@ -28,24 +28,17 @@ generator needs the host reverse channel (it reads files and writes markdown), w
 what makes the out-of-process placement free here — the same property that lets `charly candy`
 and `charly migrate` run in either placement.
 
-Because it is not in `compiled_plugins:`, the plugin is **not in `go.work`**. Build and test it
-with `GOWORK=off`:
-
-```bash
-cd candy/plugin-docs && GOWORK=off go build ./... && GOWORK=off go test ./...
-```
+Because it is not in `compiled_plugins:`, the plugin is **not in `go.work`**. The repository's
+checked-in automation owns generator synchronization, drift checks, plugin tests, dependency
+installation, local preview, and production builds; those are maintainer workflows rather than
+public CLI instructions.
 
 ## Usage
 
 ```bash
-task docs:sync     # regenerate into docs/ (runs build:binary first)
-task docs:drift    # FAIL if the committed site is stale — regeneration must be a no-op
-task docs:install  # install the lockfile before the local dev or production build
-task docs:dev      # local preview at http://localhost:4321
-task docs:build    # production build into docs/dist
-
-# the underlying verb
-charly docs generate --out docs/src/content/docs --root .
+charly docs generate \
+  --out /absolute/path/to/site-content \
+  --root /absolute/path/to/opencharly
 ```
 
 | Flag | Meaning |
