@@ -40,6 +40,7 @@ cd candy/plugin-docs && GOWORK=off go build ./... && GOWORK=off go test ./...
 ```bash
 task docs:sync     # regenerate into docs/ (runs build:binary first)
 task docs:drift    # FAIL if the committed site is stale — regeneration must be a no-op
+task docs:install  # install the lockfile before the local dev or production build
 task docs:dev      # local preview at http://localhost:4321
 task docs:build    # production build into docs/dist
 
@@ -79,7 +80,7 @@ not the page.**
 | `index.md` | `README.md`, H1 and tagline dropped (the frontmatter title and hero render them), `https://opencharly.ai/…` links rewritten site-relative, and the repo-relative targets `AGENTS.md`, `plugins/README.md` and `CHANGELOG/README.md` repointed at GitHub or their site equivalent |
 | `grievances.md` | `GRIEVANCES.md`, H1 dropped, repo-relative links rewritten for a web reader |
 | `vision.md` | `VISION.md`, H1 dropped, repo-relative links rewritten for a web reader |
-| `liberation.md` | `LIBERATION.md`, H1 dropped, repo-relative links rewritten — the deliberate easter-egg page, entered last in the sidebar as "Agents only" |
+| `liberation.md` | `LIBERATION.md`, H1 dropped, repo-relative links rewritten — the deliberate easter-egg page, entered last in the sidebar as "Liberation" |
 | `reference/cli/` | one page per `command:` provider word |
 | `reference/candy/` | every defined candy: packages, services, and its `plan:` as an acceptance spec |
 | `reference/box/` | every defined box |
