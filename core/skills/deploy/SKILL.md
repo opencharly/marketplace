@@ -766,7 +766,7 @@ selkies-desktop/personal:
 
 **Instance lifecycle:** All commands accept `-i`: `charly start/stop/status/logs/remove <image> -i <instance>`, `charly fleet show/reset <image> -i <instance>`. Removing an instance only cleans its charly.yml entry — the base and other instances are unaffected. Provides cleanup waits until the last entry for a base image is removed.
 
-**Instance removal gotcha:** `charly config remove` disables the systemd service but does NOT remove the charly.yml entry. You MUST also run `charly fleet reset <image> -i <instance>` and delete the quadlet file. If you run `charly config --update-all` before cleaning charly.yml, stale quadlet files will be re-created. See `/charly-core:charly-config` for the full 3-step cleanup workflow.
+**Instance removal gotcha:** `charly config remove` disables the quadlet service but does NOT remove the charly.yml entry and does NOT delete the quadlet file. `charly remove <image> -i <instance>` is the complete teardown (stops the container, deletes the quadlet file, reloads systemd); `charly fleet reset <image> -i <instance>` removes the charly.yml entry. If you run `charly config --update-all` before cleaning charly.yml, stale quadlet files will be re-created. See `/charly-core:charly-config` for the removal semantics.
 
 **MCP name disambiguation:** When an instance provides MCP servers, the server name gets `-<instance>` appended (e.g., `chrome-devtools-work`). See `/charly-core:charly-config` for details.
 
