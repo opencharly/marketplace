@@ -37,7 +37,7 @@ This is the **single entry point** for **container** deployment setup. `charly s
 | Mount volumes | `charly config mount <image>` | Mount encrypted volumes |
 | Unmount volumes | `charly config unmount <image>` | Unmount encrypted volumes |
 | Change password | `charly config passwd <image>` | Change gocryptfs password |
-| Remove config | `charly config remove <image>` | Remove quadlet and disable service |
+| Remove config | `charly config remove <image>` | Disable quadlet service (quadlet file remains) |
 
 ## Subcommands
 
@@ -48,7 +48,7 @@ This is the **single entry point** for **container** deployment setup. `charly s
 | `mount` | Mount encrypted volumes |
 | `unmount` | Unmount encrypted volumes |
 | `passwd` | Change gocryptfs password |
-| `remove` | Remove quadlet file and disable systemd service |
+| `remove` | Disable quadlet service (quadlet file remains) |
 
 ## Setup Flags
 
@@ -80,7 +80,7 @@ This is the **single entry point** for **container** deployment setup. `charly s
 
 ## How It Works
 
-1. Requires `run_mode=quadlet` (errors if set to `direct`)
+1. Requires `run_mode=quadlet` (default) or `direct` (auto-selected on systemd-less hosts; skips quadlet+systemctl, runs via `podman run -d`)
 2. Resolves image reference (local or remote `github.com/...`)
 3. Ensures image exists in run engine (transfers if needed)
 4. Extracts metadata from OCI image labels
@@ -313,18 +313,17 @@ charly config remove my-app
 charly config my-app --bind workspace=/new/path
 ```
 
-### Full instance removal (important: 3-step cleanup)
+### Full instance removal
 
-`charly config remove` disables the systemd service but does NOT clean the charly.yml entry. Running `--update-all` before cleaning charly.yml will re-create quadlets from stale entries. Full cleanup requires:
+`charly remove <image> -i <instance>` is the complete teardown: it stops the container, deletes the quadlet file, and reloads systemd. `charly config remove` only disables the quadlet service (the quadlet file remains), and `charly fleet reset` removes the charly.yml entry — neither is a full removal on its own:
 
 ```bash
-charly config remove <image> -i <instance>     # 1. Stop & disable service
-charly fleet reset <image> -i <instance>       # 2. Remove charly.yml entry
-charly remove <image> -i <instance>         # 3. Remove container + quadlet (reloads systemd)
-charly reap-orphans                         # 4. Clear ghost units (optional)
+charly remove <image> -i <instance>          # Complete teardown: stop container, delete quadlet, reload systemd
+charly config remove <image> -i <instance>   # Disable quadlet service only (quadlet file remains)
+charly fleet reset <image> -i <instance>     # Remove charly.yml entry only
 ```
 
-Only THEN run `charly config <image> --update-all` to propagate the clean state.
+Run `charly config <image> --update-all` after removing an instance so the clean state propagates to the remaining deployments.
 
 ### Multi-instance proxy deployment
 
