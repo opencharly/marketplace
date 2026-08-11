@@ -29,7 +29,7 @@ guessing.
   parser accepts only this compact shape; `charly migrate` converts legacy
   files, including the former named data/step child-node grammar). The only
   legal children beside the kind key are sub-ENTITY members, and ONLY under a
-  deployable kind (pod/vm/k8s/local/android/group) — a candy nests NO members,
+  deployable kind (pod/vm/kubernetes/local/android/group) — a candy nests NO members,
   so any second key under a candy entity is an error.
 - **`version:` is MANDATORY** — a CalVer `YYYY.DDD.HHMM`. `charly box validate`
   hard-errors when absent. Bump it when the layer's content changes (it is

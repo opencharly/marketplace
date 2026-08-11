@@ -21,9 +21,8 @@ cluster-probe implementation (and the `k8s.io/client-go` +
 in charly's core. This mirrors the `adb:` and `appium:` verbs (see
 charly/check_cmd.go).
 
-The cluster-probe verb is spelled `kube`; the `k8s` spelling is reserved for
-the deploy KIND only (`kind: k8s`, `--target k8s`, a `k8s:` entity or
-cross-ref).
+The cluster-probe verb is spelled `kube`; the deploy KIND is spelled
+`kubernetes` (`kind: kubernetes`, a `kubernetes:` entity or cross-ref).
 
 ## Method surface
 
@@ -61,11 +60,11 @@ resolves the `cluster:` profile to a concrete kubeconfig context via the generic
 
 1. `kubeconfig: <path>` — direct kubeconfig file pointer. Overrides
    everything.
-2. `cluster: <name>` — a `kind: k8s` cluster template name. The host
-   resolves it via `findK8sSpec` (the project `charly.yml` / `k8s.yml`
-   loader) to the template's `kubeconfig_context:`, which selects the
-   context; the kubeconfig path defaults to `$KUBECONFIG` then
-   `~/.kube/config`.
+2. `cluster: <name>` — a `kind: kubernetes` cluster template name. The
+   plugin resolves it via `ResolveKubernetesEntityViaExecutor` (the
+   project `charly.yml` loader) to the template's `kubeconfig_context:`,
+   which selects the context; the kubeconfig path defaults to `$KUBECONFIG`
+   then `~/.kube/config`.
 3. `kube_context: <name>` — override the kubeconfig context directly.
 4. None given → current-context of the default kubeconfig (matches
    `kubectl` with no flags).
@@ -101,7 +100,7 @@ INSIDE the `kube:` map, while `timeout:` stays a sibling. A `kube:` step is a
 `check:` step.
 
 Example from the main repo's `charly.yml` — the `check-k3s-vm` bed's
-cluster-readiness steps, each naming ITS OWN `kind: k8s` profile by literal:
+cluster-readiness steps, each naming ITS OWN `kind: kubernetes` profile by literal:
 
 ```yaml
 check-k3s-vm:
@@ -110,11 +109,11 @@ check-k3s-vm:
     disposable: true
     plan:
       # … guest-side command / process / port / file steps elided …
-      - check: k8s=wait-nodes
-        id: kv-k8s-wait-nodes
+      - check: kubernetes=wait-nodes
+        id: kv-kubernetes-wait-nodes
         kube:
           method: wait-nodes
-          cluster: "check-k3s-vm-ctx"    # this bed's OWN kind:k8s profile
+          cluster: "check-k3s-vm-ctx"    # this bed's OWN kind:kubernetes profile
           kube_count: 1
         timeout: 180s
         stdout: {contains: "Ready"}
@@ -125,15 +124,15 @@ check-k3s-vm:
       # are one-shot list verbs with no internal wait, and they exit 0 on an EMPTY
       # list, so a `contains` matcher run before the addons settle FAILS rather than
       # waits. Gate first, assert second.
-      - check: k8s=addons
-        id: kv-k8s-addons
+      - check: kubernetes=addons
+        id: kv-kubernetes-addons
         kube:
           method: addons
           cluster: "check-k3s-vm-ctx"
         timeout: 240s
         context: [runtime]
-      - check: k8s=ingressclass
-        id: kv-k8s-ingressclass-traefik
+      - check: kubernetes=ingressclass
+        id: kv-kubernetes-ingressclass-traefik
         kube:
           method: ingressclass
           cluster: "check-k3s-vm-ctx"
@@ -142,7 +141,7 @@ check-k3s-vm:
 ```
 
 **A `kube:` step belongs to whoever can NAME the cluster — which is the deploy, not
-a generic candy.** The bed above names `check-k3s-vm-ctx`, a `kind: k8s` profile it
+a generic candy.** The bed above names `check-k3s-vm-ctx`, a `kind: kubernetes` profile it
 alone owns, pinned to its own per-deploy kubeconfig context. Its sibling bed
 `check-k8s-deploy` names `check-k8s-deploy-cluster-ctx`, so the two never resolve
 through each other's context even though both deploy the SAME shared `kind: vm`
@@ -160,7 +159,7 @@ VM check-var environment is a fixed map carrying no arbitrary deploy env, so suc
 step goes silently vacuous. A generic candy that must prove its own control plane
 came up probes it IN-VENUE instead — `candy/k3s-server/charly.yml` drives the k3s
 client entrypoint (`/usr/local/bin/kubectl`) against the server's local kubeconfig,
-needing no host kubeconfig merge, no port-forward, and no `kind: k8s` entity.
+needing no host kubeconfig merge, no port-forward, and no `kind: kubernetes` entity.
 
 (`${DEPLOY_NAME}` is UPPERCASE because the check-var expander only recognizes
 uppercase names; a lowercase `${deploy_name}` — the artifact-path token — is NOT a
@@ -242,7 +241,7 @@ charly's core binary.
   `k3s-post-provision` method. The retrieve-check, port-forward rewrite, and
   merge all run INSIDE `candy/plugin-kube` (see `k3s_post.go` above); the
   cluster-template lookup that used to need `charly/k8s_config.go`'s
-  `findK8sSpec` now self-loads plugin-side too (`sdk/loaderkit.ResolveK8sEntityViaExecutor`,
+  `findKubernetesSpec` now self-loads plugin-side too (`sdk/loaderkit.ResolveKubernetesEntityViaExecutor`,
   K-wave W3a A3-phase-2). No client-go import, and no `kube:`-specific host
   seam, remains in core.
 
@@ -255,8 +254,8 @@ all were removed when the verb was externalized.
 - `/charly-check:check` — the unified `charly check` surface (image / live /
   run), the plan-step vocabulary, and how the provider registry dispatches
   declarative verbs.
-- `/charly-kubernetes:kubernetes` — deploying images to a K8s cluster
-  (`kind: k8s` cluster templates, Kustomize generation, `charly fleet`).
+- `/charly-kubernetes:kubernetes` — deploying images to a Kubernetes cluster
+  (`kind: kubernetes` cluster templates, Kustomize generation, `charly fleet`).
 - `/charly-internals:plugin` — the Provider model and the out-of-process
   plugin dispatch the `kube:` verb rides on.
 - `/charly-infrastructure:k3s` — the k3s-server / k3s-agent candies whose

@@ -256,7 +256,7 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
    loader / resolver / IR / fetch / build-spine change → EVERY matching disposable
    bed, launched CONCURRENTLY in one batch on ONE binary; a candy / box / deploy
    change → the bed that COMPOSES the changed entity; a touched deploy substrate
-   (pod/vm/k8s/local/android) → that substrate's bed. A gate that ran the WRONG
+   (pod/vm/kubernetes/local/android) → that substrate's bed. A gate that ran the WRONG
    beds, TOO FEW beds, or beds that cannot fail on the change (a bed that never
    exercises the touched path proves nothing) is a FAIL — name the missing/incorrect
    beds in your verdict. The PR body's explicit eval-bed list is what you check this

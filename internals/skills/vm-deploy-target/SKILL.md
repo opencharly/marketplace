@@ -24,7 +24,7 @@ description: |-
 ## The `vm` substrate is external (out-of-process)
 
 `vm` is one of the EXTERNAL deploy substrates (`externalizedDeploySubstrates`
-in `charly/provider_deploy.go`, alongside `local`/`android`/`k8s`). There is
+in `charly/provider_deploy.go`, alongside `local`/`android`/`kubernetes`). There is
 no in-proc VM deploy target: the plan WALK runs OUT-OF-PROCESS in
 `candy/plugin-deploy-vm` (serving the `deploy:vm` word) — a near-clone of
 `candy/plugin-deploy-local`. The plugin receives the deployment's `InstallPlan`
@@ -69,7 +69,7 @@ targets dispatched by `ResolveTarget`. The deploy LIFECYCLE is the separate
 `UnifiedDeployTarget` interface (Add/Del/Update/Start/…/Rebuild — `Test`
 DELETED, #55 W3 B3 remainder: zero real callers anywhere in the tree), and
 its sole implementer is the generic `pluginDeployTarget`. **ALL FIVE external
-substrates (`local`/`vm`/`pod`/`k8s`/`android`) route through
+substrates (`local`/`vm`/`pod`/`kubernetes`/`android`) route through
 `pluginDeployTarget`** — every method marshals a
 `spec.DeployTargetDispatchRequest` and dispatches via `charly/deploy_target_dispatch.go`'s
 `dispatchDeployTarget` to `candy/plugin-fleet`'s `Invoke(OpDeployDispatch)`,
@@ -84,7 +84,7 @@ the RECORDED `ReverseOps` from the ledger (no plugin call). See
 
 ## The vm venue lifecycle — implemented in the plugin over generic seams
 
-Unlike `local`/`android`/`k8s` (whose venue has no charly-owned lifecycle beyond
+Unlike `local`/`android`/`kubernetes` (whose venue has no charly-owned lifecycle beyond
 the walk), `vm` owns a real venue lifecycle: charly boots / destroys / consoles /
 SSHes the domain, and `charly update <vm-bed>` MUST
 destroy+build+create+start+re-add the domain (the R10 fresh-rebuild gate). That
@@ -126,7 +126,7 @@ resolves the `kind:vm` entity from the node's `vm:` cross-ref / a legacy
 A3-phase-2** replaced the `entityResolve`/`"deploy-entity-resolve"` HostBuild
 round trip with a direct plugin-side self-load —
 `sdk/loaderkit.ResolveVmEntityViaExecutor` (the SAME pattern
-`candy/plugin-kube/preresolve.go`'s `ResolveK8sEntityViaExecutor` call uses,
+`candy/plugin-kube/preresolve.go`'s `ResolveKubernetesEntityViaExecutor` call uses,
 R3) — to pull the `ResolvedVm`; the ssh port / state dir /
 prior `VmDeployState` are then resolved directly (pure `sdk/deploykit` +
 `sdk/kit` + `sdk/vmshared` — the plugin is co-located on the host, so no
@@ -181,7 +181,7 @@ Each Op:
 
 - The `pod` substrate is EXTERNAL (`deploy:pod`, candy/plugin-deploy-pod); the pod overlay render MOVED to the candy (P11c — `candy/plugin-deploy-pod/overlay.go`, via `deploykit.OCITarget`), and `charly/build_overlay.go` is now the host-side prep+resolve M-seam the candy reaches over `HostBuild("overlay")`. Its teardown record is keyed HOST-SIDE by `computeDeployID(name)` like every external deploy (the in-proc pod was record-free).
 - `vmNameFromDeployName` strips the `vm:` prefix. `vmEntityForPrepare` (`candy/plugin-deploy-vm/lifecycle.go`, ported verbatim from the DELETED `charly/vm_lifecycle_preresolve.go`'s `vmEntityForAdd` — FINAL/K5 unit 6a, M4b) resolves the `kind:vm` entity from a deploy node: the node's `vm:` cross-ref (`node.From`) wins, then a legacy `vm:<entity>` prefix, then the leaf of a nested dotted path.
-- `UnifiedDeployTarget` / `LifecycleTarget` interfaces (`spec/spec/deploy_target_unified.go`, the kind-agnostic contract — the option types repoint to the CUE-sourced `spec.DeployTarget*` wire types) + the `ResolveTarget` dispatcher (`charly/unified_targets.go`) provide the full lifecycle contract (`Add` / `Del` / `Update` / `Start` / `Stop` / `Status` / `Logs` / `Shell` / `Rebuild` — `Test` DELETED, #55 W3 B3 remainder: zero real callers anywhere in the tree). `ResolveTarget` returns a `pluginDeployTarget` (S3b) for every externalized substrate (local/vm/pod/k8s/android — all five).
+- `UnifiedDeployTarget` / `LifecycleTarget` interfaces (`spec/spec/deploy_target_unified.go`, the kind-agnostic contract — the option types repoint to the CUE-sourced `spec.DeployTarget*` wire types) + the `ResolveTarget` dispatcher (`charly/unified_targets.go`) provide the full lifecycle contract (`Add` / `Del` / `Update` / `Start` / `Stop` / `Status` / `Logs` / `Shell` / `Rebuild` — `Test` DELETED, #55 W3 B3 remainder: zero real callers anywhere in the tree). `ResolveTarget` returns a `pluginDeployTarget` (S3b) for every externalized substrate (local/vm/pod/kubernetes/android — all five).
 - Disposability is read per-`spec.Deploy` via `Deploy.IsDisposable()` (`spec/spec/charly_methods.go` — `disposable: true`, or ephemeral); it is NOT a `VmSpec` field. The disposability-as-authorization gate is NOT applied in the `charly update` path — `charly update <vm>` rebuilds on explicit invocation regardless (it only NOTES non-disposability, never refuses). `pluginDeployTarget.Rebuild` dispatches via `candy/plugin-fleet`'s `Invoke(OpDeployDispatch)` to the plugin's `OpRebuild` (over `HostBuild("cli")`), which recreates the domain THEN re-applies the deploy node's layers via the shared `charly fleet add <node>` path — the same layer-apply primitive the local/pod Rebuild use (R3).
 
 The `vm` substrate brings `charly fleet add vm:<name>` online: the same
@@ -241,7 +241,7 @@ inside the plugin** — the DELETED `lifecyclePrepareHook`/`vmLifecyclePrepare`
    entity from the node's `vm:` cross-ref / a legacy `vm:<name>` prefix / the
    leaf of a nested dotted path; `sdk/loaderkit.ResolveVmEntityViaExecutor`
    (K-wave W3a A3-phase-2, the SAME self-load pattern
-   `candy/plugin-kube/preresolve.go`'s `ResolveK8sEntityViaExecutor` call
+   `candy/plugin-kube/preresolve.go`'s `ResolveKubernetesEntityViaExecutor` call
    uses, R3) pulls the `ResolvedVm`; ssh port / state dir / prior
    `VmDeployState` are resolved directly (pure `sdk/deploykit` + `sdk/kit` +
    `sdk/vmshared` — the plugin is co-located on the host) into a
@@ -316,7 +316,7 @@ over `RunHostStep`, where the HOST reboots the guest (records the guest's
 `/proc/sys/kernel/random/boot_id`, fires `(sleep 1; systemctl reboot) &` so the
 ssh session closes cleanly, then polls until SSH answers AND the boot_id has
 changed — deterministic, not a fixed sleep, so the still-up pre-reboot sshd
-can't be mistaken for "back up"). OCI/pod/k8s skip it; the external `local:`
+can't be mistaken for "back up"). OCI/pod/kubernetes skip it; the external `local:`
 deploy skips + warns — it never reboots the operator host. This is what lets a
 kernel-module layer (e.g. the CachyOS `nvidia-driver` layer) load its module on
 a clean boot mid-deploy. See `/charly-internals:install-plan` RebootStep.
