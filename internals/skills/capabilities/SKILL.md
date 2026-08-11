@@ -101,18 +101,18 @@ type CapabilityService struct {
 }
 ```
 
-**Why this matters**: `charly fleet from-box` (see below) reconstructs the full deploy surface from OCI labels alone. A names-only `Service` label would leave deploy-time K8s manifest generation blind to whether a process needs `start_retries: 3` or is an eventlistener. The structured label carries every supervisord directive faithfully, and the K8s Kustomize generator (see `/charly-kubernetes:kubernetes`) reads from it without touching the source repo.
+**Why this matters**: `charly fleet from-box` (see below) reconstructs the full deploy surface from OCI labels alone. A names-only `Service` label would leave deploy-time Kubernetes manifest generation blind to whether a process needs `start_retries: 3` or is an eventlistener. The structured label carries every supervisord directive faithfully, and the Kubernetes Kustomize generator (see `/charly-kubernetes:kubernetes`) reads from it without touching the source repo.
 
 ## Source-less deploy: `charly fleet from-box`
 
-`deploykit.CapabilitiesFromLabels(engine, imageRef)` (`sdk/deploykit/capabilities.go`) is the source-less entry point: given an engine + image ref, it runs `ExtractMetadata` (which pulls labels via `podman inspect` / `docker inspect`), returns a fully-populated `*spec.BoxMetadata`, and every downstream consumer (deploy target, K8s generator, quadlet generator) reads from that struct. `candy/plugin-fleet/deploy_from_box.go` is `charly fleet from-box`'s own caller.
+`deploykit.CapabilitiesFromLabels(engine, imageRef)` (`sdk/deploykit/capabilities.go`) is the source-less entry point: given an engine + image ref, it runs `ExtractMetadata` (which pulls labels via `podman inspect` / `docker inspect`), returns a fully-populated `*spec.BoxMetadata`, and every downstream consumer (deploy target, Kubernetes generator, quadlet generator) reads from that struct. `candy/plugin-fleet/deploy_from_box.go` is `charly fleet from-box`'s own caller.
 
 ```go
 caps, err := deploykit.CapabilitiesFromLabels("podman", "ghcr.io/opencharly/fedora-coder:latest")
 // caps.Service[0].Kind == "eventlistener" works — no source repo needed
 ```
 
-This is what enables the "**K8s deploy without access to charly.yml**" invariant: a Kustomize overlay can be generated from a published image alone, for dev/staging/prod clusters that never see the build repo.
+This is what enables the "**Kubernetes deploy without access to charly.yml**" invariant: a Kustomize overlay can be generated from a published image alone, for dev/staging/prod clusters that never see the build repo.
 
 ## Three-layer image architecture (planned schema split)
 
@@ -120,7 +120,7 @@ The long-term direction (aspirational — not yet started in code or schema) is 
 
 - `box.build:` — Containerfile inputs (base image, layers, distro/builder selection). Consumed only by `charly box build`.
 - `box.capabilities:` — the runtime contract documented here. Emitted as OCI labels.
-- `box.deploy:` — target-specific defaults (K8s storage class, container-target port defaults). Consumed by `charly fleet add`.
+- `box.deploy:` — target-specific defaults (Kubernetes storage class, container-target port defaults). Consumed by `charly fleet add`.
 
 Today these co-exist in a single `BoxConfig`. The `CapabilityLabelMap` completeness test will keep the contract honest across the migration (once the schema split lands, `spec.BoxMetadata` will project the `capabilities:` subsection directly instead of the whole struct).
 
@@ -142,7 +142,7 @@ See `/charly-image:image` for current user-facing structure and `/charly-build:m
 - `/charly-image:image` — user-facing `candy:` image entries (with `base:`/`from:`) in `charly.yml`
 - `/charly-image:layer` — user-facing `candy:` authoring, including `service:` which feeds `LabelService`
 - `/charly-core:deploy` — `charly fleet add` / `from-image` / `sync` commands
-- `/charly-kubernetes:kubernetes` — K8s deploy target that reads `LabelService` to generate Kustomize
+- `/charly-kubernetes:kubernetes` — Kubernetes deploy target that reads `LabelService` to generate Kustomize
 - `/charly-check:check` — three-section `LabelDescription` (candy/box/deploy) — same label-contract pattern
 - `/charly-build:migrate` — `charly migrate` — emits the schema that populates these labels
 - `/charly-internals:go` — Go architecture overview, `LoadUnified`, `parseCandyYAML`

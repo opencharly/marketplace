@@ -10,8 +10,8 @@ description: |-
 
 ## Schema overview
 
-- **A deploy is name-first; the target is the SUBSTRATE KIND at the edge** — the deploy's first child key is exactly one of `pod:` / `vm:` / `k8s:` / `local:` / `android:` (or `group:` for a targetless group of members) and selects `local | vm | pod | k8s | android`. There is NO authored `target:` field. Inside that substrate node, `image:` names the box/OCI image a `pod:`/`k8s:`/`android:` runs and `from:` inherits a same-kind `vm`/`k8s`/`local`/`android` template by name.
-- **The substrate node at the edge** — `vm: {from: <entity>}` for a VM target, `pod: {image: <name>}` for a pod target, `k8s: {from: <name>}` for a cluster target, `local: {from: <template>}` for a local-deploy. Deploy-into nesting is **tree position** (a resource node placed under another resource), not a `nested:` field; sibling members (a resource node placed under the deploy) replace the old `peer:` field.
+- **A deploy is name-first; the target is the SUBSTRATE KIND at the edge** — the deploy's first child key is exactly one of `pod:` / `vm:` / `kubernetes:` / `local:` / `android:` (or `group:` for a targetless group of members) and selects `local | vm | pod | kubernetes | android`. There is NO authored `target:` field. Inside that substrate node, `image:` names the box/OCI image a `pod:`/`kubernetes:`/`android:` runs and `from:` inherits a same-kind `vm`/`kubernetes`/`local`/`android` template by name.
+- **The substrate node at the edge** — `vm: {from: <entity>}` for a VM target, `pod: {image: <name>}` for a pod target, `kubernetes: {from: <name>}` for a cluster target, `local: {from: <template>}` for a local-deploy. Deploy-into nesting is **tree position** (a resource node placed under another resource), not a `nested:` field; sibling members (a resource node placed under the deploy) replace the old `peer:` field.
 - **`host:` is a FIELD on `local:`, never a deploy KIND (MUST).** A host/remote deploy MUST be authored as `local: {from: <template>, host: <user@machine>}` — the `host:` scalar on a `local:` (or `pod:`) deploy: `host: local` / absent = this machine, `host: <user@machine>` = SSH. There is NO standalone `host:` venue KIND; authoring a `host:` node is a hard load error. See `/charly-local:local-deploy`.
 - **`group:` is EXCLUSIVELY a targetless deploy group.** A `group:` node carries only resource members (pod/vm/etc.) with no own workload — the targetless deploy group.
 - **Disposability is a deploy property** — `FleetNode.Disposable` (the `disposable:` scalar under the substrate node) is the sole source of truth.
@@ -26,12 +26,12 @@ description: |-
    - `local: {from: <template>}` → the external `deploy:local` plugin (`candy/plugin-deploy-local`) applies to the local filesystem over the executor reverse channel (or, placed under another resource node via tree position, via NestedExecutor into the enclosing deployment). See `/charly-local:local-deploy`.
    - `vm: {from: <entity>}` → the external `deploy:vm` plugin (`candy/plugin-deploy-vm`) applies INSIDE a running VM over SSH via the reverse channel; the plugin auto-boots the venue in its `OpPrepareVenue` (via `HostBuild("cli")`), using the host prepare hook's resolved data. See "VM target" section below and `/charly-internals:vm-deploy-target`.
    - `pod: {image: <image>}` → the candy `plugin-deploy-pod` renders the overlay Containerfile (in its own code via `deploykit.OCITarget` + `deploykit.NewRenderGeneratorFromProject`) + the quadlet config-write (fully plugin-side in `candy/plugin-deploy-pod` + `sdk/deploykit/quadlet_paths.go` — the former core quadlet path is DELETED, K-wave 2).
-   - `k8s: {from: <name>}` → Kustomize base/overlays tree. See `/charly-kubernetes:kubernetes`.
+   - `kubernetes: {from: <name>}` → Kustomize base/overlays tree. See `/charly-kubernetes:kubernetes`.
 2. **Config-file management** — `charly fleet show/export/import/reset/path/status`. Read and mutate `~/.config/charly/charly.yml` itself.
 
 ## Targets, one schema
 
-The same `FleetNode` shape feeds every target (`pod`, `local`, `vm`, `k8s`, `android`) — authors describe *what the workload needs* (ports, volumes, env, security, tests); the generator per target decides *how K8s / quadlet / local apply / VM over SSH / Android apk-install* realizes it.
+The same `FleetNode` shape feeds every target (`pod`, `local`, `vm`, `kubernetes`, `android`) — authors describe *what the workload needs* (ports, volumes, env, security, tests); the generator per target decides *how Kubernetes / quadlet / local apply / VM over SSH / Android apk-install* realizes it.
 
 A deploy's install timeline can include a `run:` step carrying a plugin verb (the `<word>: <input>` sugar — see `/charly-image:layer` "Plugin verb steps"). When the verb is served by an EXTERNAL (out-of-process) plugin, that step EXECUTES at deploy on a `local:`/`vm:` target — the plugin runs its effect on the live venue over the executor reverse channel (`Invoke(OpExecute)`) and returns teardown `ReverseOp`s the target records to the ledger and replays at `charly fleet del`. A builtin `ProvisionActor` verb keeps its in-proc shell path; the two are placement-agnostic (same authored step, the runtime picks the path). Detail → `/charly-internals:install-plan` (the `ExternalPluginStep` IR kind) + `/charly-internals:plugin`.
 
@@ -39,12 +39,12 @@ A deploy's install timeline can include a `run:` step carrying a plugin verb (th
 onto an `android` device entity (an in-pod emulator or a remote/physical adb
 endpoint) via the EXTERNAL `deploy:android` substrate (F1 — served out-of-process
 by candy/plugin-adb; the host preresolves the device endpoint + apk specs, the
-plugin installs) — the Android analogue of a `k8s:` deploy emitting workloads onto
+plugin installs) — the Android analogue of a `kubernetes:` deploy emitting workloads onto
 a cluster. The substrate node is `android: {from: <device>}`; apps
 ride in on the deploy's inline `add_candy:` list (no apk-list field). A `pod → android` tree
-(the device placed under its emulator-pod node) mirrors `vm → k8s`; a pod's android
+(the device placed under its emulator-pod node) mirrors `vm → kubernetes`; a pod's android
 children deploy AFTER `charly start` (use `--node-only` on the pod's deploy-add, then
-dotted-path `charly fleet add pod.device`). See `/charly-check:android`. K8s-specific choices (storage class, ingress class, cert issuer, secret backend) live in a **cluster profile** file (`~/.config/charly/clusters/<name>.yaml` or in-repo `clusters/<name>.yaml`), *not* in the deployment. This means one deployment spec targets dev/staging/prod clusters with zero schema changes — only the cluster profile differs.
+dotted-path `charly fleet add pod.device`). See `/charly-check:android`. Kubernetes-specific choices (storage class, ingress class, cert issuer, secret backend) live in a **cluster profile** file (`~/.config/charly/clusters/<name>.yaml` or in-repo `clusters/<name>.yaml`), *not* in the deployment. This means one deployment spec targets dev/staging/prod clusters with zero schema changes — only the cluster profile differs.
 
 `charly start` / `charly stop` remain as ergonomic wrappers: `charly start <image>` is equivalent to `charly fleet add <image> <image>` with the container target; `charly stop <name>` is `charly fleet del <name>`. New scripts should prefer the explicit `charly fleet add`/`charly fleet del` forms, especially when using `--add-candy` overlays or the `host` target.
 
@@ -79,7 +79,7 @@ Applies a deployment. The substrate node selects the target:
 
 - **`local: {from: <template>}`** — apply layers to the local filesystem via the external `deploy:local` plugin (`candy/plugin-deploy-local`) over the executor reverse channel. With `host: local` (default) the apply runs through a `ShellExecutor` directly; with `host: <user@machine>` it runs over an `SSHExecutor` (picked by `rootExecutorForDeployNode`). See `/charly-local:local-deploy`.
 - **`vm: {from: <entity>}`** — apply layers inside a running `vm` entity via SSH (the external `deploy:vm` plugin, `candy/plugin-deploy-vm`, over the reverse channel). `<vm-name>` must match a `vm` entity; the VM must already be created (`charly vm create <vm-name>`), or the plugin auto-boots it in its `OpPrepareVenue` (via `HostBuild("cli")`). See "VM target" section below.
-- **`k8s: {from: <name>}`** — emit a Kustomize base/overlays tree. See `/charly-kubernetes:kubernetes`.
+- **`kubernetes: {from: <name>}`** — emit a Kustomize base/overlays tree. See `/charly-kubernetes:kubernetes`.
 - **`pod: {image: <image>}`** (pod, the default target) — container deployment. Multiple pod deploys coexist (`my-dev`, `postgres-staging`, etc.); each gets its own quadlet, container name, and charly.yml entry.
 
 `<ref>` accepts four forms, auto-detected:
@@ -547,7 +547,7 @@ Source: `sdk/deploykit/tunnel_resolve.go` (resolution + the shared `schemeTarget
 
 ### Legacy-schema rejection
 
-The per-host config is compact node-form: top-level name-first `<name>: {<substrate-kind>: <full body>}` entries (the substrate-kind being `pod`/`vm`/`k8s`/`local`/`android`/`group`, its value carrying the deploy config INLINE, projected internally into the `FleetConfig.Fleet` map; the only named children are member sub-entities), preceded by a `version:` stamp and an optional `provides:` directive. `LoadFleetConfig` reads it through the unified node-form loader (`LoadUnified` → `ProjectFleetConfig`). A host still on a legacy root shape — the obsolete `image:`/`images:` root key, or the legacy `deploy.yml` filename — is detected and fails loud, so a misparse can never silently drop a `volume:` entry with `type: encrypted` — the encrypted-volume load is `LoadEncryptedVolume` (sdk/deploykit/enc_probe.go) — and quietly void the encryption guarantee; the failure points at `charly migrate`.
+The per-host config is compact node-form: top-level name-first `<name>: {<substrate-kind>: <full body>}` entries (the substrate-kind being `pod`/`vm`/`kubernetes`/`local`/`android`/`group`, its value carrying the deploy config INLINE, projected internally into the `FleetConfig.Fleet` map; the only named children are member sub-entities), preceded by a `version:` stamp and an optional `provides:` directive. `LoadFleetConfig` reads it through the unified node-form loader (`LoadUnified` → `ProjectFleetConfig`). A host still on a legacy root shape — the obsolete `image:`/`images:` root key, or the legacy `deploy.yml` filename — is detected and fails loud, so a misparse can never silently drop a `volume:` entry with `type: encrypted` — the encrypted-volume load is `LoadEncryptedVolume` (sdk/deploykit/enc_probe.go) — and quietly void the encryption guarantee; the failure points at `charly migrate`.
 
 `charly status` surfaces this as a non-fatal warning (graceful degradation falls back to image-label-driven display); the strictly-charly.yml-driven verbs (`charly fleet show`, `charly config status`, `charly start`) hard-fail. Run `charly migrate` to convert in place — it backs the original up to `<file>.bak.<unix-ts>` and rewrites to the latest schema. See `/charly-build:migrate` "charly migrate".
 
@@ -584,13 +584,13 @@ my-app:
         - /dev/dri/renderD128
 ```
 
-Per-deploy fields: the substrate node (`pod`/`vm`/`k8s`/`local`/`android`/`group`) holds the COMPLETE deploy body inline — the scalars (`image:` for a pod, `from:` to inherit a same-kind template, `disposable`, `lifecycle`, `description`, `dns`, `acme_email`, `env_file`, `network`, `engine`) AND every collection (`tunnel`, `volume`, `port`, `env` — a map, `security`, `secret`, `sidecar`, `add_candy`, `install_opts`). The only named children a deploy carries are member sub-entities (see "Sibling members" below).
+Per-deploy fields: the substrate node (`pod`/`vm`/`kubernetes`/`local`/`android`/`group`) holds the COMPLETE deploy body inline — the scalars (`image:` for a pod, `from:` to inherit a same-kind template, `disposable`, `lifecycle`, `description`, `dns`, `acme_email`, `env_file`, `network`, `engine`) AND every collection (`tunnel`, `volume`, `port`, `env` — a map, `security`, `secret`, `sidecar`, `add_candy`, `install_opts`). The only named children a deploy carries are member sub-entities (see "Sibling members" below).
 
 ### The substrate node, `add_candy:`, and `install_opts:` fields
 
 The `charly fleet add`/`del` surface honors these per deploy, each only when relevant to the resolved target.
 
-**The substrate node** — `pod:` (the default, carrying `image:`), `vm:`, `k8s:`, `local:`, or `android:` (carrying `from:`) selects the target; there is no `target:` field. A local deploy carries the Ansible-style `host:` scalar (`host: local`, the default, runs directly; `host: <user@machine>` runs over SSH) and applies its `add_candy:` candies to the host filesystem.
+**The substrate node** — `pod:` (the default, carrying `image:`), `vm:`, `kubernetes:`, `local:`, or `android:` (carrying `from:`) selects the target; there is no `target:` field. A local deploy carries the Ansible-style `host:` scalar (`host: local`, the default, runs directly; `host: <user@machine>` runs over SSH) and applies its `add_candy:` candies to the host filesystem.
 
 **`add_candy:`** — an inline list of extra layer refs applied on top of the image's base layers. Each entry accepts the same 4 ref forms as the command-line `--add-candy` flag (local name / local YAML path / remote `github.com/.../candy/<n>[@ref]`). See "add_candy: overlay mechanism" above for pod vs local semantics.
 
@@ -1135,7 +1135,7 @@ webapp:                            # an operator deploy + a companion member
 
 **Deploy surface:**
 - `/charly-local:local-deploy` — Local-target execution model: the external `deploy:local` plugin, ledger, gates, ReverseOp kinds, sudo batching
-- `/charly-internals:install-plan` — The InstallPlan IR shared by the deploy targets: ALL FIVE substrates (local/vm/pod/k8s/android) are external out-of-process deploys via plugins over the executor reverse channel — local/vm consume the IR via `kit.WalkPlans` (vm's walk runs inside the guest); pod's plugin walks nothing — its candy `plugin-deploy-pod` lifecycle builds the overlay host-side: the core `overlay` host-builder runs the prep+resolve M-seam, the candy renders the overlay in its own code via `deploykit.OCITarget` + `deploykit.NewRenderGeneratorFromProject` (`add_candy:` synthesis, P11c); `charly box build` itself emits via the separate WriteCandySteps → EmitTasks generator in `sdk/deploykit` (relocated in #67), not the IR
+- `/charly-internals:install-plan` — The InstallPlan IR shared by the deploy targets: ALL FIVE substrates (local/vm/pod/kubernetes/android) are external out-of-process deploys via plugins over the executor reverse channel — local/vm consume the IR via `kit.WalkPlans` (vm's walk runs inside the guest); pod's plugin walks nothing — its candy `plugin-deploy-pod` lifecycle builds the overlay host-side: the core `overlay` host-builder runs the prep+resolve M-seam, the candy renders the overlay in its own code via `deploykit.OCITarget` + `deploykit.NewRenderGeneratorFromProject` (`add_candy:` synthesis, P11c); `charly box build` itself emits via the separate WriteCandySteps → EmitTasks generator in `sdk/deploykit` (relocated in #67), not the IR
 - `/charly-internals:local-infra` — Supporting Go files for local deploys: hostdistro, ledger, builder_run, shell_profile, reverse_ops, `sdk/deploykit/compile_service_steps.go` (service_render, relocated), `candy/plugin-fleet/deploy_ref.go` (deploy_ref, relocated)
 
 **Deploy-adjacent commands:**
@@ -1164,11 +1164,11 @@ webapp:                            # an operator deploy + a companion member
 
 ## Cross-kind name reuse + ResolveDeployRef precedence
 
-A deploy's name lives alongside every other top-level entity in its document. Cross-kind reuse of a name across SEPARATE discovered files is fine (a `candy/redis` + a `box/redis` resolve to distinct internal maps), but two top-level entities WITHIN one document MUST NOT share a name — they would collide on one YAML key (`charly box validate` flags it). The convention is to keep the user-facing deploy name and **suffix** the template it deploys: this repo's `charly-cachyos` deploy carries `local: {from: charly-cachyos-app}`, referencing the distinct `charly-cachyos-app` kind:local template. A deploy's substrate node (`pod:`, `vm:`, `local:`, `k8s:`, `android:`) is scoped to the matching kind, no fall-through.
+A deploy's name lives alongside every other top-level entity in its document. Cross-kind reuse of a name across SEPARATE discovered files is fine (a `candy/redis` + a `box/redis` resolve to distinct internal maps), but two top-level entities WITHIN one document MUST NOT share a name — they would collide on one YAML key (`charly box validate` flags it). The convention is to keep the user-facing deploy name and **suffix** the template it deploys: this repo's `charly-cachyos` deploy carries `local: {from: charly-cachyos-app}`, referencing the distinct `charly-cachyos-app` kind:local template. A deploy's substrate node (`pod:`, `vm:`, `local:`, `kubernetes:`, `android:`) is scoped to the matching kind, no fall-through.
 
 `ResolveDeployRef` (used by `charly fleet add <name> <ref>`) is box-first: when a name exists as BOTH a box and a candy, the box wins for the primary `<ref>` positional. The `--add-candy <ref>` path goes through `ResolveDeployRefAsCandy`, which is candy-first. A same-name box and candy (in separate files) is permitted.
 
-The loader raises a hard load-time error on obsolete deploy names (the retired `qc` / `cachyos-dx` keys) and on any obsolete root shape (a `kind: deployment` / `deployment:` / `kind: deploy` / `deploy:` / `fleet:` document — the kind is now the name-first substrate-node (`pod:`/`vm:`/`k8s:`/`local:`/`android:`/`group:`) discriminator); every such error points at `charly migrate`. See `/charly-build:migrate`.
+The loader raises a hard load-time error on obsolete deploy names (the retired `qc` / `cachyos-dx` keys) and on any obsolete root shape (a `kind: deployment` / `deployment:` / `kind: deploy` / `deploy:` / `fleet:` document — the kind is now the name-first substrate-node (`pod:`/`vm:`/`kubernetes:`/`local:`/`android:`/`group:`) discriminator); every such error points at `charly migrate`. See `/charly-build:migrate`.
 
 ## When to Use This Skill
 

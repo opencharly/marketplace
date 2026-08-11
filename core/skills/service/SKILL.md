@@ -340,7 +340,7 @@ single object. `ports` is a structured array (not `[]string`):
 
 Use the top-level `charly reap-orphans` command. It walks charly.yml
 ephemeral entries marked `active`, probes the underlying engine
-(libvirt for VM, podman for pod, kubectl for k8s) and runs `charly fleet
+(libvirt for VM, podman for pod, kubectl for kubernetes) and runs `charly fleet
 del <name> --assume-yes` for orphans (NOT `--force` — that flag does not
 exist on `fleet del`; `deployDelArgv` is the single source of the correct
 flag, guarded by a regression test).

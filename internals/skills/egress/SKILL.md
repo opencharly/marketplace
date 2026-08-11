@@ -6,7 +6,7 @@ description: |-
   invoked before working on candy/plugin-fleet/egress.go, the vendored schemas under
   candy/plugin-egress/egress-schemas/vendor/, the ValidateEgress / registerVendoredEgressKind path,
   the offline `task cue:vendor` pipeline, or adding an egress schema for any
-  written artifact (cloud-init, k8s manifests, traefik routes, runtime config,
+  written artifact (cloud-init, kubernetes manifests, traefik routes, runtime config,
   install ledger, systemd/quadlet units, ssh_config, libvirt XML).
 ---
 
@@ -41,7 +41,7 @@ description: |-
 charly's CUE work has two halves:
 
 - **Ingress** (`charly/cue_schema.go`): validates the INPUT config a user authors
-  (`charly.yml` / box / candy / vm / k8s / pod) against `spec/schema/*.cue`, AND is
+  (`charly.yml` / box / candy / vm / kubernetes / pod) against `spec/schema/*.cue`, AND is
   the single source for the Go param structs that config decodes into — the
   `@go()`-annotated `spec/schema/*.cue` GENERATE the `spec/spec` param structs via
   `task cue:gen` (`cue exp gengotypes`, run in the spec repo; the superproject task
@@ -62,7 +62,7 @@ charly's CUE work has two halves:
 CUE operates on structured data (YAML/JSON) and strings — it has no parser for
 Dockerfile / systemd-INI / ssh_config. So egress validation is layered:
 
-1. **Structured YAML/JSON outputs** (cloud-init, k8s, traefik, runtime config,
+1. **Structured YAML/JSON outputs** (cloud-init, kubernetes, traefik, runtime config,
    ledger) validate DIRECTLY — ingest the rendered bytes, unify with the schema.
 2. **Non-data text outputs** (quadlet, systemd units, shell rc, ssh_config,
    Containerfile) validate via their **structured pre-image** (the Go model just
@@ -79,7 +79,7 @@ These three public functions keep their signatures; each resolves `verb:egress` 
 | Function | mode | Purpose |
 |----------|------|---------|
 | `ValidateEgress(kind, label, data []byte) error` | `bytes` | Ingest serialized YAML/JSON bytes, unify with the egress kind's schema, `Validate(cue.Concrete(true))`. JSON is a YAML subset, so one ingest path covers both. |
-| `ValidateEgressValue(kind, label, v any) error` | `bytes` | Marshal the in-memory Go value (a manifest `map[string]any`, a record struct) to JSON, validate as bytes — faithful for the data values egress gates (k8s manifests, ledger records). |
+| `ValidateEgressValue(kind, label, v any) error` | `bytes` | Marshal the in-memory Go value (a manifest `map[string]any`, a record struct) to JSON, validate as bytes — faithful for the data values egress gates (kubernetes manifests, ledger records). |
 
 `text` mode (validate a rendered NON-DATA text artifact — a Containerfile, a service unit — by
 unifying it as a CUE string with `#RenderedText`, rejecting the Go text/template `<no value>`
@@ -144,8 +144,8 @@ CLI (the `/charly-tools:cue` candy):
 | cloud-init **user-data** | `RenderCloudInit` (`cloud_init_render.go`) | `cloud_config` | vendored Canonical cloud-config (`egress-schemas/vendor/cloud_config.cue`, `#CloudConfig`) |
 | cloud-init **meta-data** | `RenderCloudInit` | `cloud_init_meta` | `egress-schemas/egress_cloud_init.cue` `#CloudInitMeta` |
 | cloud-init **network-config** | `RenderCloudInit` | `cloud_init_net` | `egress-schemas/egress_cloud_init.cue` `#NetworkConfigV2` |
-| **k8s manifests** (Deployment/StatefulSet/DaemonSet/Job/CronJob/Pod/Service/PVC/Ingress) | `materializeKustomize` → `writeYAML` (`candy/plugin-kube/materialize.go` — PLUGIN-SIDE now, the former core `charly/k8s_generate.go` is deleted, K5-A item 6) | `k8s_object` | `egress-schemas/egress_k8s.cue` `#K8sObject` envelope (validates structure — the egress failure mode for machine-generated manifests; deep per-field types are an ingress concern) |
-| **k8s Kustomization** (base + overlay) | `GenerateK8sKustomize` → `writeYAML` | `kustomization` | `egress-schemas/egress_k8s.cue` `#Kustomization` |
+| **kubernetes manifests** (Deployment/StatefulSet/DaemonSet/Job/CronJob/Pod/Service/PVC/Ingress) | `materializeKustomize` → `writeYAML` (`candy/plugin-kube/materialize.go` — PLUGIN-SIDE now, the former core `charly/k8s_generate.go` is deleted, K5-A item 6) | `k8s_object` | `egress-schemas/egress_k8s.cue` `#K8sObject` envelope (validates structure — the egress failure mode for machine-generated manifests; deep per-field types are an ingress concern) |
+| **kubernetes Kustomization** (base + overlay) | `GenerateKubernetesKustomize` → `writeYAML` | `kustomization` | `egress-schemas/egress_k8s.cue` `#Kustomization` |
 | **install-ledger deploy record** | `WriteDeployRecord` / `WriteDeployRecordVia` (`install_ledger.go`) | `deploy_record` | `egress-schemas/egress_ledger.cue` `#DeployRecord` (requires `deploy_id`/`target`/`deployed_at`; `image` optional — candy-only deploys leave it empty) |
 | **install-ledger candy record** | `WriteCandyRecord` / `AddCandyDeploymentVia` | `candy_record` | `egress-schemas/egress_ledger.cue` `#CandyRecord` (requires `candy`/`deployed_at`; steps/reverse_ops open) |
 | **traefik dynamic config** (`.build/<box>/traefik-routes.yml`) | `GenerateTraefikRoutes` (`sdk/deploykit/routes.go`, relocated in #67) | `traefik_routes` | `egress-schemas/egress_traefik.cue` `#TraefikRoutes` (hand-built YAML — non-empty Host rule / service / backend url; null routers/services when no route candies) |
@@ -157,7 +157,7 @@ CLI (the `/charly-tools:cue` candy):
 
 The gate earns its keep on output that is HAND-ASSEMBLED with real invariants
 (traefik routes, ledger records) or that incorporates external/variable data
-(cloud-init Extra, k8s capabilities from labels). It is **intentionally not added**
+(cloud-init Extra, kubernetes capabilities from labels). It is **intentionally not added**
 where the writer is a straight `yaml.Marshal(typedStruct)` of charly's own struct
 with no transformation — the output cannot malform by construction, so a schema
 would be validation theater:

@@ -1,7 +1,7 @@
 {
   "name": "charly-kubernetes",
   "version": "1.0.0",
-  "description": "Schema authoring for `kind: k8s` — Kustomize manifests + cluster probes via `charly check k8s`.",
+  "description": "Schema authoring for `kind: kubernetes` — Kustomize manifests + cluster probes via the `kube:` check verb.",
   "author": {
     "name": "opencharly"
   },
@@ -9,8 +9,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "OpenCharly Kubernetes",
-    "shortDescription": "Schema authoring for `kind: k8s` — Kustomize manifests + cluster probes via `charly check k8s`.",
-    "longDescription": "Schema authoring for `kind: k8s` — Kustomize manifests + cluster probes via `charly check k8s`.",
+    "shortDescription": "Schema authoring for `kind: kubernetes` — Kustomize manifests + cluster probes via the `kube:` check verb.",
+    "longDescription": "Schema authoring for `kind: kubernetes` — Kustomize manifests + cluster probes via the `kube:` check verb.",
     "developerName": "opencharly",
     "category": "kind",
     "capabilities": [

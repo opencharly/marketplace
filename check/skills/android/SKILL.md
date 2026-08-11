@@ -10,16 +10,16 @@ description: |-
 
 ## Overview
 
-Android is a first-class deploy **substrate** in `charly`, modeled on `kind: k8s`.
+Android is a first-class deploy **substrate** in `charly`, modeled on `kind: kubernetes`.
 Two cooperating concepts:
 
 - **`kind: android`** — a DEVICE (the substrate). Either an in-pod emulator
   (referenced by `image:`) or a remote/physical adb endpoint (`adb:
-  {host: <host:port>}`). The analogue of `kind: k8s` (the cluster).
+  {host: <host:port>}`). The analogue of `kind: kubernetes` (the cluster).
 - **`apk` package format** — Android apps declared in LAYERS (NOT a kind),
   parallel to `package:`/`aur:`. A `target: android` deploy applies its layers'
   `apk:` packages onto the device. The app is the deployable workload, the way a
-  `candy:` image (a `candy:` node carrying `base:`/`from:`) is the workload for a pod/k8s deploy.
+  `candy:` image (a `candy:` node carrying `base:`/`from:`) is the workload for a pod/kubernetes deploy.
 
 This sits ABOVE the device-interaction verbs: the `adb:` (`/charly-check:adb`)
 and `appium:` (`/charly-check:appium`) declarative check verbs drive a running
@@ -82,7 +82,7 @@ my-android-apps:
 Each entry is **`package:` (apkeep) XOR `apk:` (committed file)**. `source:`
 applies only to `package:`. The format compiles to an `ApkInstallStep` that
 ONLY `target: android` executes — at image build and on
-local/vm/pod/k8s targets it is recorded-skipped (there is no Android device
+local/vm/pod/kubernetes targets it is recorded-skipped (there is no Android device
 there; this is the same "wrong-venue skip" `aur:` uses off-Arch). A layer
 carrying only `apk:` is valid install content.
 
@@ -119,7 +119,7 @@ talks straight to the endpoint.
 
 ## Nested deployment (`pod → android`)
 
-Mirrors `vm → k8s`. The emulator runs in a pod; the device deploys onto it; the
+Mirrors `vm → kubernetes`. The emulator runs in a pod; the device deploys onto it; the
 apps deploy onto the device. `target: android` is a **passthrough** hop in the
 deploy chain (the device shares its host pod's adb venue / the endpoint addr —
 there is no shell venue to "enter"), so `charly check live pod.android` runs the
@@ -182,7 +182,7 @@ host-core file that used to own it (`charly/android_spec.go`,
 `charly/android_deploy_cmd.go`, `charly/android_deploy_preresolve.go`, and the
 general per-substrate preresolver hook registry `charly/deploy_preresolve.go`)
 is DELETED. `candy/plugin-adb/preresolve.go` now owns it end-to-end (mirroring
-`candy/plugin-kube/preresolve.go`'s `deploy:k8s` move): it resolves the device
+`candy/plugin-kube/preresolve.go`'s `deploy:kubernetes` move): it resolves the device
 endpoint (engine inspect / `${HOST_PORT:N}` / google-play creds) and collects
 the apk install specs itself. **K-wave W3a A3-phase-2** finished the move: the
 deploy-tree node lookup and the `kind:android` entity lookup — the two
@@ -209,7 +209,7 @@ ALL pure/portable and run plugin-side directly, returning a
   loop with retry + uninstall reverse ops); `install.go` — the shared installer.
 - `deploykit.ApkInstallStep` (`sdk/deploykit/steps.go`); `sdk/deploykit/install_build.go` —
   `compileApkStep` (the plugin-side preresolver reads this step; no DeployTarget executes it).
-- `sdk/loaderkit/load_unified.go` — loader wiring (mirrors every `k8s` site; the former `charly/unified.go` is DELETED, K-wave 2).
+- `sdk/loaderkit/load_unified.go` — loader wiring (mirrors every `kubernetes` site; the former `charly/unified.go` is DELETED, K-wave 2).
 - `spec.Deploy` (the deploy node — the former `charly/deploy.go`'s `FleetNode` is DELETED, K-wave 2) with `target: android`; `charly/fleet_add_cmd.go` dispatch +
   `--node-only`; `sdk/deploykit/deploy_chain.go` / `charly/deploy_tree.go` passthrough.
 
@@ -220,7 +220,7 @@ ALL pure/portable and run plugin-side directly, returning a
 - `/charly-core:deploy` — `target: android` is one of the deploy targets.
 - `/charly-image:layer` — the `apk:` field is part of the layer schema.
 - `/charly-internals:install-plan` — the IR `ApkInstallStep` plugs into.
-- `/charly-kubernetes:kubernetes` — the `kind: k8s` pattern `kind: android` mirrors.
+- `/charly-kubernetes:kubernetes` — the `kind: kubernetes` pattern `kind: android` mirrors.
 
 ## When to Use This Skill
 

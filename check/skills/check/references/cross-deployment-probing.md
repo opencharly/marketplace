@@ -31,7 +31,7 @@ Failures abort the check before any plan step runs, so operators see
 problems early rather than mid-run.
 
 This is the **only** image-fetch surface in the system: deploys (any
-target — `local`, `pod`, `vm`, `k8s`) emit zero image-pull steps. A
+target — `local`, `pod`, `vm`, `kubernetes`) emit zero image-pull steps. A
 `kind: local` template has no `image:` field; image preflight lives on this
 verb. Operators with legacy YAML run `charly migrate`. See
 `/charly-local:local-spec` "What the deploy does NOT do" and the project rulebook
@@ -41,7 +41,7 @@ Lives in `candy/plugin-check`
 (`preflight_images.go`'s `preflightImageCandidates` + `command.go`'s
 `pluginCheckRunPreflight` — the "preflight" mode body, fully plugin-side since
 K-wave 2 cone R4); the `command:check` plugin drives it for the host-target run
-(the former `case TargetKindHost:` arm). Pod / VM / k8s
+(the former `case TargetKindHost:` arm). Pod / VM / kubernetes
 targets carry their own image inside their respective deploy schema
 and never trigger the preflight.
 
