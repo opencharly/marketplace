@@ -9,6 +9,28 @@
   },
   "plugins": [
     {
+      "name": "charly-agentteams",
+      "source": "./agentteams",
+      "description": "Self-contained skills for the AgentTeams multi-agent stack (CachyOS base): the decomposed agentteams box — minio, matrix/tuwunel, element, higress, controller — on pod and vm substrates, plus the compiled-in `charly agentteams` management CLI.",
+      "author": {
+        "name": "opencharly"
+      },
+      "homepage": "https://github.com/opencharly/charly",
+      "repository": "https://github.com/opencharly/charly-plugins",
+      "license": "MIT",
+      "keywords": [
+        "charly",
+        "agentteams",
+        "multi-agent",
+        "matrix",
+        "higress",
+        "minio",
+        "controller",
+        "openclaw"
+      ],
+      "category": "images"
+    },
+    {
       "name": "charly-automation",
       "source": "./automation",
       "description": "Automation/customization knobs — tmux verb, host-side wrappers (alias, udev), topic flags (encryption, sidecars, openclaw deployment).",

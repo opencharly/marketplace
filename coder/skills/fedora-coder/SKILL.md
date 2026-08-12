@@ -80,7 +80,7 @@ fedora-coder:
     - docker-ce
     - github-actions              # act, actionlint
     - google-cloud
-    - google-cloud-npm            # firebase + Gemini npm bindings
+    - google-cloud-npm            # firebase npm bindings (Gemini CLI comes from the gemini candy)
     - grafana-tools
 ```
 
