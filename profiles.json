@@ -1,5 +1,6 @@
 {
   "developer": [
+    "charly-agentteams",
     "charly-automation",
     "charly-build",
     "charly-check",
@@ -42,6 +43,7 @@
     "charly-vm"
   ],
   "container_families": [
+    "agentteams",
     "coder",
     "comfyui",
     "filebrowser",

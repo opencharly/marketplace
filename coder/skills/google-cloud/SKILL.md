@@ -30,7 +30,7 @@ my-image:
 
 ## Related Candies
 
-- `/charly-coder:google-cloud-npm` -- additional GCP npm tools (firebase-tools, gemini-cli)
+- `/charly-coder:google-cloud-npm` -- additional GCP npm tools (firebase-tools; the Gemini CLI comes from the `gemini` candy)
 
 ## When to Use This Skill
 

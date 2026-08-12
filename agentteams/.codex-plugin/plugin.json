@@ -1,0 +1,23 @@
+{
+  "name": "charly-agentteams",
+  "version": "1.0.0",
+  "description": "Self-contained skills for the AgentTeams multi-agent stack (CachyOS base): the decomposed agentteams box — minio, matrix/tuwunel, element, higress, controller — on pod and vm substrates, plus the compiled-in `charly agentteams` management CLI.",
+  "author": {
+    "name": "opencharly"
+  },
+  "repository": "https://github.com/opencharly/charly-plugins",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "OpenCharly Agentteams",
+    "shortDescription": "Self-contained skills for the AgentTeams multi-agent stack (CachyOS base): the decomposed agentteams box — minio, matrix/tuwunel, element, higress, controller — on pod and vm substrates, plus the compiled-in `charly agentteams` management CLI.",
+    "longDescription": "Self-contained skills for the AgentTeams multi-agent stack (CachyOS base): the decomposed agentteams box — minio, matrix/tuwunel, element, higress, controller — on pod and vm substrates, plus the compiled-in `charly agentteams` management CLI.",
+    "developerName": "opencharly",
+    "category": "images",
+    "capabilities": [
+      "Instructions"
+    ],
+    "defaultPrompt": [
+      "Use OpenCharly Agentteams for this OpenCharly task."
+    ]
+  }
+}
