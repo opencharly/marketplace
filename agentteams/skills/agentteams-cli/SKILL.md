@@ -25,7 +25,9 @@ REST client: no upstream `agt` binary, no SDK.
 
 ## Endpoint and token discovery
 
-- Endpoint: `AGENTTEAMS_CONTROLLER_URL` (default `http://127.0.0.1:18090`).
+- Endpoint: `AGENTTEAMS_CONTROLLER_URL` (default `http://127.0.0.1:8090` —
+  the controller's port 8090 as host-mapped by the box's default
+  auto-allocation; set it to the actual host-mapped port when it differs).
 - Token: `AGENTTEAMS_AUTH_TOKEN` env, else `AGENTTEAMS_AUTH_TOKEN_FILE` file
   (the upstream runtime contract). The controller mints the admin SA token
   to `/var/run/agentteams/cli-token` — on a pod substrate pull it out with
@@ -49,7 +51,7 @@ to report Ready.
 ## Example
 
 ```
-export AGENTTEAMS_CONTROLLER_URL=http://127.0.0.1:18090
+export AGENTTEAMS_CONTROLLER_URL=http://127.0.0.1:8090
 export AGENTTEAMS_AUTH_TOKEN_FILE=/path/to/cli-token
 charly agentteams status
 charly agentteams worker list
