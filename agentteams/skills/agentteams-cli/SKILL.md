@@ -18,7 +18,7 @@ SDK.
 ## Command tree
 
 - `charly agentteams status` — controller health + manager/worker/team/human counts.
-- `charly agentteams worker list|get|create|update|apply|delete` — Worker CR management (`apply` includes ZIP/package worker import).
+- `charly agentteams worker list|get|create|update|apply|delete` — Worker CR (custom resource) management (`apply` includes ZIP/package worker import).
 - `charly agentteams team apply|list|get|delete` — Team management.
 - `charly agentteams human apply|list|get|delete` — Human management.
 - `charly agentteams apply -f <file>` — declarative YAML apply (create-or-update per kind).
