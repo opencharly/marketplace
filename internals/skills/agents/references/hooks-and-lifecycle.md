@@ -381,11 +381,18 @@ acting without the orchestrator's direct supervision.
   clean author worktree at the bound PR head. It never creates or uses a
   validator worktree, clone, alternate Git directory, cache, home, or
   `/tmp` workspace.
-- **Worktree lifecycle is orchestrator-owned.** A validator or teammate
-  never removes a worktree it does not exclusively own. Post-merge cleanup
-  begins only after the validator has finished and live GitHub state
-  confirms the merge; it removes only the merged author worktree and
-  branch after clean-status and ownership checks.
+- **Worktree lifecycle is orchestrator-owned — in the orchestrator+teammates
+  model.** A validator or teammate never removes a worktree it does not
+  exclusively own. Post-merge cleanup begins only after the validator has
+  finished and live GitHub state confirms the merge; it removes only the
+  merged author worktree and branch after clean-status and ownership checks.
+- **Independent parallel sessions own their own worktree lifecycle.** A
+  session NOT inside an orchestrator team creates its own worktree under
+  `.claude/worktrees/<slug>/` at session start and removes it (worktree +
+  branch) after its own PR lands — `/charly-internals:git-workflow` B1 step 0
+  + B4 "Worktree hygiene". The orchestrator-owned rule above governs only the
+  worktrees of the agents it spawns; it is never an authorization to touch
+  another independent session's worktree.
 - **One validator identity per PR.** Never re-brief or re-spawn a validator
   for an already-merged PR. A changed candidate requires a newly spawned
   validator before landing; a merged candidate requires cleanup, not

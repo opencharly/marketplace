@@ -166,9 +166,12 @@ Multi-level chains (A→B→C) recurse the same way.
 ## B7 — Multi-worktree landing + refresh (the canonical end-to-end)
 
 When this project is driven from multiple git worktrees sharing one `.git`, only
-ONE worktree can have `main` checked out at a time. Every "land + update all
-worktrees" follows this EXACT ordered sequence. It composes B1 (branch loop), B2
-(per-repo order + pointer-bump safety), B4 (sync/prune).
+ONE worktree can have `main` checked out at a time. The main tree stays on
+`main`; every feature session works in its OWN worktree under
+`.claude/worktrees/<slug>/` — one worktree per session, created at session
+start and removed after landing (B1 step 0 + B4 "Worktree hygiene"). Every
+"land + update all worktrees" follows this EXACT ordered sequence. It composes
+B1 (branch loop), B2 (per-repo order + pointer-bump safety), B4 (sync/prune).
 
 **0. Pre-flight (worktree safety).** `git worktree list` → note which worktree
 holds `main`. Pin ONE worktree for the whole edit→commit→push sequence; drive every

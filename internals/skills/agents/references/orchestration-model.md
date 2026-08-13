@@ -229,6 +229,13 @@ always the orchestrator. Merges/tags → always a validator. Code → always a
 teammate/sub-agent worktree. Scope → always the contract and the
 orchestrator, never a lane-local decision.
 
+**Standalone sessions** (independent parallel sessions NOT inside an
+orchestrator team) own their own worktree lifecycle: create at session start,
+remove after landing (`/charly-internals:git-workflow` B1 step 0 + B4
+"Worktree hygiene"). The orchestrator's "agent and worktree lifecycle"
+ownership above covers only the teammates/validators/sub-agents it spawns,
+never another session's worktree.
+
 ## See also
 
 - Entry: `../SKILL.md`
