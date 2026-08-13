@@ -2,13 +2,24 @@
 
 ## B1 — the two-step branch-per-change loop
 
+**Step 0 — Create your session worktree.** Every session that commits,
+branches, or pushes works in its OWN worktree under
+`.claude/worktrees/<slug>/`, branched off fresh `origin/main` (B4 "Worktree
+hygiene") — never `git switch -c` in the shared main tree. Only ONE worktree
+can hold `main` at a time (B7), and a session doing `git switch -c` there
+hijacks the checkout from every other session on the system. The main tree
+stays on `main`; the session's edits, commits, beds, and PR all happen in its
+worktree, which it removes after the PR lands.
+
 **Step 1 — Author** (opens the PR; NEVER merges it):
 
 ```bash
-# sync-before-start (see B4): branch off up-to-date main
+# sync-before-start (see B4): branch off up-to-date origin/main INTO your
+# session worktree (step 0) — the main tree stays on `main`
 git fetch origin --prune --tags
-git switch main && git merge --ff-only origin/main
-git switch -c feat/<slug>            # slug = kebab summary of the change
+git worktree add .claude/worktrees/<slug> -b feat/<slug> origin/main
+#                                            ^ slug = kebab summary of the change
+# all edits, commits, beds, and the PR happen inside .claude/worktrees/<slug>/
 
 # ... implement the whole cutover; run beds freely throughout to VERIFY
 #     (Risk Driven Development: prove high-risk assumptions on a bed first) ...
@@ -169,9 +180,26 @@ match proof that now exists.
   local; `git fetch --prune` drops remote-tracking refs deleted upstream. **Only
   ever delete branches confirmed `--merged`**; never `-D` an unmerged/abandoned
   branch without operator confirmation — it may hold unlanded work.
-- **Worktree hygiene.** `git worktree list` to inventory; `git worktree prune` to
-  clear stale admin entries. Remove an agent `isolation: worktree` after its change
-  lands. Before reusing a long-lived worktree, ff its base to `origin/main`. A linked
+- **Worktree hygiene — the per-session lifecycle (create → work → land →
+  remove).** Every session that commits/branches/pushes works in its OWN
+  worktree under `.claude/worktrees/<slug>/`, branched off fresh `origin/main`
+  (B1 step 0) — never `git switch -c` in the shared main tree, which only ONE
+  worktree can hold (B7). A session's own lifecycle:
+    1. **Create at session start** — after `git fetch origin --prune --tags`,
+       `git worktree add .claude/worktrees/<slug> -b feat/<slug> origin/main`.
+       The harness `EnterWorktree` tool does exactly this automatically.
+    2. **Work in it** — all edits, commits, beds, and the PR happen in that
+       worktree (B1 step 1); initialize only the submodules the cutover needs
+       (below).
+    3. **Remove after landing** — once `gh pr view <n> --json state` confirms
+       the PR is MERGED, `git worktree remove .claude/worktrees/<slug>` + `git
+       branch -d feat/<slug>` (clean-status and confirmed-merged checks first,
+       R6). A session never touches another session's worktree — each owns its
+       own lifecycle (an independent parallel session is NOT an
+       orchestrator-managed teammate; `/charly-internals:agents` "Worktree
+       lifecycle").
+  `git worktree list` inventories; `git worktree prune` clears stale admin
+  entries. Remove an agent `isolation: worktree` after its change lands. A linked
   superproject worktree shares superproject objects but not submodule objects:
   initialize only the submodules the cutover needs, and initialize each from the
   common Git directory's matching `modules/<path>` reference so its clone records a
