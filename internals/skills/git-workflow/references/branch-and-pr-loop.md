@@ -69,8 +69,11 @@ more serialization than that without a technical reason:
   gates from multiple branches overlapping under the shared hardware ceiling.
 - **Validation** — fresh `pr-validator`s run CONCURRENTLY across all ready PRs
   (each is an independent context; nothing couples them before the merge instant).
-- **After each merge** — every still-open PR goes `BEHIND` (all three repos set
-  `strict: true` require-up-to-date — KEPT deliberately: one shared Go package with
+- **After each merge** — every still-open PR goes `BEHIND` (branch protection is
+  org-wide, not per-repo-set: `opencharly/.github/scripts/branch-protection.sh`
+  applies `strict: true` require-up-to-date with the single `charly/pr-validator`
+  context to EVERY active `main`-default repo — 14 today — so every repo in a
+  cross-repo cutover is covered; KEPT deliberately: one shared Go package with
   no CI on `main` means merging a stale-base green PR opens a semantic-conflict
   blind spot; that is the technical reason, not doctrine). Recover with
   `gh pr update-branch` (never force-push), then a **risk-proportional DELTA

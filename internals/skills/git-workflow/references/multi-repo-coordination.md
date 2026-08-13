@@ -36,15 +36,19 @@ gitlink bump + any `charly/go.mod` require) has ALSO merged. Branch a consumer o
 bump references a commit `main` has never seen. Wait for the pair before treating a
 producer advance as a base.
 
-**Submodule-pointer-bump safety (step 3) — bump AFTER the switch, then stage AND
-verify.** A `git switch` / `git checkout` re-materializes each submodule at the
-gitlink the *target branch* records, silently discarding an **unstaged**
+**Submodule-pointer-bump safety (step 3) — bump AFTER the session worktree exists,
+then stage AND verify.** A `git switch` / `git checkout` — and equally the
+`git worktree add` that creates a session's landing branch — re-materializes each
+submodule at the gitlink the *target* records, silently discarding an **unstaged**
 working-tree pointer bump (it happens even with `submodule.recurse` unset — an
-unstaged gitlink is not carried across the switch). So bumping the pointer *before*
-`git switch -c feat/<slug>` — or merely `git -C <sub> checkout <new>` without
-`git add` — drops it from the commit, and a `git add <sub>; git commit` afterward
-stages nothing because the working tree was reset to the old pointer. Always, in
-order: (a) create/switch to the landing branch FIRST; (b) THEN `git -C <sub>
+unstaged gitlink is not carried across the switch / worktree-add). So bumping the
+pointer *before* creating the session worktree (`git worktree add
+.claude/worktrees/<slug> -b feat/<slug> origin/main`, B1 step 0 — the feat branch
+is created there at session start, never by `git switch -c` in the shared main
+tree) — or merely `git -C <sub> checkout <new>` without `git add` — drops it from
+the commit, and a `git add <sub>; git commit` afterward stages nothing because the
+working tree was reset to the old pointer. Always, in order: (a) create the
+session worktree + feat branch FIRST (B1 step 0); (b) THEN `git -C <sub>
 checkout <new-commit>` + `git add <sub>`; (c) VERIFY it is staged — `git diff
 --cached --submodule=short <sub>` must print `<old>...<new>`; (d) after committing,
 confirm the commit records it — `git show --stat` lists `<sub>` and `git ls-tree
@@ -93,7 +97,7 @@ bin/charly | grep '<a string unique to the fix>'` (a new error message, flag nam
 symbol). The stamp answers "which commit"; the `strings` marker answers "is my change
 actually in this binary".
 
-## B3 — agent teams on ONE shared tree (no worktree)
+## B3 — agent teams share the orchestrator's ONE tree (no per-teammate worktree)
 
 When an agent team parallelizes work, **the check bed is the unit of isolation, not
 a worktree**. Each teammate owns a disjoint check bed's SOURCE files; distinct beds
@@ -107,7 +111,11 @@ source files each teammate edits. **Teammates edit; a PERSISTENT owner runs ever
 full `charly check run <bed>`** as a `run_in_background` task — the lead's
 persistent session, a background agent, or (interactive tmux) a split-pane
 teammate; an in-process teammate CANNOT (its bg dies on yield). Teammates share ONE
-working tree on ONE `feat/<slug>` branch:
+working tree on ONE `feat/<slug>` branch — **the ORCHESTRATOR's tree**: this is the
+orchestrator+teammates model, whose ownership split (`/charly-internals:agents`
+"Worktree lifecycle and validator identity") governs only the worktrees of the
+agents a team spawns; an INDEPENDENT parallel session owns its own worktree
+lifecycle per B1 step 0 — the two never conflict:
 
 - Teammates edit their bed-scoped files + run short foreground checks (`charly check
   box`) — never the full `charly check run`, and **never commit, push, or open a
