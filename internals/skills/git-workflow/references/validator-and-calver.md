@@ -181,12 +181,17 @@ Author-time stamps do not survive concurrency: with multiple PRs open and approv
 out of order, an author-time CalVer collides (same minute) and mis-orders (merge
 order ≠ author order). The evaluator generates it at merge and applies it to both
 the changelog and the tag (the "one stamp for both" invariant, moved from
-author-landing to evaluator-merge). This holds for every repo, `plugins` included:
-`plugins` is no CHANGELOG-exception — every `plugins` landing carries a
-`CHANGELOG/<YYYY.DDD.HHMM>.md` entry exactly like the superproject and
-`box/<distro>`, and now that `plugins` is tagged, the same finalized CalVer names
-that changelog file and the `v<…>` tag. Every component is fixed-width zero-padded so
-filenames and tags sort chronologically under a plain alphanumeric sort.
+author-landing to evaluator-merge). This holds for every repo, `plugins` and `docs` included:
+`plugins` and `docs` are no CHANGELOG-exceptions — every `plugins` AND every
+`docs` landing carries a `CHANGELOG/<YYYY.DDD.HHMM>.md` entry exactly like the
+superproject and `box/<distro>` (the `docs` convention is real: 24 of the last 25
+docs first-parent commits carry one; the single exception `a252df9` is exactly
+the commit that forced follow-up docs PR #46 to add its missing entry — a fresh
+validator reading the pre-this-edit enumeration, which named `plugins` but never
+`docs`, would conclude `docs` is an exception and the gap recurs). Once tagged,
+the same finalized CalVer names each repo's changelog file and its `v<…>` tag.
+Every component is fixed-width zero-padded so filenames and tags sort
+chronologically under a plain alphanumeric sort.
 
 - **The author writes a placeholder** `CHANGELOG/<placeholder>.md` (any valid
   `YYYY.DDD.HHMM`, so the cutover carries its required history) and — for a schema cutover
