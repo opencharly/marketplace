@@ -517,7 +517,8 @@ The playbook:
    See "The charly binary in a multi-teammate / multi-worktree setup"
    above for the canonical host-vs-worktree-binary rule; this item adds
    the concurrent-bed proof and the CalVer-stamping detail. The freshness
-   guard (`main_freshness.go`) compares `os.Executable()` against the
+   guard (`verb:freshness-guard`, `candy/plugin-doctor/freshness.go`) compares
+   `os.Executable()` against the
    cwd-walked source root, so a worktree with its own `task build:binary`
    output is self-consistent: `PATH=$PWD/bin:$PATH charly check run <bed>`
    runs the full R10 sequence (deploy-add → check-live → fresh update →

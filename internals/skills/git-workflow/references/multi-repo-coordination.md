@@ -108,8 +108,10 @@ isolation**: each teammate owns a disjoint check bed's SOURCE files; distinct
 beds get distinct `charly-<bed>` container/VM/domain names, and a bed run tags
 every fixture IMAGE it builds with a per-run `<bed-root>-<runCalver>` tag (#75)
 so two beds building the SAME fixture image name never race the store-global tag
-namespace; the lead assigns each disjoint host ports too (the loader does NOT
-check ports — an overlap fails the second bed at deploy), and a bed pins an
+namespace; host-port disjointness is not statically guaranteed, so every bed
+uses port auto-allocation — never a hardcoded host port (the loader checks no
+ports, so a collision surfaces only at deploy; manual port-picking is
+forbidden), and a bed pins an
 image → layers → files, so bed-ownership already isolates the source files each
 teammate edits. **Teammates edit; a PERSISTENT owner runs every full `charly
 check run <bed>`** as a `run_in_background` task — the lead's persistent
