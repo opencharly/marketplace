@@ -13,7 +13,8 @@ description: |-
 The compiled-in `charly agentteams` management CLI for the AgentTeams
 controller REST API — a `command:agentteams` plugin. A plain `net/http`
 REST client: no upstream `agt` binary (the upstream AgentTeams CLI), no
-SDK.
+SDK. Use it to manage a running AgentTeams deployment: create and
+inspect Workers, apply Teams and Humans, and check controller health.
 
 ## Command tree
 
@@ -47,7 +48,8 @@ charly agentteams worker create --name my-worker --model gpt-5-mini [--runtime o
 
 `--no-wait` returns immediately after the controller accepts the request;
 by default the CLI polls up to `--wait-timeout` (default 3m) for the Worker
-to report Ready.
+to report Ready. `--runtime` selects the worker runtime — `openclaw` (an
+AI agent gateway runtime) is the default.
 
 ## Example
 
