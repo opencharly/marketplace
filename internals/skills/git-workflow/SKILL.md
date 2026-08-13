@@ -50,7 +50,7 @@ evaluator's own spec.
 | Topic | File |
 |---|---|
 | B1 (the two-step branch-per-change loop, concurrent landings, the cross-repo WIP landing sequence) and B4 (sync to upstream + prune) | `references/branch-and-pr-loop.md` |
-| B2 (multi-repo/multi-worktree coordination, per-module verification), B3 (agent teams on one shared tree), B6 (cross-repo `@github` landing), and B7 (multi-worktree landing + refresh, the canonical end-to-end) | `references/multi-repo-coordination.md` |
+| B2 (multi-repo/multi-worktree coordination, per-module verification), B3 (agent teams in per-teammate worktrees), B6 (cross-repo `@github` landing), and B7 (multi-worktree landing + refresh, the canonical end-to-end) | `references/multi-repo-coordination.md` |
 | B5 (the fresh evaluator + fork/PR path, the two-gate autonomous-landing model), CalVer generation, post-landing cleanliness + report format, and the validation-FAILS recovery sequence | `references/validator-and-calver.md` |
 
 ## Cross-References
