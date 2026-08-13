@@ -3,7 +3,7 @@
 ## B2 — multi-repo / multi-worktree coordination
 
 One logical change spanning several repos uses the **same `feat/<slug>` in each**
-(main, `sdk`, `plugins`, `box/<distro>`), so the branches correlate. R10 runs
+(main, `sdk`, `plugins`, `docs`, `box/<distro>`), so the branches correlate. R10 runs
 against the **assembled superproject** (submodule pointers at the `feat/` commits)
 — the whole change is verified before any PR is opened. Then land in **dependency
 order**, each repo as its OWN two-step PR (author opens; fresh `pr-validator`

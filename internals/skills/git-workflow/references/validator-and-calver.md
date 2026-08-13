@@ -152,7 +152,7 @@ authorized it — unless a user/managed-level grant covers the action (those res
 independently of project root; the scope-of-validity note below). So:
 
 - **Spawn the validator with its working directory at the superproject root**, for a PR
-  in any repo (superproject, `sdk`, `plugins`, `box/<distro>`).
+  in any repo (superproject, `sdk`, `plugins`, `docs`, `box/<distro>`).
 - **Drive the submodule with a literal absolute path**: `git -C /abs/path/plugins …`,
   `gh <cmd> --repo <owner>/<repo>`. Never `cd plugins && …` (B7 states the same rule for
   the commit gate; it is equally load-bearing for permissions).
@@ -220,7 +220,7 @@ chronologically under a plain alphanumeric sort.
 
 One fresh stamp per merge, immutable (only ever added), independent of `charly.yml`
 `version:` (the schema version, bumped only by a cutover raising `#SchemaVersion`).
-Every repo (superproject, `box/<distro>`, `plugins`, `pkg/*`) mints `v$VER` on its
+Every repo (superproject, `box/<distro>`, `plugins`, `pkg/*`, `docs`) mints `v$VER` on its
 merged HEAD; `sdk` alone uses its Go-module `v0.<YYYYDDD>.<HHMM
 leading-zeros-stripped>` scheme (not an exemption — Go modules require semver, which
 forbids a leading-zero segment — `0733`→`733`). A YAML schema/format change does

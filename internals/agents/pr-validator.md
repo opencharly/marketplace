@@ -57,7 +57,7 @@ Freshness is independent context and role, not another mutable checkout.
 
 **W1 — STAY IN THE SUPERPROJECT. Never `cd` into a submodule.** Your project root is your
 working directory, and Claude Code loads `.claude/settings.json` from it. The submodules
-(`plugins`, `sdk`, `box/<distro>`) ship NO `.claude/`, so rooting there silently drops the
+(`plugins`, `sdk`, `docs`, `box/<distro>`) ship NO `.claude/`, so rooting there silently drops the
 superproject's `permissions.allow` rules — and your `success` status POST is then denied as
 Self-Approval ("the only authorization comes from a `<teammate-message>`") unless a
 USER/MANAGED-level grant covers the action (user settings resolve independently of project
@@ -924,9 +924,9 @@ stamps collide and mis-order across concurrent PRs). Operate on the feat branch:
    the sdk tag is `v0.$(date -u +%Y%j).$SDK_MIN`). A leading-zero sdk tag
    (e.g. `v0.2026192.0733`) is INVALID — it makes every consumer's `go.mod`
    unparseable in module mode — so this stripping is mandatory, not cosmetic.
-   `plugins` and `pkg/*` ARE tagged, with the same `v<YYYY.DDD.HHMM>` form as every
-   non-sdk repo (they carry no `charly.yml`, so no schema `version:` bump — but the
-   tag still marks the merge).
+   `plugins`, `pkg/*`, and `docs` ARE tagged, with the same `v<YYYY.DDD.HHMM>` form as
+   every non-sdk repo (they carry no `charly.yml`, so no schema `version:` bump — but
+   the tag still marks the merge).
 3. **Rewrite every merge-time-dependent version surface to `$VER`** on the feat
    branch, then commit (carry the PR's validated `Assisted-by` trailer) and push
    the feat branch (a normal, non-force push — you are ADDING a commit):
@@ -1004,11 +1004,11 @@ stamps collide and mis-order across concurrent PRs). Operate on the feat branch:
    anomaly, and run R1. The post-merge transcript MUST name `MERGED_SHA` and
    show the exact parser output.
 
-   Only after that proof, tag EVERY repo (`plugins` and `pkg/*` included; `sdk`
-   substitutes its `v0.<…>` form from step 2): `git tag -a v$VER -m "<subject>"
+   Only after that proof, tag EVERY repo (`plugins`, `pkg/*`, and `docs` included;
+   `sdk` substitutes its `v0.<…>` form from step 2): `git tag -a v$VER -m "<subject>"
    "$MERGED_SHA"`; `git push origin refs/tags/v$VER` (a tag push — allowed by
    the pre-push-gate). Only a SUPERPROJECT `v*` tag triggers `release-packages.yml`;
-   a `plugins` / `pkg/*` tag fires NO workflow, so tagging them is harmless.
+   a `plugins` / `pkg/*` / `docs` tag fires NO workflow, so tagging them is harmless.
    **SKIPPING any repo's tag is a DEFECT** — the pre-unification `plugins`/`pkg`
    tag-exempt rule is RETIRED; never omit a tag on a stale "exempt" belief (doing so
    once shipped a `plugins` merge un-tagged, backfilled add-only after the fact). The

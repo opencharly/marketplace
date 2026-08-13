@@ -156,8 +156,8 @@ swept in the same commit as any rename or removal (R5):
 - the 2 hooks in `.claude/hooks/` (`pre-commit-gate.sh`, `pre-push-gate.sh` — deterministic
   command-mechanics gates only; there is no reminder-hook layer),
 - the agents in `plugins/internals/agents/*.md`,
-- the 8 per-directory signpost `CLAUDE.md` files (`charly/`, `candy/`,
-  `plugins/`, each `box/<distro>`),
+- the 9 per-directory signpost `CLAUDE.md` files (`charly/`, `candy/`,
+  `plugins/`, `docs/`, each `box/<distro>`),
 - the workflows in `.claude/workflows/*.js`,
 - every SKILL.md that quotes a section name (grep before assuming).
 
@@ -210,7 +210,7 @@ content — they live in the superproject's `.claude/workflows/*.js`.
 ### Per-directory CLAUDE.md signposts (hybrid)
 
 The repo-root `CLAUDE.md` is the complete R0–R10 harness adapter.
-Per-directory `CLAUDE.md` files (`charly/`, `candy/`, `plugins/`, and each
+Per-directory `CLAUDE.md` files (`charly/`, `candy/`, `plugins/`, `docs/`, and each
 `box/<distro>` submodule) are THIN signposts only: they name the skills to
 load for that area and point back to root. They MUST NOT restate any rule body —
 duplication drifts (an earlier layer-validator and the reminder hooks both drifted

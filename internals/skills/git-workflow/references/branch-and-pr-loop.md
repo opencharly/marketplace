@@ -169,7 +169,7 @@ Nothing pre-bed ever ships, and every intermediate commit passes the PreToolUse
 tier gate TRUTHFULLY at the stage it was made — the tier only ever moves UP, to
 match proof that now exists.
 
-## B4 — sync to upstream + prune (per repo: main, sdk, plugins, box/*, pkg/*)
+## B4 — sync to upstream + prune (per repo: main, sdk, plugins, docs, box/*, pkg/*)
 
 - **Sync-before-start.** `git fetch origin --prune --tags`; ff local `main` to
   `origin/main`. Never force-reset a diverged local `main` — if it cannot
