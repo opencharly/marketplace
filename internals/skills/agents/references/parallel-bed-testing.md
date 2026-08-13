@@ -21,9 +21,11 @@ an exemption from it:
   `charly-<bed>` container/VM/domain names, and a bed run tags every
   fixture image it builds with a per-run `<bed-root>-<runCalver>` tag, so
   two beds building the same fixture image name never race the
-  store-global tag namespace; the author assigns each disjoint host ports
-  too (the loader does not check ports — an overlap fails the second bed
-  at deploy), so beds run concurrently and safely.
+  store-global tag namespace; host-port disjointness is not statically
+  guaranteed, so every bed uses port auto-allocation — never a hardcoded
+  host port (the loader checks no ports, so a collision surfaces only at
+  deploy; manual port-picking is forbidden), so beds run concurrently and
+  safely.
 - **Check-test at every stage, never only at the end.** Each parallel owner
   verifies before it changes (Risk Driven Development — proves its bed's
   high-risk assumptions, above all composition, on its live bed/backend
@@ -37,27 +39,24 @@ an exemption from it:
   single Go package can't have N agents edit-and-build at once, but that's
   handled by shape: the lead lands the shared core first (compile-clean),
   each parallel unit is an independent `init()`-registered file (no
-  shared-file edits), and the one shared tree's `charly` binary rebuild is
-  a single barrier between the parallel-implement and parallel-bed-R10
-  phases. Canonical shape: `Core (seq) → Implement (parallel by bed) →
-  Integrate+build (seq barrier) → BedR10 (parallel by bed) → Review
-  (parallel, read-only, optional)`. The barrier is load-bearing because
-  `charly` refuses heavy ops (`image build`, `deploy add`) whenever any
-  `charly/*.go` source is newer than the invoked binary (remediation: one
-  `task build:binary` in the shared checkout). A teammate editing
-  `charly/*.go` while another's bed is mid-run trips that guard on the
-  bed's deploy step, so rebuild once at the barrier, then run every bed
-  against the now-stable binary. The barrier carries a bare-`$PATH`
-  caveat: the shared tree's bed set must actually invoke `./bin/charly`
-  (explicitly, or with the shared tree's `bin/` prepended onto `$PATH` for
-  the bed's session) — a bed that shells to bare `charly` otherwise
-  resolves whatever the host has installed, never the shared tree's
-  freshly-rebuilt binary (the same trap "Host-local beds are never a
-  worktree gate" describes below). This barrier binds the shared-tree
-  model only (one checkout, one binary) — a multi-worktree team needs no
-  barrier at all, since each worktree's own `bin/charly` is
-  self-consistently gated (see "Per-worktree binaries" below); never
-  conflate the two models.
+  shared-file edits), and each teammate's worktree carries its own
+  `bin/charly` — there is no shared binary to freeze, so the
+  parallel-implement and parallel-bed-R10 phases overlap freely.
+  Canonical shape: `Core (seq) → Implement (parallel by bed, one
+  worktree each) → Integrate+build (seq) → BedR10 (parallel by bed) →
+  Review (parallel, read-only, optional)`. The per-worktree binary is
+  load-bearing because `charly` refuses heavy ops (`image build`, `deploy
+  add`) whenever any `charly/*.go` source is newer than the invoked
+  binary — but the guard is per-tree, so a teammate editing `charly/*.go`
+  in its own worktree never trips another teammate's bed run. The only
+  freeze that applies is the within-worktree self-freeze: freeze your own
+  worktree's `charly/*.go` for the duration of your own bed run. The
+  bare-`$PATH` caveat still applies per worktree: a bed must actually
+  invoke `./bin/charly` (explicitly, or with the worktree's `bin/`
+  prepended onto `$PATH` for the bed's session) — a bed that shells to
+  bare `charly` otherwise resolves whatever the host has installed, never
+  the worktree's freshly-rebuilt binary (the same trap "Host-local beds
+  are never a worktree gate" describes below).
 - **Same binding rule** as below: disposable-only, commit-gated-not-run,
   no-scope-shrinking-flags, paste-proof survives delegation.
 
@@ -141,15 +140,12 @@ common way an in-flight cutover leaks onto shared host state.
   its own binary and its own freshness-guard scope, teammates working in
   distinct worktrees need no freeze barrier between them — each rebuilds
   its own `./bin/charly` via `task build:binary` whenever it likes, with
-  zero cross-teammate interference. The "freeze `charly/*.go` plus one
-  `task build:binary` at the barrier" rule (above, and
-  `/charly-internals:git-workflow` B3) applies only to the shared-tree team
-  model — multiple agents editing one checkout with one shared binary,
-  where the barrier also carries the bare-`$PATH` caveat above. The two
-  models are not interchangeable: a shared-tree team needs the freeze
-  because there is exactly one binary every bed run depends on; a
-  multi-worktree team needs no freeze because there is one binary per
-  worktree.
+  zero cross-teammate interference. The only freeze that exists is the
+  within-worktree self-freeze below: within one worktree, freeze your own
+  `charly/*.go` for the duration of your own bed run. There is no
+  shared-tree model — every team is a set of worktrees, each with one
+  binary every bed run in that tree depends on, so the freeze is always
+  per-tree, never a team-wide barrier.
 - **Within-worktree self-freeze — the complementary rule.** The per-tree
   freshness guard does not check only at the start of a bed run — it
   compares the invoked binary against the cwd's sources at every heavy
@@ -501,28 +497,30 @@ The playbook:
    names). Let a roster finish, or tear its deploys down with `charly vm
    destroy` / `charly remove` — `transient_store` fixes the lock, not a
    hard mid-write kill.
-4d. **A shared-tree walk must tolerate a concurrent sibling's transient
+4d. **A tree walk must tolerate a concurrent sibling's transient
    build artifacts — the fourth concurrency ceiling, invisible to every
-   serial run.** Beds run in one source tree, and a bed that builds in-tree
-   (a candy's makepkg under `pkgbuild/{pkg,src}`, a cargo `target/`, an npm
-   `node_modules/`) creates directories that are transiently unreadable
-   (fakeroot-owned, mode-0700, or half-written) while a sibling bed's
-   loader walks the same tree. A walk that aborts on the first per-entry
-   `EACCES` fails the sibling's entire `LoadUnified` — surfacing as a
-   bogus downstream error (a swallowed discover-walk `EACCES` on a candy's
-   `pkgbuild/pkg` directory once became a misleading "unknown kind:local
-   template" for an unrelated bed). Root-cause fix pattern: a tree walk
-   skips an unreadable/erroring subtree (`filepath.SkipDir`) and
-   continues — a discoverable manifest can never live in an unreadable
-   dir — and skips VCS/build-artifact dirs by name; it never aborts the
-   whole load. Same lesson for any shared-state read under concurrency:
-   don't swallow the real error (it hides the class), and don't let one
-   sibling's transient artifact fail an unrelated bed.
+   serial run.** Beds run in their own worktree's source tree, and a bed
+   that builds in-tree (a candy's makepkg under `pkgbuild/{pkg,src}`, a
+   cargo `target/`, an npm `node_modules/`) creates directories that are
+   transiently unreadable (fakeroot-owned, mode-0700, or half-written)
+   while a concurrent load walks the same tree. A walk that aborts on the
+   first per-entry `EACCES` fails the sibling's entire `LoadUnified` —
+   surfacing as a bogus downstream error (a swallowed discover-walk
+   `EACCES` on a candy's `pkgbuild/pkg` directory once became a
+   misleading "unknown kind:local template" for an unrelated bed).
+   Root-cause fix pattern: a tree walk skips an unreadable/erroring
+   subtree (`filepath.SkipDir`) and continues — a discoverable manifest
+   can never live in an unreadable dir — and skips VCS/build-artifact
+   dirs by name; it never aborts the whole load. Same lesson for any
+   shared-state read under concurrency: don't swallow the real error (it
+   hides the class), and don't let one sibling's transient artifact fail
+   an unrelated bed.
 4e. **Per-worktree binaries — bed gates from multiple branches overlap.**
    See "The charly binary in a multi-teammate / multi-worktree setup"
    above for the canonical host-vs-worktree-binary rule; this item adds
    the concurrent-bed proof and the CalVer-stamping detail. The freshness
-   guard (`main_freshness.go`) compares `os.Executable()` against the
+   guard (`verb:freshness-guard`, `candy/plugin-doctor/freshness.go`) compares
+   `os.Executable()` against the
    cwd-walked source root, so a worktree with its own `task build:binary`
    output is self-consistent: `PATH=$PWD/bin:$PATH charly check run <bed>`
    runs the full R10 sequence (deploy-add → check-live → fresh update →

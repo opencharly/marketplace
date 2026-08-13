@@ -69,8 +69,11 @@ more serialization than that without a technical reason:
   gates from multiple branches overlapping under the shared hardware ceiling.
 - **Validation** — fresh `pr-validator`s run CONCURRENTLY across all ready PRs
   (each is an independent context; nothing couples them before the merge instant).
-- **After each merge** — every still-open PR goes `BEHIND` (all three repos set
-  `strict: true` require-up-to-date — KEPT deliberately: one shared Go package with
+- **After each merge** — every still-open PR goes `BEHIND` (branch protection is
+  org-wide, not per-repo-set: `opencharly/.github/scripts/branch-protection.sh`
+  applies `strict: true` require-up-to-date with the single `charly/pr-validator`
+  context to EVERY active `main`-default repo — 14 today — so every repo in a
+  cross-repo cutover is covered; KEPT deliberately: one shared Go package with
   no CI on `main` means merging a stale-base green PR opens a semantic-conflict
   blind spot; that is the technical reason, not doctrine). Recover with
   `gh pr update-branch` (never force-push), then a **risk-proportional DELTA
@@ -166,7 +169,7 @@ Nothing pre-bed ever ships, and every intermediate commit passes the PreToolUse
 tier gate TRUTHFULLY at the stage it was made — the tier only ever moves UP, to
 match proof that now exists.
 
-## B4 — sync to upstream + prune (per repo: main, sdk, plugins, box/*, pkg/*)
+## B4 — sync to upstream + prune (per repo: main, sdk, plugins, docs, box/*, pkg/*)
 
 - **Sync-before-start.** `git fetch origin --prune --tags`; ff local `main` to
   `origin/main`. Never force-reset a diverged local `main` — if it cannot

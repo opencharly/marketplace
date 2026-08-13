@@ -156,8 +156,8 @@ swept in the same commit as any rename or removal (R5):
 - the 2 hooks in `.claude/hooks/` (`pre-commit-gate.sh`, `pre-push-gate.sh` — deterministic
   command-mechanics gates only; there is no reminder-hook layer),
 - the agents in `plugins/internals/agents/*.md`,
-- the 8 per-directory signpost `CLAUDE.md` files (`charly/`, `candy/`,
-  `plugins/`, each `box/<distro>`),
+- the 9 per-directory signpost `CLAUDE.md` files (`charly/`, `candy/`,
+  `plugins/`, `docs/`, each `box/<distro>`),
 - the workflows in `.claude/workflows/*.js`,
 - every SKILL.md that quotes a section name (grep before assuming).
 
@@ -210,7 +210,7 @@ content — they live in the superproject's `.claude/workflows/*.js`.
 ### Per-directory CLAUDE.md signposts (hybrid)
 
 The repo-root `CLAUDE.md` is the complete R0–R10 harness adapter.
-Per-directory `CLAUDE.md` files (`charly/`, `candy/`, `plugins/`, and each
+Per-directory `CLAUDE.md` files (`charly/`, `candy/`, `plugins/`, `docs/`, and each
 `box/<distro>` submodule) are THIN signposts only: they name the skills to
 load for that area and point back to root. They MUST NOT restate any rule body —
 duplication drifts (an earlier layer-validator and the reminder hooks both drifted
@@ -327,10 +327,12 @@ skill's grep self-test caught). Audit and fix them as follows:
 5. **Land docs-only**: skill edits are the Documentation-only change class →
    `documentation reviewed` (no beds); the plugins commit carries a
    `CHANGELOG/<YYYY.DDD.HHMM>.md` entry too (every plugins landing does — `plugins`
-   is no CHANGELOG-exception); plugins commit → superproject pointer bump → both
-   tagged `v<YYYY.DDD.HHMM>` at merge (`plugins` is tagged too, same as every repo —
-   the one finalized CalVer names both its changelog file and its tag). See
-   `/charly-internals:git-workflow`.
+   is no CHANGELOG-exception), and a cutover that regenerates the `docs` mirror
+   lands a `docs` commit carrying its OWN entry (every docs landing does — `docs`
+   is no CHANGELOG-exception either); plugins commit → docs commit → superproject
+   pointer bumps → all tagged `v<YYYY.DDD.HHMM>` at merge (plugins and docs are
+   tagged too, same as every repo — the one finalized CalVer names each repo's
+   changelog file and its tag). See `/charly-internals:git-workflow`.
 
 **Alias residue is a special case — never assert its exact location.** A `charly/*_aliases.go` line is
 transitional K-wave residue that ZERO-ALIASES/K5 deletes, so a skill asserting its exact per-symbol

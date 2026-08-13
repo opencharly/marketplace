@@ -3,7 +3,7 @@
 ## B2 — multi-repo / multi-worktree coordination
 
 One logical change spanning several repos uses the **same `feat/<slug>` in each**
-(main, `sdk`, `plugins`, `box/<distro>`), so the branches correlate. R10 runs
+(main, `sdk`, `plugins`, `docs`, `box/<distro>`), so the branches correlate. R10 runs
 against the **assembled superproject** (submodule pointers at the `feat/` commits)
 — the whole change is verified before any PR is opened. Then land in **dependency
 order**, each repo as its OWN two-step PR (author opens; fresh `pr-validator`
@@ -36,15 +36,19 @@ gitlink bump + any `charly/go.mod` require) has ALSO merged. Branch a consumer o
 bump references a commit `main` has never seen. Wait for the pair before treating a
 producer advance as a base.
 
-**Submodule-pointer-bump safety (step 3) — bump AFTER the switch, then stage AND
-verify.** A `git switch` / `git checkout` re-materializes each submodule at the
-gitlink the *target branch* records, silently discarding an **unstaged**
+**Submodule-pointer-bump safety (step 3) — bump AFTER the session worktree exists,
+then stage AND verify.** A `git switch` / `git checkout` — and equally the
+`git worktree add` that creates a session's landing branch — re-materializes each
+submodule at the gitlink the *target* records, silently discarding an **unstaged**
 working-tree pointer bump (it happens even with `submodule.recurse` unset — an
-unstaged gitlink is not carried across the switch). So bumping the pointer *before*
-`git switch -c feat/<slug>` — or merely `git -C <sub> checkout <new>` without
-`git add` — drops it from the commit, and a `git add <sub>; git commit` afterward
-stages nothing because the working tree was reset to the old pointer. Always, in
-order: (a) create/switch to the landing branch FIRST; (b) THEN `git -C <sub>
+unstaged gitlink is not carried across the switch / worktree-add). So bumping the
+pointer *before* creating the session worktree (`git worktree add
+.claude/worktrees/<slug> -b feat/<slug> origin/main`, B1 step 0 — the feat branch
+is created there at session start, never by `git switch -c` in the shared main
+tree) — or merely `git -C <sub> checkout <new>` without `git add` — drops it from
+the commit, and a `git add <sub>; git commit` afterward stages nothing because the
+working tree was reset to the old pointer. Always, in order: (a) create the
+session worktree + feat branch FIRST (B1 step 0); (b) THEN `git -C <sub>
 checkout <new-commit>` + `git add <sub>`; (c) VERIFY it is staged — `git diff
 --cached --submodule=short <sub>` must print `<old>...<new>`; (d) after committing,
 confirm the commit records it — `git show --stat` lists `<sub>` and `git ls-tree
@@ -93,50 +97,47 @@ bin/charly | grep '<a string unique to the fix>'` (a new error message, flag nam
 symbol). The stamp answers "which commit"; the `strings` marker answers "is my change
 actually in this binary".
 
-## B3 — agent teams on ONE shared tree (no worktree)
+## B3 — agent teams in per-teammate worktrees
 
-When an agent team parallelizes work, **the check bed is the unit of isolation, not
-a worktree**. Each teammate owns a disjoint check bed's SOURCE files; distinct beds
-get distinct `charly-<bed>` container/VM/domain names, and a bed run tags every
-fixture IMAGE it builds with a per-run `<bed-root>-<runCalver>` tag (#75) so two beds
-building the SAME fixture image name never race the store-global tag namespace; the
-lead assigns each disjoint host ports too (the loader does NOT check ports — an
-overlap fails the second bed at deploy),
-and a bed pins an image → layers → files, so bed-ownership already isolates the
-source files each teammate edits. **Teammates edit; a PERSISTENT owner runs every
-full `charly check run <bed>`** as a `run_in_background` task — the lead's
-persistent session, a background agent, or (interactive tmux) a split-pane
-teammate; an in-process teammate CANNOT (its bg dies on yield). Teammates share ONE
-working tree on ONE `feat/<slug>` branch:
+When an agent team parallelizes work, **each teammate works in its OWN worktree**
+under `.claude/worktrees/<slug>/` (B1 step 0) — the same worktree-per-session
+model every session uses, never a shared checkout. A team is N worktrees, each
+with its own `bin/charly` and its own freshness-guard scope; there is no
+shared-tree alternative. Within a worktree, **the check bed is the unit of
+isolation**: each teammate owns a disjoint check bed's SOURCE files; distinct
+beds get distinct `charly-<bed>` container/VM/domain names, and a bed run tags
+every fixture IMAGE it builds with a per-run `<bed-root>-<runCalver>` tag (#75)
+so two beds building the SAME fixture image name never race the store-global tag
+namespace; host-port disjointness is not statically guaranteed, so every bed
+uses port auto-allocation — never a hardcoded host port (the loader checks no
+ports, so a collision surfaces only at deploy; manual port-picking is
+forbidden), and a bed pins an
+image → layers → files, so bed-ownership already isolates the source files each
+teammate edits. **Teammates edit; a PERSISTENT owner runs every full `charly
+check run <bed>`** as a `run_in_background` task — the lead's persistent
+session, a background agent, or (interactive tmux) a split-pane teammate; an
+in-process teammate CANNOT (its bg dies on yield).
 
 - Teammates edit their bed-scoped files + run short foreground checks (`charly check
   box`) — never the full `charly check run`, and **never commit, push, or open a
   PR**. The lead runs the full beds and, on R10 PASS, opens the SINGLE PR for the
   cutover (B1 step 1); a FRESH `pr-validator` (never a teammate that authored code)
   merges it.
-- Reserve a real `git worktree` (per `isolation: worktree`) only for genuine
-  **same-file** concurrency that bed-ownership does not separate.
 - **Schedule longest-pole-first.** `charly check run` has no bed-level concurrency
   and no `charly` cap — the limit is host CPU/RAM/podman. Run ALL full beds as
   concurrent background tasks; order by expected DURATION, not bed count: launch the
   slow VM/desktop beds first and overlap the cheap pod beds, so wall-clock ≈ the
   slowest single bed, not the sum.
-- **Freeze `charly/*.go` during the bed phase.** `charly`'s stale-binary freshness
-  guard gates every heavy verb the instant any `charly/*.go` is newer than the
-  INVOKED binary, so a teammate editing Go mid-bed-run aborts every other agent's
-  next build/deploy/check. For a SHARED-CORE (Go) cutover the lead lands the core
-  first, runs ONE `task build:binary` in the shared checkout, then fans out beds
-  with Go frozen — the bed set must actually invoke `./bin/charly` (explicitly, or
-  with the shared tree's `bin/` prepended onto `$PATH`), since a bed shelling to
-  bare `charly` otherwise resolves whatever the HOST has installed, never the
-  freshly-rebuilt shared binary; a BED-LOCAL (YAML/candy/skills) cutover has no
-  shared binary and needs no barrier.
-  **This freeze applies ONLY to the SHARED-TREE model** (one checkout, one shared
-  binary) — a MULTI-WORKTREE team needs no such barrier, since each worktree carries
-  its own `bin/charly` and its own freshness-guard scope; see
-  `/charly-internals:agents` "The charly binary in a multi-teammate /
-  multi-worktree setup" for the full host-vs-worktree-binary discipline — never
-  conflate the two models.
+- **No shared freeze barrier — per-worktree self-freeze instead.** Because each
+  worktree carries its own `bin/charly` and its own freshness-guard scope, a
+  teammate editing `charly/*.go` in its own worktree never trips another
+  teammate's bed run — there is no shared binary to freeze. The only freeze that
+  applies is the WITHIN-worktree self-freeze: freeze your own worktree's
+  `charly/*.go` for the duration of your own bed run (the per-tree freshness guard
+  compares the invoked binary against the cwd's sources at every heavy verb,
+  mid-run), and keep one binary-build owner per worktree at a time. Full
+  discipline: `/charly-internals:agents` "The charly binary in a multi-teammate /
+  multi-worktree setup" + "Within-worktree self-freeze".
 
 ## B6 — cross-repo landing when a change is referenced via `@github`
 
