@@ -362,8 +362,8 @@ by its specific identity (`charly vm destroy <entity> --domain <bed>`,
 **Before opening, updating, or merging any pull request, run the aggregate
 audit — unconditionally, as a standing preflight, never situational advice
 reached for only when something already looks off:** `gh pr list` across
-every repo touched by the cutover (superproject, `sdk`, `plugins`, each
-`box/<distro>`) plus `git worktree list` plus the live teammate/agent
+every repo touched by the cutover (superproject, `sdk`, `plugins`, `docs`,
+each `box/<distro>`) plus `git worktree list` plus the live teammate/agent
 roster. This is an invert-the-default step: run it first, every time, not
 as a response to a suspected conflict. Skipping it risks opening a
 duplicate PR for scope another teammate's in-flight PR already covers,
