@@ -141,6 +141,16 @@ environmental, not code defects. On such a host:
 - The pre-commit-gate hook (`.claude/hooks/pre-commit-gate.sh`) already redirects its
   lint temp dirs to `~/.cache/charly-gate-lint/` and creates the TMPDIR/GOTMPDIR
   subdirs, so a clean tree can commit on such a host.
+- **Cumulative /tmp usage cap — the Bash tool's output capture dies.** Beyond the
+  per-command cap, the sandbox also caps TOTAL /tmp usage (observed at ~80% of the
+  tmpfs). When /tmp fills to that point, the Bash tool's output capture fails: every
+  command that writes to stdout/stderr exits 1 with no output, `python3` exits 120
+  (Python's "failed to flush stdout at shutdown" code), while no-output commands
+  (`true`, `echo x > /dev/null`) still succeed. The underlying error is
+  `write error: Disk quota exceeded`. Fix: clear the accumulated `tmp.*` Go temp
+  dirs (and other junk) in /tmp to drop usage below the cap — on this host 17G of
+  `tmp.*` dirs had accumulated from lint runs and other operations. A session
+  restart also resets it (fresh sandbox quota).
 
 ## R9 — deployed binary matches source; runtime deps live in the PKGBUILD
 
