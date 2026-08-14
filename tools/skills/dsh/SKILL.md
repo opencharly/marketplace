@@ -58,7 +58,7 @@ my-image:
 ## Related Candies
 
 - `/charly-coder:nodejs` -- required runtime dependency (node >=22.19.0)
-- `/charly-coder:mcporter` -- sibling npm-global CLI candy
+- `/charly-tools:mcporter` -- sibling npm-global CLI candy
 
 ## When to Use This Skill
 
