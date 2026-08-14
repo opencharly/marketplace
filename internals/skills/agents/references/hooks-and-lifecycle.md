@@ -309,10 +309,25 @@ Hooks in this project enforce deterministic command mechanics only. There
 is no reminder layer — rule knowledge lives in the project rulebook and
 skills, loaded fresh by every agent at session start.
 
-| Hook | Event | Role |
+The two gate scripts live in `.claude/hooks/` but are **not wired in Claude Code** —
+`.claude/settings.json` declares no `PreToolUse` hooks, so under Claude Code they
+fire on nothing. They remain wired in the harnesses that invoke them:
+`.reasonix/settings.json`, and `~/.kimi-code/config.toml`, which delegates to
+`.claude/hooks/` when the repo markers are present. Most of the discipline they
+encode is judged for every harness by the fresh `pr-validator` at merge and by
+GitHub branch protection — but not all of it, so do not read the unwiring as
+costing nothing. Measured: both scripts DO block what they exist for (`git commit
+--no-verify`, a `core.hooksPath` override, `git push --force`, a direct push to
+`main` all exit 2), and branch protection covers `main` ALONE — no rulesets, no
+other protected branch. So a `feat/` branch force-push, which the rulebook forbids
+everywhere, has no server-side block under Claude Code, and the `pr-validator`
+cannot substitute: it inspects a branch that has already been rewritten. Under
+this harness the agent is the enforcement for those mechanics.
+
+| Hook | Event (where wired) | Role |
 |---|---|---|
-| `pre-commit-gate.sh` | `PreToolUse(Bash)` | blocks hook bypass (`--no-verify`/`-n`/`core.hooksPath`), untokenizable commit commands, configured Go lint failures for staged Go modules, and a new-or-grown `charly/*_aliases.go` file or declaration-form kit-alias line (the ZERO-ALIASES gate) |
-| `pre-push-gate.sh` | `PreToolUse(Bash)` | blocks force-push and a direct push to `main` |
+| `pre-commit-gate.sh` | `PreToolUse(Bash)` in `.reasonix` / kimi; **unwired in Claude Code** | blocks hook bypass (`--no-verify`/`-n`/`core.hooksPath`), untokenizable commit commands, configured Go lint failures for staged Go modules, and a new-or-grown `charly/*_aliases.go` file or declaration-form kit-alias line (the ZERO-ALIASES gate) |
+| `pre-push-gate.sh` | `PreToolUse(Bash)` in `.reasonix` / kimi; **unwired in Claude Code** | blocks force-push and a direct push to `main` |
 
 Attribution identity/confidence, change class, CHANGELOG coverage,
 architecture, and R0–R10 evidence belong exclusively to the fresh

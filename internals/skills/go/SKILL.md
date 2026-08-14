@@ -138,9 +138,14 @@ environmental, not code defects. On such a host:
   the lock open fail with ENOENT, which golangci-lint reports as "parallel golangci-lint
   is running" — a false positive, not a real parallel run. Create the TMPDIR dir first
   (or pass `--allow-parallel-runners` with a fresh cache). See `/charly-internals:go-quality`.
-- The pre-commit-gate hook (`.claude/hooks/pre-commit-gate.sh`) already redirects its
-  lint temp dirs to `~/.cache/charly-gate-lint/` and creates the TMPDIR/GOTMPDIR
-  subdirs, so a clean tree can commit on such a host.
+- `.claude/hooks/pre-commit-gate.sh` (the staged-Go-lint discipline backstop) redirects
+  its own lint temp dirs to `~/.cache/charly-gate-lint/` and creates the TMPDIR/GOTMPDIR
+  subdirs, so it is unaffected by the cap wherever it runs. Note it is NOT wired in
+  Claude Code — `.claude/settings.json` wires no `PreToolUse` hooks, so under Claude
+  Code the script fires on nothing and nothing runs it automatically. It stays live in
+  the other harnesses that invoke it (`.reasonix/settings.json`, and `~/.kimi-code/config.toml`
+  which delegates to `.claude/hooks/`). Running Go work under Claude Code, apply the two
+  bullets above yourself.
 
 ## R9 — deployed binary matches source; runtime deps live in the PKGBUILD
 
