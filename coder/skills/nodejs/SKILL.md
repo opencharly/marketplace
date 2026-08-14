@@ -27,7 +27,8 @@ PATH additions: `~/.npm-global/bin`
 ## Packages
 
 RPM: `nodejs`, `npm`
-DEB: `nodejs`, `npm`
+DEB: `nodejs` (NodeSource node 22.x on Ubuntu + Debian; npm is bundled
+by NodeSource, not the separate apt `npm` package)
 PAC: `nodejs`, `npm`
 
 ## pnpm (standalone binary)
