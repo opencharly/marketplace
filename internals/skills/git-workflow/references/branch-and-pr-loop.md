@@ -165,9 +165,12 @@ the final code is proven — never by shipping anything pre-bed:
   UNPUSHED — the "amend only before the first push" invariant above. THEN push
   `feat/<slug>` and open the PRs (B1 step 1; multi-repo order = B2).
 
-Nothing pre-bed ever ships, and every intermediate commit passes the PreToolUse
-tier gate TRUTHFULLY at the stage it was made — the tier only ever moves UP, to
-match proof that now exists.
+Nothing pre-bed ever ships, and every intermediate commit states its attribution
+tier TRUTHFULLY at the stage it was made — the tier only ever moves UP, to match
+proof that now exists. No hook enforces this in any harness: the gate scripts
+contain no tier logic (`gate_test.py` asserts attribution text is ALLOWed as
+validator-owned), so tier truth is judged by the fresh `pr-validator`, per the
+rulebook's "never by hook regexes".
 
 ## B4 — sync to upstream + prune (per repo: main, sdk, plugins, docs, box/*, pkg/*)
 

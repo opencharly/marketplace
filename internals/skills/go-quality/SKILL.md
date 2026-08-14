@@ -235,12 +235,16 @@ unparam` a uniform-handler signature) — don't nolint-stack blindly.
 
 `go test ./...` + `golangci-lint run` + `task build:binary` are smoke, not the gate — the gate is `charly check run <bed>` on the bed(s) that exercise the change, disposable-only, fresh-rebuild, zero warnings, pasted proof. The bed-selection matrix (incl. cross-cutting fan-out by owner) is owned by `/charly-check:check` "R10 gate by change class"; see also `/charly-internals:cutover-policy`.
 
-**A mechanical pre-commit backstop is separate from the R10 gate.** The `pre-commit-gate.sh`
-hook (`.claude/hooks/`) runs the CONFIGURED `golangci-lint run` on every module a commit's
-`*.go` change touches and BLOCKS a commit that is not lint-clean (fail-open when golangci-lint is
-absent) — so a lint-dirty commit can't land at all. That backstop does NOT replace the bed R10
-gate (a green linter still proves compilation, not behaviour); it just guarantees the `golangci-lint`
-smoke is green at commit time. Doctrine: `/charly-internals:agents` "Hooks doctrine".
+**A mechanical pre-commit backstop exists in SOME harnesses, and is separate from the R10
+gate.** The `pre-commit-gate.sh` hook (`.claude/hooks/`) runs the CONFIGURED `golangci-lint
+run` on every module a commit's `*.go` change touches and blocks a commit that is not
+lint-clean (fail-open when golangci-lint is absent). **It is NOT wired under Claude Code** —
+`.claude/settings.json` declares no `PreToolUse` hooks — so under this harness a lint-dirty
+commit lands and nothing stops it; run the linter yourself. It is wired in
+`.reasonix/settings.json` and via `~/.kimi-code/config.toml`, which delegates to
+`.claude/hooks/`. Where it does run, it does NOT replace the bed R10 gate (a green linter
+proves compilation, not behaviour); it only guarantees the `golangci-lint` smoke is green at
+commit time. Doctrine: `/charly-internals:agents` "Hooks doctrine".
 
 **The hook's lint temp dirs live on the root fs.** The hook redirects its golangci-lint
 run to a per-user cache (`~/.cache/charly-gate-lint/`) and creates the `TMPDIR`/`GOTMPDIR`
