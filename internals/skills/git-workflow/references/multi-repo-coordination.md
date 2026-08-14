@@ -88,7 +88,7 @@ requires):
   individually, never as one tree.
 
 **Prove a fix is in the BUILT BINARY by a content marker, NOT by the version stamp.**
-`pkg/arch/calver.sh` derives the CalVer from the HEAD commit's UTC time (`git log -1
+`scripts/calver.sh` derives the CalVer from the HEAD commit's UTC time (`git log -1
 --format=%cd`), so the stamp identifies the SOURCE COMMIT, never the build moment — a
 `task build:binary` on a DIRTY working tree reports the IDENTICAL version as the clean
 commit under it. So `charly version` matching the expected CalVer does NOT prove your
@@ -209,7 +209,7 @@ fast-forwards to what the evaluator merged remotely.
 
 **4. Tags: annotated only** (`git tag -a v<…> -m "<desc>" <merged-HEAD>`), applied
 by the evaluator on the merged `main` HEAD and pushed as `refs/tags/…` (allowed by
-the pre-push-gate; the user token triggers `release-packages.yml`). Verify `git
+the pre-push-gate; the user token triggers the release-binary workflow). Verify `git
 cat-file -t <tag>` == `tag` AND `git ls-remote --tags origin <tag>` is non-empty.
 
 **5. Reconcile (when box submodules were re-stamped).** Bump the superproject
@@ -222,8 +222,8 @@ producer drift (a separate version-adoption cutover, NOT reconciliation).
 worktree: the one on `main` → `git -C <wt> merge --ff-only origin/main`; each other
 → `git -C <wt> checkout --detach origin/main`; THEN refresh only already-initialized
 submodules with `git -C <wt> submodule update --recursive` (no `--init`). Initialize
-only the paths the next task needs: a root R10 worktree needs `sdk` and `pkg/arch`, so
-use `git -C <wt> submodule update --init --recursive sdk pkg/arch`; box-submodule work
+only the paths the next task needs: a root R10 worktree needs `sdk`, so
+use `git -C <wt> submodule update --init --recursive sdk`; box-submodule work
 initializes its own declared path. Never blanket-initialize every submodule merely to
 refresh a worktree: it creates unnecessary per-worktree clone state. The Skill tool
 serves skills from the MAIN worktree — a stale main worktree silently serves STALE SKILLS

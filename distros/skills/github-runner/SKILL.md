@@ -29,10 +29,10 @@ description: |-
   CachyOS ships `zlib-ng-compat`, which Provides it; an explicit `zlib` conflicts)
 - charly-host `depends=` completion: `slirp4netns`, `libisoburn`, `cdrtools`, `swtpm`
   — the part of the `charly` PKGBUILD `depends=` set the charly/virtualization candies do
-  not already install. With these present, `charly box pkg pac` builds the pac release
-  artifact NATIVELY on the runner (`makepkg -sf` resolves every dep and never
-  shells out to `sudo pacman`). See `/charly-distros:githubrunner` "CI: builds the
-  org's release packages on itself".
+  not already install, so the charly CLI (and the CI jobs that drive it) runs fully
+  on the runner. (The legacy `charly box pkg` release-packages build that ran here
+  is removed with the nFPM cutover — the `charly generate-packages` plugin + the
+  per-distro repos build the packages now.)
 
 `podman`/`buildah`/`skopeo`/`crun`/`fuse-overlayfs` are provided by the
 `container-nesting` dependency (not redeclared here — R3).
