@@ -243,15 +243,12 @@ gate (a green linter still proves compilation, not behaviour); it just guarantee
 smoke is green at commit time. Doctrine: `/charly-internals:agents` "Hooks doctrine".
 
 **The hook's lint temp dirs live on the root fs.** The hook redirects its golangci-lint
-run to a per-user cache (`~/.cache/charly-gate-lint/`) and sets `GOTMPDIR`/`TMPDIR` to
-subdirs it creates there — the system temp dir is frequently a small tmpfs (or a sandbox
-caps its writes), and the lint build needs far more than a tmpfs can hold. It also
-creates the `TMPDIR`/`GOTMPDIR` subdirs before running golangci-lint: golangci-lint v2
-locks at `$TMPDIR/golangci-lint.lock`, and a missing TMPDIR makes the lock open fail
-with ENOENT, which golangci-lint reports as "parallel golangci-lint is running" — a
-false positive that blocks every commit on hosts where the dir does not pre-exist.
-Never diagnose that message as a real parallel run without first checking whether
-`$TMPDIR` exists.
+run to a per-user cache (`~/.cache/charly-gate-lint/`) and creates the `TMPDIR`/`GOTMPDIR`
+subdirs there before running golangci-lint, so the lint never writes into a capped system
+temp dir. The constraint that motivates it — the per-command write cap, and the
+"parallel golangci-lint is running" message that is really an ENOENT on a missing
+`$TMPDIR` directory — is stated once in `/charly-internals:go` "Environment constraints —
+sandboxed /tmp + Go temp dirs"; see there for the diagnosis and the fix.
 
 ## Cross-References
 

@@ -309,10 +309,18 @@ Hooks in this project enforce deterministic command mechanics only. There
 is no reminder layer — rule knowledge lives in the project rulebook and
 skills, loaded fresh by every agent at session start.
 
-| Hook | Event | Role |
+The two gate scripts live in `.claude/hooks/` but are **not wired in Claude Code** —
+`.claude/settings.json` declares no `PreToolUse` hooks, so under Claude Code they
+fire on nothing. They remain wired in the harnesses that invoke them:
+`.reasonix/settings.json`, and `~/.kimi-code/config.toml`, which delegates to
+`.claude/hooks/` when the repo markers are present. The discipline they encode is
+judged for every harness by the fresh `pr-validator` at merge and by GitHub branch
+protection, which is why unwiring them in Claude Code costs no enforceable gate.
+
+| Hook | Event (where wired) | Role |
 |---|---|---|
-| `pre-commit-gate.sh` | `PreToolUse(Bash)` | blocks hook bypass (`--no-verify`/`-n`/`core.hooksPath`), untokenizable commit commands, configured Go lint failures for staged Go modules, and a new-or-grown `charly/*_aliases.go` file or declaration-form kit-alias line (the ZERO-ALIASES gate) |
-| `pre-push-gate.sh` | `PreToolUse(Bash)` | blocks force-push and a direct push to `main` |
+| `pre-commit-gate.sh` | `PreToolUse(Bash)` in `.reasonix` / kimi; **unwired in Claude Code** | blocks hook bypass (`--no-verify`/`-n`/`core.hooksPath`), untokenizable commit commands, configured Go lint failures for staged Go modules, and a new-or-grown `charly/*_aliases.go` file or declaration-form kit-alias line (the ZERO-ALIASES gate) |
+| `pre-push-gate.sh` | `PreToolUse(Bash)` in `.reasonix` / kimi; **unwired in Claude Code** | blocks force-push and a direct push to `main` |
 
 Attribution identity/confidence, change class, CHANGELOG coverage,
 architecture, and R0–R10 evidence belong exclusively to the fresh
