@@ -13,6 +13,18 @@ them more than once. Sixteen validation rounds produced roughly a dozen blocking
 findings, and the majority were not defects in the code but false or stale CLAIMS about
 it.
 
+**Start here — find your symptom, then read the epistemology below if you want the why.**
+
+| If you are about to… | and you might be wrong because… | read |
+|---|---|---|
+| paste gate output into a PR body | you re-ran the gate and quoted the older copy | "A paste and its label are two separate claims" |
+| assert a sha, a pin, or a status is current | it moved between measuring and writing | "Three freshness surfaces, failing independently" |
+| fix a claim a reviewer called false | the correction is a new claim with the same burden | "Sweep for what the fix invalidated" |
+| run a gate to decide whether a PR is safe to merge | you gated the head, and the MERGE is what lands | "The gate that matters at merge…" (its recipe is the probe below) |
+| land a `skill:` edit | the source and its generated copies are one cutover, not two | "The cross-repo `skill:` cutover" |
+| resolve a submodule conflict | a `checkout -- .` plus `git add -A` silently reverts the gitlink | "The submodule revert" |
+| conclude a validator never ran | the status can be absent for a reason that is not absence | "The validator-status false negative" |
+
 **The page has two kinds of content, and they are true in different ways.**
 
 **Five sections are epistemic** — ways a claim goes wrong — and they are one question
@@ -46,9 +58,34 @@ claim.** An epistemic claim is checked by reasoning; a mechanism claim can only 
 by RUNNING the thing. The first version of the cross-repo section asserted that the two drift directions
 differ in DETECTABILITY, one of them silent — which a thirty-second experiment REVERSES:
 the direction called silent is the more legible of the two — and it sat in
-a mechanism section while the surrounding epistemic ones were sound. **Every factual claim
-in the three mechanism sections below was verified by executing it.** If you extend them,
-execute yours too; reasoning is not available for this half of the page.
+a mechanism section while the surrounding epistemic ones were sound.
+
+**The execution rule is scoped to CONTENT, not to sections, and that correction was
+itself forced by a defect.** An earlier revision said "every factual claim in the three
+MECHANISM sections was verified by executing it" — and a reviewer found the one broken
+shell recipe on the page sitting in an EPISTEMIC section, exempted by that very wording.
+The frame had decided what got executed, and routed a runnable command to the
+"reasoning is enough" side. So: **every runnable command and every mechanism claim on
+this page is executed before it is published, wherever it sits.** If you extend any
+section with either, run it. The three merge-tree behaviours the probe recipe below
+depends on were established that way, in a throwaway repo:
+
+```
+$ git merge-tree --write-tree side-a side-b   # conflicting pair
+$ echo $?
+1                                              # → guard on the exit status
+$ git commit-tree "$(git merge-tree --write-tree side-a side-b)" -p side-a -m probe
+fatal: not a valid object name c5045be2…       # unguarded, the oid is multi-line
+$ git cat-file -p "$(git merge-tree --write-tree side-a side-b | head -1):a.txt"
+<<<<<<< side-a                                 # `head -1` YIELDS A CONFLICTED TREE —
+AAA                                            # checkoutable, plausible, and poison
+=======                                        # for anything that then RUNS in it
+BBB
+>>>>>>> side-b
+```
+
+The third line is why the guard is an exit-status test and not an output-shape test:
+the shape fix produces a tree a gate runs against and passes.
 
 **Terms.** *The gate* — whichever check a claim rests on; usually `charly box validate`,
 `charly marketplace drift`, or `charly docs generate`. *`marketplace drift`* compares each
@@ -144,10 +181,18 @@ For any PR that goes `BEHIND`, re-derive the gate on the merge result, not the h
 
 ```
 git fetch origin                      # BASE must be the CURRENT tip, so fetch first
-PR_HEAD=$(git rev-parse HEAD)         # or the PR's head sha
+PR_HEAD=$(git rev-parse HEAD)         # assumes cwd IS the PR checkout;
+                                      # otherwise pass the head sha explicitly
 BASE=$(git rev-parse origin/main)     # the base TIP, never the merge-base —
                                       # the merge-base reproduces this section's bug
-TREE=$(git merge-tree --write-tree "$PR_HEAD" "$BASE")   # a TREE oid, not a commit
+# merge-tree EXITS 1 on conflict and prints the tree oid followed by the conflict
+# stages. Guard on the EXIT STATUS, not on the output shape: piping through
+# `head -1` here would hand you a tree whose files contain <<<<<<< markers, and
+# the gate would then run green against garbage. Refuse instead.
+if ! TREE=$(git merge-tree --write-tree "$PR_HEAD" "$BASE"); then
+  echo "merge conflicts — resolve them before probing; this recipe needs a clean tree" >&2
+  exit 1
+fi
 
 # A tree oid is not checkoutable and every gate needs a working tree, so wrap it:
 MERGED=$(git commit-tree "$TREE" -p "$PR_HEAD" -p "$BASE" -m probe)
@@ -212,12 +257,22 @@ SIDE_A=$(git rev-parse "$MERGE^1")          # your branch
 SIDE_B=$(git rev-parse "$MERGE^2")          # what you merged in
 
 # conflict-free merge: the trees must be byte-identical
-test "$(git rev-parse "$MERGE^{tree}")" = "$(git merge-tree --write-tree "$SIDE_A" "$SIDE_B")" \
-  && echo "clean: matches git's own resolution" || echo "DIVERGED — inspect below"
+# Same guard: an unguarded substitution here degrades to a false DIVERGED,
+# because the multi-line conflict output can never equal a bare tree oid.
+if RESOLVED=$(git merge-tree --write-tree "$SIDE_A" "$SIDE_B"); then
+  test "$(git rev-parse "$MERGE^{tree}")" = "$RESOLVED" \
+    && echo "clean: matches git's own resolution" || echo "DIVERGED — inspect below"
+else
+  echo "the inputs conflict — identity is the wrong test; use the numstat form below"
+fi
 
 # merge WITH conflicts: identity is the wrong test, since your resolutions
 # legitimately differ. Diff them and account for EVERY delta.
-# NOTE head -1: on a conflicting merge, merge-tree prints the tree oid on line 1
+# NOTE head -1 is correct HERE and nowhere else on this page: this line WANTS the
+# conflicted tree, to diff against. Anywhere you intend to RUN something in the
+# resulting tree, guard on merge-tree's exit status instead — `head -1` there
+# yields a tree full of conflict markers and the gate passes against garbage.
+# On a conflicting merge, merge-tree prints the tree oid on line 1
 # and then the conflict stages; without it the substitution captures all of that
 # and git reports "invalid object name" — precisely in the case you need this.
 git diff --numstat \
