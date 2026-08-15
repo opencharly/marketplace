@@ -86,7 +86,8 @@ The three merge-tree behaviours the probe recipe below depends on were establish
 by execution, in a throwaway repo:
 
 ```
-$ git init -q repo && cd repo                  # the fixture, so you can rerun this
+$ git init -q -b main repo && cd repo            # the fixture, so you can rerun this
+                                               # -b main: git still defaults to master
 $ echo base > a.txt && git add -A && git commit -qm base
 $ git switch -qc side-a && echo AAA > a.txt && git commit -qam a
 $ git switch -q main  && git switch -qc side-b && echo BBB > a.txt && git commit -qam b
@@ -206,9 +207,12 @@ left behind.**
 | scoping the `head -1` note by intent | the note's own claim to be the page's only such use |
 | rewriting the recipe over three commits | the CHANGELOG paragraph describing the first draft |
 | replacing `\|\| exit 1` with nesting | the paragraph 27 lines below still crediting `\|\| exit 1` |
+| the numstat reusing `$RESOLVED` | the R5 sweep pasted in the PR body, still counting six `merge-tree` sites |
 
-**All three were caught by a reviewer. The sweep caught none of them** — zero for three,
-which is the honest measure of how weak grepping-for-the-construct is. A changed construct has a blast radius
+**All four were caught by a reviewer. The sweep caught none of them** — zero for four,
+which is the honest measure of how weak grepping-for-the-construct is. The fourth row is
+the sharpest: the sweep missed a miscount in the SWEEP'S OWN OUTPUT, in the very change
+that adds this section. A changed construct has a blast radius
 in PROSE, and it is widest in exactly the artifacts no gate reads: commit messages, PR
 bodies, and the release note — which, unlike the page, is immutable once merged.
 
