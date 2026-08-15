@@ -11,6 +11,12 @@ description: |-
 
 # docs-site — build the opencharly.ai site inside a box
 
+**Audience: this page describes maintenance the charly repository performs on itself.**
+`docs-site` builds *this* documentation site, so every `task …` command below names a
+gate this project runs over its own sources from a charly checkout — never a step a
+reader runs. They are named because the candy's contract is what keeps the published
+site honest, not because you invoke them.
+
 ## Candy Properties
 
 | Property | Value |
@@ -42,7 +48,10 @@ exact source Cloudflare builds.
 
 **Ordering consequence.** The candy fetches an IMMUTABLE COMMIT, never a branch, so `DOCS_REF`
 must be re-pinned to each new docs merge before this box — and the `check-docs` bed above it —
-prove the new content. `task docs:pin` fails if it drifts from the `docs` gitlink.
+prove the new content. `task docs:pin` fails if it drifts from the `docs` gitlink. That re-pin
+is a CONFIG edit and changes the landing's gate and attribution tier — see
+`/charly-internals:git-workflow` (B6a step 4, and B2 "the derivation stops at the gitlink" for
+the general rule), which owns landing mechanics.
 
 **The pin is TWO occurrences, and both are asserted.** The sha appears once as `DOCS_REF`
 (the clone's cache key) and once as a LITERAL in the `docs-site-pinned-commit` check's
