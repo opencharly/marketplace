@@ -69,9 +69,20 @@ The frame had decided what got executed, and routed a runnable command to the
 this page is executed before it is published, wherever it sits.** If you extend any
 section with either, run it.
 
+**Run the PUBLISHED form, in a default environment.** A command executed in your own shell is
+proof about your own shell. This page shipped a fixture opening `git init -q repo`, verified by
+running it — in a shell whose git had `init.defaultBranch=main`. Git's out-of-the-box default is
+still `master`, so for a reader with a stock config the fixture died on its fourth line with
+`fatal: invalid reference: main`, exit 128. The rule above was satisfied to the letter and the
+reader still could not run it. So: execute the text AS PUBLISHED, and for anything whose
+behaviour depends on configuration — git defaults, locale, `$EDITOR`, an env var you have set
+and forgotten — execute it with that configuration NEUTRALIZED, not merely absent from your
+attention. Verifying this one meant clearing `HOME`, `GIT_CONFIG_GLOBAL` and `GIT_CONFIG_SYSTEM`
+and proving the isolation empty before trusting the result.
+
 **And executing it is only half — the other half is PROVENANCE: every measurement
-states the tree it was taken on.** This clause exists because the rule above, in the
-form that shipped without it, did not prevent the next error. A drift figure on this
+states the tree it was taken on.** This clause exists because the content-scoping rule
+two paragraphs up, in the form that shipped without it, did not prevent the next error. A drift figure on this
 very cutover was executed, correct, and false: `charly marketplace drift` was run
 with the superproject at `main` but the submodules checked out at their repo TIPS,
 and the result was reported as a fact about `main` — which pins its submodules at
@@ -86,7 +97,7 @@ The three merge-tree behaviours the probe recipe below depends on were establish
 by execution, in a throwaway repo:
 
 ```
-$ git init -q repo && cd repo                  # the fixture, so you can rerun this
+$ git init -q -b main repo && cd repo         # rerunnable: git still defaults to master
 $ echo base > a.txt && git add -A && git commit -qm base
 $ git switch -qc side-a && echo AAA > a.txt && git commit -qam a
 $ git switch -q main  && git switch -qc side-b && echo BBB > a.txt && git commit -qam b
@@ -197,7 +208,7 @@ goes stale is the prose ABOUT it — a paragraph naming the old flag, a table co
 old occurrences, a release note narrating the old design — and none of that contains the
 new text or, usually, the old code either.
 
-This page earned that rule three times in three review rounds of a single PR, and the
+This page earned that rule four times across the review of a single cutover, and the
 shape was identical each time: **the fix was correct and the thing describing it was
 left behind.**
 
@@ -206,9 +217,12 @@ left behind.**
 | scoping the `head -1` note by intent | the note's own claim to be the page's only such use |
 | rewriting the recipe over three commits | the CHANGELOG paragraph describing the first draft |
 | replacing `\|\| exit 1` with nesting | the paragraph 27 lines below still crediting `\|\| exit 1` |
+| the numstat reusing `$RESOLVED` | the R5 sweep pasted in the PR body, still counting six `merge-tree` sites |
 
-**All three were caught by a reviewer. The sweep caught none of them** — zero for three,
-which is the honest measure of how weak grepping-for-the-construct is. A changed construct has a blast radius
+**All four were caught by a reviewer. The sweep caught none of them** — zero for four,
+which is the honest measure of how weak grepping-for-the-construct is. The fourth row is
+the sharpest: the sweep missed a miscount in the SWEEP'S OWN OUTPUT, in the very change
+that adds this section. A changed construct has a blast radius
 in PROSE, and it is widest in exactly the artifacts no gate reads: commit messages, PR
 bodies, and the release note — which, unlike the page, is immutable once merged.
 
