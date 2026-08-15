@@ -8,6 +8,22 @@ else is checked only if someone thinks to check it**, and this section is the ca
 the ways those claims go wrong. Every item below was a blocking finding on a real
 landing, most of them more than once.
 
+**They are all one question failing against different nouns:** *what exactly did I
+measure, and is it the thing my claim is about?* Read the sections as instances rather
+than as a list —
+
+| The noun that slipped | The section |
+|---|---|
+| The artifact — measured the right thing, quoted from the wrong copy | A paste and its label |
+| The moment — measured a surface that moved before the claim was read | Three freshness surfaces |
+| The other party's copy — asserted a negative about a tree they were editing | Positive vs negative |
+| The fix's blast radius — swept for what I corrected, not what I broke | Sweep for what the fix invalidated |
+| The base — gated the head when the merge is what lands | The merged tree's gate |
+| The produced tree — measured the starting state to decide what a change can do | The sibling rule, same section |
+
+Every one is a correct measurement answering the wrong question, which is why none of
+them feel like errors while you are making them.
+
 ### A paste and its label are two separate claims
 
 When a body pastes command output and names the tree it ran on, that is two assertions:
