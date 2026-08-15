@@ -86,6 +86,11 @@ The three merge-tree behaviours the probe recipe below depends on were establish
 by execution, in a throwaway repo:
 
 ```
+$ git init -q repo && cd repo                  # the fixture, so you can rerun this
+$ echo base > a.txt && git add -A && git commit -qm base
+$ git switch -qc side-a && echo AAA > a.txt && git commit -qam a
+$ git switch -q main  && git switch -qc side-b && echo BBB > a.txt && git commit -qam b
+
 $ git merge-tree --write-tree side-a side-b   # conflicting pair
 $ echo $?
 1                                              # → guard on the exit status
@@ -99,7 +104,7 @@ BBB
 >>>>>>> side-b
 ```
 
-The third line is why the guard is an exit-status test and not an output-shape test:
+The third COMMAND is why the guard is an exit-status test, not an output-shape test:
 the shape fix produces a tree a gate runs against and passes.
 
 **Terms.** *The gate* — whichever check a claim rests on; usually `charly box validate`,
@@ -204,11 +209,11 @@ BASE=$(git rev-parse origin/main)     # the base TIP, never the merge-base —
 # stages. Guard on the EXIT STATUS, not on the output shape: piping through
 # `head -1` here would hand you a tree whose files contain <<<<<<< markers, and
 # the gate would then run green against garbage. Refuse instead.
+# Nested, not `exit`: this block is meant to be PASTED into an interactive
+# shell, where an `exit` on the conflict path closes your terminal.
 if ! TREE=$(git merge-tree --write-tree "$PR_HEAD" "$BASE"); then
-  echo "merge conflicts — resolve them before probing; this recipe needs a clean tree" >&2
-  exit 1
-fi
-
+  echo "merge conflicts — resolve them before probing; this needs a clean tree" >&2
+else
 # A tree oid is not checkoutable and every gate needs a working tree, so wrap it:
 MERGED=$(git commit-tree "$TREE" -p "$PR_HEAD" -p "$BASE" -m probe)
 
@@ -216,16 +221,17 @@ MERGED=$(git commit-tree "$TREE" -p "$PR_HEAD" -p "$BASE" -m probe)
 # this is race-free — and it is what stops the cleanup below from destroying
 # somebody else's work. See the warning under this block.
 PROBE=$(mktemp -d /tmp/gate-probe.XXXXXX)
-git worktree add --detach "$PROBE" "$MERGED" || exit 1
+if git worktree add --detach "$PROBE" "$MERGED"; then
+  # REQUIRED: worktree add leaves submodules EMPTY, and "A paste and its label
+  # are two separate claims" above demands every submodule at that commit's
+  # pinned gitlink. Skip this and the probe measures a tree the gate cannot
+  # even read.
+  git -C "$PROBE" submodule update --init --recursive
 
-# REQUIRED: worktree add leaves submodules EMPTY, and "A paste and its label
-# are two separate claims" above demands every submodule at that commit's
-# pinned gitlink. Skip this and the probe measures a tree the gate cannot
-# even read.
-git -C "$PROBE" submodule update --init --recursive
-
-# …run the gate in "$PROBE", then:
-git worktree remove --force "$PROBE"
+  # …run the gate in "$PROBE", then:
+  git worktree remove --force "$PROBE"
+fi
+fi
 ```
 
 **Why `mktemp` and not a fixed `/tmp/gate-probe`: the cleanup line is destructive
@@ -256,8 +262,9 @@ bumps it, so that PR was not a bystander to the red, it was the half that closed
 
 ### A `skill:` source edit and its regeneration are one cutover across two repos
 
-Landing either half alone leaves `main` with `marketplace drift` red. **Both directions
-fail the same way** — exit 1, a stale-artifact listing — so neither is quiet:
+Landing either half alone leaves `main` with `marketplace drift` red. **Both directions fail
+LOUDLY** — exit 1 and a stale-artifact listing either way, so neither is quiet. They are not
+equally legible, though, and the difference runs opposite to intuition:
 
 | What landed alone | `drift` output |
 |---|---|
@@ -296,29 +303,30 @@ MERGE=<merge-commit>                        # the merge you already made
 SIDE_A=$(git rev-parse "$MERGE^1")          # your branch
 SIDE_B=$(git rev-parse "$MERGE^2")          # what you merged in
 
-# conflict-free merge: the trees must be byte-identical
-# Same guard: an unguarded substitution here degrades to a false DIVERGED,
-# because the multi-line conflict output can never equal a bare tree oid.
+# ONE merge-tree, and the branch decides which test is even meaningful.
+# RESOLVED is assigned even when the substitution FAILS — it then holds the
+# tree oid followed by the conflict stages, which is what the else-branch wants.
 if RESOLVED=$(git merge-tree --write-tree "$SIDE_A" "$SIDE_B"); then
-  test "$(git rev-parse "$MERGE^{tree}")" = "$RESOLVED" \
-    && echo "clean: matches git's own resolution" || echo "DIVERGED — inspect below"
+  # conflict-free merge: the trees must be byte-identical
+  if [ "$(git rev-parse "$MERGE^{tree}")" = "$RESOLVED" ]; then
+    echo "clean: matches git's own resolution"
+  else
+    echo "DIVERGED — every delta below must be one you can account for"
+    git diff --numstat "$RESOLVED" "$MERGE"
+  fi
 else
-  echo "the inputs conflict — identity is the wrong test; use the numstat form below"
+  # merge WITH conflicts: identity is the wrong test, since your resolutions
+  # legitimately differ. Diff against the conflicted tree and account for
+  # EVERY delta.
+  #
+  # NOTE the rule for `head -1` is about INTENT, not location. It is right when
+  # you want the conflicted tree as DATA — to diff or inspect, as here and in
+  # the evidence block near the top of this page. It is wrong the moment you
+  # will RUN anything inside the resulting tree: there it yields a tree full of
+  # conflict markers and the gate passes against garbage, so guard on the exit
+  # status instead (the probe recipe above does).
+  git diff --numstat "$(printf '%s\n' "$RESOLVED" | head -1)" "$MERGE"
 fi
-
-# merge WITH conflicts: identity is the wrong test, since your resolutions
-# legitimately differ. Diff them and account for EVERY delta.
-# NOTE the rule for `head -1` is about INTENT, not location. It is right when you
-# want the conflicted tree as DATA — to diff or inspect, as here and in the
-# evidence block near the top of this page. It is wrong the moment you will RUN
-# anything inside the resulting tree: there it yields a tree full of conflict
-# markers and the gate passes against garbage, so guard on the exit status
-# instead (the probe recipe above does).
-# On a conflicting merge, merge-tree prints the tree oid on line 1
-# and then the conflict stages; without it the substitution captures all of that
-# and git reports "invalid object name" — precisely in the case you need this.
-git diff --numstat \
-  "$(git merge-tree --write-tree "$SIDE_A" "$SIDE_B" | head -1)" "$MERGE"
 ```
 
 In the motivating incident that diff listed exactly three paths: two intentional
