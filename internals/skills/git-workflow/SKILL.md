@@ -53,6 +53,7 @@ evaluator's own spec.
 | B1 (the two-step branch-per-change loop, concurrent landings, the cross-repo WIP landing sequence) and B4 (sync to upstream + prune) | `references/branch-and-pr-loop.md` |
 | B2 (multi-repo/multi-worktree coordination, per-module verification), B3 (agent teams in per-teammate worktrees), B6 (cross-repo `@github` landing), and B7 (multi-worktree landing + refresh, the canonical end-to-end) | `references/multi-repo-coordination.md` |
 | B5 (the fresh evaluator + fork/PR path, the two-gate autonomous-landing model), CalVer generation, post-landing cleanliness + report format, and the validation-FAILS recovery sequence | `references/validator-and-calver.md` |
+| Evidence discipline — provenance vs plausibility of a pasted gate, the three freshness surfaces (head / body / pasted output), positive-vs-negative claim decay, sweeping for claims a fix invalidated, the merged-tree gate for a `BEHIND` PR, source-and-regeneration as one cross-repo cutover, submodule pointers reverted by a non-conflicting merge, and why status-absence on a known head is a false negative | `references/evidence-and-freshness.md` |
 
 ## Cross-References
 
