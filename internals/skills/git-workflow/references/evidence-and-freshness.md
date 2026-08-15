@@ -13,22 +13,40 @@ them more than once. Sixteen validation rounds produced roughly a dozen blocking
 findings, and the majority were not defects in the code but false or stale CLAIMS about
 it.
 
-**Most of them are one question failing against a different noun:** *what exactly did I
-measure, and is it the thing my claim is about?*
+**The page has two kinds of content, and they are true in different ways.**
 
-| The noun that slipped | Where |
+**Five sections are epistemic** — ways a claim goes wrong — and they are one question
+failing against a different noun: *what exactly did I measure, and is it the thing my
+claim is about?*
+
+| The noun that slipped | Section |
 |---|---|
-| The artifact — measured the right thing, quoted the wrong copy | "A paste and its label" |
-| The moment — a surface moved between measuring and asserting | "Three freshness surfaces" |
-| The other party's copy — a negative asserted against a tree they were editing | "Positive and negative claims" |
-| The fix's blast radius — swept for what I corrected, not what I broke | "Sweep for what the fix invalidated" |
-| The base — gated the head when the merge is what lands | "The merged tree's gate" |
+| The artifact — measured the right thing, quoted the wrong copy | A paste and its label are two separate claims |
+| The moment — a surface moved between measuring and asserting | Three freshness surfaces, failing independently |
+| The fix's blast radius — swept for what I corrected, not what I broke | Sweep for what the fix invalidated |
+| The base — gated the head when the merge is what lands | The gate that matters at merge is the merged tree's, not the head's |
+| The produced tree — measured the starting state to decide what a change can do | (same section, "Sibling rule") |
 
 Each is a correct measurement answering the wrong question, which is why none of them
 feel like errors while you are making them — and why a reader who holds the question can
-derive a trap nobody wrote down. The last THREE sections are not instances of it — the
-cross-repo cutover, the submodule revert, and the status-absence false negative are
-plain mechanism, kept here because they bite in the same situations.
+derive a trap nobody wrote down.
+
+"Positive and negative claims decay differently" is the sixth epistemic section and is
+deliberately NOT in the table: it is the moment-noun again, seen from the reader's side
+rather than the writer's, and forcing it a row of its own blurs the distinction the table
+exists to draw.
+
+**The remaining three sections are mechanism** — how charly and git actually behave: the
+cross-repo `skill:` cutover, the submodule revert, and the validator-status false
+negative. They are not instances of the question and no frame unifies them.
+
+**That split is load-bearing, and it is why this page's own first revision shipped a false
+claim.** An epistemic claim is checked by reasoning; a mechanism claim can only be checked
+by RUNNING the thing. The first version of the cross-repo section asserted an asymmetry
+between the two drift directions that a thirty-second experiment disproves — and it sat in
+a mechanism section while the surrounding epistemic ones were sound. **Every factual claim
+in the three mechanism sections below was verified by executing it.** If you extend them,
+execute yours too; reasoning is not available for this half of the page.
 
 **Terms.** *The gate* means whichever check a claim rests on — usually `charly box
 validate`, `charly marketplace drift`, or `charly docs generate`. `charly marketplace
