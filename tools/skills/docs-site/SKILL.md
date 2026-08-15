@@ -11,6 +11,12 @@ description: |-
 
 # docs-site — build the opencharly.ai site inside a box
 
+**Audience: this page describes maintenance the charly repository performs on itself.**
+`docs-site` builds *this* documentation site, so every `task …` command below names a
+gate this project runs over its own sources from a charly checkout — never a step a
+reader runs. They are named because the candy's contract is what keeps the published
+site honest, not because you invoke them.
+
 ## Candy Properties
 
 | Property | Value |
