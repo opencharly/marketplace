@@ -25,13 +25,18 @@ layer-named and image-named entity may coexist (distinct `uf.Candy` vs `uf.Box`
 maps). The `charly box` COMMAND family is UNCHANGED — only the YAML `box:` KIND
 keyword was removed.
 
-**A candy's prose is PUBLISHED — editing it is a multi-repo landing.** `description:`
-and `plan:` are projected onto the candy's opencharly.ai reference page, so touching
-either makes `task docs:drift` fail until the regenerated page is committed in the
-`docs` submodule — which in turn requires re-pinning the site candy. Even a one-word
-fix to a `description:` costs a `docs` landing plus the pointer bumps that follow it.
-Budget for that before starting, and read `/charly-build:docs` "Editing a source is a
-docs landing" for the full sequence.
+**`description:` and `plan:` can be PROJECTED, not just stored.** They are not inert
+metadata: `charly docs generate` renders both into a per-candy reference page, so in a
+project that publishes a documentation site a candy's prose is published prose. Whether
+that matters to you depends on the project — a candy in a project that generates no site
+carries no such obligation, and editing its `description:` is exactly the one-line change
+it looks like.
+
+In THIS repository it does matter: the per-candy pages are published on opencharly.ai
+from the `docs` submodule, so editing either field re-projects that candy's page and the
+change is only half-landed until the regenerated page is committed too. Treat a
+`description:` fix here as a multi-repo change rather than a one-liner. The projection
+model is `/charly-build:docs`; the landing order is `/charly-internals:git-workflow` B6.
 
 ## A candy's files live in the candy's own directory
 

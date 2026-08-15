@@ -89,10 +89,10 @@ no-op** — the same drift gate SDD applies to generated Go.
 Everything in that table is a PROJECTION, and every one of its sources is an ordinary
 file people edit for reasons that have nothing to do with the site — a candy's
 `description:`, a plan step, a skill's prose. Each such edit re-projects its page, and
-`task docs:drift` fails from that moment until the regenerated page is committed in the
-`docs` submodule, because drift is precisely "the committed site does not match its
-sources". **A one-line prose fix is therefore never a one-repo change.** Plan it as a
-multi-repo landing before starting, not after the gate says so.
+from that moment the committed site no longer matches its sources, so this project's
+drift gate over the `docs` submodule stays red until the regenerated pages are committed
+there. **A one-line prose fix is therefore never a one-repo change.** Plan it as a
+multi-repo landing before starting, not after a gate says so.
 
 Two chains reach the site, and they are not the same length.
 
@@ -110,31 +110,14 @@ that into `plugins/<plugin>/skills/<name>/SKILL.md`, and `charly docs generate` 
 has run, and on any CLEAN checkout the tree it reads is the pinned gitlink, so the change
 reaches readers only once the `plugins` landing merges and the superproject's `plugins`
 gitlink advances. **Advancing that gitlink without regenerating `docs` in the same change
-is what leaves the published site stale**, and nothing except `task docs:drift` will say
-so — which is precisely how the mirror has fallen behind before.
+is what leaves the published site stale**, and nothing except this project's drift gate
+will say so — which is precisely how the mirror has fallen behind before.
 
-### The landing sequence
-
-The order is forced by the chains above — it is `/charly-internals:git-workflow` B6's
-producer→consumer rule applied to documentation.
-
-1. **Edit the source**, never a generated file: the candy's `description:` / `plan:`, or
-   the owning candy's `skill:` content.
-2. **For a skill edit, run `charly marketplace generate` and land `plugins` first.**
-   Locally the generator then reads your dirty `plugins/` tree, so `docs:sync` picks the
-   change up immediately; for every other reader it arrives only with the merged gitlink.
-   That is why `plugins` leads the chain rather than trailing it.
-3. **Regenerate and land `docs`**: `task docs:sync`, review the emitted pages, commit
-   them in the `docs` submodule. `task docs:drift` is the gate — it re-syncs and fails
-   on any dirty path.
-4. **Re-pin the new `docs` merge** in `candy/docs-site/charly.yml`, whose clone is
-   keyed to an immutable commit. `task docs:pin` is the gate, and it asserts more than
-   one occurrence — see `/charly-tools:docs-site`, which owns the pin contract and the
-   reason it cannot be collapsed to a single sha.
-5. **Bump the superproject gitlinks** for whichever submodules moved.
-
-Every step after the first is CAUSED by the first, which is the reason this is written
-down: the cost of a prose edit is not visible in the prose.
+The ordering this forces — regenerate the projection, land the producer repo, then the
+consumer and its pin — is `/charly-internals:git-workflow` B6's producer→consumer rule
+applied to documentation. That skill owns the landing sequence, including the
+maintenance commands this project runs for it; the mechanism above is what makes the
+sequence necessary, and is all this page needs to carry.
 
 ## Defined, not default-active
 
