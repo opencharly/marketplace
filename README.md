@@ -1,6 +1,6 @@
 # OpenCharly Plugins
 
-Claude Code, Codex, and Kimi plugins for OpenCharly — the fully stocked gourmet kitchen for you and your agents.
+Claude Code, Codex, and Kimi plugins for OpenCharly — the fully equipped factory floor for you and your agents.
 
 ## How this marketplace is organized
 

@@ -1013,8 +1013,9 @@ stamps collide and mis-order across concurrent PRs). Operate on the feat branch:
    Only after that proof, tag EVERY repo (`plugins`, `pkg/*`, and `docs` included;
    `sdk` substitutes its `v0.<…>` form from step 2): `git tag -a v$VER -m "<subject>"
    "$MERGED_SHA"`; `git push origin refs/tags/v$VER` (a tag push — allowed by
-   the pre-push-gate). Only a SUPERPROJECT `v*` tag triggers `release-packages.yml`;
-   a `plugins` / `pkg/*` / `docs` tag fires NO workflow, so tagging them is harmless.
+   the pre-push-gate). Only a SUPERPROJECT `v*` tag triggers the release-binary
+   workflow; a `plugins` / `pkg/*` / `docs` tag fires NO workflow, so tagging them is
+   harmless.
    **SKIPPING any repo's tag is a DEFECT** — the pre-unification `plugins`/`pkg`
    tag-exempt rule is RETIRED; never omit a tag on a stale "exempt" belief (doing so
    once shipped a `plugins` merge un-tagged, backfilled add-only after the fact). The

@@ -29,8 +29,8 @@ The `charly` CLI is a Go program in the `charly/` directory. It uses the Kong CL
 
 | Action | Command | Description |
 |--------|---------|-------------|
-| Build | `task build:binary` | Compile to `bin/charly` (CalVer-stamped), NO install. Also copies to `candy/charly/bin/charly` — does NOT touch the tracked `pkg/arch/PKGBUILD` (that file is read only by the containerized `charly box pkg` native-package build) |
-| Package | `task pkg:arch` / `pkg:fedora` / `pkg:debian` / `pkg:all` | Build a distro-native `.pkg.tar.zst`/`.rpm`/`.deb` release artifact into `dist/`, containerized via `charly box pkg`. Install it yourself with your OWN package manager (`pacman -U`/`dnf install`/`apt install`) |
+| Build | `task build:binary` | Compile to `bin/charly` (CalVer-stamped), NO install. Also copies to `candy/charly/bin/charly` — does NOT touch the tracked `pkg/arch/PKGBUILD` (that file is read only by the legacy `charly box pkg` native-package build, removed with the nFPM cutover) |
+| Package | `charly generate-packages` (nFPM plugin) | Build a distro-native `.pkg.tar.zst`/`.rpm`/`.deb`/`.apk`/`.ipk` release artifact via the `charly generate-packages` plugin (nFPM, `sdk/packagekit`), published to the per-distro package repos. Install it yourself with your OWN package manager (`pacman -U`/`dnf install`/`apt install`/`apk add`) |
 | Install (portable) | `task install-portable` | Copy `bin/charly` to `$HOME/.local/bin/charly` (solo bootstrap; NOT a multi-teammate dev-loop step — see below) |
 | Run tests | `cd charly && go test ./...` | Run all tests |
 | Run specific test | `cd charly && go test -run TestName ./...` | Run single test |
