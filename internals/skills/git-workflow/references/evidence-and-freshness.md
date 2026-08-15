@@ -191,6 +191,27 @@ Worked case: restoring a reverted submodule pointer made a pasted `drift: clean`
 elsewhere in the same body false. The edit was verified by re-grepping the live body —
 correct technique, right target, **wrong question**.
 
+**The operational rule: grep for what DESCRIBES the construct you changed, not for the
+construct.** Searching for the thing you edited finds the place you already fixed. What
+goes stale is the prose ABOUT it — a paragraph naming the old flag, a table counting the
+old occurrences, a release note narrating the old design — and none of that contains the
+new text or, usually, the old code either.
+
+This page earned that rule three times in three review rounds of a single PR, and the
+shape was identical each time: **the fix was correct and the thing describing it was
+left behind.**
+
+| The fix | What it silently falsified |
+|---|---|
+| scoping the `head -1` note by intent | the note's own claim to be the page's only such use |
+| rewriting the recipe over three commits | the CHANGELOG paragraph describing the first draft |
+| replacing `\|\| exit 1` with nesting | the paragraph 27 lines below still crediting `\|\| exit 1` |
+
+Two of the three were caught by a reviewer rather than by the sweep, which is the honest
+measure of how weak grepping-for-the-construct is. A changed construct has a blast radius
+in PROSE, and it is widest in exactly the artifacts no gate reads: commit messages, PR
+bodies, and the release note — which, unlike the page, is immutable once merged.
+
 ### The gate that matters at merge is the merged tree's, not the head's
 
 Here the artifact does not move; the **base** does. A PR can be green at its head through
@@ -248,10 +269,10 @@ $ echo $?
 0                                                  # the FIRST probe's tree is gone
 ```
 
-A per-run `mktemp -d` removes the collision, and `|| exit 1` on the `add` means a
-failed setup never reaches a removal. This is R6 tree-safety applied to the recipe
-rather than to the reader: the guard belongs in the command, not in remembering to
-be careful.
+A per-run `mktemp -d` removes the collision, and nesting the cleanup inside the
+`add`'s success branch means a failed setup never reaches a removal. This is R6
+tree-safety applied to the recipe rather than to the reader: the guard belongs in
+the command, not in remembering to be careful.
 
 **Sibling rule: when a measurement decides what a change can or cannot do, measure the
 tree that change PRODUCES, not the one it starts from.** A validator measured `main` with
