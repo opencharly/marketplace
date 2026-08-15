@@ -81,8 +81,8 @@ attention. Verifying this one meant clearing `HOME`, `GIT_CONFIG_GLOBAL` and `GI
 and proving the isolation empty before trusting the result.
 
 **And executing it is only half — the other half is PROVENANCE: every measurement
-states the tree it was taken on.** This clause exists because the rule above, in the
-form that shipped without it, did not prevent the next error. A drift figure on this
+states the tree it was taken on.** This clause exists because the content-scoping rule
+two paragraphs up, in the form that shipped without it, did not prevent the next error. A drift figure on this
 very cutover was executed, correct, and false: `charly marketplace drift` was run
 with the superproject at `main` but the submodules checked out at their repo TIPS,
 and the result was reported as a fact about `main` — which pins its submodules at
