@@ -33,6 +33,7 @@ can merge. See `/charly-internals:skills` for the source→projection model and
 | paste gate output into a PR body | you re-ran the gate and quoted the older copy | "A paste and its label are two separate claims" |
 | assert a sha, a pin, or a status is current | it moved between measuring and writing | "Three freshness surfaces, failing independently" |
 | fix a claim a reviewer called false | the correction is a new claim with the same burden | "Sweep for what the fix invalidated" |
+| trust a check that reported nothing wrong | an absence claim decays differently from a presence claim, and goes stale silently | "Positive and negative claims decay differently" |
 | run a gate to decide whether a PR is safe to merge | you gated the head, and the MERGE is what lands | "The gate that matters at merge…" (its recipe is the probe below) |
 | land a `skill:` edit | the source and its generated copies are one cutover, not two | "A `skill:` source edit and its regeneration are one cutover across two repos" |
 | resolve a submodule conflict | a `checkout -- .` plus `git add -A` silently reverts the gitlink | "Submodule pointers can be reverted by a merge without ever conflicting" |
@@ -64,8 +65,8 @@ feel like errors while you are making them — and why a reader who holds the qu
 derive a trap nobody wrote down.
 
 Seven of those eight appear above. The table has eight ROWS over seven SECTIONS because the
-merged-tree section contributes two nouns. The fifth epistemic section, "Positive and
-negative claims decay differently", is deliberately absent: it is the moment-noun again,
+merged-tree section contributes two nouns. The epistemic section deliberately absent from
+it — "Positive and negative claims decay differently" — is left out because: it is the moment-noun again,
 seen from the reader's side rather than the writer's, and giving it a row would blur the
 distinction the table exists to draw. Eight epistemic plus four mechanism is the whole page.
 
@@ -118,8 +119,13 @@ The three merge-tree behaviours the probe recipe below depends on were establish
 by execution, in a throwaway repo. **The block below is a TRANSCRIPT, not a
 paste-able recipe** — the `$` prompts and interleaved output ARE the evidence, so
 pasting it wholesale would run the output lines as commands. Retype the commands,
-or read it as a record. The runnable recipes on this page carry no prompts; that
-is the tell that separates the two kinds of block.
+or read it as a record.
+
+Blocks on this page come in THREE kinds, and prompts identify only the first:
+TRANSCRIPTS (prompts + interleaved output — read, do not paste); RUNNABLE recipes
+(no prompts, no output — paste freely); and PASTED OUTPUT (no prompts, no commands
+— evidence, with nothing to run). So a prompt marks a transcript, but its ABSENCE
+does not by itself mark a recipe.
 
 ```
 $ git init -q -b main repo && cd repo         # -b main: git still defaults to master. Rerun from the
@@ -141,7 +147,8 @@ BBB
 >>>>>>> side-b
 ```
 
-The third COMMAND is why the guard is an exit-status test, not an output-shape test:
+The `commit-tree` command above — the one that fails on a multi-line oid — is why the guard
+is an exit-status test, not an output-shape test:
 the shape fix produces a tree a gate runs against and passes.
 
 *Artifact* is used in two senses below: a GENERATED FILE (the

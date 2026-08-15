@@ -232,12 +232,16 @@ produces an unpinnable mirror:
   It is an identity claim: "these pages are what that state renders to."
 
 The two shas are not the same and are not required to be — but the second is only
-meaningful relative to the first. **A mirror leg that lands ahead of its own
-superproject leg makes the mirror unpinnable by any state the superproject can
-reach**: the mirror becomes a composite of projections from several submodule
-commits, and no single pin reproduces a composite. Land each mirror leg immediately
-before its superproject leg and the two coincide naturally, with no reconciliation
-to perform.
+meaningful relative to the first. **A mirror leg that accumulates a SECOND merge before its
+superproject leg pins the first makes the mirror unpinnable by any state the
+superproject can reach**: the mirror becomes a composite of projections from several
+submodule commits, and no single pin reproduces a composite.
+
+Landing the mirror ahead is not the hazard — it is REQUIRED, because a superproject
+cannot pin a commit that does not exist yet. The hazard is the GAP: land each mirror
+leg immediately before its superproject leg, so exactly one mirror merge is
+outstanding at a time and the two coincide naturally, with no reconciliation to
+perform.
 
 *Proof that this is a live invariant rather than an aspiration:* regenerate at
 `main`'s OWN pins and count the pages that move. Zero means every published page is
@@ -331,8 +335,9 @@ headRefOid` LAGS a fresh push and will post the status on a stale SHA. Deriving 
 merge-time CalVer from a COMMIT's recorded date (`git show --date=format:'<fmt>'
 <sha>`, `git log -1 --format=%cd`) uses that commit's own author/committer TZ
 offset, not UTC, and can mis-stamp the tag/changelog by hours — `$VER` always comes
-from the LIVE clock at the moment of merge (`date -u +%Y.%j.%H%M`, per "CalVer"
-below), never from a commit's stored timestamp. A metric or grep verification
+from the LIVE clock at the moment of merge (`date -u +%Y.%j.%H%M`; the CalVer contract
+lives in `references/validator-and-calver.md`, not in this file), never from a
+commit's stored timestamp. A metric or grep verification
 command (a LOC count, a `git grep` sweep, a file-count claim) run from an
 ambient, `cd`-inherited working directory silently measures the WRONG tree the
 moment more than one worktree is in play — anchor every such command to an
