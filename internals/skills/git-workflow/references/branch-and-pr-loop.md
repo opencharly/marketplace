@@ -102,6 +102,15 @@ regression this class produces (a sibling merge advances `main` mid-validation, 
 naive recovery reverts the gitlink to the older pointer). Only after the descendant-wins
 check re-post the status and delta-re-gate as above.
 
+**Prefer the whole-tree check over this per-path one.** `git ls-tree HEAD <sub>`
+only helps when you already suspect the right submodule, and the failure it misses
+— a gitlink silently reverted by a merge that never conflicted, so the path is
+named nowhere — is the one that actually occurred. Compare the merge result against
+git's own resolution instead, which covers every path at once:
+`references/evidence-and-freshness.md`, "Submodule pointers can be reverted by a
+merge without ever conflicting". Use the per-path form above only as a quick
+confirmation once the whole-tree comparison has already told you where to look.
+
 **Multi-committer main advances — out-of-tree PRs from other committers.** The
 orchestrator is NOT the sole source of `main` advances: another committer (a human
 maintainer, a parallel session, an outside contributor via the fork+PR path) may

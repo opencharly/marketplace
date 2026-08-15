@@ -4,31 +4,44 @@
 
 A PR is a bundle of claims: the diff, the body's prose, the pasted gate output, the
 CHANGELOG narrative, the commit messages. The diff is checked mechanically. **Everything
-else is checked only if someone thinks to check it**, and this section is the catalog of
-the ways those claims go wrong. Every item below was a blocking finding on a real
-landing, most of them more than once.
+else is checked only if someone thinks to check it**, and this section catalogs the ways
+those claims go wrong.
 
-**They are all one question failing against different nouns:** *what exactly did I
-measure, and is it the thing my claim is about?* Read the sections as instances rather
-than as a list —
+Every item below was a blocking finding during the Factory unit-4 cutover —
+`opencharly/charly#274` and `opencharly/plugins#168`, `#169`, `#170`, `#171` — most of
+them more than once. Sixteen validation rounds produced roughly a dozen blocking
+findings, and the majority were not defects in the code but false or stale CLAIMS about
+it.
 
-| The noun that slipped | The section |
+**Most of them are one question failing against a different noun:** *what exactly did I
+measure, and is it the thing my claim is about?*
+
+| The noun that slipped | Where |
 |---|---|
-| The artifact — measured the right thing, quoted from the wrong copy | A paste and its label |
-| The moment — measured a surface that moved before the claim was read | Three freshness surfaces |
-| The other party's copy — asserted a negative about a tree they were editing | Positive vs negative |
-| The fix's blast radius — swept for what I corrected, not what I broke | Sweep for what the fix invalidated |
-| The base — gated the head when the merge is what lands | The merged tree's gate |
-| The produced tree — measured the starting state to decide what a change can do | The sibling rule, same section |
+| The artifact — measured the right thing, quoted the wrong copy | "A paste and its label" |
+| The moment — a surface moved between measuring and asserting | "Three freshness surfaces" |
+| The other party's copy — a negative asserted against a tree they were editing | "Positive and negative claims" |
+| The fix's blast radius — swept for what I corrected, not what I broke | "Sweep for what the fix invalidated" |
+| The base — gated the head when the merge is what lands | "The merged tree's gate" |
 
-Every one is a correct measurement answering the wrong question, which is why none of
-them feel like errors while you are making them.
+Each is a correct measurement answering the wrong question, which is why none of them
+feel like errors while you are making them — and why a reader who holds the question can
+derive a trap nobody wrote down. The last THREE sections are not instances of it — the
+cross-repo cutover, the submodule revert, and the status-absence false negative are
+plain mechanism, kept here because they bite in the same situations.
+
+**Terms.** *The gate* means whichever check a claim rests on — usually `charly box
+validate`, `charly marketplace drift`, or `charly docs generate`. `charly marketplace
+drift` compares each generated artifact in `plugins/` against what the candy `skill:` /
+`hook:` / `marketplace:` sources currently project, and exits 1 when any differs. See
+`/charly-internals:skills` for the source→projection model and `/charly-build:docs` for
+the site generator.
 
 ### A paste and its label are two separate claims
 
 When a body pastes command output and names the tree it ran on, that is two assertions:
 the output is real, and it came from where it says. The first is almost always true — the
-command did run, the bytes are genuine. The second is the one that fails.
+command did run. The second is the one that fails.
 
 So: **verify provenance, not plausibility.** Rebuild the exact tree the body names —
 every submodule at that commit's pinned gitlink, the binary built in-tree — and re-run.
@@ -36,9 +49,9 @@ Do not ask "is this output believable?"; ask "did it come from where it says?"
 
 The motivating case: a body pasted a truthful two-artifact drift result labelled as
 having run at `main`. It had run at an unmerged PR's branch. At real `main` the same
-command returned six, and the extra four were artifacts a wholesale regeneration there
-would have *reverted* — a recipe that would have shipped inside an immutable CHANGELOG
-entry, in the very paragraph written to warn about that failure class.
+command returned six, and a wholesale regeneration there would have *reverted* two
+already-merged PRs — a recipe that would have shipped inside an immutable CHANGELOG
+entry, in the paragraph written to warn about that failure class.
 
 This outranks mutation-testing the gate, and the two are not substitutes:
 
@@ -50,16 +63,19 @@ This outranks mutation-testing the gate, and the two are not substitutes:
 A reviewer applying only the first confirms a probative gate and never notices it was
 aimed elsewhere.
 
-### Freshness has three surfaces, and they fail independently
+### Three freshness surfaces, failing independently
 
 - **The head moves.** Re-resolve with `git ls-remote`, never the API — that read has
-  lagged pushes repeatedly. Re-resolve at the start AND immediately before posting.
+  lagged pushes repeatedly. This is also stated as a landing gotcha in
+  `references/multi-repo-coordination.md`; it is repeated here because the failure it
+  causes for a REVIEWER (stamping a verdict on a superseded SHA) differs from the one it
+  causes for an AUTHOR.
 - **The body moves.** A body edit produces no new SHA, no notification, and no status
   reset, so nothing in head-based discipline covers it. Re-read the body immediately
   before the verdict, as a standing step.
-- **Pasted gate output goes stale in place.** This is the sneakiest: the words around a
-  pasted verdict stay accurate while the tree moves underneath it. A pasted verdict is
-  the claim most likely to be true when written and false when read.
+- **Pasted gate output goes stale in place.** The sneakiest: the prose around a pasted
+  verdict stays accurate while the tree moves underneath it. A pasted verdict is the
+  claim most likely to be true when written and false when read.
 
 Corollary for a gate that is red **on purpose** (a disclosed sequencing state): paste the
 RED output and enumerate why, rather than an older green one. And re-fetch as the **last
@@ -78,7 +94,7 @@ Only one of them needs a timestamp:
 
 This applies to any two agents working one artifact, not only to validators.
 
-### After a fix, sweep for the claims the fix INVALIDATED
+### Sweep for what the fix invalidated
 
 R1's claim-keyed sweep, turned inward on the document you are editing. Fixing one claim
 routinely falsifies a different one elsewhere in the same artifact, and grepping for the
@@ -86,37 +102,45 @@ claim you just corrected will never surface it.
 
 Worked case: restoring a reverted submodule pointer made a pasted `drift: clean` line
 elsewhere in the same body false. The edit was verified by re-grepping the live body —
-correct technique, right target, **wrong question**. The stale claim survived and a
-validator had to name it.
+correct technique, right target, **wrong question**.
 
-### The gate that matters at merge is the MERGED TREE's, not the head's
+### The gate that matters at merge is the merged tree's, not the head's
 
-A different axis from everything above: here the artifact does not move, the **base**
-does. A PR can be green at its head through every round and still land a red `main`,
-because another PR merged in between and `update-branch` inherits its state.
+Here the artifact does not move; the **base** does. A PR can be green at its head through
+every round and still land a red `main`, because another PR merged in between and
+`update-branch` inherits its state.
 
-For any PR that goes `BEHIND`, re-derive the gate on `git merge-tree --write-tree <head>
-<base>`, never on the head alone.
+For any PR that goes `BEHIND`, re-derive the gate on the merge result, not the head:
 
-The sibling rule: **when a measurement decides what a change can or cannot do, measure
-the tree that change PRODUCES, not the one it starts from.** A validator measured `main`
-with `main`'s own submodule pin, concluded correctly about that tree, then generalized to
+```
+git merge-tree --write-tree <pr-head-sha> <base-sha>     # prints the resulting tree sha
+```
+
+**Sibling rule: when a measurement decides what a change can or cannot do, measure the
+tree that change PRODUCES, not the one it starts from.** A validator measured `main` with
+`main`'s own submodule pin, concluded correctly about that tree, then generalized to
 "this PR cannot fix the red" without measuring the tree the PR's pin produces. Wrong — a
 superproject gitlink does not move when the submodule repo merges; only a superproject PR
 bumps it, so that PR was not a bystander to the red, it was the half that closed it.
 
-### A `skill:` source edit and its regeneration are ONE cutover across two repos
+### A `skill:` source edit and its regeneration are one cutover across two repos
 
-Landing either half alone leaves `main` inconsistent, in one of two directions:
+Landing either half alone leaves `main` with `marketplace drift` red. **Both directions
+fail the same way** — exit 1, a stale-artifact listing — so neither is quiet:
 
-| What landed alone | Failure |
+| What landed alone | `drift` output |
 |---|---|
-| Generated tree ahead of source | The next regeneration by anyone, for any unrelated reason, silently REVERTS it |
-| Source ahead of generated tree | `charly marketplace drift` goes red for everyone until someone regenerates |
+| Source ahead of generated tree | names the artifacts needing regeneration |
+| Generated tree ahead of source | names them too, **plus** an explicit `(stale)` marker on any orphan the source no longer projects |
 
-Both occurred within a single week. The second is louder and therefore safer; the first
-is the dangerous one, because nothing announces it — the revert simply rides along in
-whoever's PR regenerates next.
+The generated-ahead direction is if anything the more legible of the two. What makes both
+dangerous is not detection, it is that **`drift` runs in no CI workflow** — it is red only
+for whoever runs it. A regeneration performed for an unrelated reason picks the revert up
+into that person's diff, where it reads as noise from their own change.
+
+So: run `charly marketplace drift` before and after any regeneration, and treat an
+unexplained artifact in the output as someone else's half-landed cutover rather than your
+own mess.
 
 Repair ownership, when `main` goes red from someone else's half-landed cutover: it is
 **blocking for your own landing**, not a separable cleanup. "Already red on main" and
@@ -131,24 +155,33 @@ a generator wrote into it — leaves that submodule at the OLD sha, and a subseq
 `git add -A` re-stages it there, silently discarding the merge's correct resolution. The
 path never appears in the conflict listing, because it never conflicted.
 
-Detect by comparing the WHOLE TREE, not the pointers you thought to suspect — any
-per-path check is only as good as your guess about which path to distrust:
+**This supersedes the per-path forward-gitlink check in
+`references/branch-and-pr-loop.md`.** That check works only when you already suspect the
+right path, and the motivating incident was not a path checked and gotten wrong — it was
+a path nobody thought to check. Compare the whole tree instead:
 
-- **Conflict-free merge:** `git rev-parse <merge>^{tree}` must equal
-  `git merge-tree --write-tree <head> <base>`. Byte-identical covers every path at once.
-- **Merge with conflicts:** the trees legitimately differ, so identity is the wrong test.
-  `git diff --numstat <resolution-tree> <merge-commit>` and confirm every delta is an
-  intentional resolution. In the motivating incident that listed exactly three: two
-  legitimate ones and the silent gitlink override sitting between them.
+```
+# conflict-free merge: the two trees must be byte-identical
+git rev-parse <merge-commit>^{tree}
+git merge-tree --write-tree <pr-head-sha> <base-sha>
 
-### "No validator status on the head I know" is a false negative
+# merge WITH conflicts: identity is the wrong test, since your resolutions
+# legitimately differ. Diff them and account for every delta:
+git diff --numstat $(git merge-tree --write-tree <pr-head-sha> <base-sha>) <merge-commit>
+```
 
-On PASS the evaluator adds a CalVer-finalization commit on top and posts
-`charly/pr-validator` on THAT sha, then squash-merges and deletes the branch. Polling
-`gh api repos/<r>/commits/<known-head>/statuses` therefore returns "(none)" right up
-until the merge — indistinguishable from a hung run, and biased toward suspecting a stall
-precisely when things are going well. Poll the PR's `state`/`mergedAt` and re-resolve the
-head at check time instead.
+In the motivating incident that diff listed exactly three paths: two intentional
+resolutions and the silent gitlink override sitting between them.
+
+### Status absence on a known head proves nothing
+
+On PASS the evaluator typically adds a CalVer-finalization commit and posts
+`charly/pr-validator` on THAT sha, then squash-merges and deletes the branch — so polling
+`gh api repos/<r>/commits/<known-head>/statuses` can return "(none)" right up until the
+merge, indistinguishable from a hung run. (Observed on two of three landings in the
+motivating cutover; the pr-validator spec requires a status on the pre-finalization head,
+so treat this as behaviour that MAY occur, not a guarantee.) Poll the PR's
+`state`/`mergedAt` and re-resolve the head at check time instead.
 
 Related: when a validator does look stalled, **ping it for liveness before respawning**.
 A `pr-validator` merges and tags on PASS, so two of them on an unanswered head can both
