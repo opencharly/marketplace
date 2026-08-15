@@ -17,7 +17,8 @@ description: |-
 Every change to an OpenCharly repo lands through ONE discipline: a **pull request**
 that a FRESH `pr-validator` agent independently validates and merges. A **direct
 push to `main` is FORBIDDEN and mechanically disabled** — GitHub branch protection
-(`enforce_admins`) + the `pre-push-gate` block it in every repo. The **R10 pass
+(`enforce_admins`) block it in every repo (the `pre-push-gate` adds a local
+backstop in the harnesses that wire it — NOT Claude Code). The **R10 pass
 authorizes OPENING the PR, never a self-merge**: the two-step landing separates the
 author (who opens the PR) from the fresh evaluator (who validates, merges, tags).
 This skill is the mechanics; the project rulebook "Post-Execution Policies" (`AGENTS.md` / `CLAUDE.md`) carries the
@@ -27,7 +28,7 @@ evaluator's own spec.
 
 ## Non-negotiable invariants
 
-- **No direct push to `main`** (the project rulebook's PR-only landing mandate — see "Post-Execution Policies"). Enforced by GitHub branch protection (the `charly/pr-validator` status + a PR + linear history + `enforce_admins`) and the `pre-push-gate` locally. Organization-wide apply/verify is owned only by `opencharly/.github/scripts/branch-protection.sh`.
+- **No direct push to `main`** (the project rulebook's PR-only landing mandate — see "Post-Execution Policies"). Enforced by GitHub branch protection (the `charly/pr-validator` status + a PR + linear history + `enforce_admins`), which is what makes it mechanical; the `pre-push-gate` adds a local backstop only in the harnesses that wire it (`.reasonix`, kimi) — it is NOT wired under Claude Code. Organization-wide apply/verify is owned only by `opencharly/.github/scripts/branch-protection.sh`.
 - **Never force-push, on any branch, ever** (mandate, same rulebook section). `main` only fast-forwards via the validator's squash-merge; a `feat/` branch, once pushed, advances only by ADDING commits (the author's change, any review-round fix commits, then the evaluator's merge-time version stamp), and the squash-merge collapses them. A stale `feat/` catches up with `gh pr update-branch` (a merge, NOT a rebase-force); tags are add-only. **Amending a `feat/` branch is a normal authoring action — legal until the first push** (amending a pushed branch would require a force-push, which is forbidden).
 - **R10-gated; the merge requires the fresh `pr-validator`'s green status.** R10 PASS authorizes opening the PR (with pasted evidence); a rule violation or R10 FAIL means no green `charly/pr-validator` status and no merge — fix in the same tree, re-run R10, re-push; the status resets and the evaluator re-runs.
 - **Zero warnings is part of R10** (project rulebook R1). A version-mismatch warning clears with `charly box reconcile`; any other warning gets `/charly-internals:root-cause-analyzer` then a real fix — "warning" is never an accepted end state.

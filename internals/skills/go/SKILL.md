@@ -124,6 +124,29 @@ charly box build <image>
 
 This also interacts with the dual-path gotcha documented in `/charly-tools:charly`: `bin/charly` (repo-root, used by host-side invocations) and `candy/charly/bin/charly` (what the `charly` candy actually copies into images) must stay in sync. The canonical `task build:binary` path does both; a manual `go build -o bin/charly ./charly` needs an explicit `cp bin/charly candy/charly/bin/charly` follow-up.
 
+## Environment constraints — sandboxed /tmp + Go temp dirs
+
+Some dev hosts (a sandboxed runner, a small tmpfs `/tmp`) cap writes to the system
+temp dir at a few tens of MB per command, regardless of the free space `df` reports.
+Go builds and golangci-lint routinely exceed that, and the failures look like tool
+bugs ("disk quota exceeded", "parallel golangci-lint is running") — they are
+environmental, not code defects. On such a host:
+
+- Run Go builds/tests with `GOTMPDIR=~/.cache/go-tmp` (a root-fs dir) — Go's build
+  work then never touches the capped temp dir.
+- golangci-lint v2 locks at `$TMPDIR/golangci-lint.lock`; a missing TMPDIR dir makes
+  the lock open fail with ENOENT, which golangci-lint reports as "parallel golangci-lint
+  is running" — a false positive, not a real parallel run. Create the TMPDIR dir first
+  (or pass `--allow-parallel-runners` with a fresh cache). See `/charly-internals:go-quality`.
+- `.claude/hooks/pre-commit-gate.sh` (the staged-Go-lint discipline backstop) redirects
+  its own lint temp dirs to `~/.cache/charly-gate-lint/` and creates the TMPDIR/GOTMPDIR
+  subdirs, so it is unaffected by the cap wherever it runs. Note it is NOT wired in
+  Claude Code — `.claude/settings.json` wires no `PreToolUse` hooks, so under Claude
+  Code the script fires on nothing and nothing runs it automatically. It stays live in
+  the other harnesses that invoke it (`.reasonix/settings.json`, and `~/.kimi-code/config.toml`
+  which delegates to `.claude/hooks/`). Running Go work under Claude Code, apply the two
+  bullets above yourself.
+
 ## R9 — deployed binary matches source; runtime deps live in the PKGBUILD
 
 See the project rulebook's R9 mandate (`CLAUDE.md`/`AGENTS.md`). Applied to the `charly` toolchain:
@@ -145,24 +168,6 @@ See the project rulebook's R9 mandate (`CLAUDE.md`/`AGENTS.md`). Applied to the 
 The verification side (checking the deployed binary + deps on a live target)
 is `/charly-check:check` Standards 7–9; the dual-path `bin/charly` ↔
 `candy/charly/bin/charly` gotcha is above and in `/charly-tools:charly`.
-
-## Environment constraints — sandboxed /tmp + Go temp dirs
-
-Some dev hosts (a sandboxed runner, a small tmpfs `/tmp`) cap writes to the system
-temp dir at a few tens of MB per command, regardless of the free space `df` reports.
-Go builds and golangci-lint routinely exceed that, and the failures look like tool
-bugs ("disk quota exceeded", "parallel golangci-lint is running") — they are
-environmental, not code defects. On such a host:
-
-- Run Go builds/tests with `GOTMPDIR=~/.cache/go-tmp` (a root-fs dir) — Go's build
-  work then never touches the capped temp dir.
-- golangci-lint v2 locks at `$TMPDIR/golangci-lint.lock`; a missing TMPDIR dir makes
-  the lock open fail with ENOENT, which golangci-lint reports as "parallel golangci-lint
-  is running" — a false positive, not a real parallel run. Create the TMPDIR dir first
-  (or pass `--allow-parallel-runners` with a fresh cache). See `/charly-internals:go-quality`.
-- The pre-commit-gate hook (`.claude/hooks/pre-commit-gate.sh`) already redirects its
-  lint temp dirs to `~/.cache/charly-gate-lint/` and creates the TMPDIR/GOTMPDIR
-  subdirs, so a clean tree can commit on such a host.
 
 ## Style Guide
 

@@ -536,12 +536,18 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
       body-move + inventory, stays a blocker. No "permanent residue" framing (a
       K-wave exit + a tracked task is required). Pre-existing alias files / kit
       imports = migration INVENTORY (not blockers); NEW/GROWN ones (outside the
-      migration exception) = blockers. **The `pre-commit-gate.sh` ZERO-ALIASES hook
-      is the mechanical floor under this check**: it blocks a NEW `charly/*_aliases.go`
-      file and a declaration-form kit-alias line (`type X = kit.Y` / `var x = kit.Y`)
-      tier-independently, fail-open — a hook block is a HARD FAIL (never a workaround
-      target), and a hook ALLOW does NOT discharge the validator's judgment, because
-      IMPORT-PURITY of a plain kit IMPORT/CALL is validator-judged, not hook-gated.
+      migration exception) = blockers. **Do NOT assume a mechanical floor under this
+      check.** The `pre-commit-gate.sh` ZERO-ALIASES hook blocks a NEW
+      `charly/*_aliases.go` file and a declaration-form kit-alias line (`type X = kit.Y` /
+      `var x = kit.Y`) tier-independently, fail-open — but it is **NOT wired under Claude
+      Code**, where validators normally run (`.claude/settings.json` declares no
+      `PreToolUse` hooks). It is wired in `.reasonix/settings.json` and via
+      `~/.kimi-code/config.toml`. So under Claude Code this check is ENTIRELY your
+      judgment and nothing has pre-screened the diff — inspect every staged
+      `charly/*.go` change yourself. Where the hook does run, a hook block is a HARD FAIL
+      (never a workaround target), and a hook ALLOW still does NOT discharge your
+      judgment, because IMPORT-PURITY of a plain kit IMPORT/CALL is validator-judged,
+      not hook-gated.
     - **PER-ITEM TRACE (mandatory in the POSTED comment).** For each staged
       `charly/*.go` change, the POSTED validation comment carries an explicit line
       per item: any new/grown alias file (→ blocker); any new kit import (→ blocker

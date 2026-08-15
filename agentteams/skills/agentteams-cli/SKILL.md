@@ -38,6 +38,30 @@ Rooms their permissions allow.
   (service account) token to `/var/run/agentteams/cli-token` — on a pod
   substrate pull it out with `charly cp <deploy> :/var/run/agentteams/cli-token <local>`.
 
+## The `agentteams:` check verb
+
+The plugin ALSO serves the declarative `agentteams:` check verb — the
+controller-probe counterpart of the CLI, authored as a `check:` step in
+a candy/box plan. It is HOST-BASED (the mcp pattern): the provider
+resolves the controller's in-venue :8090 to a host-routable address
+over the reverse channel (a published port on the pod substrate, a
+live `ssh -L` forward on the vm substrate), pulls the admin SA token
+from the venue, and probes with the SAME REST client the command uses
+(R3 — one surface covers the CLI and every bed). Methods:
+
+- `agentteams: status` — controller health + resource counts.
+- `agentteams: manager-running` — poll until a manager reaches Running
+  (`name:` pins a specific manager; default: any).
+- `agentteams: worker-running` — create the named Worker CR (default
+  `bed-worker`) and poll until Running WITH its Matrix room
+  provisioned and the room alias resolvable on the homeserver.
+- `agentteams: worker-list` — list the workers the controller manages.
+
+The verb's method + method-exclusive modifiers ride the desugared
+plugin input, validated at runtime against the served `#AgentTeamsInput`
+schema. It skips under `charly check box` (no live controller on a
+disposable `podman run --rm`).
+
 ## Declarative apply
 
 `charly agentteams apply -f <file>` walks the YAML docs and applies each
