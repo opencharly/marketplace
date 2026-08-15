@@ -64,6 +64,19 @@ code class and takes a runtime tier, the docs riding along. So a docs-only skill
 cutover lands `plugins` (the `*.md`) at `documentation reviewed`, then the
 superproject pointer bump at `documentation reviewed` too — both halves honest.
 
+**The derivation stops at the gitlink, and the reason is a general rule: a change
+class must be decidable FROM THE DIFF.** A gitlink is a pointer git itself
+resolves, so "what it points at" is reachable from the PR — the validator reads
+the submodule's own `old..new` in the repo the PR is against, and the derivation
+above is certifiable without leaving it. A sha inside a candy `var:` is not: it
+is a string, and following it means cloning a remote repository at a named
+commit. Were "the referenced content is documentation" the test, the class would
+be a property of a tree the PR does not contain, and no validator could rule on
+it from the PR — which is why re-pinning `DOCS_REF` after a docs merge is a
+CONFIG change carrying its own bed gate (B6a step 4), no matter how documentary
+the commit it names. Any pin the diff cannot resolve behaves the same way. When
+the diff cannot decide the class, the class is the heavier one.
+
 **For the full multi-worktree end-to-end — the doc-tier `git -C` literal-path
 rule, and the mandatory post-landing worktree refresh — see B7.**
 
@@ -198,7 +211,14 @@ not steps an charly user runs, and they never belong on a reader-facing page.
    (`/charly-tools:docs-site` owns the pin contract). This step edits candy
    CONFIG rather than prose, so its own gate is the `check-docs` bed — a
    documentation-only change class does NOT cover it, and the commit that carries
-   it cannot claim the `documentation reviewed` tier.
+   it cannot claim the `documentation reviewed` tier. Positively: its gate is
+   `charly box validate` PLUS `check-docs` — the `disposable: true` bed that
+   composes the changed entity, through `docs-site-app` — at `fully tested and
+   validated`. Watch for it on a landing whose only "extra" is this re-pin: the
+   step silently upgrades the WHOLE cutover's gate, because `DOCS_REF` is emitted
+   as an ENV line above the clone step, so re-pinning it changes the emitted
+   Containerfile and therefore the image. The general rule the boundary rests on
+   is in B2, "the derivation stops at the gitlink".
 5. **Bump the superproject gitlinks** for whichever submodules moved.
 
 ## B7 — Multi-worktree landing + refresh (the canonical end-to-end)
