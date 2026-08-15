@@ -221,6 +221,30 @@ not steps an charly user runs, and they never belong on a reader-facing page.
    is in B2, "the derivation stops at the gitlink".
 5. **Bump the superproject gitlinks** for whichever submodules moved.
 
+**Why that order and not any other — the two-directional pin rule.** A superproject
+gitlink and a mirror's own pin are DIFFERENT relations, and conflating them is what
+produces an unpinnable mirror:
+
+- **Source-covers.** The superproject pins a `plugins` sha that must CONTAIN every
+  source edit producing what the mirror shows. It is a coverage claim: "everything
+  rendered downstream is generated from something at or before this sha."
+- **Mirror-reflects.** The `docs` mirror is a PROJECTION of one specific source state.
+  It is an identity claim: "these pages are what that state renders to."
+
+The two shas are not the same and are not required to be — but the second is only
+meaningful relative to the first. **A mirror leg that lands ahead of its own
+superproject leg makes the mirror unpinnable by any state the superproject can
+reach**: the mirror becomes a composite of projections from several submodule
+commits, and no single pin reproduces a composite. Land each mirror leg immediately
+before its superproject leg and the two coincide naturally, with no reconciliation
+to perform.
+
+*Proof that this is a live invariant rather than an aspiration:* regenerate at
+`main`'s OWN pins and count the pages that move. Zero means every published page is
+reproducible from the state the superproject currently points at. A non-zero count is
+the composite above, and it names its own repair — the pages listed are exactly those
+whose source landed out of order.
+
 ## B7 — Multi-worktree landing + refresh (the canonical end-to-end)
 
 When this project is driven from multiple git worktrees sharing one `.git`, only
