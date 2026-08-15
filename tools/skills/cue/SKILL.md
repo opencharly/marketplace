@@ -57,7 +57,7 @@ evaluates CUE — a non-functional binary fails the check.
 charly fleet add cue cue --target local   # installs /usr/local/bin/cue on this host
 ```
 
-…then the offline vendoring pipeline (see `/charly-internals:egress`) can run.
+…then the `task cue:vendor` pipeline (see `/charly-internals:egress`) can run.
 
 ## Cross-References
 

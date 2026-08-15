@@ -86,27 +86,6 @@ more serialization than that without a technical reason:
   the delta re-gate covers only the mechanical update-branch merge on top of an
   already-R10'd `main`.
 
-**Re-running the bed is HALF the remedy — re-pointing the citations is the other
-half.** `gh pr update-branch` merges `main` into the branch, and that merge can
-pull a new BUILDER-CHAIN input — a submodule gitlink advance, a candy change —
-into the very chain a bed's fixture image builds from. Every bed result pasted
-before that merge then describes a tree that is not the one being merged: true
-when written, false when read (`references/evidence-and-freshness.md`, "Three
-freshness surfaces, failing independently"). The delta re-gate above produces the
-fresh run; nothing in it updates the artifacts that CITE the old one, so a run
-directory named in the PR body or the CHANGELOG still points at a superseded tree
-— and it is the CHANGELOG that ships inside the commit the evaluator tags.
-
-**Scope — block on what gets TAGGED, report what gets squashed away.** The
-CHANGELOG entry and the PR body are both durable: the entry lands in the tagged
-tree, and a merged PR body stays public and quotable long after the branch is
-deleted. A superseded run directory in either is BLOCKING. An intermediate commit
-message is replaced by the evaluator's squash message, so a stale citation there
-is reportable but not blocking. The general form, which outlives the specific
-case: **a claim-keyed sweep runs LAST, once the final tree exists** — a record
-written alongside the change it describes is written before the tree its reader
-will check it against.
-
 **Gitlink ANCESTOR bump → `gh pr update-branch` flags CONFLICTING (recover
 locally).** When the just-merged delta and a still-open PR both bump the SAME
 submodule gitlink and one bump is an ANCESTOR of the other, GitHub's
@@ -131,22 +110,6 @@ git's own resolution instead, which covers every path at once:
 `references/evidence-and-freshness.md`, "Submodule pointers can be reverted by a
 merge without ever conflicting". Use the per-path form above only as a quick
 confirmation once the whole-tree comparison has already told you where to look.
-
-**The `docs` gitlink has a TWIN in candy config, and no gitlink check can see
-it.** Both checks above compare gitlinks. `candy/docs-site/charly.yml` records
-the same `docs` sha twice as ordinary text — once as the `DOCS_REF` var (the
-clone step's ENV, hence that layer's cache key) and once as the literal matcher
-in the `docs-site-pinned-commit` check — and a merge resolves plain text
-line-wise, with no notion that those strings name a commit. So a recovery can
-satisfy the descendant-wins check AND the whole-tree comparison while leaving the
-candy pinned at the older commit: the same regression this class produces, one
-surface over, invisible to every instrument aimed at it. The two gates are
-complementary and neither substitutes for the other — the gitlink checks above
-catch a gitlink that went backwards; `task docs:pin` catches the gitlink and the
-candy pins DISAGREEING, and passes silently when both regressed together. So run
-BOTH whenever a recovery touches the `docs` gitlink. The rule is lockstep: the
-gitlink and its candy pins move together, on a recovery exactly as on the forward
-landing (B6a step 4, which also owns that re-pin's change class).
 
 **Multi-committer main advances — out-of-tree PRs from other committers.** The
 orchestrator is NOT the sole source of `main` advances: another committer (a human

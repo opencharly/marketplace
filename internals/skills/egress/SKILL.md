@@ -5,7 +5,7 @@ description: |-
   config files charly WRITES to a system BEFORE the bytes hit disk. MUST be
   invoked before working on candy/plugin-fleet/egress.go, the vendored schemas under
   candy/plugin-egress/egress-schemas/vendor/, the ValidateEgress / registerVendoredEgressKind path,
-  the offline CUE vendoring pipeline, or adding an egress schema for any
+  the offline `task cue:vendor` pipeline, or adding an egress schema for any
   written artifact (cloud-init, kubernetes manifests, traefik routes, runtime config,
   install ledger, systemd/quadlet units, ssh_config, libvirt XML).
 ---
@@ -124,7 +124,7 @@ split:
   vendored `package`+`import` file never has to join the SDK's single-blob `BuildCapabilities` /
   `ConcatSchema` / `CompileString` Describe contract (the move that would otherwise break).
 
-## The offline vendoring pipeline
+## The offline vendoring pipeline (`task cue:vendor`)
 
 Vendoring keeps charly a hermetic single binary — schemas are converted to plain
 `.cue` at DEV time and embedded; nothing is fetched at runtime. Requires the `cue`
@@ -207,5 +207,5 @@ The schemas + validation now live in `candy/plugin-egress` (M16):
 Invoke before working on `candy/plugin-egress` (the validation logic + the egress CUE schemas
 under `candy/plugin-egress/egress-schemas/` incl. `vendor/cloud_config.cue`), the
 `candy/plugin-fleet/egress.go` SHIM, the `ValidateEgress` path,
-the offline vendoring pipeline, or adding/validating any config file charly writes
+the `task cue:vendor` pipeline, or adding/validating any config file charly writes
 to a system.

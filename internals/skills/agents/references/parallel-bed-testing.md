@@ -76,13 +76,13 @@ common way an in-flight cutover leaks onto shared host state.
   downloaded as a published release) installed with the distro's own
   package manager
   — this is the only canonical host-refresh path; no Taskfile target
-  auto-installs system-wide. (`task build:install-portable` — a portable
+  auto-installs system-wide. (`task install-portable` — a portable
   `$HOME/.local/bin/charly` copy — remains for solo bootstrap, but it
   writes to a host location exactly like a package install, so the same
   in-flight-work boundary below applies to it too.)
 - **The host-install boundary — no host-writing target runs during
   in-flight multi-teammate work, period.** Neither the package-manager
-  install nor `task build:install-portable` runs while teammates are
+  install nor `task install-portable` runs while teammates are
   mid-cutover: both write to host state (`$PATH` or `$HOME`) every
   concurrent teammate may resolve, and either would publish an unmerged
   branch's binary where a sibling teammate or the operator expects

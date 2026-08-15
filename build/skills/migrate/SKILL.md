@@ -93,8 +93,6 @@ A non-CalVer value (a legacy integer, empty, or garbage) parses as "older than e
 
 ## Adding a future cutover
 
-**From here to the end of "Standing rule" is maintenance the charly project performs on its OWN schema**, run from checkouts of the spec repo and the superproject. Nothing in these two sections is a step an charly user runs — the user-facing surface of a schema cutover is the single command `charly migrate`, unchanged. They are recorded here because this skill owns the migration table; the commands are named as this project's maintenance, not as instructions for the reader.
-
 The payoff of the declarative engine: the common case needs **zero new Go** — but since the schema lives in the spec module, a schema-version bump is **CROSS-REPO**: the spec repo lands + tags FIRST, then the superproject consumes it.
 
 1. Bump `#SchemaVersion` in **`spec/schema/version.cue`** to the new CalVer.
