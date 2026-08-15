@@ -88,8 +88,10 @@ requires):
   individually, never as one tree.
 
 **Prove a fix is in the BUILT BINARY by a content marker, NOT by the version stamp.**
-`scripts/calver.sh` derives the CalVer from the HEAD commit's UTC time (`git log -1
---format=%cd`), so the stamp identifies the SOURCE COMMIT, never the build moment — a
+`scripts/calver.sh` derives the CalVer from the HEAD commit's UTC time (`TZ=UTC0 git
+log -1 --format=%cd --date='format-local:%Y %j %H %M'` — the `TZ=UTC0` is what makes
+the bare `%cd` UTC; without it `%cd` uses the commit's own TZ offset), so the stamp
+identifies the SOURCE COMMIT, never the build moment — a
 `task build:binary` on a DIRTY working tree reports the IDENTICAL version as the clean
 commit under it. So `charly version` matching the expected CalVer does NOT prove your
 uncommitted fix compiled in. Prove fix-presence by a content marker instead: `strings
