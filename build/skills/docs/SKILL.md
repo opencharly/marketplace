@@ -84,6 +84,41 @@ not the page.**
 Every emitted file carries a `DO-NOT-EDIT` header, and **regeneration on a clean tree is a
 no-op** — the same drift gate SDD applies to generated Go.
 
+## Editing a source is a docs landing
+
+Everything in that table is a PROJECTION, and every one of its sources is an ordinary
+file people edit for reasons that have nothing to do with the site — a candy's
+`description:`, a plan step, a skill's prose. Each such edit re-projects its page, and
+from that moment the committed site no longer matches its sources, so this project's
+drift gate over the `docs` submodule stays red until the regenerated pages are committed
+there. **A one-line prose fix is therefore never a one-repo change.** Plan it as a
+multi-repo landing before starting, not after a gate says so.
+
+Two chains reach the site, and they are not the same length.
+
+**Candy and box prose — ONE hop.** `reference/candy/` and `reference/box/` are read
+straight off disk, walking each repo as its own project root. Editing a
+`candy/<name>/charly.yml` `description:` or `plan:` re-projects
+`reference/candy/<name>.md` in the same tree, immediately. The `docs` commit belongs to
+the same cutover as the candy edit.
+
+**Skill prose — TWO hops.** `recipes/` is NOT read from `candy/*/charly.yml`. A skill is
+authored as a `skill:` entity in its owning candy; `charly marketplace generate` projects
+that into `plugins/<plugin>/skills/<name>/SKILL.md`, and `charly docs generate` reads
+**that projection** — the `plugins/` submodule tree, never the candy source. Editing a
+`skill:` entity therefore changes nothing on the site until `charly marketplace generate`
+has run, and on any CLEAN checkout the tree it reads is the pinned gitlink, so the change
+reaches readers only once the `plugins` landing merges and the superproject's `plugins`
+gitlink advances. **Advancing that gitlink without regenerating `docs` in the same change
+is what leaves the published site stale**, and nothing except this project's drift gate
+will say so — which is precisely how the mirror has fallen behind before.
+
+The ordering this forces — regenerate the projection, land the producer repo, then the
+consumer and its pin — is `/charly-internals:git-workflow` B6's producer→consumer rule
+applied to documentation. That skill owns the landing sequence, including the
+maintenance commands this project runs for it; the mechanism above is what makes the
+sequence necessary, and is all this page needs to carry.
+
 ## Defined, not default-active
 
 The catalog enumerates what is **defined**, never what happens to be switched on. This is not a
