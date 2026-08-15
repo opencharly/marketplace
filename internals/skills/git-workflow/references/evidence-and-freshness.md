@@ -67,8 +67,23 @@ shell recipe on the page sitting in an EPISTEMIC section, exempted by that very 
 The frame had decided what got executed, and routed a runnable command to the
 "reasoning is enough" side. So: **every runnable command and every mechanism claim on
 this page is executed before it is published, wherever it sits.** If you extend any
-section with either, run it. The three merge-tree behaviours the probe recipe below
-depends on were established that way, in a throwaway repo:
+section with either, run it.
+
+**And executing it is only half — the other half is PROVENANCE: every measurement
+states the tree it was taken on.** This clause exists because the rule above, in the
+form that shipped without it, did not prevent the next error. A drift figure on this
+very cutover was executed, correct, and false: `charly marketplace drift` was run
+with the superproject at `main` but the submodules checked out at their repo TIPS,
+and the result was reported as a fact about `main` — which pins its submodules at
+older gitlinks and is clean. Nothing was unexecuted. The measurement simply answered
+a question about a tree nobody had named, which is this page's top-ranked epistemic
+trap wearing a mechanism's clothes. So a figure is publishable only with the tree
+identified: which commit, which submodule shas, which working-tree state. "On main"
+is a claim about pinned gitlinks, and it is false of a checkout whose submodules sit
+at their tips.
+
+The three merge-tree behaviours the probe recipe below depends on were established
+by execution, in a throwaway repo:
 
 ```
 $ git merge-tree --write-tree side-a side-b   # conflicting pair
@@ -196,16 +211,41 @@ fi
 
 # A tree oid is not checkoutable and every gate needs a working tree, so wrap it:
 MERGED=$(git commit-tree "$TREE" -p "$PR_HEAD" -p "$BASE" -m probe)
-git worktree add --detach /tmp/gate-probe "$MERGED"
 
-# REQUIRED: worktree add leaves submodules EMPTY, and section 1 of this page
-# demands every submodule at that commit's pinned gitlink. Skip this and the
-# probe measures a tree the gate cannot even read.
-git -C /tmp/gate-probe submodule update --init --recursive
+# mktemp, NOT a fixed path. `worktree add` accepts an existing EMPTY dir, so
+# this is race-free — and it is what stops the cleanup below from destroying
+# somebody else's work. See the warning under this block.
+PROBE=$(mktemp -d /tmp/gate-probe.XXXXXX)
+git worktree add --detach "$PROBE" "$MERGED" || exit 1
 
-# …run the gate in /tmp/gate-probe, then:
-git worktree remove --force /tmp/gate-probe
+# REQUIRED: worktree add leaves submodules EMPTY, and "A paste and its label
+# are two separate claims" above demands every submodule at that commit's
+# pinned gitlink. Skip this and the probe measures a tree the gate cannot
+# even read.
+git -C "$PROBE" submodule update --init --recursive
+
+# …run the gate in "$PROBE", then:
+git worktree remove --force "$PROBE"
 ```
+
+**Why `mktemp` and not a fixed `/tmp/gate-probe`: the cleanup line is destructive
+and never checks whose worktree it is removing.** With a fixed path, a second probe
+starting while a first still holds it fails its `add` — correctly, exit 128 — and
+then, in a script without `set -e`, runs its cleanup anyway and **deletes the first
+probe's worktree**, uncommitted contents included. Executed:
+
+```
+$ git worktree add --detach /tmp/gate-probe HEAD   # second probe, same path
+fatal: '/tmp/gate-probe' already exists
+$ git worktree remove --force /tmp/gate-probe      # cleanup runs regardless
+$ echo $?
+0                                                  # the FIRST probe's tree is gone
+```
+
+A per-run `mktemp -d` removes the collision, and `|| exit 1` on the `add` means a
+failed setup never reaches a removal. This is R6 tree-safety applied to the recipe
+rather than to the reader: the guard belongs in the command, not in remembering to
+be careful.
 
 **Sibling rule: when a measurement decides what a change can or cannot do, measure the
 tree that change PRODUCES, not the one it starts from.** A validator measured `main` with
@@ -268,10 +308,12 @@ fi
 
 # merge WITH conflicts: identity is the wrong test, since your resolutions
 # legitimately differ. Diff them and account for EVERY delta.
-# NOTE head -1 is correct HERE and nowhere else on this page: this line WANTS the
-# conflicted tree, to diff against. Anywhere you intend to RUN something in the
-# resulting tree, guard on merge-tree's exit status instead — `head -1` there
-# yields a tree full of conflict markers and the gate passes against garbage.
+# NOTE the rule for `head -1` is about INTENT, not location. It is right when you
+# want the conflicted tree as DATA — to diff or inspect, as here and in the
+# evidence block near the top of this page. It is wrong the moment you will RUN
+# anything inside the resulting tree: there it yields a tree full of conflict
+# markers and the gate passes against garbage, so guard on the exit status
+# instead (the probe recipe above does).
 # On a conflicting merge, merge-tree prints the tree oid on line 1
 # and then the conflict stages; without it the substitution captures all of that
 # and git reports "invalid object name" — precisely in the case you need this.
