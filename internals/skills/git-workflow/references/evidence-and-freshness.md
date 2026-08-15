@@ -207,8 +207,8 @@ left behind.**
 | rewriting the recipe over three commits | the CHANGELOG paragraph describing the first draft |
 | replacing `\|\| exit 1` with nesting | the paragraph 27 lines below still crediting `\|\| exit 1` |
 
-Two of the three were caught by a reviewer rather than by the sweep, which is the honest
-measure of how weak grepping-for-the-construct is. A changed construct has a blast radius
+**All three were caught by a reviewer. The sweep caught none of them** — zero for three,
+which is the honest measure of how weak grepping-for-the-construct is. A changed construct has a blast radius
 in PROSE, and it is widest in exactly the artifacts no gate reads: commit messages, PR
 bodies, and the release note — which, unlike the page, is immutable once merged.
 
