@@ -300,7 +300,7 @@
     {
       "name": "charly-kubernetes",
       "source": "./kubernetes",
-      "description": "Schema authoring for `kind: kubernetes` — Kustomize manifests + cluster probes via the `kube:` check verb.",
+      "description": "Schema authoring for `kind: kubernetes` — Kustomize manifests, cluster probes via the `kube:` check verb, and the helm words (`helm-release` install step + `helm:` check verb).",
       "author": {
         "name": "opencharly"
       },
