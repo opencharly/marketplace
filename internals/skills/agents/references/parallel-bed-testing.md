@@ -71,9 +71,10 @@ common way an in-flight cutover leaks onto shared host state.
   copy, gitignored, no install step) — is the dev binary: every teammate
   uses its own worktree's `./bin/charly` for every charly verb. The
   host-installed `charly` is a distro-native package
-  (`.pkg.tar.zst`/`.rpm`/`.deb`, built via `task
-  pkg:arch`/`pkg:fedora`/`pkg:debian`/`pkg:all` into `dist/`, or downloaded
-  as a published release) installed with the distro's own package manager
+  (`.pkg.tar.zst`/`.rpm`/`.deb`, built by the `charly generate-packages`
+  plugin (nFPM) and published to the per-distro package repos, or
+  downloaded as a published release) installed with the distro's own
+  package manager
   — this is the only canonical host-refresh path; no Taskfile target
   auto-installs system-wide. (`task install-portable` — a portable
   `$HOME/.local/bin/charly` copy — remains for solo bootstrap, but it
@@ -176,14 +177,14 @@ common way an in-flight cutover leaks onto shared host state.
   in sync (a manual `go build -o` does not) — see `/charly-internals:go`
   "Quick Reference" / "Debug a Build Issue" + `/charly-tools:charly`. It
   does not touch the tracked `pkg/arch/PKGBUILD` — that file is read only
-  by the distro-native package build (`charly box pkg`, run inside a
-  container from its own embedded template), never by a bare-host `go
-  build`.
+  by the legacy `charly box pkg` native-package build (removed with the
+  nFPM cutover; the `charly generate-packages` plugin builds the packages
+  now), never by a bare-host `go build`.
 - **Post-merge resync.** After a wave lands, the orchestrator/operator
   updates the host package from the new `main` via the native-package path
-  — build a fresh release artifact (`task pkg:arch`/`pkg:fedora`/
-  `pkg:debian` into `dist/`, from the main checkout) and install it with
-  the distro's package manager, or install a newly published release —
+  — install a freshly published release from the per-distro package repos
+  (built by the `charly generate-packages` plugin), or build one from the
+  main checkout —
   never via a Taskfile target that installs directly. Each long-lived
   worktree is then either removed (its cutover is done) or fast-forwarded
   to the new `main` plus a `task build:binary` re-run before reuse — never
@@ -530,8 +531,8 @@ The playbook:
    trees ran overlapping (one finishing in roughly 79s, nested inside a
    sibling's roughly 265s window), with separate per-tree
    `.check/`/`.build/` outputs, zero cross-contamination, zero leftover
-   deploys. Requirements: the worktree needs the `sdk` and `pkg/arch`
-   submodules inited (`task build:binary` reads `pkg/arch/calver.sh`) but
+   deploys. Requirements: the worktree needs the `sdk` submodule inited
+   (`task build:binary` reads `scripts/calver.sh`) but
    not the `box/<distro>` submodules for the root disposable roster: root
    `charly.yml` imports the distro namespaces (arch/cachyos/fedora) via
    remote `@github.com/opencharly/distro-*` refs (resolver-fetched into

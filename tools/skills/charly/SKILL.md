@@ -26,28 +26,19 @@ container, `scp` for a VM/host) copies the host's own binary in on demand and in
 the delivered copy. Baking the candy only pre-stages the binary so the first such call
 skips the copy.
 
-## Check-vs-production binary source — disposable beds bake the IN-DEV charly
+## Binary source — the in-development binary, always
 
-The `charly` candy installs the binary as a proper, dependency-resolving OS
-package via `localpkg:` (`{pac: pkg/arch, rpm: pkg/fedora, deb: pkg/debian}`).
-The BINARY SOURCE depends on the box type — a hard distinction, NEVER mixed:
-
-- **Disposable check beds** (`disposable: true` deploys) bake the latest **in-development**
-  charly: the check-bed runner builds every bed image with `charly box build
-  --dev-local-pkg`, so the package is BUILT from the local working tree
-  (`pkg/<fmt>` + `charly/`). A bed therefore tests the charly code under
-  development — never a stale published release.
-- **Production boxes** bake the latest **published** charly: a normal
-  `charly box build` DOWNLOADS the published release package
-  (`releases/latest/download/opencharly-<arch>.<fmt>`).
-
-ONE decision point (`deploykit.RenderLocalPkgImageInstall`), generic across all kinds and
-all localpkg candies; the check-bed runner sets `--dev-local-pkg` automatically, a
-production build never does. A dev build that cannot find its local source HARD
-errors (R4 — no silent fallback to the release). Full mechanics:
-`/charly-internals:install-plan` "Check-vs-production charly toolchain". This is
-WHY a fresh check bed exercises your uncommitted charly changes while a real box
-ships the released toolchain.
+The `charly` candy installs the binary via a `copy: bin/charly` run step — the
+in-development binary at `candy/charly/bin/charly`, synced by `task build:binary`.
+There is ONE binary source for both image builds and deploys: the local working
+tree. A box therefore always bakes the charly code under development — never a
+stale published release. The OS-tracked package install (the former `localpkg:`
+map) is GONE: the sdk's localpkg machinery now builds via the `charly
+generate-packages` plugin (sdk/packagekit) from the candy's `packaging:` section
+(declared now); the localpkg machinery's transition to build from this section
+lands with the Phase 3 cutover. Until then the copy step is the single binary
+source. This is WHY a fresh check bed exercises your uncommitted
+charly changes while a real box ships the same in-development toolchain.
 
 ## Updating the Binary — dual-path gotcha
 
