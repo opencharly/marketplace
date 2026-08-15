@@ -21,9 +21,9 @@ it.
 | assert a sha, a pin, or a status is current | it moved between measuring and writing | "Three freshness surfaces, failing independently" |
 | fix a claim a reviewer called false | the correction is a new claim with the same burden | "Sweep for what the fix invalidated" |
 | run a gate to decide whether a PR is safe to merge | you gated the head, and the MERGE is what lands | "The gate that matters at merge…" (its recipe is the probe below) |
-| land a `skill:` edit | the source and its generated copies are one cutover, not two | "The cross-repo `skill:` cutover" |
-| resolve a submodule conflict | a `checkout -- .` plus `git add -A` silently reverts the gitlink | "The submodule revert" |
-| conclude a validator never ran | the status can be absent for a reason that is not absence | "The validator-status false negative" |
+| land a `skill:` edit | the source and its generated copies are one cutover, not two | "A `skill:` source edit and its regeneration are one cutover across two repos" |
+| resolve a submodule conflict | a `checkout -- .` plus `git add -A` silently reverts the gitlink | "Submodule pointers can be reverted by a merge without ever conflicting" |
+| conclude a validator never ran | the status can be absent for a reason that is not absence | "Status absence on a known head proves nothing" |
 
 **The page has two kinds of content, and they are true in different ways.**
 
