@@ -408,18 +408,17 @@ charly settings set engine.build docker   # or podman
 charly settings set engine.run docker     # or podman
 ```
 
-## Host Bootstrap (First Time)
+## Host Prerequisites (First Time)
 
-Requires: `go-task`, `go`, `docker` (or `podman`). There is no host-installing build task — `task build:binary` produces ONLY a per-checkout `bin/charly` (no install step); getting `charly` onto `$PATH` is always an explicit follow-up step you choose.
+Building images needs the `charly` binary and a container engine — `docker` or `podman`, whichever `engine.build` names. Nothing else, and no project checkout: `charly box build` runs against the `charly.yml` in the current directory, one started by `charly box new project <dir>` or read from a published project with `--repo <owner>/<repo>`.
+
+Install `charly` as a distro-native package with your OWN package manager (`pacman -U` / `dnf install` / `apt install` / `apk add`) — the `charly generate-packages` plugin (nFPM) builds the `.pkg.tar.zst`/`.rpm`/`.deb`/`.apk`/`.ipk` published to the per-distro package repos. Obtaining the binary is covered end to end at [Install](https://opencharly.ai/start/install/); it is the one page that describes building from a source tree.
 
 ```bash
-task build:binary        # Build ./bin/charly (CalVer-stamped; no install)
-task install-portable    # Optional: copy it to $HOME/.local/bin/charly, onto $PATH
-task setup:builder       # Create multi-platform buildx builder
-./bin/charly box build   # Generate + build + merge all images (drop `./bin/` once installed)
+charly box build   # Generate + build + merge all images
 ```
 
-For a distro-native package instead (system-wide, via your OWN package manager — never via a Taskfile install step): the `charly generate-packages` plugin (nFPM) builds a `.pkg.tar.zst`/`.rpm`/`.deb`/`.apk`/`.ipk`, published to the per-distro package repos, which you install yourself (`pacman -U` / `dnf install` / `apt install` / `apk add`).
+Multi-platform `--push` builds additionally need a Docker buildx builder that can target more than the host platform — a Docker-side prerequisite, not a charly one. Single-platform local builds need no builder setup.
 
 ## Common Workflows
 
@@ -450,7 +449,7 @@ charly box build --push
 
 ### "charly not found"
 
-Install a distro-native package (built by the `charly generate-packages` plugin and published to the per-distro package repos) with your OWN package manager (`pacman -U`/`dnf install`/`apt install`), or run `task install-portable` for a `$HOME/.local/bin/charly` copy — `task` itself is required (install via your distro package manager or download from go-task/task releases).
+Install a distro-native package (built by the `charly generate-packages` plugin and published to the per-distro package repos) with your OWN package manager (`pacman -U`/`dnf install`/`apt install`/`apk add`). If it is installed but not resolving, `$PATH` is the usual cause — `which charly` reports which copy wins.
 
 ### Build Fails with Missing Base
 
@@ -466,18 +465,13 @@ If a build fails with `conflicting requests` involving `libavcodec-free` vs `lib
 
 ### YAML Unmarshal Error on charly.yml
 
-If you see `cannot unmarshal !!str ... into int` or similar YAML parsing errors on layer fields, the installed `charly` binary is likely stale. Rebuild with `task build:binary` and `cp bin/charly ~/.local/bin/charly` (or re-run `task install-portable`). Verify with `charly box validate`.
+If you see `cannot unmarshal !!str ... into int` or similar YAML parsing errors on layer fields, the `charly` binary is older than the schema the file is stamped at. `charly version` prints its CalVer; upgrade to a newer published package and re-run `charly box validate`.
 
 ### Stale `charly` binary produces stale Containerfiles
 
-Beyond the YAML-unmarshal symptom above, a stale `charly` binary can produce *syntactically valid but outdated* Containerfile output — e.g. emitting an old broken form of a template that HEAD's source has already fixed. Symptom: build fails on a step whose generated shell clearly doesn't match the source you see in `git grep`. Quick diagnostic: `ls -la $(which charly)` vs. `git log -1 sdk/deploykit/generate.go` (the former `charly/generate.go` is DELETED, K-wave 2) — if the binary predates the fix, rebuild:
+Beyond the YAML-unmarshal symptom above, a stale `charly` binary can produce *syntactically valid but outdated* Containerfile output — e.g. emitting an old broken form of a template a later release already fixed. Symptom: a build fails on a step whose generated shell does not match what the current release documents. Quick diagnostic: `charly version` against the CalVer of the release that carries the fix; if the binary predates it, upgrade to a newer published package and rebuild.
 
-```bash
-task build:binary && task install-portable   # rebuild + refresh the $HOME/.local/bin copy
-# or: install a freshly published native package with your own package manager
-```
-
-If you find yourself rebuilding `charly` to chase a bug and the symptom persists, the binary path on $PATH may not be the one you just refreshed — confirm with `which charly`, and remember a worktree's own `./bin/charly` is a THIRD candidate the freshness guard tracks separately (see `/charly-internals:agents` "The charly binary in a multi-teammate / multi-worktree setup").
+If the symptom persists after upgrading, the copy on `$PATH` may not be the one you just installed — `which charly` reports which wins.
 
 ### Buildah cache-mount corruption (pixi tzdata et al.)
 
