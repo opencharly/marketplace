@@ -66,7 +66,7 @@ derive a trap nobody wrote down.
 
 Seven of those eight appear above. The table has eight ROWS over seven SECTIONS because the
 merged-tree section contributes two nouns. The epistemic section deliberately absent from
-it — "Positive and negative claims decay differently" — is left out because: it is the moment-noun again,
+it — "Positive and negative claims decay differently" — is left out because it is the moment-noun again,
 seen from the reader's side rather than the writer's, and giving it a row would blur the
 distinction the table exists to draw. Eight epistemic plus four mechanism is the whole page.
 

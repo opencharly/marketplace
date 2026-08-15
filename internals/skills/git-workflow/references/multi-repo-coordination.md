@@ -247,11 +247,17 @@ pointer. While your mirror merge sits unpinned, every other leg that lands proje
 into the same tree. The superproject then has no sha that reproduces only your
 change — the mirror is a composite, and **the last leg to pin inherits every
 projection beneath it**. That is not hypothetical: it is how a four-cutover forced
-union came to carry sources none of its authors chose to couple.
+union — `charly#278` — came to carry four cutovers' candy sources in one commit: the
+check-verb resolver, the git-workflow landing lessons, the merge-tree guard, atop
+the R4a sweep. None of those authors chose to couple their work; no intermediate
+self-consistent superproject state existed for them to land against.
 
-So: land each mirror leg immediately before its superproject leg, keeping exactly
-one mirror merge outstanding at a time. Nothing intervenes, the mirror contains only
-your own projection, and the two shas coincide naturally with no reconciliation to
+So: land each mirror leg immediately before its superproject leg, keeping at most one
+outstanding merge **per mirror** — not one across all of them. B6 legitimately has
+`plugins` and `docs` both outstanding between steps 2/3 and step 5; that is two
+mirrors with one merge each, which is fine. What is not fine is two merges in ONE
+mirror awaiting a single pin. Then nothing intervenes, each mirror contains only
+your own projection, and the shas coincide naturally with no reconciliation to
 perform.
 
 *Proof that this is a live invariant rather than an aspiration:* regenerate at
