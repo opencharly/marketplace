@@ -492,11 +492,17 @@ tree-safety applied to the recipe rather than to the reader: the guard belongs i
 the command, not in remembering to be careful.
 
 **Sibling rule: when a measurement decides what a change can or cannot do, measure the
-tree that change PRODUCES, not the one it starts from.** A validator measured `main` with
-`main`'s own submodule pin, concluded correctly about that tree, then generalized to
-"this PR cannot fix the red" without measuring the tree the PR's pin produces. Wrong — a
+tree that change PRODUCES, not the one it starts from.** The failure shape: measuring
+`main` at its own pin, concluding correctly about THAT tree, then generalizing to "this
+PR cannot fix the red" without measuring the tree the PR's pin produces. Wrong — a
 superproject gitlink does not move when the submodule repo merges; only a superproject PR
-bumps it, so that PR was not a bystander to the red, it was the half that closed it.
+bumps it, so such a PR is not a bystander to the red, it is the half that closes it.
+
+The register matters here and the page's own rule decides it: this is an EPISTEMIC
+claim, checkable by reasoning about how gitlinks work, so it owes no pasted evidence.
+Written reportorially — *"a validator measured…"* — it would assert a specific past
+event and invite a reader to look for provenance that does not exist. Stating the
+failure SHAPE keeps every bit of the rule's force while claiming no measurement.
 
 ### A `skill:` source edit and its regeneration are one cutover across two repos
 
