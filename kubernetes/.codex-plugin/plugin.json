@@ -1,7 +1,7 @@
 {
   "name": "charly-kubernetes",
   "version": "1.0.0",
-  "description": "Schema authoring for `kind: kubernetes` — Kustomize manifests + cluster probes via the `kube:` check verb.",
+  "description": "Schema authoring for `kind: kubernetes` — Kustomize manifests, cluster probes via the `kube:` check verb, and the helm words (`helm-release` install step + `helm:` check verb).",
   "author": {
     "name": "opencharly"
   },
@@ -9,8 +9,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "OpenCharly Kubernetes",
-    "shortDescription": "Schema authoring for `kind: kubernetes` — Kustomize manifests + cluster probes via the `kube:` check verb.",
-    "longDescription": "Schema authoring for `kind: kubernetes` — Kustomize manifests + cluster probes via the `kube:` check verb.",
+    "shortDescription": "Schema authoring for `kind: kubernetes` — Kustomize manifests, cluster probes via the `kube:` check verb, and the helm words (`helm-release` install step + `helm:` check verb).",
+    "longDescription": "Schema authoring for `kind: kubernetes` — Kustomize manifests, cluster probes via the `kube:` check verb, and the helm words (`helm-release` install step + `helm:` check verb).",
     "developerName": "opencharly",
     "category": "kind",
     "capabilities": [

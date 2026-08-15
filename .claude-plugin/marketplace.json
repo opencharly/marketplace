@@ -4,7 +4,7 @@
     "name": "opencharly"
   },
   "metadata": {
-    "description": "Claude Code, Codex, and Kimi plugins for OpenCharly, the Agent-in-the-Loop Factory — runtime commands, schema authoring, contributor internals, and deployable image families.",
+    "description": "Claude Code and Codex plugins for OpenCharly — runtime commands, schema authoring, contributor internals, and deployable image families.",
     "version": "3.1.0"
   },
   "plugins": [
@@ -300,7 +300,7 @@
     {
       "name": "charly-kubernetes",
       "source": "./kubernetes",
-      "description": "Schema authoring for `kind: kubernetes` — Kustomize manifests + cluster probes via the `kube:` check verb.",
+      "description": "Schema authoring for `kind: kubernetes` — Kustomize manifests, cluster probes via the `kube:` check verb, and the helm words (`helm-release` install step + `helm:` check verb).",
       "author": {
         "name": "opencharly"
       },

@@ -63,7 +63,8 @@ A second-order trap rides along: a `check:` step does **not** run during
 your install. An install candy waits for the node itself.
 
 `candy/helm-chart` is the worked example — the `check-helm-vm` bed's
-install leg:
+install leg, reproduced in full because the readiness step's exact
+shape is the lesson:
 
 ```yaml
 helm-chart:
@@ -73,7 +74,20 @@ helm-chart:
       - run: wait for the k3s node to be Ready in-venue
         id: hc-wait-node-ready
         command: |
+          set -euo pipefail
           export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+          # The kubeconfig lands when the k3s API server STARTS, which can
+          # be seconds-to-minutes after the k3s service starts. So poll
+          # /readyz until the apiserver answers, THEN let kubectl wait for
+          # the node. Waiting on the node alone fails on a cold cluster.
+          deadline=$(( $(date +%s) + 300 ))
+          until /usr/local/bin/kubectl get --raw /readyz >/dev/null 2>&1; do
+            if [ "$(date +%s)" -ge "$deadline" ]; then
+              echo "k3s apiserver did not become ready within 300s" >&2
+              exit 1
+            fi
+            sleep 1
+          done
           /usr/local/bin/kubectl wait --for=condition=Ready node --all --timeout=300s
         context: [deploy]
       - run: install the chart via the external helm-release step
@@ -95,9 +109,26 @@ helm-chart:
           namespace: web
 ```
 
+Two things about that readiness step are deliberate. **The `/readyz`
+poll is bounded and condition-driven**, with an explicit deadline and a
+non-zero exit — it is a synchronization primitive, not an R4
+`sleep`-and-hope; a bare `sleep 60` in its place is the workaround the
+rule forbids. And **waiting on the node alone is not enough**: on a cold
+cluster `kubectl wait node` runs before the apiserver answers at all, so
+the step must gate on the apiserver first.
+
 Note the ADE split (R3): the candy that installs the release also asserts
 it exists; the bed's own plan keeps only the deeper status/revision
 assertions.
+
+**Where the `helm` binary comes from.** The step shells `helm` IN-VENUE,
+so the venue must already carry it — `candy/plugin-helm` ships the WORD,
+never the binary. The binary comes from the **`kubernetes` candy** (the
+Kubernetes client toolchain: `kubectl`, `helm`, `k3d`, from the distro
+package with an upstream `get-helm-3` fallback). `check-helm-vm` composes
+it explicitly — `add_candy: [k3s-server, kubernetes, helm-chart]` — and a
+venue that omits it fails the step at execution, not at authoring. Compose
+`kubernetes` into any venue where you author a `helm-release` step.
 
 ## `verb:helm` — the declarative assertion
 
@@ -146,4 +177,11 @@ symmetric form for delete).
   registry dispatches declarative verbs.
 - `/charly-internals:plugin` — the Provider model and out-of-process
   dispatch this rides on.
+- `/charly-internals:install-plan` — defines the vocabulary this page
+  uses for the step: the **InstallPlan IR** the step is carried through,
+  the **F3** plugin-contributed `external:<word>` step KIND and its
+  **OPAQUE payload**, and the **ReverseOp** record-and-replay teardown
+  (see that skill's step-kinds reference page).
 - `/charly-infrastructure:k3s` — the `k3s-server` candy the beds deploy.
+- `/charly-coder:kubernetes-layer` — the `kubernetes` candy that installs
+  the `helm` binary the step shells in-venue.
