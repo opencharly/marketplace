@@ -25,6 +25,14 @@ layer-named and image-named entity may coexist (distinct `uf.Candy` vs `uf.Box`
 maps). The `charly box` COMMAND family is UNCHANGED — only the YAML `box:` KIND
 keyword was removed.
 
+**A candy's prose is PUBLISHED — editing it is a multi-repo landing.** `description:`
+and `plan:` are projected onto the candy's opencharly.ai reference page, so touching
+either makes `task docs:drift` fail until the regenerated page is committed in the
+`docs` submodule — which in turn requires re-pinning the site candy. Even a one-word
+fix to a `description:` costs a `docs` landing plus the pointer bumps that follow it.
+Budget for that before starting, and read `/charly-build:docs` "Editing a source is a
+docs landing" for the full sequence.
+
 ## A candy's files live in the candy's own directory
 
 A charly.yml's relative file references (`copy:` / `write:` step paths, `data.src`, install-file
