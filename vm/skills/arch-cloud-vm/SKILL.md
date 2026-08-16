@@ -74,18 +74,16 @@ arch:
       checksum:
         type: sha256
       base_user: arch
-      # distro:               # OMIT for arch (effectiveDistro INFERS it from
-                            # base_user — arch and alpine are its only two
-                            # arms) and for fedora (nothing infers fedora; the
-                            # empty default already resolves to `openssh` +
-                            # unit `sshd`, which are correct there). SET IT for
-                            # debian/ubuntu (omitting it picks `openssh` over
-                            # `openssh-server`, so cloud-init hard-fails with
-                            # "Unable to locate package openssh", and the unit
-                            # resolves to `sshd` where Debian needs `ssh`), and
-                            # for an Alpine image whose account is not literally
-                            # `alpine` (else systemd is rendered onto an OpenRC
-                            # guest and the VM boots unreachable).
+      # distro:               # SET IT for debian/ubuntu (else `openssh` not
+                              # `openssh-server`, and unit `sshd` not `ssh`); for a
+                              # pacman-family guest not literally named `arch` —
+                              # archarm/manjaro/endeavouros/cachyos — else it leaves
+                              # the `pacman -Sy --needed` path and hits the D15
+                              # host-key race; and for an Alpine image not named
+                              # `alpine` (else systemd onto OpenRC). effectiveDistro
+                              # infers ONLY arch and alpine. Anything else (fedora,
+                              # centos, rocky, cloud-user) may omit it — the empty
+                              # default fits, by luck rather than inference.
     backend: libvirt            # REQUIRED — the bed's libvirt-RPC + spice probes hit the session daemon
     disk_size: 40G
     ram: 8G

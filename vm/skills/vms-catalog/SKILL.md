@@ -27,16 +27,16 @@ The VM surface parallels the `candy:` image surface: one YAML entry per entity, 
       url: https://…
       checksum: { type: sha256, value?: <hex> }
       base_user: arch                     # adopt this account (see Adopt pattern below)
-      distro: debian                      # OMIT for arch (inferred from base_user, along
-                                          # with alpine — the only two inferred values) and
-                                          # for fedora (nothing infers fedora; the empty
-                                          # default resolves to `openssh` + `sshd`, correct
-                                          # there). REQUIRED for debian/ubuntu — omitting
-                                          # it picks `openssh` over `openssh-server`, so
-                                          # cloud-init hard-fails, and the unit resolves to
-                                          # `sshd` where Debian needs `ssh`. Also required for
-                                          # an Alpine image whose account is not literally
-                                          # `alpine` (else systemd is rendered onto OpenRC).
+      distro: debian                      # SET IT for debian/ubuntu (else `openssh` not
+                                          # `openssh-server`, and unit `sshd` not `ssh`); for a
+                                          # pacman-family guest not literally named `arch` —
+                                          # archarm/manjaro/endeavouros/cachyos — else it leaves
+                                          # the `pacman -Sy --needed` path and hits the D15
+                                          # host-key race; and for an Alpine image not named
+                                          # `alpine` (else systemd onto OpenRC). effectiveDistro
+                                          # infers ONLY arch and alpine. Anything else (fedora,
+                                          # centos, rocky, cloud-user) may omit it — the empty
+                                          # default fits, by luck rather than inference.
       cache: ~/.cache/charly/vm-images/       # optional override
       # bootc branch:
       box: <candy: image entry name>           # `box:` source field → a `candy:` image carrying base:/from:
