@@ -74,7 +74,8 @@ type VmSource struct {
     Distro   string       // OPTIONAL; steers the render when set — see below
 
     // bootc branch:
-    Image      string     // `candy:` image entry name (carries base:/from:)
+    Box        string     // WIRE KEY `box:` — the `candy:` image entry name
+                           // (carries base:/from: and `bootc: true`)
     Transport  string     // registry | containers-storage | oci | oci-archive
     Rootfs     string     // ext4 | xfs | btrfs
     RootSize   string     // "10G" — caps root partition, rest unpartitioned

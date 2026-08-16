@@ -22,7 +22,7 @@ Lives **host-side**, in the `charly` binary. The **guest-side** `/charly-distros
 |---|---|
 | `sdk/vmshared/cloud_init_render.go` | `RenderCloudInit`, `ResolveKeyInjectionChannels`, `composeUsers`, `composePackages`, `composeBootCmd`, `composeRunCmd` |
 | `sdk/vmshared/cloud_init_iso.go` | `WriteSeedISO` via xorriso; `genisoimage` + `mkisofs` fallbacks |
-| `spec/exec/charly_install.go` | `kit.EnsureCharlyInGuest` state machine (auto/scp/url/skip strategies) |
+| `spec/exec/charly_install.go` | `kit.EnsureCharlyInGuest` state machine (auto/scp/skip strategies) |
 | `spec/spec/cue_types_gen.go` (generated) | `VmCloudInit`, `VmCloudInitUser`, `VmCloudInitFile`, `VmCloudInitNetwork`, `VmCloudInitMirrors`, `VmCharlyInstall` |
 
 ## RenderCloudInit top-level
@@ -129,8 +129,11 @@ never a bricked sshd.
 `runcmd` makes the guest **deterministically unreachable via SSH for the
 entire package-install phase**, trading the old "sometimes-flaky-but-reachable"
 window (sshd up early, racing a possible host-key rewrite) for
-"safe-but-fully-blocked-if-package-install-stalls." This is verified live
-against real Arch cloud_image VM beds (`check-charly-vm`, and
+"safe-but-fully-blocked-if-package-install-stalls." **On a guest that ships
+no `ssh.socket` — Arch cloud images among them — the mask is a `|| true`
+no-op and this blocked window does not arise; the guarantee is delivered
+there by cloud-init not starting sshd until `runcmd`, not by the mask.** This
+is verified live against real Arch cloud_image VM beds (`check-charly-vm`, and
 `check-sidecar-pod`'s nested ephemeral VM member) — including a full
 fresh-rebuild pass (destroy+recreate) for each — with zero wedge, now that the
 companion redundant-package-reinstall fix (below) keeps the package-install
