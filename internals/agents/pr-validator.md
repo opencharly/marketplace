@@ -288,7 +288,7 @@ Three things make the naive form of this check miss:
 
   | tree (ref) | `DO NOT EDIT` (spaced) | `DO-NOT-EDIT` (hyphenated) | `DO[- ]NOT[- ]EDIT` |
   |---|---|---|---|
-  | `plugins` @ `21da8f5` | **339** | 4 | **340** |
+  | `plugins` @ `32f48d2` | **339** | 4 | **340** |
   | `docs` @ `3d11170` | 2 | **899** | **899** |
 
   A hyphen-only matcher finds 4 of 340 in `plugins`; a space-only matcher finds 2 of
