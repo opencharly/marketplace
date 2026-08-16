@@ -98,14 +98,22 @@ get closer to the reported figure and reclaim more of the store.
 **when both rows carry one**, then a row carrying that label before one that does
 not, then **image creation time**, and only then the build tag.
 
-**Creation time, not the tag, is what distinguishes builds** — this page owns that
-fact. The `ai.opencharly.version` label is content-stable, so many builds of an
-unchanged image share one label-CalVer, and the tag cannot break that tie either:
-`charly box build --tag` REPLACES the CalVer tag, so a bed build carries
-`check-<bed>-<calver>`, which parses as no CalVer at all. Ordering on the tag made
-every member of such a group compare equal, so `keep_images: N` kept an arbitrary N
-and could delete the newest build. Creation time is the only recency key total over
-the tags charly mints.
+**Which key decides depends on which ordinal you are asking about**, and this page owns
+that fact. **Between distinct images**, creation time decides: the label is
+content-stable and the tag may not parse, so neither can separate two builds of an
+unchanged image. **Within one image's tag rows, the build tag decides** — every row of
+one image shares its label, its labelled-ness and its creation time by construction
+(`charlyImageTags` hoists them out of the per-ref loop), so the first three keys tie and
+the `:YYYY.DDD.HHMM` tag is the only one left to break it. So *"creation time, not the
+tag"* is true of the image budget and **false of the tag budget**.
+
+Why the tag cannot serve as the *image* recency key: `charly box build --tag` REPLACES
+the CalVer tag, so a bed build carries `check-<bed>-<calver>`, which parses as no CalVer
+at all. Ordering distinct images on the tag made every member of such a group compare
+equal, so `keep_images: N` kept an arbitrary N and could delete the newest build.
+Creation time is the only recency key total over the tags charly mints — and it is
+exactly the key that ties within one image, which is why the tag still ranks that image's
+own rows.
 
 `keep_images: N` budgets
 **two ordinals**: the newest N **distinct images** per group survive — a *distinct
@@ -117,7 +125,10 @@ reclaimed. Everything outside both is `podman rmi`'d. **Safety**: any
 image referenced by a container (`podman ps -a`, including stopped/quadlet
 deploys) is skipped, and `rmi` runs WITHOUT `-f` so the engine refuses any
 still-referenced image as a backstop. Non-charly images (no `ai.opencharly.box`
-label) and images with an unparseable version are never touched.
+label) are never touched, and a tag row is exempted only when it has NEITHER a datable
+`ai.opencharly.version` label NOR a datable `:YYYY.DDD.HHMM` tag — the guard is an AND,
+so a row with either one is a normal candidate. A bed build (datable label, non-CalVer
+tag) is therefore prunable, not exempt.
 
 **Check-run retention** (`keep_check_runs`): each `.check/<bed|score>/` dir is
 trimmed to the newest N run artifacts — CalVer-named run dirs (bed runs),

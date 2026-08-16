@@ -251,6 +251,10 @@ NEITHER a datable `ai.opencharly.version` label NOR a datable `:YYYY.DDD.HHMM` t
 (`retention.go`'s guard is an AND). A bed build has a datable label and a non-CalVer
 tag, so it is a normal removal candidate rather than an excluded one.
 
+**Preview before enabling it.** `charly clean --dry-run` prints what retention would
+remove without removing anything — run it once after setting `keep_images`, because the
+budget is per box group and the count that surprises people is tag rows, not images.
+
 **Ordering is owned by `/charly-core:clean`**, which documents the retention engine
 itself — the full comparator chain and why the build tag cannot serve as the recency
 key. The consequence that matters here: two builds of an unchanged image share one
