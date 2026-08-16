@@ -27,6 +27,16 @@ The VM surface parallels the `candy:` image surface: one YAML entry per entity, 
       url: https://…
       checksum: { type: sha256, value?: <hex> }
       base_user: arch                     # adopt this account (see Adopt pattern below)
+      distro: debian                      # OMIT for arch (inferred from base_user, along
+                                          # with alpine — the only two inferred values) and
+                                          # for fedora (nothing infers fedora; the empty
+                                          # default resolves to `openssh` + `sshd`, correct
+                                          # there). REQUIRED for debian/ubuntu — omitting
+                                          # it picks `openssh` over `openssh-server`, so
+                                          # cloud-init hard-fails, and the unit resolves to
+                                          # `sshd` where Debian needs `ssh`. Also required for
+                                          # an Alpine image whose account is not literally
+                                          # `alpine` (else systemd is rendered onto OpenRC).
       cache: ~/.cache/charly/vm-images/       # optional override
       # bootc branch:
       box: <candy: image entry name>           # `box:` source field → a `candy:` image carrying base:/from:
@@ -62,7 +72,7 @@ The VM surface parallels the `candy:` image surface: one YAML entry per entity, 
       packages: [sudo, spice-vdagent, …]
       runcmd: ["…", …]
       charly_install:
-        strategy: auto | none
+        strategy: auto | scp | skip
     # Libvirt XML knobs (see /charly-internals:libvirt-renderer):
     libvirt:
       devices:
@@ -143,7 +153,7 @@ Canonical example: `/charly-vm:arch-cloud-vm`. Only existing cloud_image VM in t
 ### Authoring a new cloud_image VM
 
 1. Find the upstream qcow2 URL + verify a sha256 sidecar exists (<url>.SHA256 / .sha256 / .sha256sum).
-2. Identify the **pre-existing user account** in the upstream image (`arch`, `alpine`, `ubuntu`, `fedora`, `debian`, `cloud-user`, etc.). Note `arch` and `alpine` additionally STEER rendering when no explicit `distro:` is set — they select the package-delivery and sshd-start branches — so an Alpine image whose account is named anything else needs `distro: alpine` set explicitly or it renders the systemd path onto an OpenRC guest. This becomes `source.base_user:` — triggers the adopt pattern described below.
+2. Identify the **pre-existing user account** in the upstream image (`arch`, `alpine`, `ubuntu`, `fedora`, `debian`, `cloud-user`, etc.). Note that `effectiveDistro` infers ONLY `arch` and `alpine`, and only from `base_user` — those two STEER rendering (they select the package-delivery and sshd-start branches) when no explicit `distro:` is set. Every OTHER guest except fedora needs `distro:` set explicitly — fedora is safe to omit only because the empty default resolves to `openssh` and unit `sshd`, which are already correct there, not because anything infers it. `base_user: debian` or `ubuntu` without it resolves to the empty distro, which picks `openssh` instead of `openssh-server` (cloud-init hard-fails `E: Unable to locate package openssh`) and unit `sshd` where Debian needs `ssh`; an Alpine image whose account is named anything but `alpine` renders the systemd path onto an OpenRC guest. All three boot unreachable. This becomes `source.base_user:` — triggers the adopt pattern described below.
 3. Start from `/charly-vm:arch-cloud-vm` as a template. Change `url`, `base_user`, distro-specific cloud_init `package:` and `runcmd:`.
 4. Pick firmware: default to `bios` unless the upstream image explicitly requires UEFI (e.g., secure boot lock-in).
 5. Run `charly vm build <name>` — observe the fetched qcow2 sha256 + rendered seed ISO path.
@@ -187,7 +197,7 @@ Leave `base_user:` empty **only** when the upstream has no default account — i
 
 `charly_install.strategy: auto` in `cloud_init:` wires `charly`'s in-guest installer (`/charly-internals:cloud-init-renderer` → emitted `runcmd:` entries) so the provisioned VM comes up with `charly` already installed. Lets `charly fleet add vm:<name>` apply host-deploy-style layer recipes inside the VM over SSH without a bootstrap round-trip. See `/charly-internals:cloud-init-renderer` for the emission + handshake.
 
-`strategy: none` skips the step entirely — useful when the VM will be managed by something other than `charly` after provisioning.
+`strategy: skip` skips the step entirely — useful when the VM will be managed by something other than `charly` after provisioning. (`none` is NOT a value: the closed schema is `auto | scp | skip` and `none` hard-fails it.)
 
 ## Validation rules
 
@@ -203,7 +213,7 @@ Load-time errors raised by the closed `#Vm` CUE schema (`spec/schema/vm.cue`, se
 
 ## Migration from legacy (box.bootc / box.vm / box.libvirt)
 
-Projects predating this schema had three coupled fields on image entries (`candy:` nodes carrying `base:`/`from:`): `bootc: true`, `vm: {...}`, `libvirt: [...]`. All three were deleted in the hard cutover, and the step that harvested them into VM nodes lived in the migration chain that was **removed at the `2026.186.2323` migration-baseline reset**. So `charly migrate` no longer converts those legacy fields: a config still carrying them predates the supported schema floor (`2026.174.1100`) and is **unmigratable** — `charly migrate` refuses it (`predates the supported floor … re-author against the current schema`) and changes nothing on disk. Re-author such a VM by hand as a name-first `<name>: {vm: {…}}` node (the shape this skill documents).
+Projects predating this schema had three coupled fields on image entries (`candy:` nodes carrying `base:`/`from:`): `bootc: true`, `vm: {...}`, `libvirt: [...]`. **Two** were deleted in the hard cutover — `vm:` and `libvirt:`. `bootc: true` is LIVE and stays on the image entry (`spec/schema/box.cue` declares `bootc?: bool`); it marks the image bootable, and a separate `kind: vm` entity with `source.kind: bootc` references it via `source.box:`, exactly as `/charly-image:image` states. Those two fields are gone, and the step that harvested them into VM nodes lived in the migration chain that was **removed at the `2026.186.2323` migration-baseline reset**. So `charly migrate` no longer converts those legacy fields: a config still carrying them predates the supported schema floor (`2026.174.1100`) and is **unmigratable** — `charly migrate` refuses it (`predates the supported floor … re-author against the current schema`) and changes nothing on disk. Re-author such a VM by hand as a name-first `<name>: {vm: {…}}` node (the shape this skill documents).
 
 For a config already within the migratable window (`[floor, HEAD)`), `charly migrate` is one idempotent command that brings it to the current schema. See `/charly-build:migrate` for the floor/HEAD gate and the full command reference, and `/charly-internals:cutover-policy` for why hard-cutover was the chosen policy.
 

@@ -71,9 +71,11 @@ type VmSource struct {
     Checksum VmChecksum
     Cache    string
     BaseUser string       // adopt-user pattern — see below
+    Distro   string       // OPTIONAL; steers the render when set — see below
 
     // bootc branch:
-    Image      string     // `candy:` image entry name (carries base:/from:)
+    Box        string     // WIRE KEY `box:` — the `candy:` image entry name
+                           // (carries base:/from: and `bootc: true`)
     Transport  string     // registry | containers-storage | oci | oci-archive
     Rootfs     string     // ext4 | xfs | btrfs
     RootSize   string     // "10G" — caps root partition, rest unpartitioned
@@ -93,7 +95,18 @@ type VmSource struct {
 
 Common values: `arch` (Arch cloud image), `alpine` (Alpine Cloud), `ubuntu` (Ubuntu Cloud), `fedora` (Fedora Cloud), `debian` (Debian Cloud), `cloud-user` (CentOS Cloud).
 
-**`base_user:` is not only the adopt-user selector — two of its values STEER RENDERING.** When no explicit `distro:` is set on a `cloud_image` source, `effectiveDistro` infers `"arch"` from `base_user: "arch"` and `"alpine"` from `base_user: "alpine"`, and those inferences pick the package-delivery branch (the `pacman -Sy` runcmd prepend vs the `packages:` key) and the sshd-start branch (`rc-update`+`rc-service` on OpenRC vs `systemctl unmask`+`enable --now`). Every other value, and an empty one, falls through to the systemd/`packages:` path. **So an Alpine image declared with a custom account name, or with `base_user:` left empty, gets `systemctl enable --now sshd` on a guest that has no systemd, and the VM boots unreachable.** Set `distro: alpine` explicitly whenever the account is not literally `alpine`.
+**`base_user:` is not only the adopt-user selector — two of its values STEER RENDERING.** When no explicit `distro:` is set on a `cloud_image` source, `effectiveDistro` infers `"arch"` from `base_user: "arch"` and `"alpine"` from `base_user: "alpine"`, and those inferences pick the package-delivery branch (the `pacman -Sy` runcmd prepend vs the `packages:` key) and the sshd-start branch (`rc-update`+`rc-service` on OpenRC vs `systemctl unmask`+`enable --now`). Every other value, and an empty one, falls through to the systemd/`packages:` path. **So an Alpine image declared with a custom account name, or with `base_user:` left empty, gets `systemctl enable --now sshd` on a guest that has no systemd, and the VM boots unreachable.** Set `distro: alpine` explicitly whenever the account is not literally `alpine`. That is `source.distro` — an OPTIONAL free-form string on the `cloud_image` arm (`spec/schema/vm.cue`: `distro?: string`), a sibling of `base_user:`, authored as:
+
+```yaml
+my-vm:
+    vm:
+        source:
+            kind: cloud_image
+            base_user: myuser
+            distro: alpine
+```
+
+When set it WINS over the `base_user` inference; when unset the inference runs. Do not confuse it with the `bootstrap` source kind, where `distro:` is REQUIRED and names the bootstrap target rather than steering the render.
 
 Leave empty **only** when the image has no default account — then declare a custom user in `spec.cloud_init.users`.
 
@@ -134,9 +147,7 @@ The renderer combines structured fields with renderer defaults:
 
 ```go
 type VmCharlyInstall struct {
-    Strategy string  // auto | scp | url | skip
-    URL      string  // when Strategy == "url"
-    Checksum string  // "sha256:<hex>" for url strategy
+    Strategy string  // auto | scp | skip
 }
 ```
 
@@ -144,7 +155,6 @@ type VmCharlyInstall struct {
 |---|---|
 | `auto` (default) | scp the local `charly` binary (`os.Executable()`) into the guest post-boot via the vm deploy plugin's `OpPrepareVenue` (`kit.EnsureCharlyInGuest`) |
 | `scp` | explicit form of auto |
-| `url` | cloud-init runcmd downloads charly from URL at first boot |
 | `skip` | user manages charly install; the vm deploy plugin's `OpPrepareVenue` verifies presence only |
 
 ## Validation (spec/schema/vm.cue)
