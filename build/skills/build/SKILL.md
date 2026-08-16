@@ -239,16 +239,24 @@ DELETED, K-wave 2).
 
 ## Image-tag retention (`defaults.keep_images`)
 
-After `charly box build` (push runs excluded), charly prunes old CalVer tags per image
-down to `defaults.keep_images`, which budgets **two ordinals**: the newest N
-**distinct images** per `ai.opencharly.box` group survive, **and at most N tags of
-each**. A *distinct image* is a distinct image ID — every tag pointing at one ID is
-one image, however many tags it wears.
+After `charly box build` (push runs excluded), charly prunes **tag rows** within each
+`ai.opencharly.box` group, keeping the newest `defaults.keep_images` **distinct
+images** and at most that same number of tags of each. A *distinct image* is a
+distinct image ID — every tag pointing at one ID is one image, however many tags it
+wears — so with `keep_images: 3`, four images carrying one tag each lose the oldest,
+while one image carrying six tags keeps three of them.
 
-Ordering within a group is by the `ai.opencharly.version` label (the content-derived
-EffectiveVersion) as the PRIMARY key, then labelled-before-unlabelled, then **image
-creation time**, and only then the `:YYYY.DDD.HHMM` build tag. **Creation time, not
-the tag, is what distinguishes builds**: the label is content-stable, so many builds
+**Tag rows, not "CalVer tags":** a row is exempted from removal only when it has
+NEITHER a datable `ai.opencharly.version` label NOR a datable `:YYYY.DDD.HHMM` tag
+(`retention.go`'s guard is an AND). A bed build has a datable label and a non-CalVer
+tag, so it is a normal removal candidate rather than an excluded one.
+
+Ordering within a group is: the `ai.opencharly.version` label (the content-derived
+EffectiveVersion) **when both rows carry one**; then a row carrying that label before
+one that does not; then **image creation time**; and only then the `:YYYY.DDD.HHMM`
+build tag.
+
+**Creation time, not the tag, is what distinguishes builds**: the label is content-stable, so many builds
 of an unchanged image share one label-CalVer — and the tag cannot break that tie
 either, because `charly box build --tag` REPLACES the CalVer tag (a bed build carries
 `check-<bed>-<calver>`, which parses as no CalVer at all). Ordering on the tag made
