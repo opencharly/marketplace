@@ -74,23 +74,29 @@ arch:
       checksum:
         type: sha256
       base_user: arch
-      # distro:               # **Always SET `distro:`. Never rely on the inference.** Set it to the
-                              # vocabulary id whose package MANAGER matches the guest — the vocabulary
-                              # is exactly five: `{arch, cachyos, debian, fedora, ubuntu}`. So an Arch
-                              # derivative (manjaro/archarm/endeavouros) takes `distro: arch`; Rocky or
-                              # AlmaLinux take `fedora`; a Ubuntu derivative takes `ubuntu`. Use a BARE
-                              # id — `ResolveDistro` strips at `:` but the cloud-init dispatches compare
-                              # exactly, so `debian:13` yields `openssh` not `openssh-server`. WHY
-                              # always: two consumers read this field and neither is safe to leave to
-                              # the inference. `effectiveDistro` infers only the literals `arch` and
-                              # `alpine`, from `base_user`, never checking the guest. And
-                              # `buildVmSyntheticBox` (`candy/plugin-fleet/candy_select.go`, not
-                              # source-kind gated) resolves this field — or `base_user` when it is
-                              # empty — against those five ids; an unresolvable key leaves `img.Pkg`
-                              # unset and candy installation compiles ZERO package steps silently while
-                              # `fleet add` reports success. Two guests have no correct member and
-                              # cannot be fixed here: Alpine (no apk entry) and openSUSE (zypper, where
-                              # `fedora` would emit dnf). Both need a vocabulary entry — a product gap.
+      # distro:               # **Always SET `distro:`, to a BARE id. Never omit it, and never rely
+                              # on the inference** — `effectiveDistro` infers only `arch`/`alpine`
+                              # from `base_user` and never checks the guest. Two consumers read it,
+                              # against DIFFERENT sets, and that is the whole difficulty:
+                              # `effectiveDistro` feeds the cloud-init dispatches and accepts ANY
+                              # string; `buildVmSyntheticBox` (`candy/plugin-fleet/candy_select.go`,
+                              # not source-kind gated) resolves it against a FIVE-id vocabulary
+                              # `{arch, cachyos, debian, fedora, ubuntu}` and, on a miss, leaves
+                              # `img.Pkg` unset so candy installation compiles ZERO steps silently.
+                              # So: if the guest IS one of those five, name it. **Alpine: set
+                              # `distro: alpine`** — not a vocabulary member, but the init dispatch
+                              # keys on `effectiveDistro`, so this is the ONLY way to reach the
+                              # OpenRC path; any other value renders systemd onto a guest that has
+                              # none and the VM boots unreachable. Candy installation stays
+                              # unresolvable for Alpine either way. For a guest outside the five,
+                              # naming a near relative (`arch` for manjaro/archarm/endeavouros,
+                              # `fedora` for rocky/alma, `ubuntu` for a Ubuntu derivative) makes
+                              # candy steps compile — but it selects THAT distro's DistroDef,
+                              # version tags and repos (fedora's carries `version: "43"` and COPR),
+                              # so it is a workaround with its own risk, not a repair. The repair is
+                              # a vocabulary entry. openSUSE has none and no near relative (zypper).
+                              # Use a bare id: `ResolveDistro` strips at `:` but the cloud-init
+                              # dispatches compare exactly, so `debian:13` yields `openssh`.
     backend: libvirt            # REQUIRED — the bed's libvirt-RPC + spice probes hit the session daemon
     disk_size: 40G
     ram: 8G
