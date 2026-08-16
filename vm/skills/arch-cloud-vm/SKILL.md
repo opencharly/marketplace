@@ -74,21 +74,18 @@ arch:
       checksum:
         type: sha256
       base_user: arch
-      # distro:               # `distro:` is inferred from `base_user`, and ONLY for the two
-                              # literal values `arch` and `alpine` — the inference does not check
-                              # that the guest IS that distro. So: OMIT only when the guest's id
-                              # is `arch` and `base_user` is literally `arch`, or the guest's id
-                              # is `alpine` and `base_user` is literally `alpine`. For any other
-                              # id in {debian, ubuntu, arch, archarm, manjaro, endeavouros,
-                              # cachyos, alpine}, SET it to the guest's own id. For any id
-                              # outside that set, omit — provided `base_user` is neither
-                              # literally `arch` nor literally `alpine`, since the
-                              # inference reads the account, not the guest. Set the
-                              # CORRECT id, never a guess:
-                              # `distro:` ALSO selects the guest's package manager for candy
-                              # installation (`candy/plugin-fleet/candy_select.go`, not
-                              # source-kind gated), so a wrong in-set value runs `pacman` on a
-                              # deb guest (exit 127) or compiles zero package steps.
+      # distro:               # **Set `distro:` to the guest's own id** — as a BARE id, no `:version`
+                              # tag: `ResolveDistro` strips at `:` but the cloud-init dispatches match
+                              # the string exactly, so `debian:13` yields `openssh` instead of
+                              # `openssh-server` and cloud-init hard-fails. **Omit it only when the
+                              # guest is `arch` and `base_user` is literally `arch`, or the guest is
+                              # `alpine` and `base_user` is literally `alpine`** — the only two cases
+                              # where the inference supplies the right value, since it reads the
+                              # account and never checks the guest. Setting an id no dispatch knows is
+                              # not harmful: it misses all four cloud-init dispatches exactly as the
+                              # empty value does, and gives `candy_select` a resolvable key where one
+                              # exists. Never guess: a wrong id that IS known selects the wrong
+                              # package manager for candy installation.
     backend: libvirt            # REQUIRED — the bed's libvirt-RPC + spice probes hit the session daemon
     disk_size: 40G
     ram: 8G
