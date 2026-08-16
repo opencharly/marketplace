@@ -254,10 +254,14 @@ arch:
                                                    # archarm, manjaro, endeavouros, cachyos, alpine} and inference
                                                    # will not supply it — i.e. every id in that set except a guest
                                                    # whose `base_user` is literally `arch` or literally `alpine`.
-                                                   # Any other guest id: omit. Getting it wrong in the SET
-                                                   # direction is inert; omitting where it is needed picks the
-                                                   # wrong ssh package/unit, or drops the guest off the
-                                                   # `pacman -Sy --needed` path into the D15 host-key race, or
+                                                   # Any other guest id: omit. Set the CORRECT id, never a guess:
+                                                   # `distro:` ALSO selects the guest's package manager for candy
+                                                   # installation (`candy/plugin-fleet/candy_select.go`, which is
+                                                   # NOT source-kind gated), so a wrong value runs `pacman` on a
+                                                   # deb guest (exit 127) or compiles zero package steps. Omitting
+                                                   # where it is needed picks the wrong ssh package/unit, drops the
+                                                   # guest off the `pacman -Sy --needed` path into the host-key
+                                                   # race described in `/charly-internals:cloud-init-renderer`, or
                                                    # renders systemd onto an OpenRC guest.
     disk_size: 40G
     ram: 8G
