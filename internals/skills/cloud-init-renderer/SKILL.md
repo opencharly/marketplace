@@ -170,7 +170,6 @@ Runs post-boot inside the vm deploy preflight (the `candy/plugin-deploy-vm` plug
 | Strategy | Action |
 |---|---|
 | `auto` / `scp` | `scp $(os.Executable()) guest:/usr/local/bin/charly; chmod +x` |
-| `url` | ssh-execute `curl -L <url> -o /usr/local/bin/charly && sha256sum -c` (verified against `VmCharlyInstall.Checksum`) |
 | `skip` | `ssh 'which charly'` — fails if missing, returns early if present |
 
 Idempotent. If `charly` is already present at the target version, the function returns without re-scp'ing. See `/charly-internals:vm-deploy-target` for how this plugs into the overall deploy flow.

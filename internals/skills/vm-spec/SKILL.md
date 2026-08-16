@@ -146,8 +146,6 @@ The renderer combines structured fields with renderer defaults:
 ```go
 type VmCharlyInstall struct {
     Strategy string  // auto | scp | skip
-    URL      string  // when Strategy == "url"
-    Checksum string  // "sha256:<hex>" for url strategy
 }
 ```
 
@@ -155,7 +153,6 @@ type VmCharlyInstall struct {
 |---|---|
 | `auto` (default) | scp the local `charly` binary (`os.Executable()`) into the guest post-boot via the vm deploy plugin's `OpPrepareVenue` (`kit.EnsureCharlyInGuest`) |
 | `scp` | explicit form of auto |
-| `url` | cloud-init runcmd downloads charly from URL at first boot |
 | `skip` | user manages charly install; the vm deploy plugin's `OpPrepareVenue` verifies presence only |
 
 ## Validation (spec/schema/vm.cue)
