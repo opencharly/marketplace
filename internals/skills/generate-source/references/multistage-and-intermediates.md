@@ -177,8 +177,14 @@ USER 1000
 **Create (idempotent useradd):**
 ```dockerfile
 RUN if ! getent passwd <UID> >/dev/null 2>&1; then \
-      (getent group <GID> >/dev/null 2>&1 || groupadd -g <GID> <user>) && \
-      useradd -m -u <UID> -g <GID> -s /bin/bash <user>; \
+      LOGIN_SHELL=/bin/sh; [ -x /bin/bash ] && LOGIN_SHELL=/bin/bash; \
+      if command -v useradd >/dev/null 2>&1; then \
+        (getent group <GID> >/dev/null 2>&1 || groupadd -g <GID> <user>) && \
+        useradd -m -u <UID> -g <GID> -s "$LOGIN_SHELL" <user>; \
+      else \
+        (getent group <GID> >/dev/null 2>&1 || addgroup -g <GID> <user>) && \
+        adduser -D -h <home> -u <UID> -G <user> -s "$LOGIN_SHELL" <user>; \
+      fi; \
     fi
 
 WORKDIR /home/<user>

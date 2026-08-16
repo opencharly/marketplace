@@ -83,8 +83,14 @@ The `debian:13` upstream base image ships **no** pre-existing uid-1000 account. 
 
 ```
 RUN if ! getent passwd 1000 >/dev/null 2>&1; then
-      (getent group 1000 >/dev/null 2>&1 || groupadd -g 1000 user) &&
-      useradd -m -u 1000 -g 1000 -s /bin/bash user;
+      LOGIN_SHELL=/bin/sh; [ -x /bin/bash ] && LOGIN_SHELL=/bin/bash;
+      if command -v useradd >/dev/null 2>&1; then
+        (getent group 1000 >/dev/null 2>&1 || groupadd -g 1000 user) &&
+        useradd -m -u 1000 -g 1000 -s "$LOGIN_SHELL" user;
+      else
+        (getent group 1000 >/dev/null 2>&1 || addgroup -g 1000 user) &&
+        adduser -D -h /home/user -u 1000 -G user -s "$LOGIN_SHELL" user;
+      fi;
     fi
 ```
 
