@@ -164,22 +164,140 @@ gh pr diff <N> --repo <owner>/<repo>
 **STEP ONE, before you read a single line of content: find the GENERATED files.**
 
 ```bash
-git grep -lEi "DO[- ]NOT[- ]EDIT" -- <the PR's changed file set>
+# PER SUBMODULE — git grep does NOT cross a gitlink.
+git -C <repo-or-submodule> grep -lEi "DO[- ]NOT[- ]EDIT" -- <that repo's changed paths>
 ```
 
-**Then look at each hit and decide whether the file CARRIES a banner or merely MENTIONS
-one** — the grep cannot tell them apart, and you should not try to make it. Run against
-the change set that introduced this very rule, it flags both files: the candy that
-defines the check and the CHANGELOG describing it. Neither is generated. **Triage the
-hits; do not tune the pattern**, because the two failure directions are not
-symmetric — a false positive costs one glance, and a false negative cost this program
-four consecutive rounds of improving prose that regeneration would erase.
+**This one command has THREE independent ways to return a confident wrong number, and
+every one of them fails silently.** Measured, one tree each:
+
+| getting it wrong | finds |
+|---|---|
+| wrong **separator** (hyphen-only matcher) | 4 of 340 in `plugins` |
+| wrong **repo scope** (superproject-relative across a gitlink) | **0** of 340 |
+| wrong **pathspec** (`-- '*.md'`) | **0** of 4 in `sdk`, **0** of 8 in `spec` |
+
+**Each in isolation returns a plausible result**, and two of the three return a clean
+tree. The lesson is not *use `-i`* or *use `git -C`* or *drop the `*.md`* — it is that
+**a zero here means "I found nothing" and never "there is nothing", until all three are
+right.** Run it once per repository the PR touches, with paths relative to THAT
+repository, no extension filter, and the separator-tolerant pattern. **This page's own
+worked example is a case the superproject-relative form cannot reproduce.**
+
+**Then decide, per hit, whether the file CARRIES a banner or merely MENTIONS one** — the
+grep cannot tell them apart, and you should not try to make it. Run against the change
+set that introduced this very rule, it flags both files: the candy that defines the check
+and the CHANGELOG describing it. Neither is generated. **Triage the hits; do not tune the
+pattern**, because the two failure directions are not symmetric — a false positive costs
+one glance, and a false negative cost this program four consecutive rounds of improving
+prose that regeneration would erase.
+
+**The decisive test is DELETE-AND-REGENERATE, and it is the only form that works at
+validation time:**
+
+**Run it in a SCRATCH WORKTREE. It deletes a tracked file; never do that in a checkout
+anyone else is using**, and never in the one you are validating from.
+
+```bash
+# 0. stand a scratch tree on the SOURCE head (resolution below), then put the
+#    ARTIFACT submodule on the PR HEAD — `submodule update` lands the source's
+#    PINNED gitlink, which is NOT the PR you are validating.
+git -C <superproject> worktree add /tmp/carrier-<n> <source-head>
+cd /tmp/carrier-<n> && git submodule update --init --recursive
+git -C <artifact-repo> fetch origin <pr-head-sha> && git -C <artifact-repo> checkout <pr-head-sha>
+git -C <artifact-repo> rev-parse HEAD    # MUST equal the PR head — read it back
+task build:binary
+
+# 1. delete the suspect and ask the generators to answer. `&&`, never `;` —
+#    with `;` the guard captures only the LAST command's status.
+rm <artifact-repo>/<suspect-path>
+./bin/charly marketplace generate \
+  && ./bin/charly docs generate --out docs/src/content/docs --root .
+rc=$?; [ "$rc" -eq 0 ] || { echo "UNEVALUATED: generation exited $rc"; exit 1; }
+
+# 2. read the answer
+test -f <artifact-repo>/<suspect-path> && echo CARRIER || echo "not generated"
+
+# 3. tear the scratch tree down
+cd - && git -C <superproject> worktree remove --force /tmp/carrier-<n>
+```
+
+**Two setup traps, both of which produce a confident wrong answer rather than an
+error:**
+
+- **`git submodule update` lands the SOURCE's pinned gitlink, not the artifact PR
+  head.** A source branch typically pins an artifact commit several revisions behind
+  the PR under review, so the block would delete and test **the pin**, and
+  *"reappears byte-identically"* would be measured against the wrong artifact
+  entirely. Check the PR head out explicitly and **read it back** — this is the
+  source-vs-artifact distinction reappearing on the axis the earlier fix did not
+  touch.
+- **`;` between the generators discards the first one's exit status.** `false; true;
+  rc=$?` is `0`; `false && true; rc=$?` is `1`. A crashed `marketplace generate`
+  followed by a successful `docs generate` therefore passes the guard, and `test -f`
+  reports *"not generated"* for a real carrier — **the exact silent false negative
+  the guard exists to prevent**, reintroduced by the separator.
+
+**Both generators, always.** `marketplace generate` emits the `plugins` tree and
+`docs generate` emits `docs`; running only the first makes every carrier in `docs`
+answer *"not generated"* — by the census below, the larger of the two corpora.
+
+**Classify the generator's exit code before reading the file.** A crashed generator and
+a genuine mentioner both leave the file absent, and `test -f` cannot tell them apart —
+the same absence-without-scope trap this page warns about elsewhere. A non-zero exit is
+**unevaluated**, never a verdict.
+
+**Resolving "the source head" when the artifact is in another repo.** For a `plugins` or
+`docs` PR the emitting source is a branch in the **superproject**, so it is not derivable
+from the artifact PR alone. Take it, in order: the superproject PR the artifact PR names
+as its source; failing that, the superproject branch whose head emits this artifact
+content; failing that, `charly/main`. **State which you used in the verdict** — the whole
+point of the source axis is that a verdict which flips on it is not a property of the PR,
+and an unstated input cannot be checked.
+
+A carrier is *defined* by being emitted from a source, so the question is whether the
+generator PRODUCES that path — not whether its bytes currently differ. Deleting forces
+the generator to answer. Measured both directions: an in-sync generated agent spec
+reappears byte-identically, and an authored CHANGELOG that merely quotes a banner stays
+deleted.
+
+**Do NOT use "does it move in `git status`" as the carrier test.** It answers a
+different question — *is this carrier IN SYNC* — and it fails in the direction that
+matters:
+
+| state | moves? | what a movement test concludes | truth |
+|---|---|---|---|
+| carrier, out of sync | yes | carrier | carrier |
+| **carrier, in sync** | **no** | **"not generated"** | **carrier** |
+| mentioner | no | not generated | not generated |
+
+**An in-sync carrier is the NORMAL state of a correct PR at validation time**, so a
+movement test returns "not generated" for exactly the file the rule exists to protect.
+Movement can CONVICT (it moved, so a source produces it) but its absence proves nothing.
+
+**Name the source tree, because regeneration has two inputs and only one of them is the
+artifact.** "Read the ref, not the checkout" governs the artifact axis; this is the
+SOURCE axis, and reading the correct artifact ref does not save you. Regenerate from the
+**PR's own source head** — the commit whose entities are supposed to emit this file. The
+same artifact against a source one commit older produced a full-file delete
+(`0/-132`) for a file that was perfectly in sync, which reads exactly like the hand-edit
+signature below. **A verdict that flips on which source commit you stood at is not a
+property of the PR.**
+
+**The hand-edit signature, stated to its evidence**: with the correct source tree,
+regeneration removes MOST of what the change added, because no entity produces it. A PR
+adding `+23/+23/+25` across three generated files regenerated to `0/-15`, `0/-15`,
+`5/-20` — note the five surviving additions in the third file, so this is *predominantly*
+a revert, not a precise one. **Do not claim "reverts exactly"; the numbers are the
+claim.** It is the same measurement as the byte-identity check that proves a re-homing
+faithful, pointed the other way.
 
 The obvious tightenings were measured and both are worse. Restricting to a 20-line
 header window still flags a CHANGELOG that quotes the banner in its opening paragraph.
 Requiring a comment-form line carrying both *generated* and the phrase drops the false
-positives but **misses 2 of 336 real banners in `plugins` and 6 of 897 in `docs`** —
-trading a cost-one-glance error for the exact error that motivated the rule.
+positives but **misses 6 of 340 real banners in `plugins` and 7 of 899 in `docs`** — the
+same corpora and refs as the census below, so the two figures are comparable — trading a
+cost-one-glance error for the exact error that motivated the rule.
 
 A hand-edit to a generated artifact is a defect in KIND, independent of whether the
 prose is correct — the next regeneration silently reverts it, so a change that reads
@@ -190,21 +308,48 @@ erased, because every reviewer went straight to the content.
 
 Three things make the naive form of this check miss:
 
-- **The banner's position varies.** Measured in one tree: `pr-validator.md` line **8**,
-  `build/skills/build/SKILL.md` line **7**, `core/skills/clean/SKILL.md` line **10**.
-  **Never `head -3`** — it misses all three; grep the file or scan a generous window.
+- **The banner is usually near the top — and a fixed window still fails, because of a
+  one-file tail.** Measured over `plugins` @ `32f48d2`: **339 of 351 hits sit at line
+  ≤ 15 (96.6%)**, three above line 100, and **two of those three are this page quoting
+  the banner in prose**. There is exactly ONE genuinely deep carrier, at line **1214**.
+  **Grep the whole file** — not because the distribution is flat, but because the tail
+  is real, and a window sized to 96.6% of a corpus silently misses the rest.
+
+  **Here the RATIO is the claim and the totals only date it**: 338/350 and 339/351 at
+  two refs one commit apart — 96.57% and 96.58%, stable to two decimals while both
+  totals moved. That is the statistic this rule holds for; file it against the one it
+  is true of.
+
+  **Do not describe this as "24 distinct line numbers."** That is a UNION over the
+  tree, and a union of positions looks like a spread while the underlying distribution
+  is tightly clustered — the population/union error this page warns about two
+  paragraphs below, committed in the sentence warning about it. **Cite the
+  distribution, not the union.**
 - **The two trees use OPPOSITE separators**, so a matcher written for either alone
   misses almost everything in the other. Measured:
 
-  | tree | `DO NOT EDIT` (spaced) | `DO-NOT-EDIT` (hyphenated) | `DO[- ]NOT[- ]EDIT` |
+  | tree (ref) | `DO NOT EDIT` (spaced) | `DO-NOT-EDIT` (hyphenated) | `DO[- ]NOT[- ]EDIT` |
   |---|---|---|---|
-  | `plugins` | **335** | 3 | **336** |
-  | `docs` | 2 | **897** | **897** |
+  | `plugins` @ `32f48d2` | **339** | 4 | **340** |
+  | `docs` @ `3d11170` | 2 | **899** | **899** |
 
-  A hyphen-only matcher finds 3 of 336 in `plugins`; a space-only matcher finds 2 of 897
-  in `docs`. **Neither convention is wrong and neither is going away**, so `-i` and the
+  A hyphen-only matcher finds 4 of 340 in `plugins`; a space-only matcher finds 2 of
+  899 in `docs`. **Neither convention is wrong and neither is going away**, so `-i` and the
   `[- ]` class are load-bearing rather than stylistic — a matcher that assumes one house
   style reports a clean tree for the other.
+
+  **The counts above are `spaced / hyphenated / tolerant`, and they do not add up
+  because `grep -l` UNIONS files rather than partitioning them** — 3 files carry BOTH
+  spellings, so `339 + 4 - 3 = 340`. Say that, or a careful reader spends their time
+  suspecting your arithmetic instead of reading your point; one did.
+
+  **Cite the REF a census was taken at, not a date.** "As they stood when this was
+  written" is a timestamp, which is precisely the thing this paragraph tells you is
+  insufficient — two people counting the same corpus an hour apart briefly read two
+  correct measurements as a disagreement. **State the claim here as an ORDINAL one:
+  spaced dominates `plugins`, hyphenated dominates `docs`.** That survives the corpus
+  growing; the separator RATIO does not — it swung 24% (111.7:1 → 84.8:1) across a
+  single ref change, so it is not the durable form of this finding.
 - **A targeted edit never sees the top of the file.** `Edit` on a matched string, or a
   jump to a grep hit at line 240, never renders line 8. The banner is invisible to the
   access pattern a targeted edit actually uses, which is why the check has to be a
@@ -404,6 +549,12 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
    (the sdk#66 over-removal incident: 4 wire types removed as dead were live
    on charly `main`). Re-run the liveness grep yourself against the consumer's
    `origin/main`, not the PR author's claim.
+   **How to CLASSIFY the sweep's hits — `references/evidence-and-freshness.md`.**
+   The `CHANGELOG/` clause above covers only one slice: a hit in a prior release
+   entry, which is expected. The general case is a **retraction in live prose** —
+   a page quoting the claim it corrects — and it is indistinguishable by pattern
+   from the assertion, because they are the same string. A sweep produces a
+   CANDIDATE list, never an EDIT list; every hit is read before it is touched.
 10. **R6/R8/R9 — artifact + binary integrity (where the class applies).** R6: a
     destructive git action was preceded by a status/stash check. R8 (generation
     changes): the emitted `.build/<img>/Containerfile` critical sections + every
@@ -884,11 +1035,21 @@ Each of these caught a real defect that survived author review:
 
 W0 forbids bootstrapping another CHECKOUT to validate FROM, because permissions
 and plugin resolution depend on running rooted in the superproject. It does NOT
-forbid a **read-only worktree at the PR head**, driven with `git -C` from that
-root — and after a destructive experiment leaked into the shared checkout during
-PR #9, a scratch worktree is the CORRECT way to run any mutation test. Create it,
-drive everything with absolute paths from the superproject root, verify the shared
-checkout clean afterwards, and remove it.
+forbid a **scratch worktree**, driven with `git -C` from that root — and after a
+destructive experiment leaked into the shared checkout during PR #9, a scratch
+worktree is the CORRECT way to run any mutation test. Create it, drive everything
+with absolute paths from the superproject root, verify the shared checkout clean
+afterwards, and remove it.
+
+**The exemption covers WRITE-and-RUN worktrees, not only read-only ones at the PR
+head.** The carrier test (STEP ONE) deletes a tracked file, runs two generators, and
+stands on the SOURCE head rather than the artifact PR head — none of which a
+read-only-at-the-PR-head exemption permits, and all of which are the point: a
+mutation test that cannot mutate is not a test. **A narrower exemption than the
+mandated procedure needs is a rule conflict, not a caveat** — it makes the procedure
+either unusable or a violation, and a reader facing that will pick one silently.
+What W0 actually protects is *validating FROM* a bootstrapped checkout; a scratch
+tree you write to, read once, and destroy is not that.
 
 ### 1b.2 — The standing questions
 

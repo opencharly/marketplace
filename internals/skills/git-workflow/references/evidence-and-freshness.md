@@ -278,6 +278,19 @@ surviving tags. A count that cannot tell a tag from prose was never a measuremen
 invariant. Anchor to what the construct looks like — `^\s+[A-Z]\w*\s+\S+\s+`...`cmd:"` —
 or state that the figure is a candidate count, not an answer.
 
+**Put the safeguard where the reader ACTS, not where it is true.** A rule that knows
+`rm` is destructive, knows a scratch worktree is the right mutation harness, and knows an
+exit code must be classified before absence is believed — and states all three several
+hundred lines away from the step that does the deleting — **has the knowledge and none of
+the benefit.** Measured in this very spec: a procedure opened with `rm` on a tracked file,
+in whatever checkout the reader was standing in, while all three safeguards sat ~700 lines
+below it; and the same page's `git -C <submodule> grep` form sat 288 lines from a command
+that could not reproduce its own worked example without it.
+
+**A reader executes the invocation printed next to the instruction.** Anything true
+elsewhere in the document is, operationally, absent — so the test for a rule is not
+*"does the page contain the answer"* but *"is the answer at the point of action"*.
+
 **The operational corollary, which is where sweeps do damage rather than just miss:**
 
 > **A claim-keyed sweep produces a CANDIDATE list, never an EDIT list.**
@@ -291,6 +304,20 @@ have removed the explanation); a sibling count that genuinely was five (correct,
 blanket `Five → Four` would have falsified it); and a pair of comparators that were
 supposed to differ (unified, turning a staleness guard into a tautology while the suite
 stayed green).
+
+**The sharpest case is sweeping a claim you have just CORRECTED**, because the correction
+itself quotes the old wording in order to retract it — so the sweep's hits include the
+fix. Measured: four hits for a superseded rule across two CHANGELOGs, **three of them
+retractions and one a live assertion.** A mechanical pass would have deleted the three
+retractions, leaving a page that no longer states the wrong thing and no longer records
+that it was wrong — **clean-looking, and stripped of exactly the history that stops the
+claim coming back.** Only reading each hit distinguishes *asserting X* from *saying X was
+wrong*, and no pattern can, because the two are the same string.
+
+**Sweep across every REPO the claim reached, not the files a finding named.** The live
+assertion in that set was in a repository no finding mentioned, twenty lines above its own
+correction, and was found only because the sweep was run over the whole cutover rather
+than the reported sites.
 
 ### Gate the behaviour the title claims, not the artifact of the fix
 
