@@ -248,16 +248,19 @@ arch:
       url: https://fastly.mirror.pkgbuild.com/images/latest/Arch-Linux-x86_64-cloudimg.qcow2
       checksum: {type: sha256}                      # value auto-resolves from <url>.SHA256 sidecar
       base_user: arch                               # adopt pattern (no useradd)
-      # distro:                                    # SET IT for debian/ubuntu (else `openssh` not
-                                                   # `openssh-server`, and unit `sshd` not `ssh`); for a
-                                                   # pacman-family guest not literally named `arch` —
-                                                   # archarm/manjaro/endeavouros/cachyos — else it leaves
-                                                   # the `pacman -Sy --needed` path and hits the D15
-                                                   # host-key race; and for an Alpine image not named
-                                                   # `alpine` (else systemd onto OpenRC). effectiveDistro
-                                                   # infers ONLY arch and alpine. Anything else (fedora,
-                                                   # centos, rocky, cloud-user) may omit it — the empty
-                                                   # default fits, by luck rather than inference.
+      # distro:                                    # `distro:` is read by FOUR dispatches and INFERRED only from
+                                                   # `base_user`, only for cloud_image, and only for the two literal
+                                                   # values `arch` and `alpine`. So SET IT unless `base_user` is
+                                                   # literally `arch` or literally `alpine` — including when
+                                                   # `base_user` is absent. Concretely: debian/ubuntu (else `openssh`
+                                                   # not `openssh-server`, and unit `sshd` not `ssh`); archarm,
+                                                   # manjaro, endeavouros, cachyos, and any Arch image whose
+                                                   # `base_user` is not literally `arch` (else it leaves the
+                                                   # `pacman -Sy --needed` path and hits the D15 host-key race); and
+                                                   # an Alpine image whose `base_user` is not literally `alpine`
+                                                   # (else systemd onto OpenRC). An rpm-family guest (fedora, centos,
+                                                   # rocky) may omit it — the empty default gives `openssh` + `sshd`,
+                                                   # correct there.
     disk_size: 40G
     ram: 8G
     cpu: 4
