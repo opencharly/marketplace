@@ -248,16 +248,16 @@ arch:
       url: https://fastly.mirror.pkgbuild.com/images/latest/Arch-Linux-x86_64-cloudimg.qcow2
       checksum: {type: sha256}                      # value auto-resolves from <url>.SHA256 sidecar
       base_user: arch                               # adopt pattern (no useradd)
-      # distro:                                    # OMIT for arch (inferred from
-                                                    # base_user; arch and alpine are
-                                                    # the only inferred values) and for
-                                                    # fedora (not inferred — the empty
-                                                    # default happens to be right).
-                                                    # REQUIRED for debian/ubuntu (else
-                                                    # the wrong ssh package and unit are
-                                                    # chosen) and for a non-`alpine`-named
-                                                    # Alpine image (else systemd on an
-                                                    # OpenRC guest = unreachable VM)
+      # distro:                                    # SET IT for debian/ubuntu (else `openssh` not
+                                                   # `openssh-server`, and unit `sshd` not `ssh`); for a
+                                                   # pacman-family guest not literally named `arch` —
+                                                   # archarm/manjaro/endeavouros/cachyos — else it leaves
+                                                   # the `pacman -Sy --needed` path and hits the D15
+                                                   # host-key race; and for an Alpine image not named
+                                                   # `alpine` (else systemd onto OpenRC). effectiveDistro
+                                                   # infers ONLY arch and alpine. Anything else (fedora,
+                                                   # centos, rocky, cloud-user) may omit it — the empty
+                                                   # default fits, by luck rather than inference.
     disk_size: 40G
     ram: 8G
     cpu: 4

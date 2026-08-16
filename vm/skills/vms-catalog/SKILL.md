@@ -27,16 +27,16 @@ The VM surface parallels the `candy:` image surface: one YAML entry per entity, 
       url: https://…
       checksum: { type: sha256, value?: <hex> }
       base_user: arch                     # adopt this account (see Adopt pattern below)
-      distro: debian                      # OMIT for arch (inferred from base_user, along
-                                          # with alpine — the only two inferred values) and
-                                          # for fedora (nothing infers fedora; the empty
-                                          # default resolves to `openssh` + `sshd`, correct
-                                          # there). REQUIRED for debian/ubuntu — omitting
-                                          # it picks `openssh` over `openssh-server`, so
-                                          # cloud-init hard-fails, and the unit resolves to
-                                          # `sshd` where Debian needs `ssh`. Also required for
-                                          # an Alpine image whose account is not literally
-                                          # `alpine` (else systemd is rendered onto OpenRC).
+      distro: debian                      # SET IT for debian/ubuntu (else `openssh` not
+                                          # `openssh-server`, and unit `sshd` not `ssh`); for a
+                                          # pacman-family guest not literally named `arch` —
+                                          # archarm/manjaro/endeavouros/cachyos — else it leaves
+                                          # the `pacman -Sy --needed` path and hits the D15
+                                          # host-key race; and for an Alpine image not named
+                                          # `alpine` (else systemd onto OpenRC). effectiveDistro
+                                          # infers ONLY arch and alpine. Anything else (fedora,
+                                          # centos, rocky, cloud-user) may omit it — the empty
+                                          # default fits, by luck rather than inference.
       cache: ~/.cache/charly/vm-images/       # optional override
       # bootc branch:
       box: <candy: image entry name>           # `box:` source field → a `candy:` image carrying base:/from:
@@ -153,7 +153,7 @@ Canonical example: `/charly-vm:arch-cloud-vm`. Only existing cloud_image VM in t
 ### Authoring a new cloud_image VM
 
 1. Find the upstream qcow2 URL + verify a sha256 sidecar exists (<url>.SHA256 / .sha256 / .sha256sum).
-2. Identify the **pre-existing user account** in the upstream image (`arch`, `alpine`, `ubuntu`, `fedora`, `debian`, `cloud-user`, etc.). Note that `effectiveDistro` infers ONLY `arch` and `alpine`, and only from `base_user` — those two STEER rendering (they select the package-delivery and sshd-start branches) when no explicit `distro:` is set. Every OTHER guest except fedora needs `distro:` set explicitly — fedora is safe to omit only because the empty default resolves to `openssh` and unit `sshd`, which are already correct there, not because anything infers it. `base_user: debian` or `ubuntu` without it resolves to the empty distro, which picks `openssh` instead of `openssh-server` (cloud-init hard-fails `E: Unable to locate package openssh`) and unit `sshd` where Debian needs `ssh`; an Alpine image whose account is named anything but `alpine` renders the systemd path onto an OpenRC guest. All three boot unreachable. This becomes `source.base_user:` — triggers the adopt pattern described below.
+2. Identify the **pre-existing user account** in the upstream image (`arch`, `alpine`, `ubuntu`, `fedora`, `debian`, `cloud-user`, etc.). Note that `effectiveDistro` infers ONLY `arch` and `alpine`, and only from `base_user` — those two STEER rendering (they select the package-delivery and sshd-start branches) when no explicit `distro:` is set. **Set `distro:` explicitly whenever the guest's id appears in one of the render's dispatch tables and `effectiveDistro` would not supply it — read the tables, never count cases from the examples in front of you, because each dispatch has its OWN key set.** They are: `composePackages` keys on {`debian`, `ubuntu`} (omitting picks `openssh` over `openssh-server`, so cloud-init hard-fails `E: Unable to locate package openssh`); `sshUnitForDistro` keys on the same two (omitting yields unit `sshd` where Debian needs `ssh`); `pacmanFamily`, i.e. `FormatForDistroID(distro) == "pac"`, keys on **five** ids — {`arch`, `archarm`, `manjaro`, `endeavouros`, `cachyos`} — and omitting drops the guest onto the `packages:` path instead of `pacman -Sy --needed` plus the sshd try-restart guard, so cloud-init's bare `pacman -S` re-triggers exactly the host-key regen race described under D15 below; and the init branch keys on {`alpine`} (omitting renders systemd onto an OpenRC guest, and the VM boots unreachable). Since `effectiveDistro` infers only `arch` and `alpine`, and only from `base_user`, a **CachyOS, Manjaro, EndeavourOS or archarm image — or an Arch image whose account is not literally `arch`** — resolves to the empty distro, silently leaves the pacman family and takes the racy install path; likewise an Alpine image whose account is not literally `alpine`. A guest absent from every table above (fedora, centos, rocky, a `cloud-user` image) may omit it: the empty distro falls through to `openssh` + unit `sshd` + the `packages:` key, correct there — by the default happening to fit, not by inference. `base_user: debian` or `ubuntu` without it resolves to the empty distro, which picks `openssh` instead of `openssh-server` (cloud-init hard-fails `E: Unable to locate package openssh`) and unit `sshd` where Debian needs `ssh`; an Alpine image whose account is named anything but `alpine` renders the systemd path onto an OpenRC guest. All three boot unreachable. This becomes `source.base_user:` — triggers the adopt pattern described below.
 3. Start from `/charly-vm:arch-cloud-vm` as a template. Change `url`, `base_user`, distro-specific cloud_init `package:` and `runcmd:`.
 4. Pick firmware: default to `bios` unless the upstream image explicitly requires UEFI (e.g., secure boot lock-in).
 5. Run `charly vm build <name>` — observe the fetched qcow2 sha256 + rendered seed ISO path.
