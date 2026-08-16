@@ -74,19 +74,17 @@ arch:
       checksum:
         type: sha256
       base_user: arch
-      # distro:               # `distro:` is read by FOUR dispatches and INFERRED only from
-                              # `base_user`, only for cloud_image, and only for the two literal
-                              # values `arch` and `alpine`. So SET IT unless `base_user` is
-                              # literally `arch` or literally `alpine` — including when
-                              # `base_user` is absent. Concretely: debian/ubuntu (else `openssh`
-                              # not `openssh-server`, and unit `sshd` not `ssh`); archarm,
-                              # manjaro, endeavouros, cachyos, and any Arch image whose
-                              # `base_user` is not literally `arch` (else it leaves the
-                              # `pacman -Sy --needed` path and hits the D15 host-key race); and
-                              # an Alpine image whose `base_user` is not literally `alpine`
-                              # (else systemd onto OpenRC). An rpm-family guest (fedora, centos,
-                              # rocky) may omit it — the empty default gives `openssh` + `sshd`,
-                              # correct there.
+      # distro:               # `distro:` is inferred from `base_user` ONLY for the literals `arch` and
+                              # `alpine`, and only for `cloud_image`. So set it explicitly
+                              # whenever the guest's id is one of {debian, ubuntu, arch,
+                              # archarm, manjaro, endeavouros, cachyos, alpine} and inference
+                              # will not supply it — i.e. every id in that set except a guest
+                              # whose `base_user` is literally `arch` or literally `alpine`.
+                              # Any other guest id: omit. Getting it wrong in the SET
+                              # direction is inert; omitting where it is needed picks the
+                              # wrong ssh package/unit, or drops the guest off the
+                              # `pacman -Sy --needed` path into the D15 host-key race, or
+                              # renders systemd onto an OpenRC guest.
     backend: libvirt            # REQUIRED — the bed's libvirt-RPC + spice probes hit the session daemon
     disk_size: 40G
     ram: 8G
