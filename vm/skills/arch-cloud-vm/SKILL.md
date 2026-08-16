@@ -74,21 +74,18 @@ arch:
       checksum:
         type: sha256
       base_user: arch
-      # distro:               # `distro:` is inferred from `base_user` ONLY for the literals `arch` and
-                              # `alpine`, and only for `cloud_image`. So set it explicitly
-                              # whenever the guest's id is one of {debian, ubuntu, arch,
-                              # archarm, manjaro, endeavouros, cachyos, alpine} and inference
-                              # will not supply it — i.e. every id in that set except a guest
-                              # whose `base_user` is literally `arch` or literally `alpine`.
-                              # Any other guest id: omit. Set the CORRECT id, never a guess:
+      # distro:               # `distro:` is inferred from `base_user`, and ONLY for the two
+                              # literal values `arch` and `alpine` — the inference does not check
+                              # that the guest IS that distro. So: OMIT only when the guest's id
+                              # is `arch` and `base_user` is literally `arch`, or the guest's id
+                              # is `alpine` and `base_user` is literally `alpine`. For any other
+                              # id in {debian, ubuntu, arch, archarm, manjaro, endeavouros,
+                              # cachyos, alpine}, SET it to the guest's own id. For any id
+                              # outside that set, omit. Set the CORRECT id, never a guess:
                               # `distro:` ALSO selects the guest's package manager for candy
-                              # installation (`candy/plugin-fleet/candy_select.go`, which is
-                              # NOT source-kind gated), so a wrong value runs `pacman` on a
-                              # deb guest (exit 127) or compiles zero package steps. Omitting
-                              # where it is needed picks the wrong ssh package/unit, drops the
-                              # guest off the `pacman -Sy --needed` path into the host-key
-                              # race described in `/charly-internals:cloud-init-renderer`, or
-                              # renders systemd onto an OpenRC guest.
+                              # installation (`candy/plugin-fleet/candy_select.go`, not
+                              # source-kind gated), so a wrong in-set value runs `pacman` on a
+                              # deb guest (exit 127) or compiles zero package steps.
     backend: libvirt            # REQUIRED — the bed's libvirt-RPC + spice probes hit the session daemon
     disk_size: 40G
     ram: 8G
