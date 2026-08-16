@@ -93,7 +93,18 @@ type VmSource struct {
 
 Common values: `arch` (Arch cloud image), `alpine` (Alpine Cloud), `ubuntu` (Ubuntu Cloud), `fedora` (Fedora Cloud), `debian` (Debian Cloud), `cloud-user` (CentOS Cloud).
 
-**`base_user:` is not only the adopt-user selector — two of its values STEER RENDERING.** When no explicit `distro:` is set on a `cloud_image` source, `effectiveDistro` infers `"arch"` from `base_user: "arch"` and `"alpine"` from `base_user: "alpine"`, and those inferences pick the package-delivery branch (the `pacman -Sy` runcmd prepend vs the `packages:` key) and the sshd-start branch (`rc-update`+`rc-service` on OpenRC vs `systemctl unmask`+`enable --now`). Every other value, and an empty one, falls through to the systemd/`packages:` path. **So an Alpine image declared with a custom account name, or with `base_user:` left empty, gets `systemctl enable --now sshd` on a guest that has no systemd, and the VM boots unreachable.** Set `distro: alpine` explicitly whenever the account is not literally `alpine`.
+**`base_user:` is not only the adopt-user selector — two of its values STEER RENDERING.** When no explicit `distro:` is set on a `cloud_image` source, `effectiveDistro` infers `"arch"` from `base_user: "arch"` and `"alpine"` from `base_user: "alpine"`, and those inferences pick the package-delivery branch (the `pacman -Sy` runcmd prepend vs the `packages:` key) and the sshd-start branch (`rc-update`+`rc-service` on OpenRC vs `systemctl unmask`+`enable --now`). Every other value, and an empty one, falls through to the systemd/`packages:` path. **So an Alpine image declared with a custom account name, or with `base_user:` left empty, gets `systemctl enable --now sshd` on a guest that has no systemd, and the VM boots unreachable.** Set `distro: alpine` explicitly whenever the account is not literally `alpine`. That is `source.distro` — an OPTIONAL free-form string on the `cloud_image` arm (`spec/schema/vm.cue`: `distro?: string`), a sibling of `base_user:`, authored as:
+
+```yaml
+my-vm:
+    vm:
+        source:
+            kind: cloud_image
+            base_user: myuser
+            distro: alpine
+```
+
+When set it WINS over the `base_user` inference; when unset the inference runs. Do not confuse it with the `bootstrap` source kind, where `distro:` is REQUIRED and names the bootstrap target rather than steering the render.
 
 Leave empty **only** when the image has no default account — then declare a custom user in `spec.cloud_init.users`.
 
@@ -134,7 +145,7 @@ The renderer combines structured fields with renderer defaults:
 
 ```go
 type VmCharlyInstall struct {
-    Strategy string  // auto | scp | url | skip
+    Strategy string  // auto | scp | skip
     URL      string  // when Strategy == "url"
     Checksum string  // "sha256:<hex>" for url strategy
 }
