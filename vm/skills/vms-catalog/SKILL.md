@@ -27,6 +27,13 @@ The VM surface parallels the `candy:` image surface: one YAML entry per entity, 
       url: https://…
       checksum: { type: sha256, value?: <hex> }
       base_user: arch                     # adopt this account (see Adopt pattern below)
+      distro: debian                      # OPTIONAL for arch/fedora only (inferred from
+                                          # base_user). REQUIRED for debian/ubuntu — omitting
+                                          # it picks `openssh` over `openssh-server`, so
+                                          # cloud-init hard-fails, and the unit resolves to
+                                          # `sshd` where Debian needs `ssh`. Also required for
+                                          # an Alpine image whose account is not literally
+                                          # `alpine` (else systemd is rendered onto OpenRC).
       cache: ~/.cache/charly/vm-images/       # optional override
       # bootc branch:
       box: <candy: image entry name>           # `box:` source field → a `candy:` image carrying base:/from:
@@ -143,7 +150,7 @@ Canonical example: `/charly-vm:arch-cloud-vm`. Only existing cloud_image VM in t
 ### Authoring a new cloud_image VM
 
 1. Find the upstream qcow2 URL + verify a sha256 sidecar exists (<url>.SHA256 / .sha256 / .sha256sum).
-2. Identify the **pre-existing user account** in the upstream image (`arch`, `alpine`, `ubuntu`, `fedora`, `debian`, `cloud-user`, etc.). Note `arch` and `alpine` additionally STEER rendering when no explicit `distro:` is set — they select the package-delivery and sshd-start branches — so an Alpine image whose account is named anything else needs `distro: alpine` set explicitly or it renders the systemd path onto an OpenRC guest. This becomes `source.base_user:` — triggers the adopt pattern described below.
+2. Identify the **pre-existing user account** in the upstream image (`arch`, `alpine`, `ubuntu`, `fedora`, `debian`, `cloud-user`, etc.). Note that `effectiveDistro` infers ONLY `arch` and `alpine`, and only from `base_user` — those two STEER rendering (they select the package-delivery and sshd-start branches) when no explicit `distro:` is set. Every OTHER guest needs `distro:` set explicitly. `base_user: debian` or `ubuntu` without it resolves to the empty distro, which picks `openssh` instead of `openssh-server` (cloud-init hard-fails `E: Unable to locate package openssh`) and unit `sshd` where Debian needs `ssh`; an Alpine image whose account is named anything but `alpine` renders the systemd path onto an OpenRC guest. All three boot unreachable. This becomes `source.base_user:` — triggers the adopt pattern described below.
 3. Start from `/charly-vm:arch-cloud-vm` as a template. Change `url`, `base_user`, distro-specific cloud_init `package:` and `runcmd:`.
 4. Pick firmware: default to `bios` unless the upstream image explicitly requires UEFI (e.g., secure boot lock-in).
 5. Run `charly vm build <name>` — observe the fetched qcow2 sha256 + rendered seed ISO path.

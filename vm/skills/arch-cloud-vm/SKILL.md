@@ -74,11 +74,15 @@ arch:
       checksum:
         type: sha256
       base_user: arch
-      # distro: alpine        # OPTIONAL — steers the package-delivery and
-                            # sshd-start branches. Omit for arch/fedora/debian/
-                            # ubuntu; REQUIRED for an Alpine image whose account
-                            # is not literally `alpine`, or it renders systemd
-                            # onto an OpenRC guest and the VM boots unreachable.
+      # distro:               # OPTIONAL for arch and fedora ONLY — effectiveDistro
+                            # infers those two from base_user. SET IT for
+                            # debian/ubuntu (omitting it picks `openssh` over
+                            # `openssh-server`, so cloud-init hard-fails with
+                            # "Unable to locate package openssh", and the unit
+                            # resolves to `sshd` where Debian needs `ssh`), and
+                            # for an Alpine image whose account is not literally
+                            # `alpine` (else systemd is rendered onto an OpenRC
+                            # guest and the VM boots unreachable).
     backend: libvirt            # REQUIRED — the bed's libvirt-RPC + spice probes hit the session daemon
     disk_size: 40G
     ram: 8G
