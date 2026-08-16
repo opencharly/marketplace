@@ -256,10 +256,13 @@ remove without removing anything — run it once after setting `keep_images`, be
 budget is per box group and the count that surprises people is tag rows, not images.
 
 **Ordering is owned by `/charly-core:clean`**, which documents the retention engine
-itself — the full comparator chain and why the build tag cannot serve as the recency
-key. The consequence that matters here: two builds of an unchanged image share one
-content label, so it is **creation time**, not the `:YYYY.DDD.HHMM` tag, that decides
-which of them is newer.
+itself — the full comparator chain, which key decides which ordinal, and why the build
+tag cannot serve as the image recency key. The two consequences that matter here:
+**between distinct images**, creation time decides which is newer, because two builds of
+an unchanged image share one content label; **within one image's tag rows**, the
+`:YYYY.DDD.HHMM` tag decides, because those rows share everything else. Do not carry
+*"creation time, not the tag"* across to the tag budget — it is true of the first and
+false of the second.
 
 Images referenced
 by a container (`podman ps -a`) are skipped, and `rmi` runs without `-f` as a
