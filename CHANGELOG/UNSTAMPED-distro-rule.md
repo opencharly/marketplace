@@ -1,4 +1,11 @@
-# 2026.228.9999 — `base_user` is the discriminator, not the OS name
+# UNSTAMPED — `base_user` is the discriminator, not the OS name
+
+> **This entry is NOT released.** The filename and this H1 carry no CalVer by design:
+> `2026.228.9999` was the previous placeholder, and `9999` is not a valid HHMM — it matched
+> the filename pattern, sorted, and could have landed looking like a real stamp. There is no
+> CI check on CHANGELOG filenames in this repo; the only gate is the validator, so the
+> placeholder has to announce itself. **The merging validator rewrites both this filename and
+> this H1 to the merge-time CalVer.**
 
 Fixes a category error in the `distro:` guidance that `v2026.228.0456` shipped,
 and it is the fourth wrong direction this one rule has taken.
