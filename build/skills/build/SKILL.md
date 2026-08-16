@@ -240,8 +240,8 @@ DELETED, K-wave 2).
 ## Image-tag retention (`defaults.keep_images`)
 
 After `charly box build` (push runs excluded), charly prunes old CalVer tags per image
-down to `defaults.keep_images` — keeping the newest N builds per
-`ai.opencharly.box` group, ordered by the `ai.opencharly.version` label
+down to `defaults.keep_images` — keeping the newest N **distinct images** per
+`ai.opencharly.box` group, **and at most N tags of each**, ordered by the `ai.opencharly.version` label
 (the content-derived EffectiveVersion) as the PRIMARY key, with the `:YYYY.DDD.HHMM`
 build TAG as the tiebreaker. The tag tiebreak is load-bearing: the label is
 content-stable, so many builds of an unchanged image share one label-CalVer and
@@ -252,7 +252,8 @@ backstop, so a running deploy's image is never removed.
 ```yaml
 # charly.yml — defaults:
 defaults:
-  keep_images: 3   # newest CalVer tags to keep per image; 0 (or absent) disables
+  keep_images: 3   # newest distinct images to keep per box, and at most 3 tags of
+                   # each; 0 (or absent) disables
 ```
 
 This stops the iterative-build tag accumulation that otherwise reclaims

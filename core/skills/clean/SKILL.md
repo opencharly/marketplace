@@ -35,7 +35,8 @@ Two artifact classes, two policies (operator principle):
 
 ```yaml
 defaults:
-  keep_images: 3      # newest CalVer tags to keep per image after `charly box build`
+  keep_images: 3      # newest distinct images per box after `charly box build`,
+                      # and at most 3 tags of each
   keep_check_runs: 3   # newest run dirs to keep per bed/score after `charly check run`
 ```
 
@@ -94,7 +95,11 @@ get closer to the reported figure and reclaim more of the store.
 
 **Image-tag retention** (`keep_images`): images are grouped by the
 `ai.opencharly.box` label and ordered by the `ai.opencharly.version`
-CalVer label; all but the newest N per group are `podman rmi`'d. **Safety**: any
+CalVer label. `keep_images: N` budgets **two ordinals**: the newest N **distinct
+images** per group survive, **and at most N tags of each** — so one image wearing
+many CalVer tags no longer consumes the whole budget, starving the distinct images
+behind it, while a content-stable image rebuilt many times still has its surplus tag rows
+reclaimed. Everything outside both is `podman rmi`'d. **Safety**: any
 image referenced by a container (`podman ps -a`, including stopped/quadlet
 deploys) is skipped, and `rmi` runs WITHOUT `-f` so the engine refuses any
 still-referenced image as a backstop. Non-charly images (no `ai.opencharly.box`
