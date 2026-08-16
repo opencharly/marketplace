@@ -313,7 +313,7 @@ This is what makes the full charly-cachyos stack — including the npm-builder A
 When a layer declares `reboot: true`, `BuildDeployPlan` appends a trailing
 `RebootStep`. Only the external `vm` deploy acts on it: the plugin drives it
 over `RunHostStep`, where the HOST reboots the guest (records the guest's
-`/proc/sys/kernel/random/boot_id`, fires `(sleep 1; systemctl reboot) &` so the
+`/proc/sys/kernel/random/boot_id`, fires `(sleep 1; systemctl reboot || reboot) &` (the `|| reboot` arm is what lets a non-systemd guest reboot at all) so the
 ssh session closes cleanly, then polls until SSH answers AND the boot_id has
 changed — deterministic, not a fixed sleep, so the still-up pre-reboot sshd
 can't be mistaken for "back up"). OCI/pod/kubernetes skip it; the external `local:`
