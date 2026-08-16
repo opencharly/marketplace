@@ -71,6 +71,7 @@ type VmSource struct {
     Checksum VmChecksum
     Cache    string
     BaseUser string       // adopt-user pattern — see below
+    Distro   string       // OPTIONAL; steers the render when set — see below
 
     // bootc branch:
     Image      string     // `candy:` image entry name (carries base:/from:)
