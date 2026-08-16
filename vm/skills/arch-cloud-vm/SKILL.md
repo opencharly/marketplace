@@ -74,18 +74,21 @@ arch:
       checksum:
         type: sha256
       base_user: arch
-      # distro:               # **Set `distro:` to the guest's own id** — as a BARE id, no `:version`
-                              # tag: `ResolveDistro` strips at `:` but the cloud-init dispatches match
-                              # the string exactly, so `debian:13` yields `openssh` instead of
-                              # `openssh-server` and cloud-init hard-fails. **Omit it only when the
-                              # guest is `arch` and `base_user` is literally `arch`, or the guest is
-                              # `alpine` and `base_user` is literally `alpine`** — the only two cases
-                              # where the inference supplies the right value, since it reads the
-                              # account and never checks the guest. Setting an id no dispatch knows is
-                              # not harmful: it misses all four cloud-init dispatches exactly as the
-                              # empty value does, and gives `candy_select` a resolvable key where one
-                              # exists. Never guess: a wrong id that IS known selects the wrong
-                              # package manager for candy installation.
+      # distro:               # **Set `distro:` to the guest's own id, as a BARE id** (no `:version`
+                              # tag — `ResolveDistro` strips at `:` but the cloud-init dispatches
+                              # compare exactly, so `debian:13` yields `openssh` not
+                              # `openssh-server`). TWO exceptions, both because omitting then
+                              # resolves better than setting: (1) the guest is `arch` and
+                              # `base_user` is literally `arch`, or `alpine` and literally
+                              # `alpine` — the inference already supplies it; (2) the guest is an
+                              # Arch DERIVATIVE (`manjaro`, `archarm`, `endeavouros`) shipping an
+                              # `arch` account — `candy_select` resolves `distro:`/`base_user`
+                              # against a FIVE-id vocabulary, `{arch, cachyos, debian, fedora,
+                              # ubuntu}`, so `distro: manjaro` resolves to nothing and installs
+                              # zero candy packages silently, while the `arch` account resolves
+                              # and is the same package family. A guest outside those five with no
+                              # in-family account (rocky, opensuse, alpine) cannot be fixed here at
+                              # all — it needs a vocabulary entry.
     backend: libvirt            # REQUIRED — the bed's libvirt-RPC + spice probes hit the session daemon
     disk_size: 40G
     ram: 8G
