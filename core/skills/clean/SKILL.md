@@ -94,9 +94,13 @@ get closer to the reported figure and reclaim more of the store.
 ## What gets pruned (and what never does)
 
 **Image-tag retention** (`keep_images`): images are grouped by the
-`ai.opencharly.box` label and ordered by the `ai.opencharly.version`
-CalVer label. `keep_images: N` budgets **two ordinals**: the newest N **distinct
-images** per group survive, **and at most N tags of each** — so one image wearing
+`ai.opencharly.box` label and ordered by the `ai.opencharly.version` CalVer label
+first, then labelled-before-unlabelled, then **image creation time**, and only then
+the build tag — creation time rather than the tag, because `--tag` builds carry a
+non-CalVer tag and would otherwise all compare equal (see `/charly-build:build`).
+`keep_images: N` budgets **two ordinals**: the newest N **distinct images** per
+group survive — a *distinct image* being a distinct image ID, so every tag pointing
+at one ID counts once — **and at most N tags of each** — so one image wearing
 many CalVer tags no longer consumes the whole budget, starving the distinct images
 behind it, while a content-stable image rebuilt many times still has its surplus tag rows
 reclaimed. Everything outside both is `podman rmi`'d. **Safety**: any

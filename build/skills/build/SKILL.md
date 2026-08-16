@@ -240,12 +240,21 @@ DELETED, K-wave 2).
 ## Image-tag retention (`defaults.keep_images`)
 
 After `charly box build` (push runs excluded), charly prunes old CalVer tags per image
-down to `defaults.keep_images` — keeping the newest N **distinct images** per
-`ai.opencharly.box` group, **and at most N tags of each**, ordered by the `ai.opencharly.version` label
-(the content-derived EffectiveVersion) as the PRIMARY key, with the `:YYYY.DDD.HHMM`
-build TAG as the tiebreaker. The tag tiebreak is load-bearing: the label is
-content-stable, so many builds of an unchanged image share one label-CalVer and
-the tag is what distinguishes (and retains) the newest BUILDS. Images referenced
+down to `defaults.keep_images`, which budgets **two ordinals**: the newest N
+**distinct images** per `ai.opencharly.box` group survive, **and at most N tags of
+each**. A *distinct image* is a distinct image ID — every tag pointing at one ID is
+one image, however many tags it wears.
+
+Ordering within a group is by the `ai.opencharly.version` label (the content-derived
+EffectiveVersion) as the PRIMARY key, then labelled-before-unlabelled, then **image
+creation time**, and only then the `:YYYY.DDD.HHMM` build tag. **Creation time, not
+the tag, is what distinguishes builds**: the label is content-stable, so many builds
+of an unchanged image share one label-CalVer — and the tag cannot break that tie
+either, because `charly box build --tag` REPLACES the CalVer tag (a bed build carries
+`check-<bed>-<calver>`, which parses as no CalVer at all). Ordering on the tag made
+every member of such a group compare equal, so `keep_images: N` kept an arbitrary N
+and could delete the newest build; creation time is the only recency key total over
+the tags charly mints. Images referenced
 by a container (`podman ps -a`) are skipped, and `rmi` runs without `-f` as a
 backstop, so a running deploy's image is never removed.
 
