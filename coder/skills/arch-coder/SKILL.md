@@ -80,7 +80,7 @@ arch-coder:
     - grafana-tools
 ```
 
-No explicit `user:` / `uid:` / `gid:` — inherits the defaults. `user_policy:` defaults to `auto`; the `arch` base image declares no `base_user:` in its `distro:` vocabulary, so the policy falls through to create mode — the bootstrap emits an idempotent `useradd -m -u 1000 -g 1000 user`. See `/charly-image:image` "user_policy" and `/charly-build:build` "base_user".
+No explicit `user:` / `uid:` / `gid:` — inherits the defaults. `user_policy:` defaults to `auto`; the `arch` base image declares no `base_user:` in its `distro:` vocabulary, so the policy falls through to create mode — the bootstrap emits an idempotent user creation (`useradd` where shadow-utils is present, busybox `adduser` otherwise). See `/charly-image:image` "user_policy" and `/charly-build:build` "base_user".
 
 ## Resolved security posture
 
