@@ -251,28 +251,36 @@ NEITHER a datable `ai.opencharly.version` label NOR a datable `:YYYY.DDD.HHMM` t
 (`retention.go`'s guard is an AND). A bed build has a datable label and a non-CalVer
 tag, so it is a normal removal candidate rather than an excluded one.
 
-**Preview before enabling it.** `charly clean --dry-run` prints what retention would
-remove without removing anything — run it once after setting `keep_images`, because the
-budget is per box group and the count that surprises people is tag rows, not images.
+**Preview before enabling it**, with the value you are considering rather than one you
+have already committed to:
+
+```bash
+charly clean --keep 3 --images --dry-run   # what keep_images: 3 WOULD remove
+```
+
+`--keep` supplies the budget on the command line, so this answers the question while
+`defaults.keep_images` is still absent — with the key unset, retention is disabled and a
+plain `charly clean --dry-run` correctly shows nothing, which is not the preview you
+want. The count that surprises people is **tag rows, not images**.
 
 **Ordering is owned by `/charly-core:clean`**, which documents the retention engine
 itself — the full comparator chain, which key decides which ordinal, and why the build
 tag cannot serve as the image recency key. The two consequences that matter here:
-**between distinct images**, creation time decides which is newer, because two builds of
-an unchanged image share one content label; **within one image's tag rows**, the
+**between distinct images**, the datable `ai.opencharly.version` label decides when the
+two differ, and creation time decides when they tie — which is the usual case, because
+repeated builds of an unchanged image share one label; **within one image's tag rows**, the
 `:YYYY.DDD.HHMM` tag decides, because those rows share everything else. Do not carry
 *"creation time, not the tag"* across to the tag budget — it is true of the first and
 false of the second.
 
-Images referenced
-by a container (`podman ps -a`) are skipped, and `rmi` runs without `-f` as a
-backstop, so a running deploy's image is never removed.
+Images referenced by a container (`podman ps -a`) are skipped, and `rmi` runs without
+`-f` as a backstop.
 
 ```yaml
 # charly.yml — defaults:
 defaults:
-  keep_images: 3   # newest distinct images to keep per box, and at most 3 tags of
-                   # each; 0 (or absent) disables
+  keep_images: 3   # newest distinct images per box, and at most 3 tags of each;
+                   # 0 (or absent) disables
 ```
 
 This stops the iterative-build tag accumulation that otherwise reclaims

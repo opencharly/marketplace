@@ -35,8 +35,8 @@ Two artifact classes, two policies (operator principle):
 
 ```yaml
 defaults:
-  keep_images: 3      # newest distinct images per box after `charly box build`,
-                      # and at most 3 tags of each
+  keep_images: 3      # per box: newest 3 distinct images, and at most 3 tags
+                      # of each, after `charly box build`
   keep_check_runs: 3   # newest run dirs to keep per bed/score after `charly check run`
 ```
 
@@ -99,9 +99,11 @@ get closer to the reported figure and reclaim more of the store.
 not, then **image creation time**, and only then the build tag.
 
 **Which key decides depends on which ordinal you are asking about**, and this page owns
-that fact. **Between distinct images**, creation time decides: the label is
-content-stable and the tag may not parse, so neither can separate two builds of an
-unchanged image. **Within one image's tag rows, the build tag decides** — every row of
+that fact. **Between distinct images**, the label decides whenever the two carry
+DIFFERENT datable labels — it is the primary key. Creation time decides only when the
+labels tie, which is the common case that motivates it: the label is content-stable, so
+repeated builds of an unchanged image all carry the same one. **Within one image's tag
+rows, the build tag decides** — every row of
 one image shares its label, its labelled-ness and its creation time by construction
 (`charlyImageTags` hoists them out of the per-ref loop), so the first three keys tie and
 the `:YYYY.DDD.HHMM` tag is the only one left to break it. So *"creation time, not the
@@ -115,16 +117,26 @@ Creation time is the only recency key total over the tags charly mints — and i
 exactly the key that ties within one image, which is why the tag still ranks that image's
 own rows.
 
-`keep_images: N` budgets
-**two ordinals**: the newest N **distinct images** per group survive — a *distinct
-image* being a distinct image ID, so every tag pointing at one ID counts once —
-**and at most N tags of each, the same N** — so one image wearing
-many CalVer tags no longer consumes the whole budget, starving the distinct images
-behind it, while a content-stable image rebuilt many times still has its surplus tag rows
-reclaimed. Everything outside both is `podman rmi`'d. **Safety**: any
-image referenced by a container (`podman ps -a`, including stopped/quadlet
-deploys) is skipped, and `rmi` runs WITHOUT `-f` so the engine refuses any
-still-referenced image as a backstop. Non-charly images (no `ai.opencharly.box`
+`keep_images: N` budgets **two ordinals**: the newest N **distinct images** per group
+survive — a *distinct image* being a distinct image ID, so every tag pointing at one ID
+counts once — **and at most N tags of each, the same N** — so one image wearing many
+CalVer tags no longer consumes the whole budget, starving the distinct images behind it,
+while a content-stable image rebuilt many times still has its surplus tag rows reclaimed.
+
+**Within an image, the newest tags survive and the oldest are dropped** — newest by
+build-tag CalVer, since that is the only key that varies across one image's rows.
+**Tags that carry no CalVer — `latest`, `dev`, a bed's `check-<bed>-<calver>` — all tie
+on that key**, and a stable sort then keeps whatever order the engine listed them in. So
+which of several undatable tags survives the tag budget is NOT specified, and if the
+image itself carries a datable `ai.opencharly.version` label those rows are **not**
+protected by the undatable-row exemption (that guard needs BOTH to be undatable). Do not
+rely on `keep_images` to preserve a `latest` or a hand-applied tag on a
+frequently-rebuilt image — pin it with a full ref, or keep it on an image that retention
+does not group.
+
+**Safety**: any image referenced by a container (`podman ps -a`, including
+stopped/quadlet deploys) is skipped, and `rmi` runs WITHOUT `-f` so the engine refuses
+any still-referenced image as a backstop. Non-charly images (no `ai.opencharly.box`
 label) are never touched, and a tag row is exempted only when it has NEITHER a datable
 `ai.opencharly.version` label NOR a datable `:YYYY.DDD.HHMM` tag — the guard is an AND,
 so a row with either one is a normal candidate. A bed build (datable label, non-CalVer
