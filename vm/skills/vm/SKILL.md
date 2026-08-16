@@ -248,11 +248,14 @@ arch:
       url: https://fastly.mirror.pkgbuild.com/images/latest/Arch-Linux-x86_64-cloudimg.qcow2
       checksum: {type: sha256}                      # value auto-resolves from <url>.SHA256 sidecar
       base_user: arch                               # adopt pattern (no useradd)
-      # distro:                                    # OPTIONAL for arch/fedora only —
-                                                    # inferred from base_user. REQUIRED
-                                                    # for debian/ubuntu (else the wrong
-                                                    # ssh package and unit are chosen)
-                                                    # and for a non-`alpine`-named
+      # distro:                                    # OMIT for arch (inferred from
+                                                    # base_user; arch and alpine are
+                                                    # the only inferred values) and for
+                                                    # fedora (not inferred — the empty
+                                                    # default happens to be right).
+                                                    # REQUIRED for debian/ubuntu (else
+                                                    # the wrong ssh package and unit are
+                                                    # chosen) and for a non-`alpine`-named
                                                     # Alpine image (else systemd on an
                                                     # OpenRC guest = unreachable VM)
     disk_size: 40G

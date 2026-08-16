@@ -74,8 +74,11 @@ arch:
       checksum:
         type: sha256
       base_user: arch
-      # distro:               # OPTIONAL for arch and fedora ONLY — effectiveDistro
-                            # infers those two from base_user. SET IT for
+      # distro:               # OMIT for arch (effectiveDistro INFERS it from
+                            # base_user — arch and alpine are its only two
+                            # arms) and for fedora (nothing infers fedora; the
+                            # empty default already resolves to `openssh` +
+                            # unit `sshd`, which are correct there). SET IT for
                             # debian/ubuntu (omitting it picks `openssh` over
                             # `openssh-server`, so cloud-init hard-fails with
                             # "Unable to locate package openssh", and the unit
