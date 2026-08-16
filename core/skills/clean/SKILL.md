@@ -101,8 +101,16 @@ not, then **image creation time**, and only then the build tag.
 **Which key decides depends on which ordinal you are asking about**, and this page owns
 that fact. **Between distinct images**, the label decides whenever the two carry
 DIFFERENT datable labels — it is the primary key. Creation time decides only when the
-labels tie, which is the common case that motivates it: the label is content-stable, so
-repeated builds of an unchanged image all carry the same one. **Within one image's tag
+labels tie, which is the common case that motivates it — and the reason is that the
+label is **DECLARED, never derived from content**. `ai.opencharly.version` is the
+image's own `version:` if it has one, else the HIGHEST candy `version:` across its
+entire candy set (own plus base chain), else the internal base's own effective version,
+else a hard error — there is no content hash and no build-timestamp fallback
+(`sdk/deploykit/effective_version.go`). Two images built from genuinely different trees
+therefore carry the SAME label until somebody bumps one of those fields, so ties between
+DISTINCT images are the norm rather than the exception and creation time is what
+actually orders them. Observed: four distinct `fedora-nonfree` images, built hours
+apart from different trees, all labelled `2026.227.0830`. **Within one image's tag
 rows, the build tag decides** — every row of
 one image shares its label, its labelled-ness and its creation time by construction
 (`charlyImageTags` hoists them out of the per-ref loop), so the first three keys tie and
@@ -164,7 +172,17 @@ The same retention runs automatically (no flag needed):
 - After `charly check run` (any path: bed / score) → `keep_check_runs`,
   after the new run's output is written so the newest run is kept.
 
-`charly clean` exists for on-demand sweeps and to clear a pre-existing backlog.
+**The post-build pass reclaims tags, never whole images.** It runs while the build
+still holds its own build-activity lock, so it always observes a live build, and the
+live-build path never removes an image's LAST tag — the guard that protects a
+concurrent build's base. A build therefore trims surplus tag rows from images that
+wear several and leaves every single-tagged image in place, so the **distinct-image**
+half of `keep_images` is not enforced by building. Nothing reports this: the summary
+counts what it removed, not what it selected and could not remove.
+
+`charly clean` exists for on-demand sweeps and to clear a pre-existing backlog — and
+it is the only verb that reclaims a distinct image, so a project that only ever builds
+accumulates them past `keep_images` indefinitely.
 
 ## Out of scope
 

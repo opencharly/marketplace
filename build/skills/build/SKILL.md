@@ -241,10 +241,20 @@ DELETED, K-wave 2).
 
 After `charly box build` (push runs excluded), charly prunes **tag rows** within each
 `ai.opencharly.box` group, keeping the newest `defaults.keep_images` **distinct
-images** and at most that same number of tags of each. A *distinct image* is a
-distinct image ID — every tag pointing at one ID is one image, however many tags it
-wears — so with `keep_images: 3`, four images carrying one tag each lose the oldest,
-while one image carrying six tags keeps three of them.
+images** and at most that same number of tags of each — except for rows the engine
+refuses to date, which are never removed **however many tags their image wears**, so
+the per-image cap binds datable rows only. A *distinct image* is a distinct image
+ID — every tag pointing at one ID is one image, however many tags it wears — so with
+`keep_images: 3`, four images carrying one tag each lose the oldest, while one image
+carrying six datable tags keeps three of them.
+
+**Which verb reclaims what.** The post-build pass cannot remove an image's LAST tag,
+so it never reclaims a *distinct image* — only surplus tags of images that wear
+several. `charly box build` holds the build-activity lock across its own prune, so
+that prune always observes a live build and the last-tag guard always engages. The
+distinct-image budget above is therefore enforced by `charly clean`, and a project
+that only ever builds will accumulate distinct images past `keep_images` without any
+surface reporting it.
 
 **Tag rows, not "CalVer tags":** a row is exempted from removal only when it has
 NEITHER a datable `ai.opencharly.version` label NOR a datable `:YYYY.DDD.HHMM` tag
@@ -268,7 +278,11 @@ itself — the full comparator chain, which key decides which ordinal, and why t
 tag cannot serve as the image recency key. The two consequences that matter here:
 **between distinct images**, the datable `ai.opencharly.version` label decides when the
 two differ, and creation time decides when they tie — which is the usual case, because
-repeated builds of an unchanged image share one label; **within one image's tag rows**, the
+that label is **declared, not derived from content**: it is the box's own `version:`,
+else the highest candy `version:` across its whole candy set, else the base image's
+(`sdk/deploykit/effective_version.go`). So DISTINCT images built from DIFFERENT trees
+carry the SAME label until somebody bumps one of those fields, and creation time is
+what actually orders them; **within one image's tag rows**, the
 `:YYYY.DDD.HHMM` tag decides, because those rows share everything else. Do not carry
 *"creation time, not the tag"* across to the tag budget — it is true of the first and
 false of the second.
