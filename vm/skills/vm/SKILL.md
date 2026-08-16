@@ -248,16 +248,21 @@ arch:
       url: https://fastly.mirror.pkgbuild.com/images/latest/Arch-Linux-x86_64-cloudimg.qcow2
       checksum: {type: sha256}                      # value auto-resolves from <url>.SHA256 sidecar
       base_user: arch                               # adopt pattern (no useradd)
-      # distro:                                    # SET IT for debian/ubuntu (else `openssh` not
-                                                   # `openssh-server`, and unit `sshd` not `ssh`); for a
-                                                   # pacman-family guest not literally named `arch` —
-                                                   # archarm/manjaro/endeavouros/cachyos — else it leaves
-                                                   # the `pacman -Sy --needed` path and hits the D15
-                                                   # host-key race; and for an Alpine image not named
-                                                   # `alpine` (else systemd onto OpenRC). effectiveDistro
-                                                   # infers ONLY arch and alpine. Anything else (fedora,
-                                                   # centos, rocky, cloud-user) may omit it — the empty
-                                                   # default fits, by luck rather than inference.
+      # distro:                                    # `distro:` is inferred from `base_user`, and ONLY for the two
+                                                   # literal values `arch` and `alpine` — the inference does not check
+                                                   # that the guest IS that distro. So: OMIT only when the guest's id
+                                                   # is `arch` and `base_user` is literally `arch`, or the guest's id
+                                                   # is `alpine` and `base_user` is literally `alpine`. For any other
+                                                   # id in {debian, ubuntu, arch, archarm, manjaro, endeavouros,
+                                                   # cachyos, alpine}, SET it to the guest's own id. For any id
+                                                   # outside that set, omit — provided `base_user` is neither
+                                                   # literally `arch` nor literally `alpine`, since the
+                                                   # inference reads the account, not the guest. Set the
+                                                   # CORRECT id, never a guess:
+                                                   # `distro:` ALSO selects the guest's package manager for candy
+                                                   # installation (`candy/plugin-fleet/candy_select.go`, not
+                                                   # source-kind gated), so a wrong in-set value runs `pacman` on a
+                                                   # deb guest (exit 127) or compiles zero package steps.
     disk_size: 40G
     ram: 8G
     cpu: 4
