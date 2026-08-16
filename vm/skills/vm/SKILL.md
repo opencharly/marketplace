@@ -248,21 +248,23 @@ arch:
       url: https://fastly.mirror.pkgbuild.com/images/latest/Arch-Linux-x86_64-cloudimg.qcow2
       checksum: {type: sha256}                      # value auto-resolves from <url>.SHA256 sidecar
       base_user: arch                               # adopt pattern (no useradd)
-      # distro:                                    # **Set `distro:` to the guest's own id, as a BARE id** (no `:version`
-                                                   # tag — `ResolveDistro` strips at `:` but the cloud-init dispatches
-                                                   # compare exactly, so `debian:13` yields `openssh` not
-                                                   # `openssh-server`). TWO exceptions, both because omitting then
-                                                   # resolves better than setting: (1) the guest is `arch` and
-                                                   # `base_user` is literally `arch`, or `alpine` and literally
-                                                   # `alpine` — the inference already supplies it; (2) the guest is an
-                                                   # Arch DERIVATIVE (`manjaro`, `archarm`, `endeavouros`) shipping an
-                                                   # `arch` account — `candy_select` resolves `distro:`/`base_user`
-                                                   # against a FIVE-id vocabulary, `{arch, cachyos, debian, fedora,
-                                                   # ubuntu}`, so `distro: manjaro` resolves to nothing and installs
-                                                   # zero candy packages silently, while the `arch` account resolves
-                                                   # and is the same package family. A guest outside those five with no
-                                                   # in-family account (rocky, opensuse, alpine) cannot be fixed here at
-                                                   # all — it needs a vocabulary entry.
+      # distro:                                    # **Always SET `distro:`. Never rely on the inference.** Set it to the
+                                                   # vocabulary id whose package MANAGER matches the guest — the vocabulary
+                                                   # is exactly five: `{arch, cachyos, debian, fedora, ubuntu}`. So an Arch
+                                                   # derivative (manjaro/archarm/endeavouros) takes `distro: arch`; Rocky or
+                                                   # AlmaLinux take `fedora`; a Ubuntu derivative takes `ubuntu`. Use a BARE
+                                                   # id — `ResolveDistro` strips at `:` but the cloud-init dispatches compare
+                                                   # exactly, so `debian:13` yields `openssh` not `openssh-server`. WHY
+                                                   # always: two consumers read this field and neither is safe to leave to
+                                                   # the inference. `effectiveDistro` infers only the literals `arch` and
+                                                   # `alpine`, from `base_user`, never checking the guest. And
+                                                   # `buildVmSyntheticBox` (`candy/plugin-fleet/candy_select.go`, not
+                                                   # source-kind gated) resolves this field — or `base_user` when it is
+                                                   # empty — against those five ids; an unresolvable key leaves `img.Pkg`
+                                                   # unset and candy installation compiles ZERO package steps silently while
+                                                   # `fleet add` reports success. Two guests have no correct member and
+                                                   # cannot be fixed here: Alpine (no apk entry) and openSUSE (zypper, where
+                                                   # `fedora` would emit dnf). Both need a vocabulary entry — a product gap.
     disk_size: 40G
     ram: 8G
     cpu: 4
