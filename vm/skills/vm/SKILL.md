@@ -255,7 +255,10 @@ arch:
                                                    # is `alpine` and `base_user` is literally `alpine`. For any other
                                                    # id in {debian, ubuntu, arch, archarm, manjaro, endeavouros,
                                                    # cachyos, alpine}, SET it to the guest's own id. For any id
-                                                   # outside that set, omit. Set the CORRECT id, never a guess:
+                                                   # outside that set, omit — provided `base_user` is neither
+                                                   # literally `arch` nor literally `alpine`, since the
+                                                   # inference reads the account, not the guest. Set the
+                                                   # CORRECT id, never a guess:
                                                    # `distro:` ALSO selects the guest's package manager for candy
                                                    # installation (`candy/plugin-fleet/candy_select.go`, not
                                                    # source-kind gated), so a wrong in-set value runs `pacman` on a
