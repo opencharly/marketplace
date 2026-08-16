@@ -96,9 +96,18 @@ get closer to the reported figure and reclaim more of the store.
 **Image-tag retention** (`keep_images`): images are grouped by the
 `ai.opencharly.box` label and ordered by the `ai.opencharly.version` CalVer label
 **when both rows carry one**, then a row carrying that label before one that does
-not, then **image creation time**, and only then the build tag — creation time
-rather than the tag, because `--tag` builds carry a non-CalVer tag and would
-otherwise all compare equal (see `/charly-build:build`). `keep_images: N` budgets
+not, then **image creation time**, and only then the build tag.
+
+**Creation time, not the tag, is what distinguishes builds** — this page owns that
+fact. The `ai.opencharly.version` label is content-stable, so many builds of an
+unchanged image share one label-CalVer, and the tag cannot break that tie either:
+`charly box build --tag` REPLACES the CalVer tag, so a bed build carries
+`check-<bed>-<calver>`, which parses as no CalVer at all. Ordering on the tag made
+every member of such a group compare equal, so `keep_images: N` kept an arbitrary N
+and could delete the newest build. Creation time is the only recency key total over
+the tags charly mints.
+
+`keep_images: N` budgets
 **two ordinals**: the newest N **distinct images** per group survive — a *distinct
 image* being a distinct image ID, so every tag pointing at one ID counts once —
 **and at most N tags of each, the same N** — so one image wearing

@@ -251,18 +251,13 @@ NEITHER a datable `ai.opencharly.version` label NOR a datable `:YYYY.DDD.HHMM` t
 (`retention.go`'s guard is an AND). A bed build has a datable label and a non-CalVer
 tag, so it is a normal removal candidate rather than an excluded one.
 
-Ordering within a group is: the `ai.opencharly.version` label (the content-derived
-EffectiveVersion) **when both rows carry one**; then a row carrying that label before
-one that does not; then **image creation time**; and only then the `:YYYY.DDD.HHMM`
-build tag.
+**Ordering is owned by `/charly-core:clean`**, which documents the retention engine
+itself — the full comparator chain and why the build tag cannot serve as the recency
+key. The consequence that matters here: two builds of an unchanged image share one
+content label, so it is **creation time**, not the `:YYYY.DDD.HHMM` tag, that decides
+which of them is newer.
 
-**Creation time, not the tag, is what distinguishes builds**: the label is content-stable, so many builds
-of an unchanged image share one label-CalVer — and the tag cannot break that tie
-either, because `charly box build --tag` REPLACES the CalVer tag (a bed build carries
-`check-<bed>-<calver>`, which parses as no CalVer at all). Ordering on the tag made
-every member of such a group compare equal, so `keep_images: N` kept an arbitrary N
-and could delete the newest build; creation time is the only recency key total over
-the tags charly mints. Images referenced
+Images referenced
 by a container (`podman ps -a`) are skipped, and `rmi` runs without `-f` as a
 backstop, so a running deploy's image is never removed.
 
