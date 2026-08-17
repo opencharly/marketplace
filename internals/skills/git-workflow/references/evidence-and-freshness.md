@@ -545,36 +545,147 @@ LOUDLY** — exit 1 and a stale-artifact listing either way, so neither is quiet
 equally legible, though, and the difference runs opposite to intuition:
 
 Pasted rather than described, because "a paste and its label are two separate
-claims" applies to this page's own tables. Both runs perturb a clean tree and are
-reverted immediately after:
+claims" applies to this page's own tables. **Provenance, which this page's own
+rule demands of every figure below:** one continuous session at superproject
+`a56240f0` — the commit that corrected the `drift` message quoted throughout, and
+one a reader can still fetch after the squash-merge, which lands it on no branch
+but leaves it an ancestor of `refs/pull/289/head` — with `plugins` at `a8b51b16`
+and `docs` at `c641b99`, in a worktree checked out there and a binary built by
+`task build:binary`. Every command runs at the superproject root. `git status
+--porcelain` is shown EMPTY at the start and again at the end, untracked files
+included, because an untracked file carrying the generated header is itself one
+of the perturbations. Two elisions, and nothing else: the eight
+`Note: local candy … shadows …` lines each drift run prints first, and the 393
+emitted paths `generate` lists after its summary line.
+
+**`drift`'s `clean` and `git status`'s clean are independent claims, and run 3 is
+them disagreeing.** `drift` regenerates in memory from the sources ON DISK and
+compares with the artifacts ON DISK; it never invokes git, so it answers only
+*would regeneration change a byte* — it prints `clean` on a tree carrying two
+uncommitted halves, and would answer the same in a directory that is not a
+repository at all. `git status` answers what is committed and says nothing about
+whether the mirror is stale. **A figure labelled only "a clean tree" names
+neither of them**, which is exactly how the count this block used to carry was
+executed, correct, and unfalsifiable at the same time.
+
+A TRANSCRIPT — the `$` prompts and interleaved output are the evidence, so retype
+the commands rather than pasting the block. Every state it asserts is a state it
+runs, including the reverts between perturbations:
 
 ```
-# SOURCE ahead — a candy `skill:` edit, mirror not yet regenerated
-marketplace drift: 1 generated artifact(s) are stale:
+# 1. BASELINE — git-clean and drift-clean at once, the only state where both hold
+$ git status --porcelain | wc -l
+0
+$ charly marketplace drift
+marketplace drift: clean (400 artifact(s) on disk match their sources; regeneration is a no-op)
+$ echo $?
+0
+
+# 2. SOURCE ahead — a candy `skill:` edit, mirror not yet regenerated
+$ sed -i 's/## Evidence discipline/## Evidence discipline (canary)/' candy/charly-internals/charly.yml
+$ git status --short
+ M candy/charly-internals/charly.yml
+$ charly marketplace drift
+charly marketplace: marketplace drift: 1 generated artifact(s) are stale:
   plugins/internals/skills/git-workflow/references/evidence-and-freshness.md
-run `charly marketplace generate`                                    exit 1
+run `charly marketplace generate`
+$ echo $?
+1
 
-# GENERATED tree ahead — an orphan carrying the generated header, projected by nothing
-marketplace drift: 1 generated artifact(s) are stale:
+# 3. BOTH halves on disk — the same edit, now regenerated, neither committed
+$ charly marketplace generate
+marketplace generate: wrote 400 artifact(s) across 26 family(ies)
+… 393 emitted paths …
+$ git status --short
+ M candy/charly-internals/charly.yml
+ m plugins
+$ charly marketplace drift
+marketplace drift: clean (400 artifact(s) on disk match their sources; regeneration is a no-op)
+$ echo $?
+0
+
+# 4. REVERT — both halves, so run 5 starts from the baseline and not from run 3
+$ git checkout -- candy/charly-internals/charly.yml && git -C plugins checkout -- .
+$ git status --porcelain | wc -l
+0
+
+# 5. GENERATED tree ahead — an orphan carrying the generated header, projected by nothing
+$ head -1 plugins/internals/skills/git-workflow/references/evidence-and-freshness.md \
+    > plugins/internals/skills/git-workflow/references/zz-orphan-canary.md
+$ git -C plugins status --short
+?? internals/skills/git-workflow/references/zz-orphan-canary.md
+$ charly marketplace drift
+charly marketplace: marketplace drift: 1 generated artifact(s) are stale:
   plugins/internals/skills/git-workflow/references/zz-orphan-canary.md (stale)
-run `charly marketplace generate`                                    exit 1
+run `charly marketplace generate`
+$ echo $?
+1
 
-marketplace drift: clean (400 artifact(s) match the committed tree)   exit 0
+# 6. BASELINE again — the session leaves the tree as it found it
+$ rm plugins/internals/skills/git-workflow/references/zz-orphan-canary.md
+$ git status --porcelain | wc -l
+0
+$ charly marketplace drift
+marketplace drift: clean (400 artifact(s) on disk match their sources; regeneration is a no-op)
+$ echo $?
+0
 ```
 
-The `(stale)` suffix is the whole difference, and it appears only in the second.
+Runs 1, 3 and 6 print the identical `clean` line — twice from a tree `git status`
+calls empty and once from a tree it calls dirty — which is why the success message
+names what it compared instead of calling the tree committed. It once did — `clean (N artifact(s) match the committed tree)`, a
+claim `drift` has no mechanism to establish — and that wording is what put the
+ambiguity into the example shipping with the rule against it. The code was right
+and its own prose was wrong, so the prose moved (R4a), in the cutover that fixed
+this block.
 
-**The orphan scan keys on the GENERATED HEADER, not on the path** — `scanGenerated`
-collects files carrying it and reports any the emissions map does not claim, so a
-file without that header is invisible to drift wherever it sits. That is not a
-hypothetical caution: the first two attempts at the perturbation above used a
-header-less canary, got `clean`, and came close to being filed as a defect against
-the very claim they failed to test.
+**`(stale)` marks the ORPHAN, and it reads backwards.** Run 2's artifact is the
+one that is genuinely out of date, and it gets no suffix; run 5's gets it. The
+suffix means *no source claims this path* — `scanGenerated` collects every file
+carrying the generated header and reports the ones the emissions map does not
+contain, so `(stale)` is the report of a file projected by NOTHING, not of a file
+behind its source. Both directions print the same "are stale" headline, so the
+suffix is the only thing that tells them apart — and it names the rarer one.
+
+**The orphan scan keys on the GENERATED HEADER, not on the path** — which is why
+run 5's canary is `head -1` of a real artifact and nothing else: one banner line
+is the whole detection surface. A file without that header is invisible to drift
+wherever it sits. That is not a hypothetical caution: the first two attempts at
+this perturbation used a header-less canary, got `clean`, and came close to being
+filed as a defect against the very claim they failed to test.
 
 The generated-ahead direction is if anything the more legible of the two. What makes both
 dangerous is not detection, it is that **`drift` runs in no CI workflow** — it is red only
 for whoever runs it. A regeneration performed for an unrelated reason picks the revert up
 into that person's diff, where it reads as noise from their own change.
+
+**`git status` distinguishes the two dirty-submodule states, and which one you
+see says whose half is outstanding** — but ONLY under `--short`. Measured at this
+tree, git 2.55.0:
+
+```
+plugins at the gitlink, content modified   --short:  m plugins   --porcelain:  M plugins
+plugins checked out at another commit      --short:  M plugins   --porcelain:  M plugins
+```
+
+Lowercase ` m` is modified content inside the submodule — someone regenerated and
+has not committed there (run 3). Uppercase ` M` is a moved gitlink — the
+projection has landed in `plugins` and it is the superproject pin that is
+uncommitted. **`--porcelain` collapses both to ` M`**, so the script-safe spelling
+is the one that loses the discriminator; the transcript above uses `--porcelain`
+only where it asserts *empty*, and `--short` everywhere the distinction carries
+the argument.
+
+**And `charly version` cannot stand in for any of this.** The stamp is derived
+from the HEAD commit's UTC timestamp (`scripts/calver.sh`), deliberately, so that
+every build of one commit agrees — a dirty tree and a clean tree at the same
+commit produce the same string. The cost of that determinism is that the stamp
+cannot see uncommitted content: the binary that produced this block's first draft
+was compiled from a working tree already carrying the message change, at a HEAD
+one commit earlier, and reported that earlier commit's CalVer. So `charly
+version` identifies the COMMIT a build was made at, never the bytes that were
+compiled — which is why the runs above were re-taken in a worktree checked out at
+`a56240f0` with nothing uncommitted in it.
 
 So: run `charly marketplace drift` before and after any `charly marketplace generate`, and treat an
 unexplained artifact in the output as someone else's half-landed cutover rather than your
