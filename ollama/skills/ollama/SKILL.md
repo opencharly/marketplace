@@ -71,6 +71,27 @@ charly alias install ollama
 # Now: ollama pull llama3  (runs inside the container)
 ```
 
+## The `charly ollama` management CLI
+
+The compiled-in `command:ollama` plugin (`candy/plugin-ollama`) manages a
+deployed Ollama server from the host over its HTTP API — no shell alias
+needed:
+
+```bash
+charly ollama list --server http://127.0.0.1:11434
+charly ollama pull llama3 --server http://127.0.0.1:11434
+charly ollama run llama3 "Hello" --server http://127.0.0.1:11434
+```
+
+Endpoint resolution: `--server` flag > `OLLAMA_HOST` env > `http://127.0.0.1:11434`.
+See `/charly-ollama:ollama-cli` for the full command tree.
+
+## Pinning the upstream version
+
+The candy installs the newest upstream release by default. Set the
+candy-local `var:` `OLLAMA_VERSION` to a release tag (e.g. `v0.32.14`)
+to pin an exact version.
+
 ## Service Environment
 
 When deployed via `charly config ollama`, this box automatically provides `OLLAMA_HOST=http://charly-ollama:11434` to all other deployed containers via the `env_provide` mechanism. Use `--update-all` to propagate to already-deployed services:
@@ -97,6 +118,7 @@ This means containers like `jupyter-ml-notebook` automatically discover the Olla
 ## Related Candies
 
 - `/charly-ollama:ollama` — the Ollama binary candy
+- `/charly-ollama:ollama-cli` — the compiled-in `charly ollama` management CLI (candy/plugin-ollama)
 - `/charly-jupyter:notebook-ollama` — 6 Jupyter notebooks demonstrating Ollama APIs (requests, OpenAI, ollama lib, Anthropic, HuggingFace, GPU)
 
 ## Verification
@@ -105,6 +127,7 @@ After `charly start`:
 - `charly status ollama` — container running
 - `charly service status ollama` — all services RUNNING
 - `curl -s http://localhost:11434/api/tags` — Ollama API responds
+- `charly ollama list` (or `charly check live ollama`) — the baked runtime checks pass: `/api/tags` 200, `ollama --version`, `ollama list` exit 0
 
 ## When to Use This Skill
 
