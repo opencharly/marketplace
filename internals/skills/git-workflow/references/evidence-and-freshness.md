@@ -7,7 +7,8 @@ CHANGELOG narrative, the commit messages. The diff is checked mechanically. **Ev
 else is checked only if someone thinks to check it**, and this section catalogs the ways
 those claims go wrong.
 
-Every item below was a blocking finding during the Factory unit-4 cutover —
+The items below were blocking findings during the Factory unit-4 cutover, except where a
+  section says otherwise —
 `opencharly/charly#274` and `opencharly/plugins#168`, `#169`, `#170`, `#171` — most of
 them more than once. Sixteen validation rounds produced roughly a dozen blocking
 findings, and the majority were not defects in the code but false or stale CLAIMS about
@@ -72,11 +73,11 @@ seen from the reader's side rather than the writer's, and giving it a row would 
 distinction the table exists to draw.
 
 
-  No total is given for the page: a section count is a
+**No total is given for the page:** a section count is a
 figure whose subject is the document stating it, and a merge that adds a section
 falsifies it without touching the sentence.
 
-**The rest are mechanism** — how charly and git actually behave: the
+**Four sections are mechanism** — how charly and git actually behave: the
 cross-repo `skill:` cutover, the submodule revert, the validator-status false
 negative, and multi-source assembly. They are not instances of the question and no
 frame unifies them.
