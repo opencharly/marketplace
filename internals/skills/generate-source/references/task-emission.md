@@ -2,34 +2,34 @@
 
 ## Task emission pipeline
 
-All install-task logic lives in a single file: `charly/tasks.go` (~380 lines) — but `emitTasks` there is a thin shim to `deploykit.Generator.EmitTasks` (the actual per-verb emitters, relocated from `charly/generate.go` in #67). Authored layer-side as `task:` list in `charly.yml`; emitted as Containerfile directives via this sequence per layer inside `WriteCandySteps` (`sdk/deploykit/candy_steps.go`):
+All install-task logic lives in a single file: `charly/tasks.go` (~380 lines) — but `EmitTasks` there is a thin shim to `deploykit.Generator.EmitTasks` (the actual per-verb emitters, relocated from `charly/generate.go` in #67). Authored layer-side as `task:` list in `charly.yml`; emitted as Containerfile directives via this sequence per layer inside `WriteCandySteps` (`sdk/deploykit/candy_steps.go`):
 
 ```
 1. # Layer: <name>                 (comment header)
 2. ARG TARGETARCH + ENV ARCH=${TARGETARCH}    (once; from emitVarsEnv)
 3. ENV <K>=<V> for each layer.Vars entry      (also from emitVarsEnv)
 4. Package install: rpm/deb/pac/aur/apk  (unchanged — format template render)
-5. emitTasks(b, layer, img, buildDir, contextRelPrefix, initialUser):
+5. EmitTasks(b, layer, img, buildDir, contextRelPrefix, initialUser):
    for each t in layer.tasks:
      resolve ${VAR} in non-verbatim fields
      user := resolveUserSpec(t.User, img)   // numeric UID for ${USER}
      if user != runningUser: emit USER <value>
      switch t.Kind():
-       case "mkdir":    emitMkdirBatch  (coalesces adjacent same-user+same-mode)
-       case "copy":     emitCopy        (COPY --from=<layer> --chmod= --chown=)
-       case "write":    StageInlineContent + emitWrite (COPY from .build _inline)
-       case "link":     emitLinkBatch   (coalesces adjacent same-user)
-       case "download": emitDownload    (RUN curl + extractor + /tmp/downloads cache)
-       case "setcap":   emitSetcapBatch (coalesces; strip on empty caps)
-       case "command":  emitCmd         (RUN bash -c 'set -e; ...' + /ctx bind)
+       case "mkdir":    EmitMkdirBatch  (coalesces adjacent same-user+same-mode)
+       case "copy":     EmitCopy        (COPY --from=<layer> --chmod= --chown=)
+       case "write":    StageInlineContent + EmitWrite (COPY from .build _inline)
+       case "link":     EmitLinkBatch   (coalesces adjacent same-user)
+       case "download": EmitDownload    (RUN curl + extractor + /tmp/downloads cache)
+       case "setcap":   EmitSetcapBatch (coalesces; strip on empty caps)
+       case "command":  EmitCmd         (RUN <shell-probe> <<'OVCMD' … OVCMD + /ctx bind)
        case "build":    WriteCandySteps (deploykit) handles builder placement
        case "plugin":   builtin ProvisionActor → act shell RUN (in-proc);
-                        any other provider → emitPluginFragment → Invoke(OpEmit)
+                        any other provider → invokeOpEmitFragmentOpt → Invoke(OpEmit)
                         → spec.EmitReply.Fragment spliced verbatim
 6. USER root reset (unless last layer + skipRootReset)
 ```
 
-The `plugin:` verb case is placement-agnostic above the registry. `plugin: command` is the one special case — it rehydrates `plugin_input.command` and emits via the SAME `emitCmd` as the literal `command` verb. Every other `plugin:` step resolves its provider via `providerRegistry.ResolveVerb`: a builtin `ProvisionActor` renders an act shell `RUN` in-proc (the zero-JSON fast path, `resolveProvisionScript`), while ANY other resolved provider — an external `grpcProvider` (host-built + connected by `NewGenerator`'s build-time plugin connect seam, `loadProjectPlugins`), or a builtin emitting a richer fragment — renders via `emitPluginFragment`, which calls `prov.Invoke(OpEmit)` with the step's `plugin_input` (`op.Params`) + a `spec.BuildEnv` descriptor (`op.Env`) and splices the returned `spec.EmitReply.Fragment` verbatim into the Containerfile. An unresolved verb is a loud error, never a silently-dropped step. This is the build half of operator-authorized build-time plugin execution — see `/charly-internals:plugin` (placement) + `/charly-build:generate`. (`emitPluginFragment`'s core is factored into the shared `invokeOpEmitFragment` seam, which the DEPLOY-mode pod-overlay `dispatchOCIStep` external-step arm (reached by the candy's `deploykit.OCITarget.EmitStepOp` over `HostBuild("step-emit","oci-emit-step")`) ALSO uses to bake an `external:<word>` `class:step` step declaring `StepContract.Emits=true` — F-STEP-EMIT, see `/charly-internals:install-plan`.)
+The `plugin:` verb case is placement-agnostic above the registry. `plugin: command` is the one special case — it rehydrates `plugin_input.command` and emits via the SAME `EmitCmd` as the literal `command` verb. Every other `plugin:` step resolves its provider via `providerRegistry.ResolveVerb`: a builtin `ProvisionActor` renders an act shell `RUN` in-proc (the zero-JSON fast path, `resolveProvisionScript`), while ANY other resolved provider — an external `grpcProvider` (host-built + connected by `NewGenerator`'s build-time plugin connect seam, `loadProjectPlugins`), or a builtin emitting a richer fragment — renders via `invokeOpEmitFragmentOpt`, which calls `prov.Invoke(OpEmit)` with the step's `plugin_input` (`op.Params`) + a `spec.BuildEnv` descriptor (`op.Env`) and splices the returned `spec.EmitReply.Fragment` verbatim into the Containerfile. An unresolved verb is a loud error, never a silently-dropped step. This is the build half of operator-authorized build-time plugin execution — see `/charly-internals:plugin` (placement) + `/charly-build:generate`. (`invokeOpEmitFragmentOpt`'s core is factored into the shared `invokeOpEmitFragment` seam, which the DEPLOY-mode pod-overlay `dispatchOCIStep` external-step arm (reached by the candy's `deploykit.OCITarget.EmitStepOp` over `HostBuild("step-emit","oci-emit-step")`) ALSO uses to bake an `external:<word>` `class:step` step declaring `StepContract.Emits=true` — F-STEP-EMIT, see `/charly-internals:install-plan`.)
 
 ### `Task` struct (`charly/layers.go:604`)
 
@@ -46,12 +46,12 @@ The `Layer` struct that feeds emission carries its `require:` / `candy:` refs as
 | Helper | Output |
 |---|---|
 | `emitVarsEnv(b, vars)` | `ARG TARGETARCH` + `ENV ARCH=${TARGETARCH}` + sorted `ENV K=V` |
-| `emitMkdirBatch(b, []Task, img)` | One `RUN mkdir -p … [&& chmod <mode> …]` |
-| `emitCopy(b, Task, layerStage, img)` | `COPY --from=<layerStage> --chmod= [--chown=] <src> <to>` |
-| `emitWrite(b, Task, srcPath, img)` | `COPY [--chown=] --chmod= <srcPath> <path>` where `srcPath` is the staged inline-content file |
-| `emitLinkBatch(b, []Task, img)` | One `RUN ln -sf t1 l1 && ln -sf t2 l2 …` |
-| `emitDownload(b, Task, img)` | `RUN --mount=type=cache,dst=/tmp/downloads [+ task cache:] bash -c '… curl -o "$__c.part" && mv → /tmp/downloads/<sha256>; <extractor> "$__c"'` — content-addressed, fetch-once, integrity-safe |
-| `emitSetcapBatch(b, []Task, img)` | `RUN setcap -r … && setcap caps path …` |
+| `EmitMkdirBatch(b, []Task, img)` | One `RUN mkdir -p … [&& chmod <mode> …]` |
+| `EmitCopy(b, Task, layerStage, img)` | `COPY --from=<layerStage> --chmod= [--chown=] <src> <to>` |
+| `EmitWrite(b, Task, srcPath, img)` | `COPY [--chown=] --chmod= <srcPath> <path>` where `srcPath` is the staged inline-content file |
+| `EmitLinkBatch(b, []Task, img)` | One `RUN ln -sf t1 l1 && ln -sf t2 l2 …` |
+| `EmitDownload(b, Task, img)` | `RUN --mount=type=cache,dst=/tmp/downloads [+ task cache:] <shell-probe> '… curl -o "$__c.part" && mv → /tmp/downloads/<sha256>; <extractor> "$__c"'` — content-addressed, fetch-once, integrity-safe |
+| `EmitSetcapBatch(b, []Task, img)` | `RUN setcap -r … && setcap caps path …` |
 | `EmitCmd(b, Op, layerStage, img, userIsRoot)` | `RUN --mount=type=bind,from=<layerStage>,source=/,target=/ctx [--mount=type=cache,…] sh -c 'SH=/bin/sh; [ -x /bin/bash ] && SH=/bin/bash; exec "$SH"' sh <<'OVCMD'` followed by the BUILD_ARCH/ARCH exports, `set -e`, the command, and a closing `OVCMD` (single-quoted heredoc — see below) |
 
 ### Shell-quoting helpers (`charly/tasks.go`)
@@ -77,7 +77,7 @@ the body. An earlier revision used bash ANSI-C `$'…\n…'` quoting via a
 `shellAnsiQuote` helper; both are gone — that form required bash, which
 a busybox base does not have.
 
-**Why `export VAR=val;` beats `VAR=val cmd`** in `emitDownload`: the
+**Why `export VAR=val;` beats `VAR=val cmd`** in `EmitDownload`: the
 `VAR=val cmd` prefix form sets `VAR` in `cmd`'s environment, but bash
 expands `${VAR}` in `cmd`'s arguments *before* the environment is
 assembled. Result: the URL `pixi-${BUILD_ARCH}-unknown-linux-musl.tar.gz`

@@ -133,9 +133,9 @@ Security configuration (`security:` in charly.yml) and environment variable inje
 
 UID/GID in cache mounts are dynamic (from resolved image config). All non-root cache mounts use flat `/tmp/<tool>-cache` paths to avoid buildah permission issues with nested paths.
 
-### Download caching + the generic `cache:` modifier (`emitDownload` / `taskCacheMounts`)
+### Download caching + the generic `cache:` modifier (`EmitDownload` / `taskCacheMounts`)
 
-`emitDownload` (`charly/tasks.go`) writes every `download:` to a **content-addressed**
+`EmitDownload` (`charly/tasks.go`) writes every `download:` to a **content-addressed**
 file in the `/tmp/downloads` cache mount: `__c=/tmp/downloads/$(printf %s "$url"
 | sha256sum | cut -c1-64)`, fetched only when absent (`[ -s "$__c" ] ||`), via
 `curl -o "$__c.part" && mv -f "$__c.part" "$__c"` (atomic rename — a
@@ -146,7 +146,7 @@ re-downloading (the prior code declared the mount but streamed curl past it).
 `taskCacheMounts(t, img)` (`charly/tasks.go`) renders a task's layer-declared
 `cache:` paths as cache-mount flags, ownership derived from the task's `run_as:`
 via `resolveUserSpec` (root → `SharedCacheMount`, else → `OwnedCacheMount`).
-Honored by `emitCmd` and `emitDownload`. Lets any task persist heavy
+Honored by `EmitCmd` and `EmitDownload`. Lets any task persist heavy
 downloads/build artifacts the same way package caches do (config-driven; the
 cache-USE logic lives in the charly.yml task body).
 
