@@ -561,7 +561,8 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
     `ai.opencharly.*` label are asserted post-build (an empty/missing label is a
     FAILURE, not a warning). R9 (any change exercised on a target): the deployed
     binary was REBUILT and `charly version` matches source, and every new runtime
-    OS dep is in `pkg/arch/PKGBUILD` `depends=` (never a manual host install).
+    OS dep is in the charly candy's `packaging:` section (never a manual host
+    install).
 11. **R10 — disposable-only, fresh-rebuild, coverage.** Runtime proof is on a
     `disposable: true` target only, on a FRESH `charly update`/rebuild, at ZERO
     warnings, with pasted output for EACH changed piece. The change ships the
@@ -1219,7 +1220,7 @@ stamps collide and mis-order across concurrent PRs). Operate on the feat branch:
    the sdk tag is `v0.$(date -u +%Y%j).$SDK_MIN`). A leading-zero sdk tag
    (e.g. `v0.2026192.0733`) is INVALID — it makes every consumer's `go.mod`
    unparseable in module mode — so this stripping is mandatory, not cosmetic.
-   `plugins`, `pkg/*`, and `docs` ARE tagged, with the same `v<YYYY.DDD.HHMM>` form as
+   `plugins` and `docs` ARE tagged, with the same `v<YYYY.DDD.HHMM>` form as
    every non-sdk repo (they carry no `charly.yml`, so no schema `version:` bump — but
    the tag still marks the merge).
 3. **Rewrite every merge-time-dependent version surface to `$VER`** on the feat
@@ -1310,11 +1311,11 @@ stamps collide and mis-order across concurrent PRs). Operate on the feat branch:
    anomaly, and run R1. The post-merge transcript MUST name `MERGED_SHA` and
    show the exact parser output.
 
-   Only after that proof, tag EVERY repo (`plugins`, `pkg/*`, and `docs` included;
+   Only after that proof, tag EVERY repo (`plugins` and `docs` included;
    `sdk` substitutes its `v0.<…>` form from step 2): `git tag -a v$VER -m "<subject>"
    "$MERGED_SHA"`; `git push origin refs/tags/v$VER` (a tag push — allowed by
    the pre-push-gate). Only a SUPERPROJECT `v*` tag triggers the release-binary
-   workflow; a `plugins` / `pkg/*` / `docs` tag fires NO workflow, so tagging them is
+   workflow; a `plugins` / `docs` tag fires NO workflow, so tagging them is
    harmless.
    **SKIPPING any repo's tag is a DEFECT** — the pre-unification `plugins`/`pkg`
    tag-exempt rule is RETIRED; never omit a tag on a stale "exempt" belief (doing so
