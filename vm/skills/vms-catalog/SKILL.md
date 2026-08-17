@@ -43,7 +43,8 @@ The VM surface parallels the `candy:` image surface: one YAML entry per entity, 
                                           # ZERO package steps while `fleet add` reports success. A schema-valid id is therefore not
                                           # automatically a resolvable one.
                                           # Use a bare id: `ResolveDistro` strips at `:` but the cloud-init
-                                          # dispatches compare exactly, so `debian:13` yields `openssh`.
+                                          # dispatches compare exactly, so `debian:13` yields `openssh`. (That sentence is about the
+                                          # BUILD vocabulary — `ResolveDistro` in `sdk/buildkit/config_resolve.go` — not `#DistroID`.)
       cache: ~/.cache/charly/vm-images/       # optional override
       # bootc branch:
       box: <candy: image entry name>           # `box:` source field → a `candy:` image carrying base:/from:

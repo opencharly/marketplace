@@ -70,12 +70,11 @@ arch:
   vm:
     source:
       kind: cloud_image
-      distro: arch
       url: https://fastly.mirror.pkgbuild.com/images/latest/Arch-Linux-x86_64-cloudimg.qcow2
       checksum:
         type: sha256
       base_user: arch
-      # distro:               # **REQUIRED on a cloud_image source.** Once this cutover lands, the vm kind's OpValidate
+      distro: arch            # **REQUIRED on a cloud_image source.** Once this cutover lands, the vm kind's OpValidate
                               # rejects a source that omits it. It is a closed `#DistroID`, and
                               # `spec/schema/distro_vocab.cue` is the single source for the id space and
                               # each id's package format, sshd unit and init system. Nothing is inferred
@@ -94,7 +93,8 @@ arch:
                               # ZERO package steps while `fleet add` reports success. A schema-valid id is therefore not
                               # automatically a resolvable one.
                               # Use a bare id: `ResolveDistro` strips at `:` but the cloud-init
-                              # dispatches compare exactly, so `debian:13` yields `openssh`.
+                              # dispatches compare exactly, so `debian:13` yields `openssh`. (That sentence is about the
+                              # BUILD vocabulary — `ResolveDistro` in `sdk/buildkit/config_resolve.go` — not `#DistroID`.)
     backend: libvirt            # REQUIRED — the bed's libvirt-RPC + spice probes hit the session daemon
     disk_size: 40G
     ram: 8G

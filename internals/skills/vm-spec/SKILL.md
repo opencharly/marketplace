@@ -71,7 +71,8 @@ type VmSource struct {
     Checksum VmChecksum
     Cache    string
     BaseUser string       // adopt-user pattern — see below
-    Distro   string       // OPTIONAL; steers the render when set — see below
+    Distro   string       // REQUIRED on a cloud_image source once this cutover lands (still
+                                   // OPTIONAL on released charly) — see below
 
     // bootc branch:
     Box        string     // WIRE KEY `box:` — the `candy:` image entry name
