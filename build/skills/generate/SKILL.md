@@ -278,6 +278,6 @@ The `download:` task emits `export BUILD_ARCH=$(uname -m); curl -fsSL "…${BUIL
 
 - `/charly-image:layer` — **Canonical task verb catalog, `var:` substitution, YAML anchors, execution order.** Read this first for authoring questions.
 - `/charly-check:check` — test-authoring workflow; `check:` blocks are embedded via `writeJSONLabel` and benefit directly from LABELs-at-end cache efficiency.
-- `/charly-internals:generate-source` — Deep dive on Containerfile emission internals, `Task` struct, per-verb emitters, `stageInlineContent`, `shellSingleQuote` + `shellAnsiQuote` helpers, LABEL-placement rationale.
+- `/charly-internals:generate-source` — Deep dive on Containerfile emission internals, `Task` struct, per-verb emitters, `StageInlineContent`, the `spec.ShellQuote` quoting helper and the `BuildStepShellDashC`/`BuildStepShellHeredoc` shell-prefix pair, LABEL-placement rationale.
 - `/charly-internals:go` — Source-code map: `charly/tasks.go` (~430 lines, `emitTasks` shim → deploykit), `sdk/deploykit` (`WriteCandySteps` + `WriteLabels`, relocated in #67), `charly/layers.go` struct definitions.
 - `/charly-selkies:ffmpeg` — canonical URL-repo consumer (triggers the `dnf5-plugins` prepend).

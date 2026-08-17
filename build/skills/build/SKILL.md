@@ -372,7 +372,7 @@ Three kinds of source changes are real cache invalidators — if you see a long 
 
 ### `write:` vs `copy:` — cache granularity
 
-- `write:` steps use `stageInlineContent` (content-addressed staging under `.build/<image>/_inline/<layer>/<sha256>/`). Editing a `write: content:` block changes only that single COPY layer's cache key — siblings in the same layer keep their cache.
+- `write:` steps use `StageInlineContent` (content-addressed staging under `.build/<image>/_inline/<layer>/<sha256>/`). Editing a `write: content:` block changes only that single COPY layer's cache key — siblings in the same layer keep their cache.
 - `copy:` steps reference files from the layer directory. Editing any file under `candy/<name>/` changes the WHOLE scratch stage's content hash (since `COPY candy/<name>/ /` is one instruction), invalidating every downstream `COPY --from=<layer>` step.
 
 ### Rule of thumb for rebuild cost

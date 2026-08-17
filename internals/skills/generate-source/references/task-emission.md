@@ -17,7 +17,7 @@ All install-task logic lives in a single file: `charly/tasks.go` (~380 lines) �
      switch t.Kind():
        case "mkdir":    emitMkdirBatch  (coalesces adjacent same-user+same-mode)
        case "copy":     emitCopy        (COPY --from=<layer> --chmod= --chown=)
-       case "write":    stageInlineContent + emitWrite (COPY from .build _inline)
+       case "write":    StageInlineContent + emitWrite (COPY from .build _inline)
        case "link":     emitLinkBatch   (coalesces adjacent same-user)
        case "download": emitDownload    (RUN curl + extractor + /tmp/downloads cache)
        case "setcap":   emitSetcapBatch (coalesces; strip on empty caps)
@@ -52,7 +52,7 @@ The `Layer` struct that feeds emission carries its `require:` / `candy:` refs as
 | `emitLinkBatch(b, []Task, img)` | One `RUN ln -sf t1 l1 && ln -sf t2 l2 …` |
 | `emitDownload(b, Task, img)` | `RUN --mount=type=cache,dst=/tmp/downloads [+ task cache:] bash -c '… curl -o "$__c.part" && mv → /tmp/downloads/<sha256>; <extractor> "$__c"'` — content-addressed, fetch-once, integrity-safe |
 | `emitSetcapBatch(b, []Task, img)` | `RUN setcap -r … && setcap caps path …` |
-| `emitCmd(b, Task, layerStage, img, userIsRoot)` | `RUN --mount=type=bind,from=<layerStage>,source=/,target=/ctx [--mount=type=cache,…] bash -c $'BUILD_ARCH=$(uname -m)\nset -e\n<command>'` (ANSI-C `$'...'` quoting — see below) |
+| `EmitCmd(b, Op, layerStage, img, userIsRoot)` | `RUN --mount=type=bind,from=<layerStage>,source=/,target=/ctx [--mount=type=cache,…] sh -c 'SH=/bin/sh; [ -x /bin/bash ] && SH=/bin/bash; exec "$SH"' sh <<'OVCMD'` followed by the BUILD_ARCH/ARCH exports, `set -e`, the command, and a closing `OVCMD` (single-quoted heredoc — see below) |
 
 ### Shell-quoting helpers (`charly/tasks.go`)
 
@@ -61,16 +61,21 @@ come up when embedding scripts and JSON into a Containerfile:
 
 | Helper | Purpose | Used by |
 |--------|---------|---------|
-| `shellSingleQuote(s)` | Standard `'...'` quoting with `'\''` escape for embedded single quotes. | `emitDownload` (for `t.Env` values), `writeJSONLabel` (for LABEL JSON values containing `awk '{…}'` etc.) |
-| `shellAnsiQuote(s)` | Bash ANSI-C `$'...'` quoting: real newlines, tabs, and backslashes survive as `\n` / `\t` / `\\`. Keeps a multi-line script on a single physical line. | `emitCmd` body |
+| `spec.ShellQuote(s)` | Standard `'...'` quoting with `'\''` escape for embedded single quotes. | `EmitDownload` (the command and `t.Env` values), `EmitCmd` (`t.Env` values), `writeJSONLabel` (LABEL JSON values containing `awk '{…}'` etc.) |
+| `BuildStepShellDashC()` / `BuildStepShellHeredoc()` | The build-step shell prefix: probes for bash and falls back to POSIX `sh`, so a busybox base stays buildable. One helper per emit shape (R3). | `EmitDownload` (`-c` form), `EmitCmd` (heredoc form) |
 
-**Why `shellAnsiQuote` exists**: a plain `bash -c '<body>'` with embedded
-real newlines gets cut off by podman's Dockerfile parser at the first
-newline inside the quoted string — the parser is line-oriented and
-treats everything after the newline as a new instruction. `$'…\n…'`
-serializes the whole script to one physical line; bash then reassembles
-the newlines when it parses the `-c` argument. Works on Fedora/Arch
-(bash-linked `/bin/sh`) and Alpine (ash supports ANSI-C).
+**How a multi-line `cmd:` body survives podman's parser**: a plain
+`sh -c '<body>'` with embedded real newlines gets cut off by podman's
+Dockerfile parser at the first newline inside the quoted string — the
+parser is line-oriented and treats everything after it as a new
+instruction. `EmitCmd` therefore emits a **single-quoted heredoc**
+(`<<'OVCMD'`): podman's parser consumes the heredoc as one directive,
+and the single-quoted delimiter means the OUTER shell performs no
+expansion, so an author's `$(cmd)` and `${VAR}` reach the inner shell
+intact. `exec` preserves stdin, which is what lets the chosen shell read
+the body. An earlier revision used bash ANSI-C `$'…\n…'` quoting via a
+`shellAnsiQuote` helper; both are gone — that form required bash, which
+a busybox base does not have.
 
 **Why `export VAR=val;` beats `VAR=val cmd`** in `emitDownload`: the
 `VAR=val cmd` prefix form sets `VAR` in `cmd`'s environment, but bash
@@ -82,7 +87,7 @@ putting the value in scope for the downstream URL expansion.
 
 ### Inline-content staging
 
-`stageInlineContent(buildDir, contextRelPrefix, candyName, content)` writes `write:` task content to `<buildDir>/_inline/<layer>/<sha256>` on disk and returns the build-context-relative path (e.g. `.build/<image>/_inline/<layer>/<sha256>`). Content-addressed filename makes writes idempotent — identical content writes no-op; changed content produces a new hash which invalidates only that COPY's cache layer. **No shell heredoc ever appears in the Containerfile** — content travels as bytes.
+`StageInlineContent(buildDir, contextRelPrefix, candyName, content)` writes `write:` task content to `<buildDir>/_inline/<layer>/<sha256>` on disk and returns the build-context-relative path (e.g. `.build/<image>/_inline/<layer>/<sha256>`). Content-addressed filename makes writes idempotent — identical content writes no-op; changed content produces a new hash which invalidates only that COPY's cache layer. **No shell heredoc ever appears in the Containerfile** — content travels as bytes.
 
 ### User resolution
 

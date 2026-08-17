@@ -30,7 +30,7 @@ runtime consumers (`charly config`, `charly start`, `charly status`, `charly che
 ### LABEL JSON escaping (`writeJSONLabel`)
 
 `writeJSONLabel` in `sdk/deploykit/write_labels.go` (relocated from `charly/generate.go` in #67) routes every LABEL value through
-`shellSingleQuote` before emitting `LABEL key=<quoted>`. This is
+`spec.ShellQuote` before emitting `LABEL key=<quoted>`. This is
 required because test/task commands often contain literal `'` characters
 (e.g. `awk '{print $1}'`, `sed 's/foo/bar/'`) which JSON preserves
 verbatim. Without escaping, the embedded quote terminates the LABEL's
