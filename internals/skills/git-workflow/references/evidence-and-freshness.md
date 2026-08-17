@@ -283,10 +283,13 @@ or state that the figure is a candidate count, not an answer.
 `rm` is destructive, knows a scratch worktree is the right mutation harness, and knows an
 exit code must be classified before absence is believed — and states all three several
 hundred lines away from the step that does the deleting — **has the knowledge and none of
-the benefit.** Measured in this very spec: a procedure opened with `rm` on a tracked file,
-in whatever checkout the reader was standing in, while all three safeguards sat ~700 lines
-below it; and the same page's `git -C <submodule> grep` form sat 288 lines from a command
-that could not reproduce its own worked example without it.
+the benefit.** Measured in this very spec, twice: a procedure opened with `rm` on a
+tracked file, in whatever checkout the reader was standing in, while all three
+safeguards sat far below it; and the same page's `git -C <submodule> grep` form sat
+sections away from a command that could not reproduce its own worked example
+without it. **The exact distances are not published**, for the reason given below
+about counts: a line offset inside the document it measures is stale the next time
+that document is edited, which for this page has been every round.
 
 **A reader executes the invocation printed next to the instruction.** Anything true
 elsewhere in the document is, operationally, absent — so the test for a rule is not
@@ -547,7 +550,7 @@ equally legible, though, and the difference runs opposite to intuition:
 
 Pasted rather than described, because "a paste and its label are two separate
 claims" applies to this page's own tables. **Provenance, which this page's own
-rule demands of every figure below:** one continuous session at superproject
+rule demands of every figure in the BLOCK below:** one continuous session at superproject
 `a56240f0` — the commit that corrected the `drift` message quoted throughout. A
 squash-merge lands that commit on no branch, so it survives as an ancestor of
 `refs/pull/289/head`, which is where anything that needs it has to look. `plugins`
@@ -583,7 +586,7 @@ the commands rather than pasting the block. Every state it asserts is a state it
 runs, including the reverts between perturbations:
 
 ```
-# 1. BASELINE — git-clean and drift-clean at once, the only state where both hold
+# 1. BASELINE — git-clean and drift-clean at once; runs 4 and 6 return to it
 $ git status --porcelain | wc -l
 0
 $ charly marketplace drift
@@ -751,8 +754,11 @@ for whoever runs it. A regeneration performed for an unrelated reason picks the 
 into that person's diff, where it reads as noise from their own change.
 
 **`git status` distinguishes THREE dirty-submodule states, and which one you see
-says whose half is outstanding** — but ONLY under `--short`. Measured at this tree,
-git 2.55.0:
+says whose half is outstanding** — but ONLY under `--short`. Measured at the same
+commit as the six-run session above, in a **separate** session re-taken in a
+worktree checked out there — same provenance, different sitting, which is why it
+carries its own setup and revert rather than continuing the block above. git
+2.55.0:
 
 ```
 $ echo canary >> plugins/README.md          # content modified INSIDE the submodule
@@ -774,11 +780,21 @@ $ git status --short
  M plugins
 $ git status --porcelain
  M plugins
+
+$ git -C plugins checkout -q --detach a8b51b16   # revert: back to the pinned gitlink
+$ git status --porcelain | wc -l
+0
 ```
 
-**This reading is about the SUBMODULE line only.** Both letters also appear on
-ordinary paths carrying their usual meanings: run 3's ` M` on the candy source is
-a modified file and has nothing to do with a gitlink. The rule below is about the
+**This reading is about the SUBMODULE line only — and only ONE of the three has
+an ordinary-path meaning at all.** Measured in an isolated repo at git 2.55.0: a
+modified tracked file renders ` M root.txt`, so run 3's ` M` on the candy source
+is an ordinary modified file with nothing to do with a gitlink. The other two do
+not transfer: an untracked ordinary path is `?? untracked.txt` — **two columns,
+not ` ?`** — and lowercase ` m` never appears on an ordinary path at all, because
+it exists only to say *modified content inside a submodule*. So the collision a
+reader must watch for is ` M` alone; ` m` and ` ?` are unambiguous wherever they
+appear. The rule below is about the
 `plugins` line, not about every line of the run it sits in.
 
 Lowercase ` m` is modified content inside the submodule — someone regenerated and
@@ -796,9 +812,12 @@ that says *someone else's projection has landed* is the one a two-repo cutover
 needs most, and it is the one the session cannot produce — which is why it is
 pasted here rather than pointed at.
 
-**`--porcelain` collapses both to ` M`**, so the script-safe spelling is the one
-that loses the discriminator; the transcript uses `--porcelain` only where it
-asserts *empty*, and `--short` everywhere the distinction carries the argument.
+**`--porcelain` collapses all three to ` M`**, so the script-safe spelling is the
+one that loses every distinction. The two blocks use it differently on purpose:
+the **six-run session** above reaches for `--porcelain` only where it asserts
+*empty*, because there the count is the claim; the **three-state block** here uses
+it four times, three of them non-empty, because demonstrating the collapse IS its
+purpose. `--short` carries the argument in both.
 
 **And `charly version` cannot stand in for any of this.** The stamp is derived
 from the HEAD commit's UTC timestamp (`scripts/calver.sh`), deliberately, so that

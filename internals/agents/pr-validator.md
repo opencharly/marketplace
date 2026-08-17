@@ -835,14 +835,44 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
     rather than a failed lookup). **The rules and the agent performing Phase 3 are the
     only things standing between a guessed date and `main`.**
 
-    The tempting remedy — a sentinel that announces itself, `CHANGELOG/UNSTAMPED-<slug>.md`
+    One tempting remedy — a sentinel that announces itself, `CHANGELOG/UNSTAMPED-<slug>.md`
     with `# UNSTAMPED — …` — **fails rule one by construction** and would be rejected on
     the filename regex before anything else was read, and the org PR template
-    independently instructs authors to use a placeholder `CHANGELOG/<CalVer>.md`. So the
-    shape cannot be changed per-leg or by convention: these rules, the template, and the
-    Phase-3 step would all have to move in ONE cutover, or every leg adopting the new
-    shape fails against the old rules. The check below closes the hazard without moving
-    any of that.
+    independently instructs authors to use a placeholder `CHANGELOG/<CalVer>.md`.
+
+    **A second remedy does pass the regex, and is already in live use**: a stamp that is
+    well-formed but impossible as a wall clock, `CHANGELOG/2026.229.9998.md`. It is
+    self-announcing to a human and accepted by rule one, so *self-announcing* and
+    *regex-valid* are not the exclusive alternatives this paragraph once implied. What it
+    does NOT do is bind anything: nothing rejects it, and a leg that skips Phase 3 still
+    merges a file whose name is a guess — merely a conspicuous one.
+
+    **And the check below does not cover that case either, because it lives inside
+    Phase 3.** It compares the landed entry against the version you MINTED, which
+    distinguishes a guessed date from a minted one — but only when Phase 3 runs at all.
+    Nothing inside a phase can detect that phase being skipped.
+
+    **The invariant that survives a skipped Phase 3 is external to it: an entry on
+    `main` with no matching `v<CalVer>` tag.** A skipped Phase 3 leaves both the
+    placeholder name and the absent tag, so the pair is checkable by anyone, at any
+    time, without knowing what was minted. **That is the check that catches the
+    PLAUSIBLE placeholder** — the dangerous kind, where filename and H1 agree because
+    both are the guess. A conspicuous stamp is caught by the reader's eye; a plausible
+    one is caught by nothing else.
+
+    **Scope it, or it fires on a third of the history.** Tagging every landing is a
+    RECENT convention, and the two regimes interleave — measured in `plugins`: of 203
+    CalVer entries, **66 carry no tag**, all of them at or before `2026.215.1207`, while
+    the earliest tagged entry is `2026.193.1934`, well inside that stretch. From
+    `2026.215.1207` forward it is **67 for 67**. So the invariant reads: *every entry
+    landed since the convention took hold has a matching tag*; earlier entries predate
+    it and are evidence of nothing. A check written without that clause returns 66 false
+    positives and gets disabled by whoever inherits it.
+
+    And do not write it bidirectionally without a second clause: **3 tags have no
+    entry** (`v2026.195.0603`, `v2026.197.2231`, `v2026.215.1236`). That is not a
+    defect — a tag marks a merge, and a content-removal landing needs no CHANGELOG — but
+    a symmetric check fires on all three.
 
 None of these is a formality: a rule you cannot POSITIVELY confirm from the diff +
 your own re-run is not "probably fine" — it is unverified, and unverified is FAIL
