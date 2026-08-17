@@ -188,8 +188,8 @@ is `/charly-check:check` Standards 7–9; the dual-path `bin/charly` ↔
 
 ## Cross-References
 
-- `/charly-internals:generate-source` — Understanding generated Containerfiles + deep dive on the task emission pipeline (`charly/tasks.go`).
-- `/charly-image:layer` — **Canonical author-facing reference** for the task verb catalog that `charly/tasks.go` implements.
+- `/charly-internals:generate-source` — Understanding generated Containerfiles + deep dive on the task emission pipeline (`sdk/deploykit/tasks_emit.go`).
+- `/charly-image:layer` — **Canonical author-facing reference** for the task verb catalog that `sdk/deploykit/tasks_emit.go` implements.
 - `/charly-build:validate` — Validation rules and error handling (`validateCandyTasks` in `candy/plugin-box/validate_rules.go`).
 - `/charly-build:build` — Using the built CLI.
 - `/charly-check:check` — Author-facing reference for the declarative-testing feature that `checkspec.go` / `planrun_adapter.go` (the op-context grammar) / `checkrun.go` / `checkrun_charly_verbs.go` / `description_collect.go` / `check_cmd.go` / `check_endpoint_resolve.go` / `check_graphics_endpoint.go` (the host-endpoint reverse-legs) implement — plus `sdk/kit/checkvars.go` and `sdk/kit/local_image.go` (moved out of core in P12a). (Op-level check validation moved out of core to `candy/plugin-box/validate_check.go`; the `charly check` CLI + every check-run mode body live in the compiled-in `command:check` plugin `candy/plugin-check/`.)

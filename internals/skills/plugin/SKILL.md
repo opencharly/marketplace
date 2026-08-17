@@ -81,7 +81,7 @@ reach a repo it does not have, so its author publishes from the identical surfac
 - `/charly-check:check` — the plugin-verb check steps (`<word>: <input>` sugar) + ADE (a plugin's own acceptance plan).
 - `/charly-build:validate` — `charly box validate` rules.
 - `/charly-internals:install-plan` — the `pluginDeployTarget` deploy lifecycle (`OpExecute` reverse channel, ledger record) + the `OpEmit` build-time fragment; the deploy wire types CUE-sourced at `spec/schema/deploy.cue` / `spec/schema/buildwire.cue` / `spec/schema/seam.cue`.
-- `/charly-build:generate` + `/charly-internals:generate-source` — the build-time plugin connect seam + the `emitTasks` placement-agnostic plugin-verb dispatch (`OpEmit` → fragment).
+- `/charly-build:generate` + `/charly-internals:generate-source` — the build-time plugin connect seam + the `EmitTasks` placement-agnostic plugin-verb dispatch (`OpEmit` → fragment).
 
 ## When to Use This Skill
 
