@@ -44,7 +44,7 @@ can merge. See `/charly-internals:skills` for the source→projection model and
 | retry a test that passed once and failed once | a concurrent writer presents as a flaky test, and only a second observation separates them | "One observation never distinguishes the cases — two at one timestamp do" |
 | fold several branches into one tree | a discrepancy you cannot attribute reads as inherited drift | "Assembling several sources into one tree — measure between applications" |
 
-**The page has two kinds of content, and they are true in different ways.**
+**The page has two kinds of content, true in different ways, and one section belonging to neither.**
 
 **Most of the sections below are epistemic** — ways a claim goes wrong — and they are one question
 failing against a different noun: *what exactly did I measure, and is it the thing my
@@ -71,12 +71,6 @@ it — "Positive and negative claims decay differently" — is left out because 
 seen from the reader's side rather than the writer's, and giving it a row would blur the
 distinction the table exists to draw.
 
-  **The two groupings do not cover the page, and that is not an oversight.** "A guard
-  that cannot fail is worse than no guard" arrived later, from a different cutover,
-  and belongs to neither: it is about what a passing check licenses you to believe,
-  which is upstream of both the nouns and the mechanisms. It is left unbucketed
-  rather than forced into one, because a grouping that stretches to cover everything
-  stops distinguishing anything.
 
   No total is given for the page: a section count is a
 figure whose subject is the document stating it, and a merge that adds a section
@@ -86,6 +80,13 @@ falsifies it without touching the sentence.
 cross-repo `skill:` cutover, the submodule revert, the validator-status false
 negative, and multi-source assembly. They are not instances of the question and no
 frame unifies them.
+
+**One section belongs to neither grouping, and that is not an oversight.** "A guard
+that cannot fail is worse than no guard" arrived later, from a different cutover.
+It is about what a passing check licenses you to believe — upstream of both the
+nouns and the mechanisms — and it is left unbucketed rather than forced into one,
+because a grouping that stretches to cover everything stops distinguishing
+anything.
 
 **That split is load-bearing, and it is why this page's own first revision shipped a false
 claim.** An epistemic claim is checked by reasoning; a mechanism claim can only be checked
