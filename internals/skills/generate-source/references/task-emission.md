@@ -6,10 +6,10 @@ All install-task logic lives in `sdk/deploykit` (`tasks_emit.go` + `tasks_render
 
 ```
 1. # Layer: <name>                 (comment header)
-2. ARG TARGETARCH + ENV ARCH=${TARGETARCH}    (once; from emitVarsEnv)
-3. ENV <K>=<V> for each layer.Vars entry      (also from emitVarsEnv)
+2. ARG TARGETARCH + ENV ARCH=${TARGETARCH}    (once; from EmitVarsEnv)
+3. ENV <K>=<V> for each layer.Vars entry      (also from EmitVarsEnv)
 4. Package install: rpm/deb/pac/aur/apk  (unchanged — format template render)
-5. EmitTasks(b, layer, img, buildDir, contextRelPrefix, initialUser):
+5. (g *Generator) EmitTasks(b, layer, img, ops []vmshared.Op, buildDir, contextRelPrefix) (string, error):
    for each t in layer.tasks:
      resolve ${VAR} in non-verbatim fields
      user := resolveUserSpec(t.User, img)   // numeric UID for ${USER}
@@ -41,17 +41,17 @@ func (t *Task) Kind() (string, error)   // returns verb or error ("no action" / 
 
 The `Layer` struct that feeds emission carries its `require:` / `candy:` refs as `[]CandyRef` (one typed list each — no parallel bare/raw arrays), and its `Has*` predicates (`HasEnv`/`HasPorts`/`HasVolumes`/…) are derived methods (only the filesystem-probe caches like `HasPixiToml` stay fields). Layers are populated by the single `scanFromParsed` (`sdk/loaderkit/scan_candy.go`). Which layers reach this emission pipeline is decided upstream by the reachability-scoped, per-entity-version resolver (the git tag is the fetch coordinate; the layer's own `version:` is the identity) — see `/charly-internals:go` "Remote-layer resolver".
 
-### Emitter helpers (all in `charly/tasks.go`)
+### Emitter helpers (all in `sdk/deploykit/tasks_emit.go`)
 
 | Helper | Output |
 |---|---|
-| `emitVarsEnv(b, vars)` | `ARG TARGETARCH` + `ENV ARCH=${TARGETARCH}` + sorted `ENV K=V` |
-| `EmitMkdirBatch(b, []Task, img)` | One `RUN mkdir -p … [&& chmod <mode> …]` |
-| `EmitCopy(b, Task, layerStage, img)` | `COPY --from=<layerStage> --chmod= [--chown=] <src> <to>` |
-| `EmitWrite(b, Task, srcPath, img)` | `COPY [--chown=] --chmod= <srcPath> <path>` where `srcPath` is the staged inline-content file |
-| `EmitLinkBatch(b, []Task, img)` | One `RUN ln -sf t1 l1 && ln -sf t2 l2 …` |
-| `EmitDownload(b, Task, img)` | `RUN --mount=type=cache,dst=/tmp/downloads [+ task cache:] <shell-probe> '… curl -o "$__c.part" && mv → /tmp/downloads/<sha256>; <extractor> "$__c"'` — content-addressed, fetch-once, integrity-safe |
-| `EmitSetcapBatch(b, []Task, img)` | `RUN setcap -r … && setcap caps path …` |
+| `EmitVarsEnv(b, vars)` | `ARG TARGETARCH` + `ENV ARCH=${TARGETARCH}` + sorted `ENV K=V` |
+| `EmitMkdirBatch(b, []Op, img)` | One `RUN mkdir -p … [&& chmod <mode> …]` |
+| `EmitCopy(b, Op, layerStage, img)` | `COPY --from=<layerStage> --chmod= [--chown=] <src> <to>` |
+| `EmitWrite(b, Op, srcPath, img)` | `COPY --chmod=<mode> [--chown=<uid>:<gid>] <srcPath> <path>` — `--chmod=` first, and **no `--from=`** (the source is a build-context path) where `srcPath` is the staged inline-content file |
+| `EmitLinkBatch(b, []Op, img)` | One `RUN ln -sf t1 l1 && ln -sf t2 l2 …` |
+| `EmitDownload(b, Op, img)` | `RUN --mount=type=cache,dst=/tmp/downloads [+ task cache:] <shell-probe> '… curl -o "$__c.part" && mv → /tmp/downloads/<sha256>; <extractor> "$__c"'` — content-addressed, fetch-once, integrity-safe |
+| `EmitSetcapBatch(b, []Op, img)` | `RUN setcap -r … && setcap caps path …` |
 | `EmitCmd(b, Op, layerStage, img, userIsRoot)` | `RUN --mount=type=bind,from=<layerStage>,source=/,target=/ctx [--mount=type=cache,…] sh -c 'SH=/bin/sh; [ -x /bin/bash ] && SH=/bin/bash; exec "$SH"' sh <<'OVCMD'` followed by the BUILD_ARCH/ARCH exports, `set -e`, the command, and a closing `OVCMD` (single-quoted heredoc — see below) |
 
 ### Shell-quoting and shell-prefix helpers (`spec` + `sdk/deploykit`)
