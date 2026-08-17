@@ -7,8 +7,7 @@ CHANGELOG narrative, the commit messages. The diff is checked mechanically. **Ev
 else is checked only if someone thinks to check it**, and this section catalogs the ways
 those claims go wrong.
 
-The items below were blocking findings during the Factory unit-4 cutover, except where a
-section says otherwise —
+Every item below was a blocking finding during the Factory unit-4 cutover —
 `opencharly/charly#274` and `opencharly/plugins#168`, `#169`, `#170`, `#171` — most of
 them more than once. Sixteen validation rounds produced roughly a dozen blocking
 findings, and the majority were not defects in the code but false or stale CLAIMS about
@@ -44,11 +43,10 @@ can merge. See `/charly-internals:skills` for the source→projection model and
 | add a test that proves the fix is gated | you gated the value the fix stores, not the behaviour the title claims | "Gate the behaviour the title claims, not the artifact of the fix" |
 | retry a test that passed once and failed once | a concurrent writer presents as a flaky test, and only a second observation separates them | "One observation never distinguishes the cases — two at one timestamp do" |
 | fold several branches into one tree | a discrepancy you cannot attribute reads as inherited drift | "Assembling several sources into one tree — measure between applications" |
-| trust a guard that has never gone red | a check that cannot fail reports the same thing as a check that passed | "A guard that cannot fail is worse than no guard" |
 
-**The page has two kinds of content, true in different ways, and one section belonging to neither.**
+**The page has two kinds of content, and they are true in different ways.**
 
-**Most of the sections below are epistemic** — ways a claim goes wrong — and they are one question
+**Eight sections are epistemic** — ways a claim goes wrong — and they are one question
 failing against a different noun: *what exactly did I measure, and is it the thing my
 claim is about?*
 
@@ -67,36 +65,16 @@ Each is a correct measurement answering the wrong question, which is why none of
 feel like errors while you are making them — and why a reader who holds the question can
 derive a trap nobody wrote down.
 
-Seven epistemic sections appear in the table above. The table has eight ROWS over those seven because the
+Seven of those eight appear above. The table has eight ROWS over seven SECTIONS because the
 merged-tree section contributes two nouns. The epistemic section deliberately absent from
 it — "Positive and negative claims decay differently" — is left out because it is the moment-noun again,
 seen from the reader's side rather than the writer's, and giving it a row would blur the
 distinction the table exists to draw.
 
-
-**No total is given for the page:** a section count is a
-figure whose subject is the document stating it, and a merge that adds a section
-falsifies it without touching the sentence. Two counts on this page fail that test — *sixteen validation rounds* and *roughly a dozen
-blocking findings*, in the opening paragraph, neither with members beside it; they
-are provenance for the page's origin rather than claims a reader checks against
-it. The counts in the body —
-the table's rows and sections, the epistemic group, the mechanism group — each sit
-beside the members they count, so a reader checks them at a glance and a merge that
-changes one changes the list next to it. **A count whose members are enumerated
-adjacent to it is self-checking; a total with nothing near it to check against is
-not.**
-
 **Four sections are mechanism** — how charly and git actually behave: the
 cross-repo `skill:` cutover, the submodule revert, the validator-status false
 negative, and multi-source assembly. They are not instances of the question and no
 frame unifies them.
-
-**One section belongs to neither grouping, and that is not an oversight.** "A guard
-that cannot fail is worse than no guard" arrived later, from a different cutover.
-It is about what a passing check licenses you to believe — upstream of both the
-nouns and the mechanisms — and it is left unbucketed rather than forced into one,
-because a grouping that stretches to cover everything stops distinguishing
-anything.
 
 **That split is load-bearing, and it is why this page's own first revision shipped a false
 claim.** An epistemic claim is checked by reasoning; a mechanism claim can only be checked
@@ -107,8 +85,7 @@ a mechanism section while the surrounding epistemic ones were sound.
 
 **The execution rule is scoped to CONTENT, not to sections, and that correction was
 itself forced by a defect.** An earlier revision said "every factual claim in the three
-MECHANISM sections was verified by executing it" — three then; the grouping has
-since gained one — and a reviewer found the one broken
+MECHANISM sections was verified by executing it" — and a reviewer found the one broken
 shell recipe on the page sitting in an EPISTEMIC section, exempted by that very wording.
 The frame had decided what got executed, and routed a runnable command to the
 "reasoning is enough" side. So: **every runnable command and every mechanism claim on
