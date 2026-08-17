@@ -861,10 +861,16 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
     one is caught by nothing else.
 
     **Scope it, or it fires on a third of the history.** Tagging every landing is a
-    RECENT convention, and the two regimes interleave — measured in `plugins`: of 203
-    CalVer entries, **66 carry no tag**, all of them at or before `2026.215.1207`, while
-    the earliest tagged entry is `2026.193.1934`, well inside that stretch. From
-    `2026.215.1207` forward it is **67 for 67**. So the invariant reads: *every entry
+    RECENT convention, and the two regimes interleave — measured in `plugins`:
+    **66 entries carry no tag**, all of them at or before `2026.215.1207`, while the
+    earliest tagged entry is `2026.193.1934`, well inside that stretch. Every entry
+    above `2026.215.1207` carries a tag; `2026.215.1207` is itself the LATEST untagged
+    entry, so it belongs to the old regime and the tagged run opens above it. Tagging
+    before that boundary was SPORADIC rather than absent — 70 of the 136 entries at or
+    below it do carry tags, which is what "interleave" means here. The corpus total and
+    the length of the tagged run are deliberately NOT stated: both grow with every
+    merge, so either is stale within hours of being written, while the untagged count
+    does not move. So the invariant reads: *every entry
     landed since the convention took hold has a matching tag*; earlier entries predate
     it and are evidence of nothing. A check written without that clause returns 66 false
     positives and gets disabled by whoever inherits it.
