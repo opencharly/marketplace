@@ -161,79 +161,6 @@ gh pr view <N> --repo <owner>/<repo> --json title,body,headRefName,headRefOid,fi
 gh pr diff <N> --repo <owner>/<repo>
 ```
 
-**STEP ONE, before you read a single line of content: find the GENERATED files.**
-
-```bash
-git grep -lEi "DO[- ]NOT[- ]EDIT" -- <the PR's changed file set>
-```
-
-**Then look at each hit and decide whether the file CARRIES a banner or merely MENTIONS
-one** — the grep cannot tell them apart, and you should not try to make it. Run against
-the change set that introduced this very rule, it flags both files: the candy that
-defines the check and the CHANGELOG describing it. Neither is generated. **Triage the
-hits; do not tune the pattern**, because the two failure directions are not
-symmetric — a false positive costs one glance, and a false negative cost this program
-four consecutive rounds of improving prose that regeneration would erase.
-
-The obvious tightenings were measured and both are worse. Restricting to a 20-line
-header window still flags a CHANGELOG that quotes the banner in its opening paragraph.
-Requiring a comment-form line carrying both *generated* and the phrase drops the false
-positives but **misses 2 of 336 real banners in `plugins` and 6 of 897 in `docs`** —
-trading a cost-one-glance error for the exact error that motivated the rule.
-
-A hand-edit to a generated artifact is a defect in KIND, independent of whether the
-prose is correct — the next regeneration silently reverts it, so a change that reads
-perfectly is guaranteed to disappear. **Finding that costs one command and finding it
-LATE costs rounds**: one PR in this program hand-edited generated pages for four
-consecutive review rounds, each round improving prose that regeneration would have
-erased, because every reviewer went straight to the content.
-
-Three things make the naive form of this check miss:
-
-- **The banner's position varies.** Measured in one tree: `pr-validator.md` line **8**,
-  `build/skills/build/SKILL.md` line **7**, `core/skills/clean/SKILL.md` line **10**.
-  **Never `head -3`** — it misses all three; grep the file or scan a generous window.
-- **The two trees use OPPOSITE separators**, so a matcher written for either alone
-  misses almost everything in the other. Measured:
-
-  | tree | `DO NOT EDIT` (spaced) | `DO-NOT-EDIT` (hyphenated) | `DO[- ]NOT[- ]EDIT` |
-  |---|---|---|---|
-  | `plugins` | **335** | 3 | **336** |
-  | `docs` | 2 | **897** | **897** |
-
-  A hyphen-only matcher finds 3 of 336 in `plugins`; a space-only matcher finds 2 of 897
-  in `docs`. **Neither convention is wrong and neither is going away**, so `-i` and the
-  `[- ]` class are load-bearing rather than stylistic — a matcher that assumes one house
-  style reports a clean tree for the other.
-- **A targeted edit never sees the top of the file.** `Edit` on a matched string, or a
-  jump to a grep hit at line 240, never renders line 8. The banner is invisible to the
-  access pattern a targeted edit actually uses, which is why the check has to be a
-  deliberate first step rather than something a careful reader would notice.
-
-When a hit is a genuine artifact, the fix is never in that repo: correct the SOURCE
-entity and regenerate. See the projection chain in `references/multi-repo-coordination.md`.
-
-**And read the REF, not the checkout.** Every claim about a submodule's content is a
-claim about a specific commit, and a working tree is not that commit. Resolve what you
-mean to inspect and read it explicitly — `git -C <sub> show <sha>:<path>`,
-`git ls-tree <head> <sub>` — never the files on disk, which may carry unmerged,
-uncommitted, or simply different content. This program produced five distinct instances
-in one session, across three people, including a byte-identity check that passed
-cleanly against a checkout holding content that did not exist on `main`. **Byte-identity
-is unattributable unless you state which tree you compared against.**
-
-The same trap has an exit-code costume, and it is worth guarding explicitly:
-
-```bash
-git -C <submodule> merge-base --is-ancestor <a> <b>; rc=$?
-# 0 = ancestor · 1 = NOT an ancestor · anything else = UNEVALUATED, not a verdict
-```
-
-Run from the SUPERPROJECT, that command exits **128** — the submodule's objects do not
-live there — and `128` is falsy under a bare `if`, so "objects absent" is indistinguishable
-from "not an ancestor". **Capture and classify `rc`; never branch on the command
-directly**, and run submodule ancestry checks INSIDE the submodule.
-
 **Comment intake — read the WHOLE comment thread as validation input, BEFORE
 finalizing any verdict.** Every comment on the PR — from the author, the
 orchestrator, another session, or a human — that raises an issue is
@@ -410,7 +337,8 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
     `ai.opencharly.*` label are asserted post-build (an empty/missing label is a
     FAILURE, not a warning). R9 (any change exercised on a target): the deployed
     binary was REBUILT and `charly version` matches source, and every new runtime
-    OS dep is in `pkg/arch/PKGBUILD` `depends=` (never a manual host install).
+    OS dep is in the charly candy's `packaging:` section (never a manual host
+    install).
 11. **R10 — disposable-only, fresh-rebuild, coverage.** Runtime proof is on a
     `disposable: true` target only, on a FRESH `charly update`/rebuild, at ZERO
     warnings, with pasted output for EACH changed piece. The change ships the
@@ -673,25 +601,6 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
     - H1 heading MUST match `# <filename-without-.md> — <title>` (byte-equal CalVer)
     - The placeholder CalVer MUST NOT already exist as a `CHANGELOG/*.md` or `v*` tag on `main`
     - `head -1 CHANGELOG/<file>.md` MUST byte-equal `# <CalVer> — <title>`
-
-    **These four rules prevent a COLLISION, not a SURVIVAL, and the difference is the
-    whole hazard.** The placeholder is required to be CalVer-shaped and self-consistent,
-    so a placeholder whose Phase-3 rename is SKIPPED merges as a file indistinguishable
-    from a properly stamped entry — well-formed by construction, because these rules
-    demand it. Nothing downstream can tell that the date was guessed by an author rather
-    than minted at merge, and `plugins` has NO CI (its `.github/workflows` is empty;
-    the same probe finds one in `charly`, which is what makes that absence evidence
-    rather than a failed lookup). **The rules and the agent performing Phase 3 are the
-    only things standing between a guessed date and `main`.**
-
-    The tempting remedy — a sentinel that announces itself, `CHANGELOG/UNSTAMPED-<slug>.md`
-    with `# UNSTAMPED — …` — **fails rule one by construction** and would be rejected on
-    the filename regex before anything else was read, and the org PR template
-    independently instructs authors to use a placeholder `CHANGELOG/<CalVer>.md`. So the
-    shape cannot be changed per-leg or by convention: these rules, the template, and the
-    Phase-3 step would all have to move in ONE cutover, or every leg adopting the new
-    shape fails against the old rules. The check below closes the hazard without moving
-    any of that.
 
 None of these is a formality: a rule you cannot POSITIVELY confirm from the diff +
 your own re-run is not "probably fine" — it is unverified, and unverified is FAIL
@@ -1022,7 +931,7 @@ stamps collide and mis-order across concurrent PRs). Operate on the feat branch:
    the sdk tag is `v0.$(date -u +%Y%j).$SDK_MIN`). A leading-zero sdk tag
    (e.g. `v0.2026192.0733`) is INVALID — it makes every consumer's `go.mod`
    unparseable in module mode — so this stripping is mandatory, not cosmetic.
-   `plugins`, `pkg/*`, and `docs` ARE tagged, with the same `v<YYYY.DDD.HHMM>` form as
+   `plugins` and `docs` ARE tagged, with the same `v<YYYY.DDD.HHMM>` form as
    every non-sdk repo (they carry no `charly.yml`, so no schema `version:` bump — but
    the tag still marks the merge).
 3. **Rewrite every merge-time-dependent version surface to `$VER`** on the feat
@@ -1036,17 +945,6 @@ stamps collide and mis-order across concurrent PRs). Operate on the feat branch:
      the rewrite, SELF-VERIFY for EVERY `CHANGELOG/*.md` you staged this phase:
      `head -1 CHANGELOG/$VER.md` MUST byte-equal `# $VER — <title>` before you post
      the final status (step 4);
-   - **AFTER tagging, verify the landed entry's CalVer equals the version you MINTED**
-     — for every `CHANGELOG/*.md` this merge added on `main`, its basename MUST equal
-     `$VER`, the same string as the `v$VER` tag you just pushed. This is the check that
-     catches a SKIPPED Phase 3 rather than a botched one: the self-verify above only
-     runs if you are already performing the rewrite, so it cannot fire when the rewrite
-     never happened. **A surviving placeholder is self-consistent by construction** —
-     CalVer-shaped filename, byte-matching H1, no collision — so every pre-merge rule
-     passes on it and only the post-merge comparison against the minted version can
-     distinguish a guessed date from a minted one. A mismatch means the entry carries an
-     author's guess: rename it and rewrite its H1 on `main`'s new head, add-only, before
-     you consider the merge complete;
    - if the PR bumps the schema, re-stamp `#SchemaVersion`
      (`spec/schema/version.cue`) + `version:` + the `candy/plugin-migrate/migrations.cue`
      entry to be strictly greater than the CURRENT `main` HEAD's schema version;
@@ -1113,11 +1011,11 @@ stamps collide and mis-order across concurrent PRs). Operate on the feat branch:
    anomaly, and run R1. The post-merge transcript MUST name `MERGED_SHA` and
    show the exact parser output.
 
-   Only after that proof, tag EVERY repo (`plugins`, `pkg/*`, and `docs` included;
+   Only after that proof, tag EVERY repo (`plugins` and `docs` included;
    `sdk` substitutes its `v0.<…>` form from step 2): `git tag -a v$VER -m "<subject>"
    "$MERGED_SHA"`; `git push origin refs/tags/v$VER` (a tag push — allowed by
    the pre-push-gate). Only a SUPERPROJECT `v*` tag triggers the release-binary
-   workflow; a `plugins` / `pkg/*` / `docs` tag fires NO workflow, so tagging them is
+   workflow; a `plugins` / `docs` tag fires NO workflow, so tagging them is
    harmless.
    **SKIPPING any repo's tag is a DEFECT** — the pre-unification `plugins`/`pkg`
    tag-exempt rule is RETIRED; never omit a tag on a stale "exempt" belief (doing so

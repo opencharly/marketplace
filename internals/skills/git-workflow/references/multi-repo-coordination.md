@@ -221,51 +221,6 @@ not steps an charly user runs, and they never belong on a reader-facing page.
    is in B2, "the derivation stops at the gitlink".
 5. **Bump the superproject gitlinks** for whichever submodules moved.
 
-**Why that order and not any other — the two-directional pin rule.** A superproject
-gitlink and a mirror's own pin are DIFFERENT relations, and conflating them is what
-produces an unpinnable mirror:
-
-- **Source-covers.** The superproject pins a `plugins` sha that must CONTAIN every
-  source edit producing what the mirror shows. It is a coverage claim: "everything
-  rendered downstream is generated from something at or before this sha."
-- **Mirror-reflects.** The `docs` mirror is a PROJECTION of one specific source state.
-  It is an identity claim: "these pages are what that state renders to."
-
-The two shas are not the same and are not required to be — but the second is only
-meaningful relative to the first. **A mirror leg that accumulates a SECOND merge before its
-superproject leg pins the first makes the mirror unpinnable by any state the
-superproject can reach**: the mirror becomes a composite of projections from several
-submodule commits, and no single pin reproduces a composite.
-
-Landing the mirror ahead is not the hazard — it is REQUIRED, because a superproject
-cannot pin a commit that does not exist yet. The hazard is the GAP, and specifically
-**other legs' projections landing inside it**.
-
-The mechanism, stated because a reader without it reconstructs the unqualified rule
-and then finds it forbids the procedure below: several legs share ONE submodule
-pointer. While your mirror merge sits unpinned, every other leg that lands projects
-into the same tree. The superproject then has no sha that reproduces only your
-change — the mirror is a composite, and **the last leg to pin inherits every
-projection beneath it**. That is not hypothetical: it is how a four-cutover forced
-union — `charly#278` — came to carry four cutovers' candy sources in one commit: the
-check-verb resolver, the git-workflow landing lessons, the merge-tree guard, atop
-the R4a sweep. None of those authors chose to couple their work; no intermediate
-self-consistent superproject state existed for them to land against.
-
-So: land each mirror leg immediately before its superproject leg, keeping at most one
-outstanding merge **per mirror** — not one across all of them. B6 legitimately has
-`plugins` and `docs` both outstanding between steps 2/3 and step 5; that is two
-mirrors with one merge each, which is fine. What is not fine is two merges in ONE
-mirror awaiting a single pin. Then nothing intervenes, each mirror contains only
-your own projection, and the shas coincide naturally with no reconciliation to
-perform.
-
-*Proof that this is a live invariant rather than an aspiration:* regenerate at
-`main`'s OWN pins and count the pages that move. Zero means every published page is
-reproducible from the state the superproject currently points at. A non-zero count is
-the composite above, and it names its own repair — the pages listed are exactly those
-whose source landed out of order.
-
 ## B7 — Multi-worktree landing + refresh (the canonical end-to-end)
 
 When this project is driven from multiple git worktrees sharing one `.git`, only
@@ -352,9 +307,8 @@ headRefOid` LAGS a fresh push and will post the status on a stale SHA. Deriving 
 merge-time CalVer from a COMMIT's recorded date (`git show --date=format:'<fmt>'
 <sha>`, `git log -1 --format=%cd`) uses that commit's own author/committer TZ
 offset, not UTC, and can mis-stamp the tag/changelog by hours — `$VER` always comes
-from the LIVE clock at the moment of merge (`date -u +%Y.%j.%H%M`; the CalVer contract
-lives in `references/validator-and-calver.md`, not in this file), never from a
-commit's stored timestamp. A metric or grep verification
+from the LIVE clock at the moment of merge (`date -u +%Y.%j.%H%M`, per "CalVer"
+below), never from a commit's stored timestamp. A metric or grep verification
 command (a LOC count, a `git grep` sweep, a file-count claim) run from an
 ambient, `cd`-inherited working directory silently measures the WRONG tree the
 moment more than one worktree is in play — anchor every such command to an
@@ -366,8 +320,8 @@ submodule update` as a side effect — `task cue:gen` is the canonical
 offender) run against a stale, ambient cwd doesn't just misreport, it
 MUTATES the wrong tree. Live incident: a fresh evaluator ran `task cue:gen`
 with a persisted shell cwd that had drifted to the main session worktree —
-the task's own `git submodule update` chain rewound 5 submodule checkouts +
-the `pkg/arch` gitlink there before the mistake was caught (fully restored,
+the task's own `git submodule update` chain rewound 5 submodule checkouts
+there before the mistake was caught (fully restored,
 disclosed). So every mutating task/command invocation in an isolated-worktree
 workflow (a validator run, a teammate's branch work, a spike) carries an
 explicit `cd <worktree> &&` anchor IN THE SAME compound command — never a
