@@ -14,9 +14,10 @@ findings, and the majority were not defects in the code but false or stale CLAIM
 it.
 
 **Terms.** *The gate* — whichever check a claim rests on; usually `charly box validate`,
-`charly marketplace drift`, or `charly docs generate`. *`marketplace drift`* compares each
-generated file in `plugins/` against what the candy `skill:` / `hook:` / `marketplace:`
-sources currently project — a *candy* being an entity defined in `candy/<name>/charly.yml` —
+`charly marketplace drift`, or `charly docs generate`. *`marketplace drift`* compares every
+generated artifact — the `plugins/` corpus AND the harness surface it also emits
+(`CLAUDE.md`, `AGENTS.md`, `.claude/settings.json`, `.claude/hooks/*`) — against what the
+candy `skill:` / `hook:` / `marketplace:` sources currently project — a *candy* being an entity defined in `candy/<name>/charly.yml` —
 exiting 1 when any differs. `charly marketplace generate` re-emits them. *Superproject* — the `opencharly/charly`
 repo, which contains the others as submodules. *Gitlink* — the single commit sha a
 superproject records for a submodule; it moves only when a superproject commit moves it,
@@ -121,7 +122,7 @@ paste-able recipe** — the `$` prompts and interleaved output ARE the evidence,
 pasting it wholesale would run the output lines as commands. Retype the commands,
 or read it as a record.
 
-Blocks on this page come in THREE kinds, and prompts identify only the first:
+Blocks in this corpus come in THREE kinds, and prompts identify only the first:
 TRANSCRIPTS (prompts + interleaved output — read, do not paste); RUNNABLE recipes
 (no prompts, no output — paste freely); and PASTED OUTPUT (no prompts, no commands
 — evidence, with nothing to run). So a prompt marks a transcript, but its ABSENCE
@@ -554,7 +555,7 @@ was at `a8b51b16` and `docs` at `c641b99`, in a worktree checked out there with 
 binary built by `task build:binary`. Every command runs at the superproject root.
 `git status --porcelain` is shown EMPTY at the start and again at the end,
 untracked files included, because an untracked file carrying the generated header
-is itself one of the perturbations. **Every elision is marked inline**; nothing is
+inside a walked tree is itself one of the perturbations. **Every elision is marked inline**; nothing is
 dropped silently. The count is 400 in all three clean runs — 1, 3 and 6 — because
 a content edit changes bytes, not the set of artifacts, and that holds across run
 3's perturbed tree as much as across the two baselines.
@@ -654,13 +655,20 @@ mechanism to establish. That wording is what made THIS example ambiguous, inside
 the block whose own rule forbids exactly that. The code was right and its own
 prose was wrong, so the prose moved (R4a), in the cutover that fixed this block.
 
-**`(stale)` marks the ORPHAN, and it reads backwards.** Run 2's artifact is the
-one that is genuinely out of date, and it gets no suffix; run 5's gets it. The
-suffix means *no source claims this path* — `scanGenerated` collects every file
-carrying the generated header and reports the ones the emissions map does not
-contain, so `(stale)` is the report of a file projected by NOTHING, not of a file
-behind its source. Both directions print the same "are stale" headline, so the
-suffix is the only thing that tells them apart — and it names the rarer one.
+**`(stale)` marks the ORPHAN: a generated path no source claims.** `scanGenerated`
+collects the files its three arms reach (see below, and they are not all
+header-based); any of those the emissions map does not contain gets the suffix. So
+run 5's canary carries it — nothing projects that path — while run 2's artifact,
+which is behind its source, does not.
+
+The headline covers both directions: `N generated artifact(s) are stale`. The
+suffix therefore repeats the headline's word rather than naming what separates the
+subset, which is why it is the only discriminator between the two red outputs and
+also the least self-explaining part of them. `(orphan)` would say it; the code's
+own comment already calls them *"stale orphans"*, seven lines above the line that
+emits the suffix. **Filed as a message fix, not compensated for here** — this page
+does not teach a reader to invert a label, because a page that teaches the
+compensation has documented the defect instead of removing it.
 
 **The orphan scan is PATH-GATED, and the header only decides inside the trees it
 walks.** `scanGenerated` has three arms, and only the first reads a byte of any
@@ -683,6 +691,55 @@ block around it was rebuilt twice — a false mechanism claim survives review mo
 easily when it is the *unchanged* part of a diff everyone is reading for what
 changed.
 
+**Then a paraphrase of it survived the correction itself, in the paragraph beside
+the one that replaced it** — and the gate that was supposed to catch it looked for
+the retired WORDING (`git grep` on the deleted sentence, which returned 0) rather
+than for the MODEL. A claim-keyed sweep keyed on a string cannot find the same
+claim restated in other words, and restating it is exactly what a correcting
+author does in the neighbouring paragraph. **Sweep for every site that NAMES the
+mechanism, and reconcile each against one derived ground truth.** An enumeration
+of sites is checkable; the absence of a string is not.
+
+**Run that sweep once per REPO, because `git grep` does not cross a gitlink.**
+`git grep -n scanGenerated` reaches, by tree — stated as reach rather than as a
+file count, since every entry that discusses the mechanism adds a hit and any
+number here would be stale by the next one:
+
+- **superproject** — the candy source, the two Go files, and whatever `CHANGELOG/`
+  entries discuss it; **never a path under `plugins/` or `docs/`**;
+- **`plugins`** — this page, plus the entries beside it that discuss it;
+- **`docs`** — the docs projection of this page.
+
+This page is projected twice, so a claim about it lives in three trees, and no one
+of them can see the other two. That is not hypothetical: the first draft of THIS
+rule prescribed one unrooted grep, and the live instance of the very claim it was
+written to kill was sitting in the `docs` projection, invisible to it.
+
+No count of those hits is published, and not for the reason a first draft gave.
+**The count is tree-dependent** — one number cannot be right for the superproject,
+`plugins` and `docs` at once — and it goes stale on the next edit. It is NOT the
+diffstat's self-reference: writing `3` adds no occurrence of the search term, so
+that count would converge immediately. Self-inclusion is not self-invalidation,
+and the earlier draft conflated them.
+
+**And the sweep has a window in which it cannot be complete.** The projection-first
+ordering guarantees a period where `plugins/main` carries prose `charly/main`
+cannot reproduce — the source is still in an unmerged superproject PR. **The number
+of open windows is the number of superproject legs that have not landed, each
+invisible from inside the others.** So regenerate from your own source tree, never
+from `charly/main`.
+
+**Your OWN leg's window is harmless; another leg's is not** — and the difference
+decides which check to run. While no other leg has landed into your base, an
+UNSCOPED whole-tree regenerate is clean and is the strongest evidence available:
+it proves byte-identity across all 400 artifacts, not just yours. The moment
+another leg's projection lands in your base, that same check turns destructive —
+regenerating from a source that lacks their candy entities deletes and reverts
+their landed work, and reports success while doing it. **The trigger is the base
+moving under you, not the mere existence of a window:** run the unscoped check
+while you can, and scope the assertion to the files your PR touches once another
+leg has merged beneath it.
+
 The anecdote it carried is unaffected and still worth having: the first two
 attempts at this perturbation used a header-less canary, got `clean`, and came
 close to being filed as a defect against the very claim they failed to test — the
@@ -693,9 +750,9 @@ dangerous is not detection, it is that **`drift` runs in no CI workflow** — it
 for whoever runs it. A regeneration performed for an unrelated reason picks the revert up
 into that person's diff, where it reads as noise from their own change.
 
-**`git status` distinguishes the two dirty-submodule states, and which one you
-see says whose half is outstanding** — but ONLY under `--short`. Measured at this
-tree, git 2.55.0:
+**`git status` distinguishes THREE dirty-submodule states, and which one you see
+says whose half is outstanding** — but ONLY under `--short`. Measured at this tree,
+git 2.55.0:
 
 ```
 $ echo canary >> plugins/README.md          # content modified INSIDE the submodule
@@ -704,7 +761,14 @@ $ git status --short
 $ git status --porcelain
  M plugins
 
-$ git -C plugins checkout -- README.md      # revert, then move the gitlink instead
+$ git -C plugins checkout -- README.md      # revert; now UNTRACKED content instead
+$ head -1 plugins/README.md > plugins/zz-canary.md
+$ git status --short
+ ? plugins
+$ git status --porcelain
+ M plugins
+
+$ rm plugins/zz-canary.md                   # revert, then move the gitlink instead
 $ git -C plugins checkout -q --detach HEAD~1
 $ git status --short
  M plugins
@@ -718,13 +782,19 @@ a modified file and has nothing to do with a gitlink. The rule below is about th
 `plugins` line, not about every line of the run it sits in.
 
 Lowercase ` m` is modified content inside the submodule — someone regenerated and
-has not committed there (run 3). Uppercase ` M` is a moved gitlink — the
+has not committed there (run 3). ` ?` is untracked content inside it, which is run
+5's own state seen from the superproject. Uppercase ` M` is a moved gitlink — the
 projection has landed in `plugins` and it is the superproject pin that is
-uncommitted. **The six-run session never reaches that second state**, which is why
-it is pasted above rather than pointed at: run 5 reports from inside the submodule
-(`git -C plugins`), so the superproject's view of a moved gitlink is the one state
-the session does not produce — and it is the half that says someone else's
-projection has landed.
+uncommitted.
+
+**The six-run session never reaches that third state, and not because of where it
+looks from.** No gitlink moves anywhere in the six runs — every perturbation edits
+or adds a file — so ` M` is unreachable no matter which repo you run `git status`
+in. Run 5 happens to report from inside the submodule (`git -C plugins`), but the
+superproject view of that same moment is ` ? plugins`, measured above. The state
+that says *someone else's projection has landed* is the one a two-repo cutover
+needs most, and it is the one the session cannot produce — which is why it is
+pasted here rather than pointed at.
 
 **`--porcelain` collapses both to ` M`**, so the script-safe spelling is the one
 that loses the discriminator; the transcript uses `--porcelain` only where it
