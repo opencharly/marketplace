@@ -69,11 +69,78 @@ and the docs build together catch a stale cross-reference that a `git grep` swee
 
 ## How to Update
 
-1. Edit the skill file at `plugins/<plugin>/skills/<skill-name>/SKILL.md`
+1. **Edit the candy's `skill:` entity in `candy/<candy>/charly.yml`, then regenerate**
+   (`charly marketplace generate` → `task docs:sync`). Most of the corpus under
+   `plugins/**/SKILL.md` is a PROJECTION and carries a DO-NOT-EDIT banner: an edit
+   there is reverted by the next regeneration, silently and without conflict. `git grep
+   -l 'DO[- ]NOT[- ]EDIT'` tells you which files are generated — but triage the hits
+   rather than trusting them, since a file may MENTION the banner without carrying one
+   (agent definitions under `plugins/<plugin>/agents/` are hand-authored).
 2. If the insight affects cross-skill behavior, update the project rulebook (`AGENTS.md` / `CLAUDE.md`) too
 3. After any non-trivial deployment session, ask: "Did we learn anything that future sessions should know?"
 
+### Regenerate ONLY the projections of the sources you edited
+
+**A projection merges before the superproject source that pins it**, so prose can be
+correct and landed in `plugins`/`docs` while its candy source is still in flight on
+another branch. Regenerating from a superproject tree that lacks that pending source
+does not bring the projection up to date — it **drags it backwards**, and the diff is
+indistinguishable from a legitimate update.
+
+Measured: a wholesale `charly marketplace generate` touched **21** files in `plugins`
+and **41** in `docs` when three candy sources had changed. The extra ones were reverts,
+~500 lines of landed prose including 317 from one `git-workflow` reference and 107 from
+the `pr-validator` agent spec. Nothing in the output flagged it.
+
+So: after regenerating, **restore every file whose candy source you did not touch**, and
+audit the deletions that remain — each one should be a line you deliberately replaced.
+
+```bash
+git -C plugins diff --numstat        # +added -deleted per file
+# Every deleted line, read in full. Do NOT use `grep '^-[^-]'` to skip the
+# `--- a/file` header: a deleted markdown BULLET renders as `-- text`, so that
+# pattern silently drops it — and in a prose repo bullets are the majority shape,
+# not an edge case. Measured on one real regeneration: 90 reported vs 96 actual,
+# every missed line a bullet. Exclude the header explicitly instead, and
+# cross-check against --numstat, which counts independently of any regex: if the
+# two disagree, the regex is wrong, and that disagreement IS the alarm.
+git -C plugins diff | grep '^-' | grep -v '^--- '
+git -C plugins diff --numstat | awk '{s+=$2} END{print s}'   # must equal the count above
+```
+
+
+**After ANY merge, `update-branch`, or conflict resolution, RE-RUN this audit against the NEW
+base.** A revert introduced by catching up is invisible to the old one, and the old number keeps
+looking right. Measured on one branch: against the original merge-base 580 deletions; against
+`origin/main` after the catch-up, **1170** — the second is what the squash actually lands. Both
+numbers were correct; only one was the merge. A grep-vs-`--numstat` cross-check agreed perfectly
+throughout and was measuring the wrong baseline, so **agreement between two methods does not
+rescue a wrong base**. The one-line form that surfaces every offender:
+
+```bash
+git diff --numstat origin/main...HEAD | awk '$2>$1'   # every file losing net lines
+```
+
+It caught eleven files at once, including a whole skill file deleted outright — after five
+consecutive audits had reported the branch clean.
+
+**And a conflict resolution is not separate from the exclusion list — it is the same concern.**
+Resolving conflicts by regenerating is right for projections, but a regeneration run WITHOUT the
+protected-file list re-introduces exactly what the list exists to prevent. This recurred on two
+hops within an hour, the second at ~19x the scale of the first.
+A file you never edited appearing in that list is the signal, and "it was probably just
+stale" is the reading that ships the revert.
+
 ## Skill File Structure
+
+
+This is the SHAPE the projection EMITS, not a file you create. You author it on the candy's
+
+`skill:` entity — frontmatter fields as entity fields, the body as its content — and
+
+`charly marketplace generate` writes the `SKILL.md`. Every emitted file carries a DO-NOT-EDIT
+
+banner; if you find yourself editing one, the change belongs one hop upstream.
 
 ```markdown
 ---
@@ -93,6 +160,14 @@ description: |
 ```
 
 ## Progressive disclosure: multi-file skills
+
+Both halves are GENERATED. You author the split on the candy's `skill:` entity — the entry body
+plus one `reference:` entry per topic — and `charly marketplace generate` writes the `SKILL.md` and
+`references/*.md` files. The shapes below describe what the projection must come out looking like,
+never files to create or edit by hand; every one of them carries a DO-NOT-EDIT banner. This is
+stated here because the section reads as a set of file operations, and the previous revision of
+this skill opened its update instructions by telling the reader to edit `SKILL.md` directly — so a
+reader arriving at this section had already been pointed the wrong way once.
 
 A skill is either a single `SKILL.md`, or an entry `SKILL.md` plus sibling `references/*.md` files in the same skill directory, loaded on demand by path. Split once a single file grows past ~400 lines or spans more than one cleanly-separable topic.
 

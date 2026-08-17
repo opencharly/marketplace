@@ -176,10 +176,9 @@ common way an in-flight cutover leaks onto shared host state.
   build:binary` keeps the dual path `bin/charly` ↔ `candy/charly/bin/charly`
   in sync (a manual `go build -o` does not) — see `/charly-internals:go`
   "Quick Reference" / "Debug a Build Issue" + `/charly-tools:charly`. It
-  does not touch the tracked `pkg/arch/PKGBUILD` — that file is read only
-  by the legacy `charly box pkg` native-package build (removed with the
-  nFPM cutover; the `charly generate-packages` plugin builds the packages
-  now), never by a bare-host `go build`.
+  does not touch any packaging source — the native packages are built by
+  the `charly generate-packages` plugin (sdk/packagekit) from the candy's
+  `packaging:` section, never by a bare-host `go build`.
 - **Post-merge resync.** After a wave lands, the orchestrator/operator
   updates the host package from the new `main` via the native-package path
   — install a freshly published release from the per-distro package repos

@@ -142,7 +142,7 @@ Each verb below is also auto-exposed as an MCP tool (`box.new.project`, `box.new
 | Append a candy to a box | `charly box add-candy <image> <layer>` |
 | Remove a candy from a box | `charly box rm-candy <image> <layer>` |
 | Edit a value in `candy/<name>/charly.yml` | `charly candy set <name> <dotpath> <yaml-value>` |
-| Append rpm/deb/pac/aur packages to a candy | `charly candy add-rpm <name> <pkg…>` (and `add-deb`, `add-pac`, `add-aur`) |
+| Append rpm/deb/pac/aur/apk packages to a candy | `charly candy add-rpm <name> <pkg…>` (and `add-deb`, `add-pac`, `add-aur`, `add-apk`) |
 | Write any file under the project root | `charly box write <rel-path> [--content X \| --from-stdin]` |
 | Read any file under the project root | `charly box cat <rel-path>` |
 
@@ -217,7 +217,7 @@ Every setting resolves through: **image -> defaults -> hardcoded fallback** (fir
 | `tag` | `"auto"` | Image tag. `"auto"` for CalVer |
 | `registry` | `""` | Container registry prefix |
 | `distro` | `[]` | Distro identity tags in priority order: `["fedora:43", fedora]`. For packages: first matching section wins (override). For plan steps: additive. Inherited from base image |
-| `build` | `["rpm"]` | Package formats tied to builder definitions: `[rpm]` or `[pac, aur]`. ALL formats installed in order. Valid: rpm, deb, pac, aur. Inherited from base image |
+| `build` | `["rpm"]` | Package formats tied to builder definitions: `[rpm]` or `[pac, aur]`. ALL formats installed in order. Valid: rpm, deb, pac, aur, apk. Inherited from base image |
 | `candy` | `[]` | Candy composition list (image-specific, not inherited) |
 | `extract` | `[]` | Pull files out of another OCI image at build time — each `{source, path, dest}` renders `FROM <source> AS <candy>-extract-<i>` + `COPY --from=<stage> --chown=<uid>:<gid> <path> <dest>` (`sdk/deploykit/candy_stage.go`). The charly-native way to reuse a binary or static tree from an upstream image without adopting its init, scripts, or root layout. Counts as an install file for Agent Driven Evaluation (ADE) validation (a candy that only extracts ships no package/manifest/task files). First consumer: the agentteams candies (minio/mc, tuwunel, element-web from the `higress/*` images) |
 | `user` | `"user"` | Username for non-root operations. See `user_policy:` — may be overridden at resolve time when adopt mode fires |

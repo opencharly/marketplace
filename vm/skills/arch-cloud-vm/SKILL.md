@@ -74,29 +74,27 @@ arch:
       checksum:
         type: sha256
       base_user: arch
-      # distro:               # **Always SET `distro:`, to a BARE id. Never omit it, and never rely
-                              # on the inference** — `effectiveDistro` infers only `arch`/`alpine`
-                              # from `base_user` and never checks the guest. Two consumers read it,
-                              # against DIFFERENT sets, and that is the whole difficulty:
-                              # `effectiveDistro` feeds the cloud-init dispatches and accepts ANY
-                              # string; `buildVmSyntheticBox` (`candy/plugin-fleet/candy_select.go`,
-                              # not source-kind gated) resolves it against a FIVE-id vocabulary
-                              # `{arch, cachyos, debian, fedora, ubuntu}` and, on a miss, leaves
-                              # `img.Pkg` unset so candy installation compiles ZERO steps silently.
-                              # So: if the guest IS one of those five, name it. **Alpine: set
-                              # `distro: alpine`** — not a vocabulary member, but the init dispatch
-                              # keys on `effectiveDistro`, so this is the ONLY way to reach the
-                              # OpenRC path; any other value renders systemd onto a guest that has
-                              # none and the VM boots unreachable. Candy installation stays
-                              # unresolvable for Alpine either way. For a guest outside the five,
-                              # naming a near relative (`arch` for manjaro/archarm/endeavouros,
-                              # `fedora` for rocky/alma, `ubuntu` for a Ubuntu derivative) makes
-                              # candy steps compile — but it selects THAT distro's DistroDef,
-                              # version tags and repos (fedora's carries `version: "43"` and COPR),
-                              # so it is a workaround with its own risk, not a repair. The repair is
-                              # a vocabulary entry. openSUSE has none and no near relative (zypper).
+      distro: arch            # **REQUIRED on a cloud_image source.** Once this cutover lands, the vm kind's OpValidate
+                              # rejects a source that omits it. It is a closed `#DistroID`, and
+                              # `spec/schema/distro_vocab.cue` is the single source for the id space and
+                              # each id's package format, sshd unit and init system. Nothing is inferred
+                              # from `base_user`, an image URL, or the source kind: the earlier base_user
+                              # inference is DELETED, so an unnamed distro is an author-time error rather
+                              # than a silent wrong default. The 13-id vocabulary covers the pacman family
+                              # (arch/archarm/manjaro/endeavouros/cachyos), the RPM family
+                              # (fedora/rhel/centos/rocky/almalinux), Debian-family (debian/ubuntu) and
+                              # alpine — so naming a near relative as a workaround is no longer needed for
+                              # any of them. Alpine is first-class: `distro: alpine` selects apk and
+                              # OpenRC. openSUSE is still absent and has no near relative (zypper);
+                              # adding it is one entry in that file.
+                              # Note also that #DistroID (13 ids) and the embedded `distro:` BUILD vocabulary are
+                              # different sets, and the gap is SILENT: `buildVmSyntheticBox` resolves this field against
+                              # the build vocabulary and on a miss leaves `img.Pkg` unset, so candy installation compiles
+                              # ZERO package steps while `fleet add` reports success. A schema-valid id is therefore not
+                              # automatically a resolvable one.
                               # Use a bare id: `ResolveDistro` strips at `:` but the cloud-init
-                              # dispatches compare exactly, so `debian:13` yields `openssh`.
+                              # dispatches compare exactly, so `debian:13` yields `openssh`. (That sentence is about the
+                              # BUILD vocabulary — `ResolveDistro` in `sdk/buildkit/config_resolve.go` — not `#DistroID`.)
     backend: libvirt            # REQUIRED — the bed's libvirt-RPC + spice probes hit the session daemon
     disk_size: 40G
     ram: 8G
@@ -174,7 +172,8 @@ host.**
 
 **Required host dep**: `nc` (openbsd-netcat on Arch, netcat-openbsd on
 Debian/Ubuntu, nmap-ncat on Fedora) must be installed on the libvirt
-host. charly's `setup.sh` and `pkg/arch/PKGBUILD` install it automatically.
+host. charly's `setup.sh` and the native package's deps
+(`packaging.formats.*.depends`) install it automatically.
 Without `nc`, virt-manager hangs at "Connecting to graphical console
 for guest" — no error, just silent failure. Diagnose with
 `ssh <host> which nc` (should return a path).
