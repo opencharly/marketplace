@@ -586,7 +586,7 @@ the commands rather than pasting the block. Every state it asserts is a state it
 runs, including the reverts between perturbations:
 
 ```
-# 1. BASELINE — git-clean and drift-clean at once, the only state where both hold
+# 1. BASELINE — git-clean and drift-clean at once; runs 4 and 6 return to it
 $ git status --porcelain | wc -l
 0
 $ charly marketplace drift
