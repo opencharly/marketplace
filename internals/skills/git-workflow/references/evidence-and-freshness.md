@@ -555,8 +555,9 @@ binary built by `task build:binary`. Every command runs at the superproject root
 `git status --porcelain` is shown EMPTY at the start and again at the end,
 untracked files included, because an untracked file carrying the generated header
 is itself one of the perturbations. **Every elision is marked inline**; nothing is
-dropped silently. The count is 400 in both clean runs because a content edit
-changes bytes, not the set of artifacts.
+dropped silently. The count is 400 in all three clean runs — 1, 3 and 6 — because
+a content edit changes bytes, not the set of artifacts, and that holds across run
+3's perturbed tree as much as across the two baselines.
 
 **Run 3's two totals are both right, and they describe different sets** — worth
 stating, because a reader takes them for one. `generate` prints `len(em)`, all
@@ -697,13 +698,14 @@ see says whose half is outstanding** — but ONLY under `--short`. Measured at t
 tree, git 2.55.0:
 
 ```
-# content modified INSIDE the submodule, gitlink unchanged
+$ echo canary >> plugins/README.md          # content modified INSIDE the submodule
 $ git status --short
  m plugins
 $ git status --porcelain
  M plugins
 
-# the submodule checked out at another commit
+$ git -C plugins checkout -- README.md      # revert, then move the gitlink instead
+$ git -C plugins checkout -q --detach HEAD~1
 $ git status --short
  M plugins
 $ git status --porcelain
