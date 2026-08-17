@@ -12,7 +12,7 @@ All install-task logic lives in `sdk/deploykit` (`tasks_emit.go` + `tasks_render
 5. (g *Generator) EmitTasks(b, layer, img, ops []vmshared.Op, buildDir, contextRelPrefix) (string, error):
    for each t in layer.tasks:
      resolve ${VAR} in non-verbatim fields
-     user := resolveUserSpec(t.User, img)   // numeric UID for ${USER}
+     user := ResolveUserSpec(t.User, img)   // numeric UID for ${USER}
      if user != runningUser: emit USER <value>
      switch t.Kind():
        case "mkdir":    EmitMkdirBatch  (coalesces adjacent same-user+same-mode)
@@ -29,7 +29,7 @@ All install-task logic lives in `sdk/deploykit` (`tasks_emit.go` + `tasks_render
 6. USER root reset (unless last layer + skipRootReset)
 ```
 
-The `plugin:` verb case is placement-agnostic above the registry. `plugin: command` is the one special case — it rehydrates `plugin_input.command` and emits via the SAME `EmitCmd` as the literal `command` verb. Every other `plugin:` step resolves its provider via `providerRegistry.ResolveVerb`: a builtin `ProvisionActor` renders an act shell `RUN` in-proc (the zero-JSON fast path, `resolveProvisionScript`), while ANY other resolved provider — an external `grpcProvider` (host-built + connected by `NewGenerator`'s build-time plugin connect seam, `loadProjectPlugins`), or a builtin emitting a richer fragment — renders via `invokeOpEmitFragmentOpt`, which calls `prov.Invoke(OpEmit)` with the step's `plugin_input` (`op.Params`) + a `spec.BuildEnv` descriptor (`op.Env`) and splices the returned `spec.EmitReply.Fragment` verbatim into the Containerfile. An unresolved verb is a loud error, never a silently-dropped step. This is the build half of operator-authorized build-time plugin execution — see `/charly-internals:plugin` (placement) + `/charly-build:generate`. (`invokeOpEmitFragmentOpt`'s core is factored into the shared `invokeOpEmitFragment` seam, which the DEPLOY-mode pod-overlay `dispatchOCIStep` external-step arm (reached by the candy's `deploykit.OCITarget.EmitStepOp` over `HostBuild("step-emit","oci-emit-step")`) ALSO uses to bake an `external:<word>` `class:step` step declaring `StepContract.Emits=true` — F-STEP-EMIT, see `/charly-internals:install-plan`.)
+The `plugin:` verb case is placement-agnostic above the registry. `plugin: command` is the one special case — it rehydrates `plugin_input.command` and emits via the SAME `EmitCmd` as the literal `command` verb. Every other `plugin:` step resolves its provider via `providerRegistry.ResolveVerb`: a builtin `ProvisionActor` renders an act shell `RUN` in-proc (the zero-JSON fast path, `resolveProvisionScript`), while ANY other resolved provider — an external `grpcProvider` (host-built + connected by the build-time plugin connect seam `loadProjectPlugins` (`charly/host_build_buildengine.go:51`); the former host-side `NewGenerator` is DELETED), or a builtin emitting a richer fragment — renders via `invokeOpEmitFragmentOpt`, which calls `prov.Invoke(OpEmit)` with the step's `plugin_input` (`op.Params`) + a `spec.BuildEnv` descriptor (`op.Env`) and splices the returned `spec.EmitReply.Fragment` verbatim into the Containerfile. An unresolved verb is a loud error, never a silently-dropped step. This is the build half of operator-authorized build-time plugin execution — see `/charly-internals:plugin` (placement) + `/charly-build:generate`. (`invokeOpEmitFragmentOpt`'s core is factored into the shared `invokeOpEmitFragment` seam, which the DEPLOY-mode pod-overlay `dispatchOCIStep` external-step arm (reached by the candy's `deploykit.OCITarget.EmitStepOp` over `HostBuild("step-emit","oci-emit-step")`) ALSO uses to bake an `external:<word>` `class:step` step declaring `StepContract.Emits=true` — F-STEP-EMIT, see `/charly-internals:install-plan`.)
 
 ### `Task` struct (`charly/layers.go:604`)
 
@@ -91,7 +91,7 @@ putting the value in scope for the downstream URL expansion.
 
 ### User resolution
 
-`resolveUserSpec(userField, img)` → `(directive, chownPair)`:
+`ResolveUserSpec(userField, img)` → `(directive, chownPair)`:
 
 - `root` / `0` / empty → `("0", "")` (root is COPY's default; skip `--chown`)
 - `${USER}` → `(strconv.Itoa(img.UID), fmt.Sprintf("%d:%d", img.UID, img.GID))` — **numeric** `USER <UID>` directive, avoiding `/etc/passwd` dependencies at the switch point

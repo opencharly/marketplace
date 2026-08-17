@@ -15,7 +15,7 @@ in its candy manifest's `plugin:` block (`primary: {<word>: <field>}`).
 
 **The `build` class (BUILD-ENGINE DISPATCH).** `ClassBuild` serves `build:box` + `build:generate`
 (candy/plugin-build, COMPILED-IN): `charly box build` / `charly box generate` route through it instead of
-calling `NewGenerator` inline. The plugin's Invoke (op `sdk.OpBuild`) **OWNS the podman DRIVE** (the
+constructing a generator host-side (the former `NewGenerator` is DELETED). The plugin's Invoke (op `sdk.OpBuild`) **OWNS the podman DRIVE** (the
 build-order loop, per-image build lock via `kit.AcquireImageBuildLock`, `podman build`, push, and the
 inline-merge gate) IN the candy — it imports only the sdk module. It reaches the host for what a sdk-only
 candy cannot hold — `buildengine-scan-local` (local candy scan), `buildengine-connect-plugins` (registry plugin connect), and `buildengine-prep` (the render-seam-floor `renderGenCache` populate, which returns an EMPTY map; the host-fs PREP itself moved plugin-side — `runHostFSPrep` in candy/plugin-build/host_prep.go). The resolved-project envelope + drive-model come from the plugin's `resolveBuildEngine` reply (candy/plugin-build/resolve.go), NOT from `buildengine-prep`. The Containerfile

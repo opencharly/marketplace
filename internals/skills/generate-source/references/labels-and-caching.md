@@ -145,7 +145,7 @@ re-downloading (the prior code declared the mount but streamed curl past it).
 
 `TaskCacheMounts(t, img)` (`sdk/deploykit/tasks_emit.go`) renders a task's layer-declared
 `cache:` paths as cache-mount flags, ownership derived from the task's `run_as:`
-via `resolveUserSpec` (root → `SharedCacheMount`, else → `OwnedCacheMount`).
+via `ResolveUserSpec` (root → `SharedCacheMount`, else → `OwnedCacheMount`).
 Honored by `EmitCmd` and `EmitDownload`. Lets any task persist heavy
 downloads/build artifacts the same way package caches do (config-driven; the
 cache-USE logic lives in the charly.yml task body).
