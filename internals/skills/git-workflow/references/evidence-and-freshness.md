@@ -69,9 +69,9 @@ Seven of those eight appear above. The table has eight ROWS over seven SECTIONS 
 merged-tree section contributes two nouns. The epistemic section deliberately absent from
 it — "Positive and negative claims decay differently" — is left out because it is the moment-noun again,
 seen from the reader's side rather than the writer's, and giving it a row would blur the
-distinction the table exists to draw. Eight epistemic plus four mechanism is the whole page.
+distinction the table exists to draw.
 
-**The remaining four sections are mechanism** — how charly and git actually behave: the
+**Four sections are mechanism** — how charly and git actually behave: the
 cross-repo `skill:` cutover, the submodule revert, the validator-status false
 negative, and multi-source assembly. They are not instances of the question and no
 frame unifies them.
