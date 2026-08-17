@@ -1,7 +1,7 @@
 ---
 name: ollama-layer
 description: |-
-  Ollama LLM server on port 11434 with CUDA GPU support and model persistence.
+  Ollama LLM server on port 11434 with model persistence; CUDA is composed by the GPU boxes, not by this candy.
   Use when working with Ollama, LLM serving, or local AI model inference.
 ---
 
@@ -69,9 +69,9 @@ step — and its `context:` list gates where it runs:
 - **ungated** (no `context:`, so it runs wherever the plan runs):
   - `/usr/bin/ollama` exists
 - **`context: [runtime]`** (run against a live service;
-  uses `${HOST_PORT:11434}` / `${CONTAINER_IP}` so deploy-time port remapping
+  uses `127.0.0.1:${HOST_PORT:11434}` — the host-side form, not `${CONTAINER_IP}`, so port remapping
   works unchanged):
-  - `GET http://${CONTAINER_IP}:${HOST_PORT:11434}/api/tags` returns 200
+  - `GET http://127.0.0.1:${HOST_PORT:11434}/api/tags` returns 200
   - `ollama --version` stdout matches `^ollama version`
 
   The steps carry no `id:` keys, so they are named here by what they assert rather
@@ -80,7 +80,7 @@ step — and its `context:` list gates where it runs:
 
 ## Related Candies
 
-- `/charly-distros:cuda` -- CUDA toolkit dependency
+- `/charly-distros:cuda` -- CUDA toolkit; GPU boxes compose it at the IMAGE level, not via this candy
 - `/charly-infrastructure:supervisord` -- process manager dependency
 - `/charly-openclaw:openclaw` -- AI gateway that can use Ollama as backend
 - `/charly-hermes:hermes` -- AI agent that auto-detects `OLLAMA_HOST` for local Ollama provider
