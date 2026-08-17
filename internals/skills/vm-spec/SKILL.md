@@ -95,20 +95,32 @@ type VmSource struct {
 
 Common values: `arch` (Arch cloud image), `alpine` (Alpine Cloud), `ubuntu` (Ubuntu Cloud), `fedora` (Fedora Cloud), `debian` (Debian Cloud), `cloud-user` (CentOS Cloud).
 
-**`base_user:` is not only the adopt-user selector — two of its values STEER RENDERING.** When no explicit `distro:` is set on a `cloud_image` source, `effectiveDistro` infers `"arch"` from `base_user: "arch"` and `"alpine"` from `base_user: "alpine"`, and those inferences pick the package-delivery branch (the `pacman -Sy` runcmd prepend vs the `packages:` key) and the sshd-start branch (`rc-update`+`rc-service` on OpenRC vs `systemctl unmask`+`enable --now`). Every other value, and an empty one, falls through to the systemd/`packages:` path. **So an Alpine image declared with a custom account name, or with `base_user:` left empty, gets `systemctl enable --now sshd` on a guest that has no systemd, and the VM boots unreachable.** Set `distro: alpine` explicitly whenever the account is not literally `alpine`. That is `source.distro` — an OPTIONAL free-form string on the `cloud_image` arm (`spec/schema/vm.cue`: `distro?: string`), a sibling of `base_user:`, authored as:
+**`base_user:` does NOT steer rendering — `source.distro` does, and it is REQUIRED on a `cloud_image` source.** An earlier design inferred the distro from `base_user:` (`"arch"` from `base_user: "arch"`, `"alpine"` from `"alpine"`, everything else falling through to systemd/`packages:`), so an Alpine image whose account was not literally `alpine` got `systemctl enable --now sshd` on a guest with no systemd and booted unreachable. That inference is **deleted**: nothing derives a distro from an account name, an image URL, or a source kind. `distro:` is a closed `#DistroID` (`spec/schema/distro_vocab.cue` is the single source for the id space and each id's package format, sshd unit and init system), and the vm kind's own `OpValidate` rejects a `cloud_image` source that omits it. Authored as:
 
-**And the inverse trap, which is worse because NOTHING is inferred: a Debian-family**
-**`cloud_image` that omits `distro:` renders Arch conventions and boots unreachable.**
-`sshUnitForDistro` and `composePackages` read `spec.Source.Distro` — the EXPLICIT field,
-not `effectiveDistro` — so `base_user: ubuntu` steers nothing at all. The render then
-emits the Arch package name `openssh` (apt: `Unable to locate package openssh`) and
-`systemctl enable --now sshd`, a unit Debian/Ubuntu do not have (theirs is `ssh`). Since
-`composeBootCmd` masks `ssh.socket` until cloud-init finishes, a socket-activated sshd —
-Ubuntu 24.04's default — is left MASKED and never restarted, and the guest boots fully
-while serving nothing. Set `distro: debian` / `distro: ubuntu` on every Debian-family
-`cloud_image` source. The sshd START now falls back to the other unit name, so omitting
-it costs a redundant `systemctl` call rather than an unreachable VM — but the PACKAGE
-name still has no fallback, and a wrong one hard-fails cloud-init's install stage.
+```yaml
+my-vm:
+    vm:
+        source:
+            kind: cloud_image
+            base_user: myuser
+            distro: alpine
+```
+
+**Why it is required rather than optional-with-a-default.** A Debian-family `cloud_image` that
+omitted `distro:` used to render Arch conventions and boot unreachable: `sshUnitForDistro` and
+`composePackages` read the EXPLICIT field, so `base_user: ubuntu` steered nothing. The render
+emitted the Arch package name `openssh` (apt: `Unable to locate package openssh`) and
+`systemctl enable --now sshd`, a unit Debian/Ubuntu do not have (theirs is `ssh`) — and because
+`composeBootCmd` masks `ssh.socket` until cloud-init finishes, a socket-activated sshd (Ubuntu
+24.04's default) was left MASKED and never restarted. The guest booted fully and served nothing.
+
+There is deliberately **no fallback** for either value. `spec.DistroSSHUnits[distro]` and
+`spec.DistroInits[distro]` are bare lookups into the generated tables: an id outside the
+vocabulary yields an EMPTY unit name rather than a guess. An interim revision of this skill
+claimed the sshd start "falls back to the other unit name, so omitting it costs a redundant
+`systemctl` call rather than an unreachable VM" — that fallback existed briefly and was removed,
+because a fallback is what let a wrong input survive long enough to fail somewhere else. Presence
+is enforced at author time instead, which is the only place the answer is actually known.
 
 **The symptom is worth memorising, because it names nothing:** the domain reports
 `running`, the libvirt portForward is correct (`passt --tcp-ports 127.0.0.1/<port>:22`),
@@ -126,18 +138,21 @@ The `packages:` and `runcmd:` lines state which convention was rendered, in plai
 Four structural theories (firmware, an image-cache race, an "unmaterialized" disk, a
 "corrupt" qcow2) preceded that one command on the run that found this.
 
-```yaml
-my-vm:
-    vm:
-        source:
-            kind: cloud_image
-            base_user: myuser
-            distro: alpine
-```
+**And the limit of the validation, which is the part an author must not over-read:**
+`distro:` is closed to `#DistroID`, so a MISSPELLED id is a unification conflict —
+`distro: redhat` fails. A **wrong-but-valid** id is not: `distro: debian` on a Fedora cloud
+image validates cleanly, exit 0, and then selects apt, `openssh-server` and the `ssh` unit
+for a guest that has dnf, `openssh` and `sshd`. Closedness cannot express "matches the
+image this URL points at", and no gate in charly does.
 
-When set it WINS over the `base_user` inference; when unset the inference runs. Do not confuse it with the `bootstrap` source kind, where `distro:` is REQUIRED and names the bootstrap target rather than steering the render.
+So the value is a HUMAN check against the image URL, every time. Verified against the live
+gate rather than assumed: a fresh validator ran exactly this mutation on a Fedora repo and
+got exit 0. Treating a green `charly box validate` as proof the distro is *correct* — rather
+than merely *spelled like a real distro* — is the one misreading this field invites.
 
-Leave empty **only** when the image has no default account — then declare a custom user in `spec.cloud_init.users`.
+Do not confuse it with the `bootstrap` source kind, where `distro:` is also required but names the bootstrap TARGET rather than selecting the render conventions.
+
+`base_user:` remains the adopt-user selector and nothing more. Leave IT empty only when the image has no default account — then declare a custom user in `spec.cloud_init.users`.
 
 ## VmSSH / VmKeyInjection
 

@@ -70,25 +70,31 @@ arch:
   vm:
     source:
       kind: cloud_image
+      distro: arch
       url: https://fastly.mirror.pkgbuild.com/images/latest/Arch-Linux-x86_64-cloudimg.qcow2
       checksum:
         type: sha256
       base_user: arch
-      # distro:               # `distro:` is inferred from `base_user`, and ONLY for the two
-                              # literal values `arch` and `alpine` — the inference does not check
-                              # that the guest IS that distro. So: OMIT only when the guest's id
-                              # is `arch` and `base_user` is literally `arch`, or the guest's id
-                              # is `alpine` and `base_user` is literally `alpine`. For any other
-                              # id in {debian, ubuntu, arch, archarm, manjaro, endeavouros,
-                              # cachyos, alpine}, SET it to the guest's own id. For any id
-                              # outside that set, omit — provided `base_user` is neither
-                              # literally `arch` nor literally `alpine`, since the
-                              # inference reads the account, not the guest. Set the
-                              # CORRECT id, never a guess:
-                              # `distro:` ALSO selects the guest's package manager for candy
-                              # installation (`candy/plugin-fleet/candy_select.go`, not
-                              # source-kind gated), so a wrong in-set value runs `pacman` on a
-                              # deb guest (exit 127) or compiles zero package steps.
+      # distro:               # **REQUIRED on a cloud_image source — the vm kind's OpValidate
+                              # rejects a source that omits it.** It is a closed `#DistroID`, and
+                              # `spec/schema/distro_vocab.cue` is the single source for the id space and
+                              # each id's package format, sshd unit and init system. Nothing is inferred
+                              # from `base_user`, an image URL, or the source kind: the earlier base_user
+                              # inference is DELETED, so an unnamed distro is an author-time error rather
+                              # than a silent wrong default. The 13-id vocabulary covers the pacman family
+                              # (arch/archarm/manjaro/endeavouros/cachyos), the RPM family
+                              # (fedora/rhel/centos/rocky/almalinux), Debian-family (debian/ubuntu) and
+                              # alpine — so naming a near relative as a workaround is no longer needed for
+                              # any of them. Alpine is first-class: `distro: alpine` selects apk and
+                              # OpenRC. openSUSE is still absent and has no near relative (zypper);
+                              # note also that #DistroID (13 ids) and the embedded `distro:` BUILD vocabulary are
+                              # different sets, and the gap is SILENT: `buildVmSyntheticBox` resolves this field against
+                              # the build vocabulary and on a miss leaves `img.Pkg` unset, so candy installation compiles
+                              # ZERO package steps while `fleet add` reports success. A schema-valid id is therefore not
+                              # automatically a resolvable one.
+                              # adding it is one entry in that file.
+                              # Use a bare id: `ResolveDistro` strips at `:` but the cloud-init
+                              # dispatches compare exactly, so `debian:13` yields `openssh`.
     backend: libvirt            # REQUIRED — the bed's libvirt-RPC + spice probes hit the session daemon
     disk_size: 40G
     ram: 8G
@@ -166,7 +172,8 @@ host.**
 
 **Required host dep**: `nc` (openbsd-netcat on Arch, netcat-openbsd on
 Debian/Ubuntu, nmap-ncat on Fedora) must be installed on the libvirt
-host. charly's `setup.sh` and `pkg/arch/PKGBUILD` install it automatically.
+host. charly's `setup.sh` and the native package's deps
+(`packaging.formats.*.depends`) install it automatically.
 Without `nc`, virt-manager hangs at "Connecting to graphical console
 for guest" — no error, just silent failure. Diagnose with
 `ssh <host> which nc` (should return a path).

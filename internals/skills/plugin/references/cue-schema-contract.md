@@ -30,7 +30,7 @@ step's teardown ops are recorded dynamically from its `OpExecute` reply). **BUIL
 `StepContract.Emits=true` declares the step ALSO produces a build-context Containerfile FRAGMENT — served by
 `Invoke(OpEmit)` → `spec.EmitReply.Fragment`. Composed into a POD overlay (add_candy), the pod-overlay
 `deploykit.OCITarget` (in the candy `plugin-deploy-pod`) reaches the host's open external-step arm
-(`ociEmitStep`, over `HostBuild("step-emit","oci-emit-step")`) which Invokes that OpEmit and splices the fragment (`Emits=false` → a
+(`dispatchOCIStep`, over `HostBuild("step-emit","oci-emit-step")`) which Invokes that OpEmit and splices the fragment (`Emits=false` → a
 deploy-only step, skipped on the image build, like apk); a HOST-COUPLED step's OpEmit calls back
 `HostBuild("step-emit", …)` for a host-engine-rendered fragment. A step plugin serving OpEmit is a PURE
 step (self-contained fragment); the reference `candy/plugin-example-stepkind` serves BOTH legs (OpExecute at

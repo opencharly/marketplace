@@ -29,7 +29,7 @@ The `charly` CLI is a Go program in the `charly/` directory. It uses the Kong CL
 
 | Action | Command | Description |
 |--------|---------|-------------|
-| Build | `task build:binary` | Compile to `bin/charly` (CalVer-stamped), NO install. Also copies to `candy/charly/bin/charly` — does NOT touch the tracked `pkg/arch/PKGBUILD` (that file is read only by the legacy `charly box pkg` native-package build, removed with the nFPM cutover) |
+| Build | `task build:binary` | Compile to `bin/charly` (CalVer-stamped), NO install. Also copies to `candy/charly/bin/charly` — does NOT touch any packaging source (the native packages are built by the `charly generate-packages` plugin from the candy's `packaging:` section) |
 | Package | `charly generate-packages` (nFPM plugin) | Build a distro-native `.pkg.tar.zst`/`.rpm`/`.deb`/`.apk`/`.ipk` release artifact via the `charly generate-packages` plugin (nFPM, `sdk/packagekit`), published to the per-distro package repos. Install it yourself with your OWN package manager (`pacman -U`/`dnf install`/`apt install`/`apk add`) |
 | Install (portable) | `task build:install-portable` | Copy `bin/charly` to `$HOME/.local/bin/charly` (solo bootstrap; NOT a multi-teammate dev-loop step — see below) |
 | Run tests | `cd charly && go test ./...` | Run all tests |
@@ -169,11 +169,12 @@ See the project rulebook's R9 mandate (`CLAUDE.md`/`AGENTS.md`). Applied to the 
   multi-teammate / multi-worktree setup") catches a stale invoked binary against
   newer `charly/*.go` in the same tree, but the version check is still the
   explicit proof — the per-worktree-vs-host-package split lives there too.
-- **Every runtime OS dependency goes into `pkg/arch/PKGBUILD` `depends=`** —
-  the single source of truth (`nc`, `socat`, `xorriso`, `qemu-guest-agent`, …);
-  the `pkg/fedora` / `pkg/debian` packaging mirrors it. A manual install on one
-  host is a bug report disguised as a fix — it won't survive a fresh install on
-  a synced host.
+- **Every runtime OS dependency goes into the charly candy's `packaging:`
+  section** (`candy/charly/charly.yml` `packaging.formats.*.depends`) — the
+  single source of truth (`nc`, `socat`, `xorriso`, `qemu-guest-agent`, …),
+  read by the `charly generate-packages` plugin (sdk/packagekit). A manual
+  install on one host is a bug report disguised as a fix — it won't survive a
+  fresh install on a synced host.
 
 The verification side (checking the deployed binary + deps on a live target)
 is `/charly-check:check` Standards 7–9; the dual-path `bin/charly` ↔

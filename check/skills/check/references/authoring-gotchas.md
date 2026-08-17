@@ -303,23 +303,33 @@ on `/etc/pacman.conf` are all this, not a repo or signing problem.
 **`sudo` on the command does NOT cover a shell redirect**, and this is the half that
 is easy to miss because the command itself looks elevated:
 
-```yaml
-# ❌ the redirect is performed by the CALLING shell, still uid 1000
-command: sudo echo 'deb …' > /etc/apt/sources.list.d/charly.list
-# ❌ same trap with a heredoc
-command: sudo cat > /etc/yum.repos.d/charly.repo <<'EOF'
+Wrong — the redirect is performed by the CALLING shell, still uid 1000:
 
-# ✓ let the elevated process own the write
-command: echo 'deb …' | sudo tee /etc/apt/sources.list.d/charly.list >/dev/null
-command: sudo tee /etc/yum.repos.d/charly.repo >/dev/null <<'EOF'
-command: curl -fsSL <url> | sudo gpg --dearmor -o /etc/apt/keyrings/charly.gpg
+```sh
+sudo echo 'deb …' > /etc/apt/sources.list.d/charly.list
+sudo cat  > /etc/yum.repos.d/charly.repo <<'EOF'   # same trap with a heredoc
 ```
+
+Right — let the elevated process own the write:
+
+```sh
+echo 'deb …' | sudo tee /etc/apt/sources.list.d/charly.list >/dev/null
+sudo tee /etc/yum.repos.d/charly.repo >/dev/null <<'EOF'
+curl -fsSL <url> | sudo gpg --dearmor -o /etc/apt/keyrings/charly.gpg
+```
+
+Shown as shell rather than YAML on purpose: the earlier revision put all five lines in one
+`yaml` fence as sibling `command:` keys. A duplicate-key-strict loader rejects that at line 4,
+and — worse — a permissive `yaml.safe_load` PARSES it and keeps only the last key, silently
+discarding both wrong examples. A fenced block that a parser reads differently from a human is
+a defect even when the fence is only illustrative.
 
 **Where `sudo` comes from differs by substrate.** A cloud-image VM has passwordless
 sudo via cloud-init, so it is simply available. A container box does NOT — a box that
 needs in-container elevation has to install `sudo` and write its own
 `/etc/sudoers.d/` drop-in (a candy doing exactly that should refuse if no uid-1000
 account exists, rather than writing a rule for an account that is not there).
+
 ### 11. Bootc images keep USER=root — tests must cover both modes
 
 Gotcha 10 flips for bootc. `sdk/deploykit` (relocated from `charly/generate.go` in #67) deliberately omits the final `USER <uid>` directive on bootc images because systemd (PID 1 in a bootc VM) manages user sessions via login, so the container's own USER directive is irrelevant. Result: the same `charly check box` that runs as uid 1000 in a container runs as uid 0 in a bootc image.
@@ -351,6 +361,50 @@ the shell is a login shell — reproduced: `runuser -l user -s /bin/bash
 form of the test; the sshd candy now uses `-u … --`.
 
 Worked example: `/charly-coder:sshd` ships exactly the `-u user --` pattern. Alternative: give the step `context: [deploy]` so it runs against a live container where you control the user-switch externally.
+
+### 12. `charly check box <short-name>` is ambiguous with multiple CalVer tags — use the full registry ref
+
+`charly check box` resolves its positional argument against local podman storage, not `charly.yml`. When the host has accumulated many CalVer tags for the same image (a normal consequence of iterative `charly box build` runs), the short form errors out:
+
+```
+charly: error: ambiguous short name "openclaw-desktop" in local storage;
+           candidates: ghcr.io/opencharly/openclaw-desktop:latest,
+           ghcr.io/opencharly/openclaw-desktop:2026.109.1418,
+           ... Re-run with a full ref.
+```
+
+Use the fully-qualified registry ref:
+
+```bash
+charly check box ghcr.io/opencharly/openclaw-desktop:latest
+```
+
+This is different from `charly box inspect`, `charly box build`, and `charly check live` (the live-service runner), which key off `charly.yml` and accept short names unambiguously. Only the disposable-container runner has this restriction because it does not consult `charly.yml` at all.
+
+## Issue 52328 (claude-code Bash + pgrep self-match deadlock) defense
+
+The Claude Code runtime has a known issue documented in this project's
+own `.check/ISSUE-claude-code-bash-pgrep-self-match-deadlock.md`: when
+the AI uses `Bash{run_in_background: true}` with a `until ! pgrep -f
+"<pattern>"` poll-loop, the literal pattern string is preserved in the
+spawned bash's argv (because the wrapper uses `bash -c '… check
+"<command>" …'`). `pgrep -f` then matches itself, the loop spins
+forever, the parent `claude -p` process can't exit because it waits
+for all background bash subprocesses, and the harness orchestrator
+deadlocks waiting on claude.
+
+The harness defends against this pattern between iterations: at every
+iter end (in `candy/plugin-check/harness_loop.go`'s per-iteration commit), the
+orchestrator runs
+`podman exec charly-check-sandbox pkill -f "while true.*sleep [0-9]+"` to
+clean up orphaned keepalive bashes left dangling by the AI's
+`TaskOutput`-timeout pattern, and logs the kill count.
+
+Workaround for the AI inside the loop: prefer `kill -0 <PID>`-style
+checks (track the original PID via `cmd & echo $!`) over `pgrep -f`
+when the pattern would also match the wrapping bash. The harness
+defense is a safety net, not a license to use the broken pattern
+deliberately.
 
 ### 13. A step is SIGKILLed at 90s unless it declares `timeout:`
 
@@ -408,46 +462,3 @@ And query the INSTALLED package, not the available candidate: `dnf info` and
 (`dpkg-query -W <pkg> | awk '{print $2}'`, `rpm -q <pkg> | sed …`) over
 `-f='${Version}'` / `--queryformat '%{VERSION}'`, since a check `command:` also passes
 through charly's own `${VAR}` substitution.
-### 12. `charly check box <short-name>` is ambiguous with multiple CalVer tags — use the full registry ref
-
-`charly check box` resolves its positional argument against local podman storage, not `charly.yml`. When the host has accumulated many CalVer tags for the same image (a normal consequence of iterative `charly box build` runs), the short form errors out:
-
-```
-charly: error: ambiguous short name "openclaw-desktop" in local storage;
-           candidates: ghcr.io/opencharly/openclaw-desktop:latest,
-           ghcr.io/opencharly/openclaw-desktop:2026.109.1418,
-           ... Re-run with a full ref.
-```
-
-Use the fully-qualified registry ref:
-
-```bash
-charly check box ghcr.io/opencharly/openclaw-desktop:latest
-```
-
-This is different from `charly box inspect`, `charly box build`, and `charly check live` (the live-service runner), which key off `charly.yml` and accept short names unambiguously. Only the disposable-container runner has this restriction because it does not consult `charly.yml` at all.
-
-## Issue 52328 (claude-code Bash + pgrep self-match deadlock) defense
-
-The Claude Code runtime has a known issue documented in this project's
-own `.check/ISSUE-claude-code-bash-pgrep-self-match-deadlock.md`: when
-the AI uses `Bash{run_in_background: true}` with a `until ! pgrep -f
-"<pattern>"` poll-loop, the literal pattern string is preserved in the
-spawned bash's argv (because the wrapper uses `bash -c '… check
-"<command>" …'`). `pgrep -f` then matches itself, the loop spins
-forever, the parent `claude -p` process can't exit because it waits
-for all background bash subprocesses, and the harness orchestrator
-deadlocks waiting on claude.
-
-The harness defends against this pattern between iterations: at every
-iter end (in `candy/plugin-check/harness_loop.go`'s per-iteration commit), the
-orchestrator runs
-`podman exec charly-check-sandbox pkill -f "while true.*sleep [0-9]+"` to
-clean up orphaned keepalive bashes left dangling by the AI's
-`TaskOutput`-timeout pattern, and logs the kill count.
-
-Workaround for the AI inside the loop: prefer `kill -0 <PID>`-style
-checks (track the original PID via `cmd & echo $!`) over `pgrep -f`
-when the pattern would also match the wrapping bash. The harness
-defense is a safety net, not a license to use the broken pattern
-deliberately.

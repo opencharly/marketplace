@@ -317,7 +317,7 @@ These live in `candy/plugin-vm` (the out-of-process plugin), NOT charly core:
 
 - `github.com/digitalocean/go-libvirt` — pure-Go libvirt RPC client.
 - `libvirt.org/go/libvirtxml` — typed domain XML parsing/generation.
-- The `libvirt` Arch package (libvirtd, session socket) is already a hard dep of the `opencharly-git` PKGBUILD.
+- The `libvirt` Arch package (libvirtd, session socket) is already a hard dep of the charly package (`packaging.formats.archlinux.depends`).
 
 ## Cross-References
 
