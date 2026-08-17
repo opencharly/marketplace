@@ -547,16 +547,25 @@ equally legible, though, and the difference runs opposite to intuition:
 Pasted rather than described, because "a paste and its label are two separate
 claims" applies to this page's own tables. **Provenance, which this page's own
 rule demands of every figure below:** one continuous session at superproject
-`a56240f0` — the commit that corrected the `drift` message quoted throughout, and
-one a reader can still fetch after the squash-merge, which lands it on no branch
-but leaves it an ancestor of `refs/pull/289/head` — with `plugins` at `a8b51b16`
-and `docs` at `c641b99`, in a worktree checked out there and a binary built by
-`task build:binary`. Every command runs at the superproject root. `git status
---porcelain` is shown EMPTY at the start and again at the end, untracked files
-included, because an untracked file carrying the generated header is itself one
-of the perturbations. Two elisions, and nothing else: the eight
-`Note: local candy … shadows …` lines each drift run prints first, and the 393
-emitted paths `generate` lists after its summary line.
+`a56240f0` — the commit that corrected the `drift` message quoted throughout. A
+squash-merge lands that commit on no branch, so it survives as an ancestor of
+`refs/pull/289/head`, which is where anything that needs it has to look. `plugins`
+was at `a8b51b16` and `docs` at `c641b99`, in a worktree checked out there with a
+binary built by `task build:binary`. Every command runs at the superproject root.
+`git status --porcelain` is shown EMPTY at the start and again at the end,
+untracked files included, because an untracked file carrying the generated header
+is itself one of the perturbations. **Every elision is marked inline**; nothing is
+dropped silently. The count is 400 in all three clean runs — 1, 3 and 6 — because
+a content edit changes bytes, not the set of artifacts, and that holds across run
+3's perturbed tree as much as across the two baselines.
+
+**Run 3's two totals are both right, and they describe different sets** — worth
+stating, because a reader takes them for one. `generate` prints `len(em)`, all
+400, then lists every emitted path EXCEPT the seven its reporter filters by
+prefix: `CLAUDE.md`, `AGENTS.md`, `.claude/settings.json`, and the four
+`.claude/hooks/*`. 400 − 393 is exactly those seven. `drift` compares all 400
+either way — only the LISTING is filtered, which is why a figure read off the
+listing can never be reconciled against the gate's own count without knowing it.
 
 **`drift`'s `clean` and `git status`'s clean are independent claims, and run 3 is
 them disagreeing.** `drift` regenerates in memory from the sources ON DISK and
@@ -577,6 +586,7 @@ runs, including the reverts between perturbations:
 $ git status --porcelain | wc -l
 0
 $ charly marketplace drift
+… 8 `Note: local candy … shadows …` lines …
 marketplace drift: clean (400 artifact(s) on disk match their sources; regeneration is a no-op)
 $ echo $?
 0
@@ -586,6 +596,7 @@ $ sed -i 's/## Evidence discipline/## Evidence discipline (canary)/' candy/charl
 $ git status --short
  M candy/charly-internals/charly.yml
 $ charly marketplace drift
+… 8 `Note: local candy … shadows …` lines …
 charly marketplace: marketplace drift: 1 generated artifact(s) are stale:
   plugins/internals/skills/git-workflow/references/evidence-and-freshness.md
 run `charly marketplace generate`
@@ -594,12 +605,14 @@ $ echo $?
 
 # 3. BOTH halves on disk — the same edit, now regenerated, neither committed
 $ charly marketplace generate
+… 8 `Note: local candy … shadows …` lines …
 marketplace generate: wrote 400 artifact(s) across 26 family(ies)
 … 393 emitted paths …
 $ git status --short
  M candy/charly-internals/charly.yml
  m plugins
 $ charly marketplace drift
+… 8 `Note: local candy … shadows …` lines …
 marketplace drift: clean (400 artifact(s) on disk match their sources; regeneration is a no-op)
 $ echo $?
 0
@@ -615,6 +628,7 @@ $ head -1 plugins/internals/skills/git-workflow/references/evidence-and-freshnes
 $ git -C plugins status --short
 ?? internals/skills/git-workflow/references/zz-orphan-canary.md
 $ charly marketplace drift
+… 8 `Note: local candy … shadows …` lines …
 charly marketplace: marketplace drift: 1 generated artifact(s) are stale:
   plugins/internals/skills/git-workflow/references/zz-orphan-canary.md (stale)
 run `charly marketplace generate`
@@ -626,6 +640,7 @@ $ rm plugins/internals/skills/git-workflow/references/zz-orphan-canary.md
 $ git status --porcelain | wc -l
 0
 $ charly marketplace drift
+… 8 `Note: local candy … shadows …` lines …
 marketplace drift: clean (400 artifact(s) on disk match their sources; regeneration is a no-op)
 $ echo $?
 0
@@ -633,11 +648,11 @@ $ echo $?
 
 Runs 1, 3 and 6 print the identical `clean` line — twice from a tree `git status`
 calls empty and once from a tree it calls dirty — which is why the success message
-names what it compared instead of calling the tree committed. It once did — `clean (N artifact(s) match the committed tree)`, a
-claim `drift` has no mechanism to establish — and that wording is what put the
-ambiguity into the example shipping with the rule against it. The code was right
-and its own prose was wrong, so the prose moved (R4a), in the cutover that fixed
-this block.
+names what it compared instead of calling the tree committed. It once did:
+`clean (N artifact(s) match the committed tree)` — a claim `drift` has no
+mechanism to establish. That wording is what made THIS example ambiguous, inside
+the block whose own rule forbids exactly that. The code was right and its own
+prose was wrong, so the prose moved (R4a), in the cutover that fixed this block.
 
 **`(stale)` marks the ORPHAN, and it reads backwards.** Run 2's artifact is the
 one that is genuinely out of date, and it gets no suffix; run 5's gets it. The
@@ -647,12 +662,31 @@ contain, so `(stale)` is the report of a file projected by NOTHING, not of a fil
 behind its source. Both directions print the same "are stale" headline, so the
 suffix is the only thing that tells them apart — and it names the rarer one.
 
-**The orphan scan keys on the GENERATED HEADER, not on the path** — which is why
-run 5's canary is `head -1` of a real artifact and nothing else: one banner line
-is the whole detection surface. A file without that header is invisible to drift
-wherever it sits. That is not a hypothetical caution: the first two attempts at
-this perturbation used a header-less canary, got `clean`, and came close to being
-filed as a defect against the very claim they failed to test.
+**The orphan scan is PATH-GATED, and the header only decides inside the trees it
+walks.** `scanGenerated` has three arms, and only the first reads a byte of any
+file: it walks `plugins/<family>/skills` and `.../agents` collecting whatever
+carries the generated header; it then adds a fixed list of known paths — each
+family's `plugin.json`, `.codex-plugin/plugin.json` and `.mcp.json`, plus
+`marketplace.json`, `profiles.json` and `setup` — if they exist, header or not;
+and it takes every file under `.claude/hooks/` outright. So one banner line is the
+whole detection surface exactly where run 5's canary sits, in a walked skills
+tree, which is why `head -1` of a real artifact is enough there. A header-less
+file is invisible only when it ALSO sits outside the known paths and the hooks
+directory — which is precisely the condition under which `plugins/README.md`,
+`CHANGELOG/`, `LICENSE` and the scripts survive regeneration, and `prune.go`'s own
+comment states both halves.
+
+An earlier draft of this paragraph said the scan keys on the header "not on the
+path", and that it is invisible "wherever it sits". Both directions are wrong, a
+validator refuted them against the function, and the sentence had stood while the
+block around it was rebuilt twice — a false mechanism claim survives review most
+easily when it is the *unchanged* part of a diff everyone is reading for what
+changed.
+
+The anecdote it carried is unaffected and still worth having: the first two
+attempts at this perturbation used a header-less canary, got `clean`, and came
+close to being filed as a defect against the very claim they failed to test — the
+canary was in the references tree, where the header is what decides.
 
 The generated-ahead direction is if anything the more legible of the two. What makes both
 dangerous is not detection, it is that **`drift` runs in no CI workflow** — it is red only
@@ -664,17 +698,37 @@ see says whose half is outstanding** — but ONLY under `--short`. Measured at t
 tree, git 2.55.0:
 
 ```
-plugins at the gitlink, content modified   --short:  m plugins   --porcelain:  M plugins
-plugins checked out at another commit      --short:  M plugins   --porcelain:  M plugins
+$ echo canary >> plugins/README.md          # content modified INSIDE the submodule
+$ git status --short
+ m plugins
+$ git status --porcelain
+ M plugins
+
+$ git -C plugins checkout -- README.md      # revert, then move the gitlink instead
+$ git -C plugins checkout -q --detach HEAD~1
+$ git status --short
+ M plugins
+$ git status --porcelain
+ M plugins
 ```
+
+**This reading is about the SUBMODULE line only.** Both letters also appear on
+ordinary paths carrying their usual meanings: run 3's ` M` on the candy source is
+a modified file and has nothing to do with a gitlink. The rule below is about the
+`plugins` line, not about every line of the run it sits in.
 
 Lowercase ` m` is modified content inside the submodule — someone regenerated and
 has not committed there (run 3). Uppercase ` M` is a moved gitlink — the
 projection has landed in `plugins` and it is the superproject pin that is
-uncommitted. **`--porcelain` collapses both to ` M`**, so the script-safe spelling
-is the one that loses the discriminator; the transcript above uses `--porcelain`
-only where it asserts *empty*, and `--short` everywhere the distinction carries
-the argument.
+uncommitted. **The six-run session never reaches that second state**, which is why
+it is pasted above rather than pointed at: run 5 reports from inside the submodule
+(`git -C plugins`), so the superproject's view of a moved gitlink is the one state
+the session does not produce — and it is the half that says someone else's
+projection has landed.
+
+**`--porcelain` collapses both to ` M`**, so the script-safe spelling is the one
+that loses the discriminator; the transcript uses `--porcelain` only where it
+asserts *empty*, and `--short` everywhere the distinction carries the argument.
 
 **And `charly version` cannot stand in for any of this.** The stamp is derived
 from the HEAD commit's UTC timestamp (`scripts/calver.sh`), deliberately, so that
