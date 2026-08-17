@@ -550,7 +550,7 @@ equally legible, though, and the difference runs opposite to intuition:
 
 Pasted rather than described, because "a paste and its label are two separate
 claims" applies to this page's own tables. **Provenance, which this page's own
-rule demands of every figure below:** one continuous session at superproject
+rule demands of every figure in THIS section:** one continuous session at superproject
 `a56240f0` — the commit that corrected the `drift` message quoted throughout. A
 squash-merge lands that commit on no branch, so it survives as an ancestor of
 `refs/pull/289/head`, which is where anything that needs it has to look. `plugins`
