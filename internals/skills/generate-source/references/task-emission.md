@@ -2,7 +2,7 @@
 
 ## Task emission pipeline
 
-All install-task logic lives in a single file: `charly/tasks.go` (~380 lines) — but `EmitTasks` there is a thin shim to `deploykit.Generator.EmitTasks` (the actual per-verb emitters, relocated from `charly/generate.go` in #67). Authored layer-side as `task:` list in `charly.yml`; emitted as Containerfile directives via this sequence per layer inside `WriteCandySteps` (`sdk/deploykit/candy_steps.go`):
+All install-task logic lives in `sdk/deploykit` (`tasks_emit.go` + `tasks_render.go`); `charly/tasks.go` is 64 lines holding ONE function, `invokeOpEmitFragmentOpt`, and cannot call into deploykit at all (P16 import purity) (the actual per-verb emitters, relocated from `charly/generate.go` in #67). Authored layer-side as `task:` list in `charly.yml`; emitted as Containerfile directives via this sequence per layer inside `WriteCandySteps` (`sdk/deploykit/candy_steps.go`):
 
 ```
 1. # Layer: <name>                 (comment header)
@@ -39,7 +39,7 @@ Flat struct with verb-discriminator fields. Exactly one of `Cmd` / `Mkdir` / `Co
 func (t *Task) Kind() (string, error)   // returns verb or error ("no action" / "conflicting actions")
 ```
 
-The `Layer` struct that feeds emission carries its `require:` / `candy:` refs as `[]CandyRef` (one typed list each — no parallel bare/raw arrays), and its `Has*` predicates (`HasEnv`/`HasPorts`/`HasVolumes`/…) are derived methods (only the filesystem-probe caches like `HasPixiToml` stay fields). Layers are populated by the single `populateCandyFromYAML`. Which layers reach this emission pipeline is decided upstream by the reachability-scoped, per-entity-version resolver (the git tag is the fetch coordinate; the layer's own `version:` is the identity) — see `/charly-internals:go` "Remote-layer resolver".
+The `Layer` struct that feeds emission carries its `require:` / `candy:` refs as `[]CandyRef` (one typed list each — no parallel bare/raw arrays), and its `Has*` predicates (`HasEnv`/`HasPorts`/`HasVolumes`/…) are derived methods (only the filesystem-probe caches like `HasPixiToml` stay fields). Layers are populated by the single `scanFromParsed` (`sdk/loaderkit/scan_candy.go`). Which layers reach this emission pipeline is decided upstream by the reachability-scoped, per-entity-version resolver (the git tag is the fetch coordinate; the layer's own `version:` is the identity) — see `/charly-internals:go` "Remote-layer resolver".
 
 ### Emitter helpers (all in `charly/tasks.go`)
 
@@ -54,9 +54,9 @@ The `Layer` struct that feeds emission carries its `require:` / `candy:` refs as
 | `EmitSetcapBatch(b, []Task, img)` | `RUN setcap -r … && setcap caps path …` |
 | `EmitCmd(b, Op, layerStage, img, userIsRoot)` | `RUN --mount=type=bind,from=<layerStage>,source=/,target=/ctx [--mount=type=cache,…] sh -c 'SH=/bin/sh; [ -x /bin/bash ] && SH=/bin/bash; exec "$SH"' sh <<'OVCMD'` followed by the BUILD_ARCH/ARCH exports, `set -e`, the command, and a closing `OVCMD` (single-quoted heredoc — see below) |
 
-### Shell-quoting helpers (`charly/tasks.go`)
+### Shell-quoting and shell-prefix helpers (`spec` + `sdk/deploykit`)
 
-Two helpers in `tasks.go` handle the two shell-quoting problems that
+Three helpers — none of them in `charly/tasks.go` — handle the shell problems that
 come up when embedding scripts and JSON into a Containerfile:
 
 | Helper | Purpose | Used by |
