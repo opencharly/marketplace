@@ -1,7 +1,7 @@
 ---
 name: ollama-layer
 description: |-
-  Ollama LLM server on port 11434 with CUDA GPU support and model persistence.
+  Ollama LLM server on port 11434 with model persistence; CUDA is composed by the GPU boxes, not by this candy.
   Use when working with Ollama, LLM serving, or local AI model inference.
 ---
 
@@ -18,7 +18,7 @@ description: |-
 | Volumes | `models` -> `~/.ollama` |
 | Aliases | `ollama` -> `ollama` |
 | Service | `ollama` (supervisord) |
-| Install files | none (binary `download` + install in `plan:`) |
+| Install | `download:` + `extract:` plan step |
 
 ## Environment Variables
 
@@ -26,12 +26,6 @@ description: |-
 |----------|-------|
 | `OLLAMA_HOST` | `0.0.0.0` |
 | `OLLAMA_MODELS` | `~/.ollama/models` |
-
-## Build-time Variables (`var:`)
-
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `OLLAMA_VERSION` | `latest` | Upstream release to install — `latest` tracks the newest GitHub release; set a tag (e.g. `v0.32.14`) to pin |
 
 ## Service Environment (injected into other containers)
 
@@ -72,22 +66,22 @@ baked into the `ai.opencharly.description` OCI label (see `/charly-check:check`
 for the full schema). Each step is one inline Op — a probe is a `check:`
 step — and its `context:` list gates where it runs:
 
-- **`context: [build]`** (run under `charly check box`):
-  - the ollama binary exists at `/usr/bin/ollama` (`file:` check)
-- **`context: [runtime]`** (run under `charly check live` against a live
-  service; `${HOST_PORT:11434}` resolves the deploy-time host port so
-  port remapping works unchanged):
-  - `GET http://127.0.0.1:${HOST_PORT:11434}/api/tags` returns 200 (`http:` check)
-  - `ollama --version` stdout matches `^ollama version` (`command:` check)
-  - `ollama list` exits 0 against the live service (`command:` check)
-- one `agent-check:` grades that models pulled via `ollama pull` persist
-  under the `~/.ollama` models volume across a service restart.
+- **ungated** (no `context:`, so it runs wherever the plan runs):
+  - `/usr/bin/ollama` exists
+- **`context: [runtime]`** (run against a live service;
+  uses `127.0.0.1:${HOST_PORT:11434}` — the host-side form, not `${CONTAINER_IP}`, so port remapping
+  works unchanged):
+  - `GET http://127.0.0.1:${HOST_PORT:11434}/api/tags` returns 200
+  - `ollama --version` stdout matches `^ollama version`
+
+  The steps carry no `id:` keys, so they are named here by what they assert rather
+  than by an identifier the source does not define. The plan also ends with an
+  `agent-check:` step covering model persistence across a service restart.
 
 ## Related Candies
 
+- `/charly-distros:cuda` -- CUDA toolkit; GPU boxes compose it at the IMAGE level, not via this candy
 - `/charly-infrastructure:supervisord` -- process manager dependency
-- `/charly-distros:cuda` -- CUDA toolkit (GPU boxes compose it at the IMAGE level, not via this candy)
-- `/charly-ollama:ollama-cli` -- the compiled-in `charly ollama` management CLI (candy/plugin-ollama)
 - `/charly-openclaw:openclaw` -- AI gateway that can use Ollama as backend
 - `/charly-hermes:hermes` -- AI agent that auto-detects `OLLAMA_HOST` for local Ollama provider
 
