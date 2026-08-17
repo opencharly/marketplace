@@ -66,7 +66,7 @@ For each layer, `deploykit.Generator.WriteCandySteps` (relocated from `charly/ge
 ```
 1. Comment header:    # Layer: <name>
 2. ENV from `var:` + ARG TARGETARCH + ENV ARCH=${TARGETARCH} (once per layer)
-3. Package install (rpm/deb/pac/aur) — always USER root
+3. Package install (rpm/deb/pac/aur/apk) — always USER root
 4. tasks: iterated in author order:
    a. Resolve ${VAR} in non-verbatim fields
    b. Determine user: (default root)
@@ -88,11 +88,20 @@ For each layer, `deploykit.Generator.WriteCandySteps` (relocated from `charly/ge
 | `copy` | `emitCopy` | `COPY --from=<layer-stage> --chmod=<mode> [--chown=<uid>:<gid>] <src> <dest>` — **no RUN** |
 | `write` | `emitWrite` | `COPY --from=<layer-stage> --chmod=<mode> [--chown=] .build/<image>/_inline/<layer>/<sha256> <dest>` — **no RUN, no shell heredoc** |
 | `link` | `emitLinkBatch` | `RUN ln -sf t1 l1 && ln -sf t2 l2 …` (one RUN per batch) |
-| `download` | `emitDownload` | `RUN --mount=type=cache,dst=/tmp/downloads bash -c 'export BUILD_ARCH=$(uname -m); curl -fsSL <url> \| <extractor>'` (one RUN per download; `export ...;` termination is required so bash expands `${BUILD_ARCH}` in the URL) |
+| `download` | `emitDownload` | `RUN --mount=type=cache,dst=/tmp/downloads <shell-probe> 'export BUILD_ARCH=$(uname -m); curl -fsSL <url> \| <extractor>'` (one RUN per download; `export ...;` termination is required so the shell expands `${BUILD_ARCH}` in the URL) |
 | `setcap` | `emitSetcapBatch` | `RUN setcap -r … && setcap caps path …` (strip + set chained) |
-| `cmd` | `emitCmd` | `RUN --mount=type=bind,from=<layer-stage>,source=/,target=/ctx [--mount=type=cache,…] bash -c $'BUILD_ARCH=$(uname -m)\nset -e\n<command>'` — ANSI-C `$'...'` quoting keeps the multi-line body on one physical line (podman's Dockerfile parser splits at unescaped newlines) |
+| `cmd` | `emitCmd` | `RUN --mount=type=bind,from=<layer-stage>,source=/,target=/ctx [--mount=type=cache,…] <shell-probe> <<'OVCMD'` + the body + `OVCMD` — a heredoc carries the multi-line body without escaping, which podman's Dockerfile parser accepts (it would otherwise split at unescaped newlines) |
 | `build` | handled inline in `WriteCandySteps` (deploykit) | Existing pixi/npm/cargo/aur multi-stage + inline blocks |
 | `plugin` | `ProvisionActor.RenderProvisionScript` (builtin, in-proc) **or** `emitPluginFragment` → `Invoke(OpEmit)` | A builtin act-renderer emits a shell `RUN`; any other resolved provider (external `grpcProvider`, or a fragment-emitting builtin) returns a `spec.EmitReply.Fragment` spliced verbatim. The single seam every Containerfile plugin-step emit flows through; an unresolved verb is a loud error. `plugin: command` is the one exception — its act IS the full `emitCmd` install-task RUN. |
+
+`<shell-probe>` above is the shared prefix both emit sites use instead of naming a
+shell directly (`sdk/deploykit.BuildStepShellDashC` / `BuildStepShellHeredoc`):
+`sh -c 'SH=/bin/sh; [ -x /bin/bash ] && SH=/bin/bash; exec "$SH" …' sh`. It prefers
+`/bin/bash` where the base image has it and falls back to POSIX `sh` where it does not,
+so a candy's shell steps build on a busybox base (Alpine) as well as on a bash one. The
+authored command reaches the chosen shell unchanged — the `-c` form passes it as `$1` and
+re-execs, the heredoc form relies on `exec` preserving stdin — so author `$(cmd)` and
+`${VAR}` still expand in the shell that runs them.
 
 ## Cache-mount inheritance
 

@@ -8,7 +8,7 @@ All install-task logic lives in a single file: `charly/tasks.go` (~380 lines) �
 1. # Layer: <name>                 (comment header)
 2. ARG TARGETARCH + ENV ARCH=${TARGETARCH}    (once; from emitVarsEnv)
 3. ENV <K>=<V> for each layer.Vars entry      (also from emitVarsEnv)
-4. Package install: rpm/deb/pac/aur  (unchanged — format template render)
+4. Package install: rpm/deb/pac/aur/apk  (unchanged — format template render)
 5. emitTasks(b, layer, img, buildDir, contextRelPrefix, initialUser):
    for each t in layer.tasks:
      resolve ${VAR} in non-verbatim fields
