@@ -83,7 +83,7 @@ The candy + plan-step schema the parser validates against is **CUE-single-source
 |--------|---------|-------------|
 | Scaffold new candy | `charly box new candy <name>` | Create candy directory with starter `charly.yml` (see `/charly-build:new`) |
 | Edit a candy field | `charly candy set <name> <dotpath> <value>` | Comment-preserving YAML edit by dot-path |
-| Append rpm/deb/pac/aur packages | `charly candy add-rpm <name> <pkg…>` (plus `add-deb`, `add-pac`, `add-aur`) | Idempotent append; auto-upgrades scaffold's null `package:` to a sequence |
+| Append rpm/deb/pac/aur/apk packages | `charly candy add-rpm <name> <pkg…>` (plus `add-deb`, `add-pac`, `add-aur`, `add-apk`) | Idempotent append; auto-upgrades scaffold's null `package:` to a sequence |
 | Add a plan step (`run:` / `check:` / agent step) | hand-edit the `plan:` list in `charly.yml`, or `charly candy set <name> <dotpath> <value>` | No dedicated convenience command — append plan steps by hand or via the comment-preserving dot-path setter (and `charly box write` for free-form files). See `/charly-check:check` "Agent Driven Evaluation" |
 | Write a free-form file (`pixi.toml`, `root.yml`, …) | `charly box write <rel-path> --content X` | Escape hatch for files the schema setters don't cover; guarded against `..` traversal |
 | List all candies | `charly box list candies` | Show available candies from filesystem |
@@ -1248,7 +1248,7 @@ by the single idempotent `charly migrate` — see `/charly-build:migrate`.
 ## Cross-References
 
 - `/charly-image:image` — Adding candies to box definitions; box composition; `data_image:` for data-only bundles; the full MCP-first authoring table including `box set`, `box add-candy`, `box rm-candy`, `box write`, `box cat`.
-- `/charly-build:charly-mcp-cmd` — "Authoring tools" table exposing `candy.set`, `candy.add-rpm`, `candy.add-deb`, `candy.add-pac`, `candy.add-aur` as MCP tools; end-to-end build-from-scratch worked example.
+- `/charly-build:charly-mcp-cmd` — "Authoring tools" table exposing `candy.set`, `candy.add-rpm`, `candy.add-deb`, `candy.add-pac`, `candy.add-aur`, `candy.add-apk` as MCP tools; end-to-end build-from-scratch worked example.
 - `/charly-build:generate` — What `charly box generate` actually emits; the per-verb emitter pipeline; `.build/<image>/` layout.
 - `/charly-build:validate` — Validation rules (including per-verb step requirements).
 - `/charly-build:new` — Scaffolding a new candy directory.

@@ -100,7 +100,7 @@ separate, check-time concern handled by `candy/plugin-check/preflight_images.go`
 compile from candy fields and project to the deploy view), but their pod-overlay BUILD-emit no
 longer lives in an in-core overlay-walker `emit*` method — it moved to the compiled-in `class:step` plugin
 `candy/plugin-installstep`. The candy's `deploykit.OCITarget` reaches the plugin over the
-`HostBuild("step-emit","oci-emit-step")` seam (`ociEmitStep`/`dispatchOCIStep`, a thin host-side
+`HostBuild("step-emit","oci-emit-step")` seam (`dispatchOCIStep`, a thin host-side
 forwarder); the plugin's OWN `"oci-dispatch"` word maps each kind to its serving word via
 `deploykit.PluginEmitStepWords`, serializes the step VIEW (`StepToView`) as the `OpEmit` payload,
 resolves the target via `DescribeProvider` + `InvokeProvider` (K5-A item 2), and splices

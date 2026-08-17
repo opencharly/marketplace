@@ -394,7 +394,7 @@ Every CLI verb under `charly box …` and `charly candy …` auto-becomes an MCP
 | `box.set` | Set any value in `charly.yml` by dot-path (`defaults.tag`, `images.foo.layers`, …). Value is parsed as YAML. |
 | `box.add-candy` / `box.rm-candy` | Append / remove a layer from an image's `candy:` list (idempotent). |
 | `candy.set` | Set any value in `candy/<name>/charly.yml` by dot-path. |
-| `candy.add-rpm` / `candy.add-deb` / `candy.add-pac` / `candy.add-aur` | Append packages to a layer's `<format>.packages` list. Idempotent. Upgrades scaffold's null `package:` value to a real sequence. |
+| `candy.add-rpm` / `candy.add-deb` / `candy.add-pac` / `candy.add-aur` / `candy.add-apk` | Append packages to a layer's `<format>.packages` list. Idempotent. Upgrades scaffold's null `package:` value to a real sequence. |
 | `box.fetch` / `box.refresh` | Pre-prime / re-clone the remote-repo cache. Spec defaults to `default` (opencharly/charly). |
 | `box.write` / `box.cat` | Write / read any file under the project root — escape hatch for free-form auxiliary files (`pixi.toml`, `package.json`, `root.yml`, scripts, `*.service`). Path is resolved against `os.Getwd()` and rejected if it escapes the project root. |
 

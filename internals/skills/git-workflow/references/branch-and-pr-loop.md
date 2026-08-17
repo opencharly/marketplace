@@ -218,7 +218,7 @@ contain no tier logic (`gate_test.py` asserts attribution text is ALLOWed as
 validator-owned), so tier truth is judged by the fresh `pr-validator`, per the
 rulebook's "never by hook regexes".
 
-## B4 — sync to upstream + prune (per repo: main, sdk, plugins, docs, box/*, pkg/*)
+## B4 — sync to upstream + prune (per repo: main, sdk, plugins, docs, box/*)
 
 - **Sync-before-start.** `git fetch origin --prune --tags`; ff local `main` to
   `origin/main`. Never force-reset a diverged local `main` — if it cannot
