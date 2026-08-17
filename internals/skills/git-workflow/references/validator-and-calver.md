@@ -220,7 +220,7 @@ chronologically under a plain alphanumeric sort.
 
 One fresh stamp per merge, immutable (only ever added), independent of `charly.yml`
 `version:` (the schema version, bumped only by a cutover raising `#SchemaVersion`).
-Every repo (superproject, `box/<distro>`, `plugins`, `docs`, and `pkg/*` while it still exists on `main`) mints `v$VER` on its
+Every repo (superproject, `box/<distro>`, `plugins`, `docs`) mints `v$VER` on its
 merged HEAD; `sdk` alone uses its Go-module `v0.<YYYYDDD>.<HHMM
 leading-zeros-stripped>` scheme (not an exemption — Go modules require semver, which
 forbids a leading-zero segment — `0733`→`733`). A YAML schema/format change does
