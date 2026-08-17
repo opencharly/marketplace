@@ -113,6 +113,15 @@ stale" is the reading that ships the revert.
 
 ## Skill File Structure
 
+
+This is the SHAPE the projection EMITS, not a file you create. You author it on the candy's
+
+`skill:` entity — frontmatter fields as entity fields, the body as its content — and
+
+`charly marketplace generate` writes the `SKILL.md`. Every emitted file carries a DO-NOT-EDIT
+
+banner; if you find yourself editing one, the change belongs one hop upstream.
+
 ```markdown
 ---
 name: <skill-name>

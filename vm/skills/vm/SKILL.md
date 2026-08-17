@@ -249,8 +249,8 @@ arch:
       url: https://fastly.mirror.pkgbuild.com/images/latest/Arch-Linux-x86_64-cloudimg.qcow2
       checksum: {type: sha256}                      # value auto-resolves from <url>.SHA256 sidecar
       base_user: arch                               # adopt pattern (no useradd)
-      # distro:               # **REQUIRED on a cloud_image source — the vm kind's OpValidate
-                                                   # rejects a source that omits it.** It is a closed `#DistroID`, and
+      # distro:               # **REQUIRED on a cloud_image source.** Once this cutover lands, the vm kind's OpValidate
+                                                   # rejects a source that omits it. It is a closed `#DistroID`, and
                                                    # `spec/schema/distro_vocab.cue` is the single source for the id space and
                                                    # each id's package format, sshd unit and init system. Nothing is inferred
                                                    # from `base_user`, an image URL, or the source kind: the earlier base_user
@@ -261,12 +261,12 @@ arch:
                                                    # alpine — so naming a near relative as a workaround is no longer needed for
                                                    # any of them. Alpine is first-class: `distro: alpine` selects apk and
                                                    # OpenRC. openSUSE is still absent and has no near relative (zypper);
-                                                   # note also that #DistroID (13 ids) and the embedded `distro:` BUILD vocabulary are
+                                                   # adding it is one entry in that file.
+                                                   # Note also that #DistroID (13 ids) and the embedded `distro:` BUILD vocabulary are
                                                    # different sets, and the gap is SILENT: `buildVmSyntheticBox` resolves this field against
                                                    # the build vocabulary and on a miss leaves `img.Pkg` unset, so candy installation compiles
                                                    # ZERO package steps while `fleet add` reports success. A schema-valid id is therefore not
                                                    # automatically a resolvable one.
-                                                   # adding it is one entry in that file.
                                                    # Use a bare id: `ResolveDistro` strips at `:` but the cloud-init
                                                    # dispatches compare exactly, so `debian:13` yields `openssh`.
     disk_size: 40G

@@ -27,7 +27,7 @@ The VM surface parallels the `candy:` image surface: one YAML entry per entity, 
       url: https://…
       checksum: { type: sha256, value?: <hex> }
       base_user: arch                     # adopt this account (see Adopt pattern below)
-      distro: debian                      # **REQUIRED on a cloud_image source — the vm kind's OpValidate rejects a
+      distro: debian                      # **REQUIRED on a cloud_image source.** Once this cutover lands, the vm kind's OpValidate rejects a
                                           # source that omits it.** A closed `#DistroID`; `spec/schema/distro_vocab.cue`
                                           # is the single source for the id space and each id's package format, sshd
                                           # unit and init system. Nothing is inferred from `base_user`, an image URL, or
@@ -37,7 +37,7 @@ The VM surface parallels the `candy:` image surface: one YAML entry per entity, 
                                           # (fedora/rhel/centos/rocky/almalinux), Debian-family (debian/ubuntu) and
                                           # alpine, which is first-class: `distro: alpine` selects apk and OpenRC. Only
                                           # openSUSE is still absent, with no near relative (zypper) — one entry adds it.
-                                          # note also that #DistroID (13 ids) and the embedded `distro:` BUILD vocabulary are
+                                          # Note also that #DistroID (13 ids) and the embedded `distro:` BUILD vocabulary are
                                           # different sets, and the gap is SILENT: `buildVmSyntheticBox` resolves this field against
                                           # the build vocabulary and on a miss leaves `img.Pkg` unset, so candy installation compiles
                                           # ZERO package steps while `fleet add` reports success. A schema-valid id is therefore not

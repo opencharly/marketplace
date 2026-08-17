@@ -114,7 +114,7 @@ emitted the Arch package name `openssh` (apt: `Unable to locate package openssh`
 `composeBootCmd` masks `ssh.socket` until cloud-init finishes, a socket-activated sshd (Ubuntu
 24.04's default) was left MASKED and never restarted. The guest booted fully and served nothing.
 
-There is deliberately **no fallback** for either value. `spec.DistroSSHUnits[distro]` and
+There is deliberately **no fallback** for either value — as of this cutover, whose spec and sdk legs are unmerged at the time of writing; on released charly the field is still `distro?: string` with the inference in place. `spec.DistroSSHUnits[distro]` and
 `spec.DistroInits[distro]` are bare lookups into the generated tables: an id outside the
 vocabulary yields an EMPTY unit name rather than a guess. An interim revision of this skill
 claimed the sshd start "falls back to the other unit name, so omitting it costs a redundant
