@@ -864,7 +864,9 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
     RECENT convention, and the two regimes interleave — measured in `plugins`: of 203
     CalVer entries, **66 carry no tag**, all of them at or before `2026.215.1207`, while
     the earliest tagged entry is `2026.193.1934`, well inside that stretch. From
-    `2026.215.1207` forward it is **67 for 67**. So the invariant reads: *every entry
+    the entry AFTER `2026.215.1207` forward it is **67 for 67** — `2026.215.1207` is itself the
+    LATEST untagged entry, so it belongs to the old regime and the tagged run opens
+    above it. So the invariant reads: *every entry
     landed since the convention took hold has a matching tag*; earlier entries predate
     it and are evidence of nothing. A check written without that clause returns 66 false
     positives and gets disabled by whoever inherits it.
