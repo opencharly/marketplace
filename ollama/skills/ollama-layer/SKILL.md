@@ -13,12 +13,12 @@ description: |-
 
 | Property | Value |
 |----------|-------|
-| Dependencies | `supervisord` |
+| Dependencies | `cuda`, `supervisord` |
 | Ports | 11434 |
 | Volumes | `models` -> `~/.ollama` |
 | Aliases | `ollama` -> `ollama` |
 | Service | `ollama` (supervisord) |
-| Install files | none (binary `download` + install in `plan:`) |
+| Install files | `task:` |
 
 ## Environment Variables
 
@@ -26,12 +26,6 @@ description: |-
 |----------|-------|
 | `OLLAMA_HOST` | `0.0.0.0` |
 | `OLLAMA_MODELS` | `~/.ollama/models` |
-
-## Build-time Variables (`var:`)
-
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `OLLAMA_VERSION` | `latest` | Upstream release to install — `latest` tracks the newest GitHub release; set a tag (e.g. `v0.32.14`) to pin |
 
 ## Service Environment (injected into other containers)
 
@@ -73,21 +67,17 @@ for the full schema). Each step is one inline Op — a probe is a `check:`
 step — and its `context:` list gates where it runs:
 
 - **`context: [build]`** (run under `charly check box`):
-  - the ollama binary exists at `/usr/bin/ollama` (`file:` check)
-- **`context: [runtime]`** (run under `charly check live` against a live
-  service; `${HOST_PORT:11434}` resolves the deploy-time host port so
-  port remapping works unchanged):
-  - `GET http://127.0.0.1:${HOST_PORT:11434}/api/tags` returns 200 (`http:` check)
-  - `ollama --version` stdout matches `^ollama version` (`command:` check)
-  - `ollama list` exits 0 against the live service (`command:` check)
-- one `agent-check:` grades that models pulled via `ollama pull` persist
-  under the `~/.ollama` models volume across a service restart.
+  - `ollama-binary` — `/usr/bin/ollama` exists
+- **`context: [deploy]`** (run under `charly check live` against a live service;
+  uses `${HOST_PORT:11434}` / `${CONTAINER_IP}` so deploy-time port remapping
+  works unchanged):
+  - `ollama-tags-api` — `GET http://${CONTAINER_IP}:${HOST_PORT:11434}/api/tags` returns 200
+  - `ollama-version` — `ollama --version` stdout matches `^ollama version`
 
 ## Related Candies
 
+- `/charly-distros:cuda` -- CUDA toolkit dependency
 - `/charly-infrastructure:supervisord` -- process manager dependency
-- `/charly-distros:cuda` -- CUDA toolkit (GPU boxes compose it at the IMAGE level, not via this candy)
-- `/charly-ollama:ollama-cli` -- the compiled-in `charly ollama` management CLI (candy/plugin-ollama)
 - `/charly-openclaw:openclaw` -- AI gateway that can use Ollama as backend
 - `/charly-hermes:hermes` -- AI agent that auto-detects `OLLAMA_HOST` for local Ollama provider
 

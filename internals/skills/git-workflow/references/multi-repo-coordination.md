@@ -366,8 +366,8 @@ submodule update` as a side effect — `task cue:gen` is the canonical
 offender) run against a stale, ambient cwd doesn't just misreport, it
 MUTATES the wrong tree. Live incident: a fresh evaluator ran `task cue:gen`
 with a persisted shell cwd that had drifted to the main session worktree —
-the task's own `git submodule update` chain rewound 5 submodule checkouts +
-the `pkg/arch` gitlink there before the mistake was caught (fully restored,
+the task's own `git submodule update` chain rewound 5 submodule checkouts
+there before the mistake was caught (fully restored,
 disclosed). So every mutating task/command invocation in an isolated-worktree
 workflow (a validator run, a teammate's branch work, a spike) carries an
 explicit `cd <worktree> &&` anchor IN THE SAME compound command — never a
