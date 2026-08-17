@@ -46,7 +46,7 @@ can merge. See `/charly-internals:skills` for the source→projection model and
 
 **The page has two kinds of content, and they are true in different ways.**
 
-**Eight sections are epistemic** — ways a claim goes wrong — and they are one question
+**Most of the sections below are epistemic** — ways a claim goes wrong — and they are one question
 failing against a different noun: *what exactly did I measure, and is it the thing my
 claim is about?*
 
@@ -73,7 +73,7 @@ distinction the table exists to draw. No total is given for the page: a section 
 figure whose subject is the document stating it, and a merge that adds a section
 falsifies it without touching the sentence.
 
-**The remaining sections are mechanism** — how charly and git actually behave: the
+**The rest are mechanism** — how charly and git actually behave: the
 cross-repo `skill:` cutover, the submodule revert, the validator-status false
 negative, and multi-source assembly. They are not instances of the question and no
 frame unifies them.
