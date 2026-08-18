@@ -414,9 +414,8 @@ transitional K-wave residue that ZERO-ALIASES/K5 deletes, so a skill asserting i
 file:line desyncs on every alias relocation and documents a path already scheduled for deletion. State the
 stable spec-source (the owning plugin/sdk package) and the K5-dissolution destination instead of a
 concrete alias location, and `grep -rn` every concrete alias-attribution claim (a file:line or symbol
-name) against the live tree before asserting it. Motivating incident: a go-skill row produced 5
-alias-attribution errors across 5 validation rounds by naming exact residue locations that had already
-moved.
+name) against the live tree before asserting it. Failure mode: a row naming exact residue locations
+produces alias-attribution errors round after round once that residue moves.
 
 The code-side companion (golangci-lint, the `.go` compliance checklist) is
 `/charly-internals:go-quality`.

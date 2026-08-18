@@ -72,10 +72,10 @@ gofmt -l .                              # files needing format
 go vet ./...
 ```
 
-Baseline at authoring (2026-06, broadest uncapped): **1017 issues** — errcheck 457,
-staticcheck 242, unparam 100, unused 53, gocyclo 46, gocritic 43, errorlint 29, prealloc 29,
-dupl 10, ineffassign 4, unconvert 3, misspell 1. Re-run to refresh; the per-linter shape is the
-triage map.
+Run it uncapped to get the current baseline, and read the per-linter SHAPE rather than the
+total — which linter leads tells you what kind of debt you are looking at. Neither a count
+nor a distribution is pasted here: both would be stale before they were read, and a stale
+SHAPE misleads more quietly than a stale total.
 
 **Measurement gotcha — measure with the configured run, never `--enable-only`.** The
 authoritative count is `golangci-lint run ./...` (the configured set), which DEDUPLICATES
@@ -88,7 +88,7 @@ linter "wins" the dedup — see there.)
 
 ## Auto-fix safety — never blanket `--fix`
 
-**`golangci-lint run --fix` corrupts this source tree** (confirmed 2026-06-14, v2.12.2):
+**`golangci-lint run --fix` corrupts this source tree** (confirmed with v2.12.2):
 gocritic's autofixer rewrites multi-statement blocks into a one-liner whose body it emits as a
 literal `{ ... }` elision placeholder — the `...` is gocritic's snip marker, written verbatim
 into the file → `syntax error: unexpected ...` (broke `ssh_client.go` + `deploy_executor_nested.go`,
