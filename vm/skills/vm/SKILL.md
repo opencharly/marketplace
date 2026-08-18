@@ -248,29 +248,27 @@ arch:
       url: https://fastly.mirror.pkgbuild.com/images/latest/Arch-Linux-x86_64-cloudimg.qcow2
       checksum: {type: sha256}                      # value auto-resolves from <url>.SHA256 sidecar
       base_user: arch                               # adopt pattern (no useradd)
-      # distro:                                    # **Always SET `distro:`, to a BARE id. Never omit it, and never rely
-                                                   # on the inference** — `effectiveDistro` infers only `arch`/`alpine`
-                                                   # from `base_user` and never checks the guest. Two consumers read it,
-                                                   # against DIFFERENT sets, and that is the whole difficulty:
-                                                   # `effectiveDistro` feeds the cloud-init dispatches and accepts ANY
-                                                   # string; `buildVmSyntheticBox` (`candy/plugin-fleet/candy_select.go`,
-                                                   # not source-kind gated) resolves it against a FIVE-id vocabulary
-                                                   # `{arch, cachyos, debian, fedora, ubuntu}` and, on a miss, leaves
-                                                   # `img.Pkg` unset so candy installation compiles ZERO steps silently.
-                                                   # So: if the guest IS one of those five, name it. **Alpine: set
-                                                   # `distro: alpine`** — not a vocabulary member, but the init dispatch
-                                                   # keys on `effectiveDistro`, so this is the ONLY way to reach the
-                                                   # OpenRC path; any other value renders systemd onto a guest that has
-                                                   # none and the VM boots unreachable. Candy installation stays
-                                                   # unresolvable for Alpine either way. For a guest outside the five,
-                                                   # naming a near relative (`arch` for manjaro/archarm/endeavouros,
-                                                   # `fedora` for rocky/alma, `ubuntu` for a Ubuntu derivative) makes
-                                                   # candy steps compile — but it selects THAT distro's DistroDef,
-                                                   # version tags and repos (fedora's carries `version: "43"` and COPR),
-                                                   # so it is a workaround with its own risk, not a repair. The repair is
-                                                   # a vocabulary entry. openSUSE has none and no near relative (zypper).
+      distro: arch            # **REQUIRED on a cloud_image source.** Once this cutover lands, the vm kind's OpValidate
+                                                   # rejects a source that omits it. It is a closed `#DistroID`, and
+                                                   # `spec/schema/distro_vocab.cue` is the single source for the id space and
+                                                   # each id's package format, sshd unit and init system. Nothing is inferred
+                                                   # from `base_user`, an image URL, or the source kind: the earlier base_user
+                                                   # inference is DELETED, so an unnamed distro is an author-time error rather
+                                                   # than a silent wrong default. The 13-id vocabulary covers the pacman family
+                                                   # (arch/archarm/manjaro/endeavouros/cachyos), the RPM family
+                                                   # (fedora/rhel/centos/rocky/almalinux), Debian-family (debian/ubuntu) and
+                                                   # alpine — so naming a near relative as a workaround is no longer needed for
+                                                   # any of them. Alpine is first-class: `distro: alpine` selects apk and
+                                                   # OpenRC. openSUSE is still absent and has no near relative (zypper);
+                                                   # adding it is one entry in that file.
+                                                   # Note also that #DistroID (13 ids) and the embedded `distro:` BUILD vocabulary are
+                                                   # different sets, and the gap is SILENT: `buildVmSyntheticBox` resolves this field against
+                                                   # the build vocabulary and on a miss leaves `img.Pkg` unset, so candy installation compiles
+                                                   # ZERO package steps while `fleet add` reports success. A schema-valid id is therefore not
+                                                   # automatically a resolvable one.
                                                    # Use a bare id: `ResolveDistro` strips at `:` but the cloud-init
-                                                   # dispatches compare exactly, so `debian:13` yields `openssh`.
+                                                   # dispatches compare exactly, so `debian:13` yields `openssh`. (That sentence is about the
+                                                   # BUILD vocabulary — `ResolveDistro` in `sdk/buildkit/config_resolve.go` — not `#DistroID`.)
     disk_size: 40G
     ram: 8G
     cpu: 4
@@ -388,11 +386,38 @@ The `firmware:` field controls the VM boot path. Choice matters more than most a
 
 | Firmware | When to pick |
 |---|---|
-| `bios` (default) | Cloud images (Arch, Fedora Cloud, Ubuntu Cloud, Debian Cloud, CentOS Cloud) that ship a GPT BIOS boot partition. Avoids stale BOOTX64.EFI issues. No OVMF package dependency. No per-VM NVRAM. See `/charly-vm:arch-cloud-vm` Finding B for the RCA. |
-| `uefi-insecure` | bootc Fedora images (ship signed BOOTX64.EFI built at image-build time). Guests needing GPT > 2 TiB disks. ARM hosts (aarch64). |
+| `bios` (default) | Cloud images that ship a GPT BIOS boot partition — **Arch, Fedora Cloud, CentOS Cloud are proven on beds** (`check-arch-repo`, `check-fedora-repo`, `box/fedora`). Avoids stale BOOTX64.EFI issues. No OVMF package dependency. No per-VM NVRAM. See `/charly-vm:arch-cloud-vm` Finding B for the RCA. |
+| `uefi-insecure` | bootc Fedora images (ship signed BOOTX64.EFI built at image-build time). **Debian and Ubuntu cloud images** — `debian-13-generic-amd64.qcow2` does NOT boot under `bios` (measured below), and `box/debian` + `box/ubuntu` already pin this. Guests needing GPT > 2 TiB disks. ARM hosts (aarch64). |
 | `uefi-secure` | Guests needing Secure Boot (signed kernel + initramfs). Locks to Microsoft UEFI CA keys. |
 
 See `/charly-internals:ovmf` for the per-distro OVMF_CODE/OVMF_VARS path table and the per-VM NVRAM mechanics. When `firmware: bios`, `ResolveOvmfForSpec` returns empty strings and the libvirt renderer skips `<loader>`/`<nvram>` entirely.
+
+**Debian/Ubuntu cloud images are the correction to the row above, and it was measured, not reasoned.**
+`debian-13-generic-amd64.qcow2` under `firmware: bios` stalled a bed twice; the same bed passed
+(`check-debian-repo` PASS, steps=9) with `firmware: uefi-insecure` and nothing else changed. The
+guidance to prefer `bios` still holds for Arch/Fedora/CentOS — `box/fedora` runs `bios` today — so
+this is a per-image property, not a global preference, and the honest test is whether the specific
+image boots.
+
+**The signature of a firmware mismatch, because it looks like anything but firmware.** The domain
+starts and `charly vm list` reports it `running`; the port forward ACCEPTS TCP (qemu user-net binds
+the forward before the guest listens); `sshd` never answers, giving
+`Connection timed out during banner exchange` or `kex_exchange_identification: Connection reset by
+peer`; the serial console is silent; and the deploy step waits indefinitely with no next-step log.
+The discriminating probe is the **deployed disk's growth**, read twice:
+
+```bash
+stat -c '%s %y' ~/.local/share/charly/vm/charly-<domain>/disk.qcow2   # twice, ~20s apart
+```
+
+A booted guest's mtime ADVANCES (it may sit at a few hundred MB while it does); a guest that never
+booted stays frozen at ~200 KB. **Size alone cannot separate them** — every deployed disk starts as
+a small qcow2 overlay backed by the cached base image, so it grows only as the guest writes, and a
+2 GB disk means "booted and installed packages" rather than "image materialized". Two traps inside
+this probe: `qemu-img info` on a RUNNING guest's disk fails with `Failed to get shared "write" lock`
+(that is the VM holding it, not a corrupt image), and the presence of `nvram.fd` in the VM's state
+dir confirms the UEFI path applied — but it is REMOVED when a bed completes and cleans up, so its
+absence after a passing run says nothing.
 
 ## Video-model choice
 

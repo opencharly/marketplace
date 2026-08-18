@@ -30,7 +30,7 @@ runtime consumers (`charly config`, `charly start`, `charly status`, `charly che
 ### LABEL JSON escaping (`writeJSONLabel`)
 
 `writeJSONLabel` in `sdk/deploykit/write_labels.go` (relocated from `charly/generate.go` in #67) routes every LABEL value through
-`shellSingleQuote` before emitting `LABEL key=<quoted>`. This is
+`spec.ShellQuote` before emitting `LABEL key=<quoted>`. This is
 required because test/task commands often contain literal `'` characters
 (e.g. `awk '{print $1}'`, `sed 's/foo/bar/'`) which JSON preserves
 verbatim. Without escaping, the embedded quote terminates the LABEL's
@@ -133,9 +133,9 @@ Security configuration (`security:` in charly.yml) and environment variable inje
 
 UID/GID in cache mounts are dynamic (from resolved image config). All non-root cache mounts use flat `/tmp/<tool>-cache` paths to avoid buildah permission issues with nested paths.
 
-### Download caching + the generic `cache:` modifier (`emitDownload` / `taskCacheMounts`)
+### Download caching + the generic `cache:` modifier (`EmitDownload` / `TaskCacheMounts`)
 
-`emitDownload` (`charly/tasks.go`) writes every `download:` to a **content-addressed**
+`EmitDownload` (`sdk/deploykit/tasks_emit.go`) writes every `download:` to a **content-addressed**
 file in the `/tmp/downloads` cache mount: `__c=/tmp/downloads/$(printf %s "$url"
 | sha256sum | cut -c1-64)`, fetched only when absent (`[ -s "$__c" ] ||`), via
 `curl -o "$__c.part" && mv -f "$__c.part" "$__c"` (atomic rename — a
@@ -143,10 +143,10 @@ partial/corrupt download is never reused), then the extractor reads `"$__c"`.
 So a file fetched once survives an upstream layer cache-miss instead of
 re-downloading (the prior code declared the mount but streamed curl past it).
 
-`taskCacheMounts(t, img)` (`charly/tasks.go`) renders a task's layer-declared
+`TaskCacheMounts(t, img)` (`sdk/deploykit/tasks_emit.go`) renders a task's layer-declared
 `cache:` paths as cache-mount flags, ownership derived from the task's `run_as:`
-via `resolveUserSpec` (root → `SharedCacheMount`, else → `OwnedCacheMount`).
-Honored by `emitCmd` and `emitDownload`. Lets any task persist heavy
+via `ResolveUserSpec` (root → `SharedCacheMount`, else → `OwnedCacheMount`).
+Honored by `EmitCmd` and `EmitDownload`. Lets any task persist heavy
 downloads/build artifacts the same way package caches do (config-driven; the
 cache-USE logic lives in the charly.yml task body).
 

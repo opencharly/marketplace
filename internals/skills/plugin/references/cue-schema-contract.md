@@ -30,7 +30,7 @@ step's teardown ops are recorded dynamically from its `OpExecute` reply). **BUIL
 `StepContract.Emits=true` declares the step ALSO produces a build-context Containerfile FRAGMENT — served by
 `Invoke(OpEmit)` → `spec.EmitReply.Fragment`. Composed into a POD overlay (add_candy), the pod-overlay
 `deploykit.OCITarget` (in the candy `plugin-deploy-pod`) reaches the host's open external-step arm
-(`ociEmitStep`, over `HostBuild("step-emit","oci-emit-step")`) which Invokes that OpEmit and splices the fragment (`Emits=false` → a
+(`dispatchOCIStep`, over `HostBuild("step-emit","oci-emit-step")`) which Invokes that OpEmit and splices the fragment (`Emits=false` → a
 deploy-only step, skipped on the image build, like apk); a HOST-COUPLED step's OpEmit calls back
 `HostBuild("step-emit", …)` for a host-engine-rendered fragment. A step plugin serving OpEmit is a PURE
 step (self-contained fragment); the reference `candy/plugin-example-stepkind` serves BOTH legs (OpExecute at
@@ -46,7 +46,7 @@ their fragment directly from the view; the HOST-COUPLED `system-packages` (C1.2)
 `EmitReply`) because their render needs the host build engine (`system-packages`: DistroDef format templates;
 `builder`: the multi-stage `buildStageContext` + `RenderTemplate` engine; `local-pkg-install` is DIFFERENT
 (W3) — its render `deploykit.RenderLocalPkgImageInstall` is a PURE sdk/deploykit function needing no host
-callback, routed through this seam only for `buildEngineContext` threading uniformity; `op`: the RICHEST — `Generator.emitTasks`, the
+callback, routed through this seam only for `buildEngineContext` threading uniformity; `op`: the RICHEST — `Generator.EmitTasks`, the
 full per-verb render pipeline with COPY staging + op coalescing). Authoring + IR mechanism: `/charly-internals:install-plan` (the
 `externalStep` row + the build-emit externalization note); reference: `candy/plugin-example-stepkind`,
 `candy/plugin-installstep`.

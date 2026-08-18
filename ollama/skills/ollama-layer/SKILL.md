@@ -1,7 +1,7 @@
 ---
 name: ollama-layer
 description: |-
-  Ollama LLM server on port 11434 with CUDA GPU support and model persistence.
+  Ollama LLM server on port 11434 with model persistence; CUDA is composed by the GPU boxes, not by this candy.
   Use when working with Ollama, LLM serving, or local AI model inference.
 ---
 
@@ -13,12 +13,12 @@ description: |-
 
 | Property | Value |
 |----------|-------|
-| Dependencies | `cuda`, `supervisord` |
+| Dependencies | `supervisord` |
 | Ports | 11434 |
 | Volumes | `models` -> `~/.ollama` |
 | Aliases | `ollama` -> `ollama` |
 | Service | `ollama` (supervisord) |
-| Install files | `task:` |
+| Install | `download:` + `extract:` plan step |
 
 ## Environment Variables
 
@@ -66,17 +66,21 @@ baked into the `ai.opencharly.description` OCI label (see `/charly-check:check`
 for the full schema). Each step is one inline Op — a probe is a `check:`
 step — and its `context:` list gates where it runs:
 
-- **`context: [build]`** (run under `charly check box`):
-  - `ollama-binary` — `/usr/bin/ollama` exists
-- **`context: [deploy]`** (run under `charly check live` against a live service;
-  uses `${HOST_PORT:11434}` / `${CONTAINER_IP}` so deploy-time port remapping
+- **ungated** (no `context:`, so it runs wherever the plan runs):
+  - `/usr/bin/ollama` exists
+- **`context: [runtime]`** (run against a live service;
+  uses `127.0.0.1:${HOST_PORT:11434}` — the host-side form, not `${CONTAINER_IP}`, so port remapping
   works unchanged):
-  - `ollama-tags-api` — `GET http://${CONTAINER_IP}:${HOST_PORT:11434}/api/tags` returns 200
-  - `ollama-version` — `ollama --version` stdout matches `^ollama version`
+  - `GET http://127.0.0.1:${HOST_PORT:11434}/api/tags` returns 200
+  - `ollama --version` stdout matches `^ollama version`
+
+  The steps carry no `id:` keys, so they are named here by what they assert rather
+  than by an identifier the source does not define. The plan also ends with an
+  `agent-check:` step covering model persistence across a service restart.
 
 ## Related Candies
 
-- `/charly-distros:cuda` -- CUDA toolkit dependency
+- `/charly-distros:cuda` -- CUDA toolkit; GPU boxes compose it at the IMAGE level, not via this candy
 - `/charly-infrastructure:supervisord` -- process manager dependency
 - `/charly-openclaw:openclaw` -- AI gateway that can use Ollama as backend
 - `/charly-hermes:hermes` -- AI agent that auto-detects `OLLAMA_HOST` for local Ollama provider

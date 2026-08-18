@@ -14,9 +14,10 @@ findings, and the majority were not defects in the code but false or stale CLAIM
 it.
 
 **Terms.** *The gate* — whichever check a claim rests on; usually `charly box validate`,
-`charly marketplace drift`, or `charly docs generate`. *`marketplace drift`* compares each
-generated file in `plugins/` against what the candy `skill:` / `hook:` / `marketplace:`
-sources currently project — a *candy* being an entity defined in `candy/<name>/charly.yml` —
+`charly marketplace drift`, or `charly docs generate`. *`marketplace drift`* compares every
+generated artifact — the `plugins/` corpus AND the harness surface it also emits
+(`CLAUDE.md`, `AGENTS.md`, `.claude/settings.json`, `.claude/hooks/*`) — against what the
+candy `skill:` / `hook:` / `marketplace:` sources currently project — a *candy* being an entity defined in `candy/<name>/charly.yml` —
 exiting 1 when any differs. `charly marketplace generate` re-emits them. *Superproject* — the `opencharly/charly`
 repo, which contains the others as submodules. *Gitlink* — the single commit sha a
 superproject records for a submodule; it moves only when a superproject commit moves it,
@@ -68,12 +69,11 @@ Seven of those eight appear above. The table has eight ROWS over seven SECTIONS 
 merged-tree section contributes two nouns. The epistemic section deliberately absent from
 it — "Positive and negative claims decay differently" — is left out because it is the moment-noun again,
 seen from the reader's side rather than the writer's, and giving it a row would blur the
-distinction the table exists to draw. Eight epistemic plus four mechanism is the whole page.
+distinction the table exists to draw.
 
-**The remaining four sections are mechanism** — how charly and git actually behave: the
+**Five sections are mechanism** — how charly and git actually behave: the
 cross-repo `skill:` cutover, the submodule revert, the validator-status false
-negative, and multi-source assembly. They are not instances of the question and no
-frame unifies them.
+negative, multi-source assembly, and the vacuous guard.
 
 **That split is load-bearing, and it is why this page's own first revision shipped a false
 claim.** An epistemic claim is checked by reasoning; a mechanism claim can only be checked
@@ -121,7 +121,7 @@ paste-able recipe** — the `$` prompts and interleaved output ARE the evidence,
 pasting it wholesale would run the output lines as commands. Retype the commands,
 or read it as a record.
 
-Blocks on this page come in THREE kinds, and prompts identify only the first:
+Blocks in this corpus come in THREE kinds, and prompts identify only the first:
 TRANSCRIPTS (prompts + interleaved output — read, do not paste); RUNNABLE recipes
 (no prompts, no output — paste freely); and PASTED OUTPUT (no prompts, no commands
 — evidence, with nothing to run). So a prompt marks a transcript, but its ABSENCE
@@ -272,7 +272,7 @@ standard keys on a property of the **claim** (a count authored into a permanent 
 Different keys, same law. The code/prose register boundary is one special case of it, not
 the whole.
 
-**A pattern must anchor to the construct, not the token.** The same key produced both a
+**A pattern must anchor to the construct, not the token.** A token-anchored key produced both a
 miss and a false positive: `grep 'cmd:"[a-z_]'` later counted two *comment* lines as
 surviving tags. A count that cannot tell a tag from prose was never a measurement of the
 invariant. Anchor to what the construct looks like — `^\s+[A-Z]\w*\s+\S+\s+`...`cmd:"` —
@@ -282,10 +282,13 @@ or state that the figure is a candidate count, not an answer.
 `rm` is destructive, knows a scratch worktree is the right mutation harness, and knows an
 exit code must be classified before absence is believed — and states all three several
 hundred lines away from the step that does the deleting — **has the knowledge and none of
-the benefit.** Measured in this very spec: a procedure opened with `rm` on a tracked file,
-in whatever checkout the reader was standing in, while all three safeguards sat ~700 lines
-below it; and the same page's `git -C <submodule> grep` form sat 288 lines from a command
-that could not reproduce its own worked example without it.
+the benefit.** Measured in this very spec, twice: a procedure opened with `rm` on a
+tracked file, in whatever checkout the reader was standing in, while all three
+safeguards sat far below it; and the same page's `git -C <submodule> grep` form sat
+sections away from a command that could not reproduce its own worked example
+without it. **The exact distances are not published**, for the reason given below
+about counts: a line offset inside the document it measures is stale the next time
+that document is edited, which for this page has been every round.
 
 **A reader executes the invocation printed next to the instruction.** Anything true
 elsewhere in the document is, operationally, absent — so the test for a rule is not
@@ -545,36 +548,286 @@ LOUDLY** — exit 1 and a stale-artifact listing either way, so neither is quiet
 equally legible, though, and the difference runs opposite to intuition:
 
 Pasted rather than described, because "a paste and its label are two separate
-claims" applies to this page's own tables. Both runs perturb a clean tree and are
-reverted immediately after:
+claims" applies to this page's own tables. **Provenance, which this page's own
+rule demands of every figure in the BLOCK below:** one continuous session at superproject
+`a56240f0` — the commit that corrected the `drift` message quoted throughout. A
+squash-merge lands that commit on no branch, so it survives as an ancestor of
+`refs/pull/289/head`, which is where anything that needs it has to look. `plugins`
+was at `a8b51b16` and `docs` at `c641b99`, in a worktree checked out there with a
+binary built by `task build:binary`. Every command runs at the superproject root.
+`git status --porcelain` is shown EMPTY at the start and again at the end,
+untracked files included, because an untracked file carrying the generated header
+inside a walked tree is itself one of the perturbations. **Every elision is marked inline**; nothing is
+dropped silently. The count is 400 in all three clean runs — 1, 3 and 6 — because
+a content edit changes bytes, not the set of artifacts, and that holds across run
+3's perturbed tree as much as across the two baselines.
+
+**Run 3's two totals are both right, and they describe different sets** — worth
+stating, because a reader takes them for one. `generate` prints `len(em)`, all
+400, then lists every emitted path EXCEPT the seven its reporter filters by
+prefix: `CLAUDE.md`, `AGENTS.md`, `.claude/settings.json`, and the four
+`.claude/hooks/*`. 400 − 393 is exactly those seven. `drift` compares all 400
+either way — only the LISTING is filtered, which is why a figure read off the
+listing can never be reconciled against the gate's own count without knowing it.
+
+**`drift`'s `clean` and `git status`'s clean are independent claims, and run 3 is
+them disagreeing.** `drift` regenerates in memory from the sources ON DISK and
+compares with the artifacts ON DISK; it never invokes git, so it answers only
+*would regeneration change a byte* — it prints `clean` on a tree carrying two
+uncommitted halves, and would answer the same in a directory that is not a
+repository at all. `git status` answers what is committed and says nothing about
+whether the mirror is stale. **A figure labelled only "a clean tree" names
+neither of them**, which is exactly how the count this block used to carry was
+executed, correct, and unfalsifiable at the same time.
+
+A TRANSCRIPT — the `$` prompts and interleaved output are the evidence, so retype
+the commands rather than pasting the block. Every state it asserts is a state it
+runs, including the reverts between perturbations:
 
 ```
-# SOURCE ahead — a candy `skill:` edit, mirror not yet regenerated
-marketplace drift: 1 generated artifact(s) are stale:
+# 1. BASELINE — git-clean and drift-clean at once; runs 4 and 6 return to it
+$ git status --porcelain | wc -l
+0
+$ charly marketplace drift
+… 8 `Note: local candy … shadows …` lines …
+marketplace drift: clean (400 artifact(s) on disk match their sources; regeneration is a no-op)
+$ echo $?
+0
+
+# 2. SOURCE ahead — a candy `skill:` edit, mirror not yet regenerated
+$ sed -i 's/## Evidence discipline/## Evidence discipline (canary)/' candy/charly-internals/charly.yml
+$ git status --short
+ M candy/charly-internals/charly.yml
+$ charly marketplace drift
+… 8 `Note: local candy … shadows …` lines …
+charly marketplace: marketplace drift: 1 generated artifact(s) are stale:
   plugins/internals/skills/git-workflow/references/evidence-and-freshness.md
-run `charly marketplace generate`                                    exit 1
+run `charly marketplace generate`
+$ echo $?
+1
 
-# GENERATED tree ahead — an orphan carrying the generated header, projected by nothing
-marketplace drift: 1 generated artifact(s) are stale:
+# 3. BOTH halves on disk — the same edit, now regenerated, neither committed
+$ charly marketplace generate
+… 8 `Note: local candy … shadows …` lines …
+marketplace generate: wrote 400 artifact(s) across 26 family(ies)
+… 393 emitted paths …
+$ git status --short
+ M candy/charly-internals/charly.yml
+ m plugins
+$ charly marketplace drift
+… 8 `Note: local candy … shadows …` lines …
+marketplace drift: clean (400 artifact(s) on disk match their sources; regeneration is a no-op)
+$ echo $?
+0
+
+# 4. REVERT — both halves, so run 5 starts from the baseline and not from run 3
+$ git checkout -- candy/charly-internals/charly.yml && git -C plugins checkout -- .
+$ git status --porcelain | wc -l
+0
+
+# 5. GENERATED tree ahead — an orphan carrying the generated header, projected by nothing
+$ head -1 plugins/internals/skills/git-workflow/references/evidence-and-freshness.md \
+    > plugins/internals/skills/git-workflow/references/zz-orphan-canary.md
+$ git -C plugins status --short
+?? internals/skills/git-workflow/references/zz-orphan-canary.md
+$ charly marketplace drift
+… 8 `Note: local candy … shadows …` lines …
+charly marketplace: marketplace drift: 1 generated artifact(s) are stale:
   plugins/internals/skills/git-workflow/references/zz-orphan-canary.md (stale)
-run `charly marketplace generate`                                    exit 1
+run `charly marketplace generate`
+$ echo $?
+1
 
-marketplace drift: clean (400 artifact(s) match the committed tree)   exit 0
+# 6. BASELINE again — the session leaves the tree as it found it
+$ rm plugins/internals/skills/git-workflow/references/zz-orphan-canary.md
+$ git status --porcelain | wc -l
+0
+$ charly marketplace drift
+… 8 `Note: local candy … shadows …` lines …
+marketplace drift: clean (400 artifact(s) on disk match their sources; regeneration is a no-op)
+$ echo $?
+0
 ```
 
-The `(stale)` suffix is the whole difference, and it appears only in the second.
+Runs 1, 3 and 6 print the identical `clean` line — twice from a tree `git status`
+calls empty and once from a tree it calls dirty — which is why the success message
+names what it compared instead of calling the tree committed. It once did:
+`clean (N artifact(s) match the committed tree)` — a claim `drift` has no
+mechanism to establish. That wording is what made THIS example ambiguous, inside
+the block whose own rule forbids exactly that. The code was right and its own
+prose was wrong, so the prose moved (R4a), in the cutover that fixed this block.
 
-**The orphan scan keys on the GENERATED HEADER, not on the path** — `scanGenerated`
-collects files carrying it and reports any the emissions map does not claim, so a
-file without that header is invisible to drift wherever it sits. That is not a
-hypothetical caution: the first two attempts at the perturbation above used a
-header-less canary, got `clean`, and came close to being filed as a defect against
-the very claim they failed to test.
+**`(stale)` marks the ORPHAN: a generated path no source claims.** `scanGenerated`
+collects the files its three arms reach (see below, and they are not all
+header-based); any of those the emissions map does not contain gets the suffix. So
+run 5's canary carries it — nothing projects that path — while run 2's artifact,
+which is behind its source, does not.
+
+The headline covers both directions: `N generated artifact(s) are stale`. The
+suffix therefore repeats the headline's word rather than naming what separates the
+subset, which is why it is the only discriminator between the two red outputs and
+also the least self-explaining part of them. `(orphan)` would say it; the code's
+own comment already calls them *"stale orphans"*, seven lines above the line that
+emits the suffix. **Filed as a message fix, not compensated for here** — this page
+does not teach a reader to invert a label, because a page that teaches the
+compensation has documented the defect instead of removing it.
+
+**The orphan scan is PATH-GATED, and the header only decides inside the trees it
+walks.** `scanGenerated` has three arms, and only the first reads a byte of any
+file: it walks `plugins/<family>/skills` and `.../agents` collecting whatever
+carries the generated header; it then adds a fixed list of known paths — each
+family's `plugin.json`, `.codex-plugin/plugin.json` and `.mcp.json`, plus
+`marketplace.json`, `profiles.json` and `setup` — if they exist, header or not;
+and it takes every file under `.claude/hooks/` outright. So one banner line is the
+whole detection surface exactly where run 5's canary sits, in a walked skills
+tree, which is why `head -1` of a real artifact is enough there. A header-less
+file is invisible only when it ALSO sits outside the known paths and the hooks
+directory — which is precisely the condition under which `plugins/README.md`,
+`CHANGELOG/`, `LICENSE` and the scripts survive regeneration, and `prune.go`'s own
+comment states both halves.
+
+An earlier draft of this paragraph said the scan keys on the header "not on the
+path", and that it is invisible "wherever it sits". Both directions are wrong, a
+validator refuted them against the function, and the sentence had stood while the
+block around it was rebuilt twice — a false mechanism claim survives review most
+easily when it is the *unchanged* part of a diff everyone is reading for what
+changed.
+
+**Then a paraphrase of it survived the correction itself, in the paragraph beside
+the one that replaced it** — and the gate that was supposed to catch it looked for
+the retired WORDING (`git grep` on the deleted sentence, which returned 0) rather
+than for the MODEL. A claim-keyed sweep keyed on a string cannot find the same
+claim restated in other words, and restating it is exactly what a correcting
+author does in the neighbouring paragraph. **Sweep for every site that NAMES the
+mechanism, and reconcile each against one derived ground truth.** An enumeration
+of sites is checkable; the absence of a string is not.
+
+**Run that sweep once per REPO, because `git grep` does not cross a gitlink.**
+`git grep -n scanGenerated` reaches, by tree — stated as reach rather than as a
+file count, since every entry that discusses the mechanism adds a hit and any
+number here would be stale by the next one:
+
+- **superproject** — the candy source, the two Go files, and whatever `CHANGELOG/`
+  entries discuss it; **never a path under `plugins/` or `docs/`**;
+- **`plugins`** — this page, plus the entries beside it that discuss it;
+- **`docs`** — the docs projection of this page.
+
+This page is projected twice, so a claim about it lives in three trees, and no one
+of them can see the other two. That is not hypothetical: the first draft of THIS
+rule prescribed one unrooted grep, and the live instance of the very claim it was
+written to kill was sitting in the `docs` projection, invisible to it.
+
+No count of those hits is published, and not for the reason a first draft gave.
+**The count is tree-dependent** — one number cannot be right for the superproject,
+`plugins` and `docs` at once — and it goes stale on the next edit. It is NOT the
+diffstat's self-reference: writing `3` adds no occurrence of the search term, so
+that count would converge immediately. Self-inclusion is not self-invalidation,
+and the earlier draft conflated them.
+
+**And the sweep has a window in which it cannot be complete.** The projection-first
+ordering guarantees a period where `plugins/main` carries prose `charly/main`
+cannot reproduce — the source is still in an unmerged superproject PR. **The number
+of open windows is the number of superproject legs that have not landed, each
+invisible from inside the others.** So regenerate from your own source tree, never
+from `charly/main`.
+
+**Your OWN leg's window is harmless; another leg's is not** — and the difference
+decides which check to run. While no other leg has landed into your base, an
+UNSCOPED whole-tree regenerate is clean and is the strongest evidence available:
+it proves byte-identity across all 400 artifacts, not just yours. The moment
+another leg's projection lands in your base, that same check turns destructive —
+regenerating from a source that lacks their candy entities deletes and reverts
+their landed work, and reports success while doing it. **The trigger is the base
+moving under you, not the mere existence of a window:** run the unscoped check
+while you can, and scope the assertion to the files your PR touches once another
+leg has merged beneath it.
+
+The anecdote it carried is unaffected and still worth having: the first two
+attempts at this perturbation used a header-less canary, got `clean`, and came
+close to being filed as a defect against the very claim they failed to test — the
+canary was in the references tree, where the header is what decides.
 
 The generated-ahead direction is if anything the more legible of the two. What makes both
 dangerous is not detection, it is that **`drift` runs in no CI workflow** — it is red only
 for whoever runs it. A regeneration performed for an unrelated reason picks the revert up
 into that person's diff, where it reads as noise from their own change.
+
+**`git status` distinguishes THREE dirty-submodule states, and which one you see
+says whose half is outstanding** — but ONLY under `--short`. Measured at the same
+commit as the six-run session above, in a **separate** session re-taken in a
+worktree checked out there — same provenance, different sitting, which is why it
+carries its own setup and revert rather than continuing the block above. git
+2.55.0:
+
+```
+$ echo canary >> plugins/README.md          # content modified INSIDE the submodule
+$ git status --short
+ m plugins
+$ git status --porcelain
+ M plugins
+
+$ git -C plugins checkout -- README.md      # revert; now UNTRACKED content instead
+$ head -1 plugins/README.md > plugins/zz-canary.md
+$ git status --short
+ ? plugins
+$ git status --porcelain
+ M plugins
+
+$ rm plugins/zz-canary.md                   # revert, then move the gitlink instead
+$ git -C plugins checkout -q --detach HEAD~1
+$ git status --short
+ M plugins
+$ git status --porcelain
+ M plugins
+
+$ git -C plugins checkout -q --detach a8b51b16   # revert: back to the pinned gitlink
+$ git status --porcelain | wc -l
+0
+```
+
+**This reading is about the SUBMODULE line only — and only ONE of the three has
+an ordinary-path meaning at all.** Measured in an isolated repo at git 2.55.0: a
+modified tracked file renders ` M root.txt`, so run 3's ` M` on the candy source
+is an ordinary modified file with nothing to do with a gitlink. The other two do
+not transfer: an untracked ordinary path is `?? untracked.txt` — **two columns,
+not ` ?`** — and lowercase ` m` never appears on an ordinary path at all, because
+it exists only to say *modified content inside a submodule*. So the collision a
+reader must watch for is ` M` alone; ` m` and ` ?` are unambiguous wherever they
+appear. The rule below is about the
+`plugins` line, not about every line of the run it sits in.
+
+Lowercase ` m` is modified content inside the submodule — someone regenerated and
+has not committed there (run 3). ` ?` is untracked content inside it, which is run
+5's own state seen from the superproject. Uppercase ` M` is a moved gitlink — the
+projection has landed in `plugins` and it is the superproject pin that is
+uncommitted.
+
+**The six-run session never reaches that third state, and not because of where it
+looks from.** No gitlink moves anywhere in the six runs — every perturbation edits
+or adds a file — so ` M` is unreachable no matter which repo you run `git status`
+in. Run 5 happens to report from inside the submodule (`git -C plugins`), but the
+superproject view of that same moment is ` ? plugins`, measured above. The state
+that says *someone else's projection has landed* is the one a two-repo cutover
+needs most, and it is the one the session cannot produce — which is why it is
+pasted here rather than pointed at.
+
+**`--porcelain` collapses all three to ` M`**, so the script-safe spelling is the
+one that loses every distinction. The two blocks use it differently on purpose:
+the **six-run session** above reaches for `--porcelain` only where it asserts
+*empty*, because there the count is the claim; the **three-state block** here uses
+it four times, three of them non-empty, because demonstrating the collapse IS its
+purpose. `--short` carries the argument in both.
+
+**And `charly version` cannot stand in for any of this.** The stamp is derived
+from the HEAD commit's UTC timestamp (`scripts/calver.sh`), deliberately, so that
+every build of one commit agrees — a dirty tree and a clean tree at the same
+commit produce the same string. The cost of that determinism is that the stamp
+cannot see uncommitted content: the binary that produced this block's first draft
+was compiled from a working tree already carrying the message change, at a HEAD
+one commit earlier, and reported that earlier commit's CalVer. So `charly
+version` identifies the COMMIT a build was made at, never the bytes that were
+compiled — which is why the runs above were re-taken in a worktree checked out at
+`a56240f0` with nothing uncommitted in it.
 
 So: run `charly marketplace drift` before and after any `charly marketplace generate`, and treat an
 unexplained artifact in the output as someone else's half-landed cutover rather than your
@@ -691,3 +944,98 @@ is not a control. It is a description of what a careful person would do. **That 
 argument for the mechanical form, and it is now measured rather than asserted**: the
 documentary version was given the most favourable test available and failed it three times
 in one session.
+
+### A guard that cannot fail is worse than no guard
+
+Four times in one cutover an unmerged change was written as landed fact — "presence **is**
+enforced", the traits "**are now**" generated, the inference "**is** deleted", the defect "**is**
+fixed". Each was caught by a reviewer AFTER it shipped into a PR body or CHANGELOG. The pattern is
+not carelessness: while you hold a whole cutover in your head, the branch state IS your reality,
+and present tense is the honest-feeling voice for it. So the guard has to be **mechanical, not
+attentional** — you cannot pay closer attention to a bias you cannot feel.
+
+**Guard 1 — every commit SHA an entry names, checked for landed state AND subject:**
+
+```bash
+( # Run from the superproject OR any submodule — the root is resolved, not assumed.
+  root=$(git rev-parse --show-superproject-working-tree)
+  root=${root:-$(git rev-parse --show-toplevel)}
+  entry=$root/CHANGELOG/2026.229.2153.md   # substitute the entry under review
+
+  # REFUSE rather than narrow. Each of these is a way to report nothing convincingly.
+  [ -f "$entry" ] || { echo "guard: no such entry: $entry" >&2; exit 1; }
+  repos="$root $(git config -f "$root/.gitmodules" --get-regexp path \
+                   | awk -v r="$root" '{print r"/"$2}')"
+  [ "$repos" = "$root " ] && { echo "guard: no submodules under $root" >&2; exit 1; }
+  shas=$(grep -ohE '\b[0-9a-f]{7,40}\b' "$entry" | sort -u)
+  [ -n "$shas" ] || { echo "guard: $entry cites no SHAs — nothing was checked" >&2; exit 1; }
+
+  bad=0
+  for sha in $shas; do
+    found=
+    for repo in $repos; do
+      git -C "$repo" cat-file -e "${sha}^{commit}" 2>/dev/null || continue
+      # Capture rc and CLASSIFY it. 128 means "could not check" and is never a verdict;
+      # `&& ||` cannot tell it from 1, so it would print UNMERGED and pass.
+      git -C "$repo" merge-base --is-ancestor "$sha" origin/main; rc=$?
+      case $rc in
+        0) st=LANDED ;;
+        1) st=UNMERGED ;;
+        *) st=UNCHECKED; bad=1 ;;
+      esac
+      printf '%-9s %-10s %-9s %s\n' "$sha" "$st" "$(basename "$repo")" \
+             "$(git -C "$repo" log -1 --format=%s "$sha")"
+      found=1
+      break
+    done
+    # UNRESOLVED is a failure: nobody can check that citation. UNMERGED is INFORMATION --
+    # an entry citing its own open branch is legitimate, so the reader judges it, not the exit code.
+    [ -n "$found" ] || { printf '%-9s %-10s\n' "$sha" UNRESOLVED; bad=1; }
+  done
+  exit $bad
+)
+```
+
+The **subject** is half the value: it catches citing the wrong commit, which happened here — a
+CHANGELOG named the branch HEAD (a docs commit) as the commit carrying a code fix. A docs subject
+printed beside a "the fix is" claim is visible at a glance; a bare SHA is not.
+
+**The first version of that guard was VACUOUS, and this is the part to carry.** It ran
+`git cat-file -e` only in the submodule, for a SHA that lived in the **superproject**. The SHA
+resolved nowhere, the loop `continue`d, and the guard printed nothing — reporting clean while
+skipping the single citation it existed to check. A cross-repo citation is exactly the case a
+local-only resolve drops silently.
+
+> **A guard that reports "all citations verified" without discriminating is more dangerous than no
+> guard: it converts an open question into a false answer.** Before trusting one, feed it the
+> failing case on purpose and require it to complain.
+
+**Guard 2 — grep the entry's own prose, with the exclusion that makes it usable:**
+
+```bash
+( # Same root resolution as guard 1 — the two guards MUST audit the same file.
+  root=$(git rev-parse --show-superproject-working-tree)
+  root=${root:-$(git rev-parse --show-toplevel)}
+  entry=$root/CHANGELOG/2026.229.2153.md   # substitute the entry under review
+
+  [ -f "$entry" ] || { echo "guard: no such entry: $entry" >&2; exit 1; }
+  hits=$(grep -nE '\b(is|are) (now )?(enforced|generated|deleted|removed|fixed)\b' "$entry")
+  # SAY the empty case. "found nothing" and "never ran" must not look alike.
+  [ -n "$hits" ] && printf '%s\n' "$hits" || echo "guard: no present-tense landed-state claims in $entry"
+)
+```
+
+Most hits are CORRECT and must not be hedged. The discriminator:
+
+| the claim is about… | verdict |
+|---|---|
+| **this entry's own diff** | present tense is right — the entry ships with the commit that does it |
+| **another repo's unmerged branch** | defect — scope it ("lands with this cutover's sdk leg, unmerged") |
+
+Omitting that exclusion turns the guard into busywork: true sentences get rewritten into hedged
+ones, and an entry that hedges its own change reads as uncertainty about the change itself.
+
+**Why this matters more than it looks.** In the cutover that produced these guards, one PR took six
+heads to land and the change itself was correct at head one and never moved — every round was the
+*evidence narrative* being written faster than it could be verified. The code was never the
+bottleneck. These two checks cost seconds and catch precisely that class.

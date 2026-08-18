@@ -521,8 +521,8 @@ core keeps only the thin adapter `charly/credential_plugin.go` (`ResolveCredenti
 `CredentialStore` interface + Get/Set/Delete/List/Name/awaitUnlock were DELETED at K-wave 2
 cone CONTESTED, zero production callers) + `candy/plugin-fleet/secrets_artifacts.go` + `candy/plugin-deploy-pod/secrets_resolve.go` (podman-secret provisioning — the former `charly/secrets.go` is DELETED, K-wave 2). On an
 installed host the plugin lives beside charly at `/usr/lib/charly/plugins` (every native
-package build — the arch PKGBUILD and the fedora `.rpm` / debian `.deb` builds — bakes the
-binary + its `.providers` manifest, off the shared `pkg/host-command-plugins.txt` set).
+package build — the distro repos' packaging workflows — bakes the binary + its `.providers`
+manifest, off the shared `scripts/host-command-plugins.txt` set).
 
 ## When to Use This Skill
 

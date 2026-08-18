@@ -62,7 +62,9 @@ reach a repo it does not have, so its author publishes from the identical surfac
 
 - `go test ./...` — the registry/transport/schema seams (`TestPluginGRPCRoundTrip`,
   `TestExternalPluginEndToEnd` proves the schema travels over RPC, `TestPluginSchemaSpliceValidation`,
-  `TestBuiltinPluginSchemasSplice` is the CI gate that every builtin schema splices).
+  `TestBuiltinPluginSchemasSplice` asserts that every builtin schema splices — like
+  `charly marketplace drift`, it runs in no CI workflow and is red only for whoever
+  runs it).
 - `task cue:gen` — regenerates spec + every plugin's params; reproducible (a second run is a no-op).
 - `charly box validate` — the candy + `plugin:` block (`candy/plugin-box/validate_rules.go`'s
   `IsPlugin` check — an explicit, documented 1:1 port of the former core `validatePluginCandy`, deleted
@@ -79,7 +81,7 @@ reach a repo it does not have, so its author publishes from the identical surfac
 - `/charly-check:check` — the plugin-verb check steps (`<word>: <input>` sugar) + ADE (a plugin's own acceptance plan).
 - `/charly-build:validate` — `charly box validate` rules.
 - `/charly-internals:install-plan` — the `pluginDeployTarget` deploy lifecycle (`OpExecute` reverse channel, ledger record) + the `OpEmit` build-time fragment; the deploy wire types CUE-sourced at `spec/schema/deploy.cue` / `spec/schema/buildwire.cue` / `spec/schema/seam.cue`.
-- `/charly-build:generate` + `/charly-internals:generate-source` — the build-time plugin connect seam + the `emitTasks` placement-agnostic plugin-verb dispatch (`OpEmit` → fragment).
+- `/charly-build:generate` + `/charly-internals:generate-source` — the build-time plugin connect seam + the `EmitTasks` placement-agnostic plugin-verb dispatch (`OpEmit` → fragment).
 
 ## When to Use This Skill
 
