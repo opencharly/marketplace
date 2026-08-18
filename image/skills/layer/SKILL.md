@@ -868,7 +868,7 @@ my-app:
         - label:disable
       group_add:
         - keep-groups
-      mounts:
+      mount:
         - /dev/input:/dev/input:rw
         - tmpfs:/run/udev:rw,size=1m
       shm_size: "1g"
