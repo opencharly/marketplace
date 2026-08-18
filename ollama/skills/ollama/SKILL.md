@@ -1,8 +1,11 @@
 ---
 name: ollama
 description: |-
-  Standalone Ollama LLM inference server. GPU acceleration is composed at the
-  box level (`ollama-cuda` / `ollama-rocm`), never by this candy.
+  Standalone Ollama LLM inference server. This candy DECLARES no GPU dependency —
+  a backend is composed at the box level (`ollama-cuda` / `ollama-rocm`). What that
+  yields differs by install path: on a packaged distro the base is genuinely CPU-only,
+  while on a tarball distro the single upstream archive already contains CUDA, so the
+  declaration is about what this candy REQUIRES, not about what ends up in the image.
   Runs as a supervisord service on port 11434 with persistent model storage.
   MUST be invoked before building, deploying, configuring, or troubleshooting the ollama box.
 ---
