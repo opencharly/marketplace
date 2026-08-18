@@ -1,7 +1,8 @@
 ---
 name: ollama
 description: |-
-  Standalone Ollama LLM inference server with CUDA GPU support.
+  Standalone Ollama LLM inference server. GPU acceleration is composed at the
+  box level (`ollama-cuda` / `ollama-rocm`), never by this candy.
   Runs as a supervisord service on port 11434 with persistent model storage.
   MUST be invoked before building, deploying, configuring, or troubleshooting the ollama box.
 ---
@@ -10,37 +11,64 @@ description: |-
 
 # ollama
 
-GPU-accelerated Ollama LLM inference server.
+Ollama LLM inference server. On a distro that packages ollama it is CPU-only by
+itself and a GPU backend is composed at the box level; on a tarball distro the
+upstream archive already bundles the CUDA backend.
 
 ## Box Properties
 
+The `ollama` BOX lives in a distro submodule — `box/fedora` and `box/cachyos` each
+define one today — not here, so its exact
+composition is stated there and not on this page — an earlier version of this
+table listed a candy set that a later box edit made wrong, which is the failure
+mode a cross-repo composition table has by construction. What is stable, and
+all this page should claim:
+
 | Property | Value |
 |----------|-------|
-| Base | nvidia |
-| Candies | agent-forwarding, ollama |
-| Platforms | linux/amd64 |
 | Ports | 11434 |
+| Volumes | `models` → `~/.ollama` |
 | Registry | ghcr.io/opencharly |
 
-## Full Candy Stack
-
-1. `fedora` → `nvidia` (CUDA base)
-2. `pixi` → `python` → `supervisord` (transitive)
-3. `ollama` — LLM server, models volume
+The GPU base and the backend candy it composes are the box's choice; see
+`charly box list candies ollama` for what a given box actually stacks.
 
 ## GPU is box-level — the `ollama` candy is GPU-agnostic
 
-The `ollama` **candy** installs the distro-agnostic Ollama binary (a tarball
-extracted to `/usr`) and a supervisord `ollama serve` service. The binary
-auto-detects the GPU at runtime and falls back to CPU inference when none is
-present, so the candy carries **no `cuda` dependency** — it only `require:`s
-`supervisord`. GPU support is a **composition choice made at the box level**:
+The `ollama` **candy** installs the Ollama binary and a supervisord
+`ollama serve` service, and carries **no GPU dependency** — it only
+`require:`s `supervisord`. Two install paths converge on one layout
+(`/usr/bin/ollama` plus backends under `/usr/lib/ollama`): on Arch and its
+derivatives the packaged `ollama` (66 MiB installed) is installed, and elsewhere
+the upstream release tarball is extracted to `/usr`. The step is gated on
+whether the binary already exists rather than on a distro name, so any distro
+that gains an ollama package is picked up without an edit.
 
-- This `ollama` box keeps GPU acceleration via `base: nvidia` (the `nvidia`
-  box composes the `cuda` candy, inherited through the base chain).
-- CPU-only consumers compose the `ollama` candy on a non-NVIDIA base and get
-  CPU inference for free — e.g. `/charly-openclaw:openclaw-desktop` (cachyos base,
-  no `cuda`).
+GPU support is a **composition choice made at the box level** — but only on the
+PACKAGED path is it also a size choice, and conflating the two is easy to do:
+
+- **Packaged distros** (Arch and derivatives) install a 66 MiB CPU-only base, and a
+  backend is strictly opt-in. This is where the split earns its keep.
+- **Tarball distros** get one archive (1.32 GiB compressed) that already contains
+  the CUDA backend, so there is nothing to opt out of. ROCm is the exception in the
+  other direction: it is NOT in that archive — upstream publishes it as a separate
+  `ollama-linux-amd64-rocm` download — which is why `ollama-rocm` is Arch-only and
+  says so on its own page.
+
+Every size below is INSTALLED. The one figure above is a COMPRESSED DOWNLOAD and is
+deliberately not compared against them: the tarball's installed size is not stated
+anywhere here, so weighing 1.32 GiB against the installed numbers would compare two
+different axes. Read the download figure as what a tarball build FETCHES, and the
+table as what a packaged build COSTS on disk.
+
+- A GPU box composes `ollama-cuda` (~988 MiB) beside this candy for the
+  CUDA backend, or `ollama-rocm` (~2.9 GiB) for AMD. Both are candies in
+  this repository; which boxes compose them is decided in the distro submodules
+  (`box/fedora`, `box/cachyos`), so consult those rather than this page for the
+  current list.
+- A consumer that composes neither pays for neither ON A PACKAGED DISTRO —
+  e.g. `/charly-openclaw:openclaw-desktop` (cachyos base, no GPU candy). On a
+  tarball distro it still carries the bundled CUDA backend.
 
 ## Ports
 
@@ -71,6 +99,41 @@ charly alias install ollama
 # Now: ollama pull llama3  (runs inside the container)
 ```
 
+## The `charly ollama` management CLI
+
+The compiled-in `command:ollama` plugin (`candy/plugin-ollama`) manages a
+deployed Ollama server from the host over its HTTP API — no shell alias
+needed:
+
+**11434 is the port INSIDE the container, not necessarily on your host.** A deploy
+can publish it elsewhere, and a check bed allocates the host port automatically. Read
+it from the `Ports:` line before you connect:
+
+```bash
+charly status ollama
+#   Ports:     34117:11434/tcp        <- HOST:CONTAINER, so the host port is 34117
+charly ollama list                --server http://127.0.0.1:34117
+charly ollama pull llama3         --server http://127.0.0.1:34117
+charly ollama run  llama3 "Hello" --server http://127.0.0.1:34117
+```
+
+On a deploy that publishes 11434 unchanged, drop the flag entirely — that is the
+default. On a bed-allocated port you cannot, and a copied hardcoded 11434 gets you a
+connection refused.
+
+Endpoint resolution: `--server` flag > `OLLAMA_HOST` env > `http://127.0.0.1:11434`.
+See `/charly-ollama:ollama-cli` for the full command tree.
+
+## Pinning the upstream version
+
+`OLLAMA_VERSION` is PINNED to a release tag (`v0.32.14` today) and must
+stay one — this is not a default you can swap for `latest`. The download
+cache is content-addressed by the sha256 of the URL, so a `latest` URL
+hashes to a single key forever and keeps serving the first tarball it ever
+fetched, long after upstream has moved on. Bump the tag to move the tarball
+distros; the packaged distros ignore it entirely, because pacman owns the
+version there.
+
 ## Service Environment
 
 When deployed via `charly config ollama`, this box automatically provides `OLLAMA_HOST=http://charly-ollama:11434` to all other deployed containers via the `env_provide` mechanism. Use `--update-all` to propagate to already-deployed services:
@@ -81,30 +144,43 @@ charly config ollama --update-all
 
 This means containers like `jupyter-ml-notebook` automatically discover the Ollama endpoint without manual `OLLAMA_HOST` configuration.
 
-## Key Candies
+## Related Candies
 
-- `/charly-ollama:ollama` — Ollama binary, supervisord service, model volume
-- `/charly-distros:cuda` — GPU support (via nvidia base)
+- `/charly-ollama:ollama-layer` — the ollama CANDY: the binary, the supervisord
+  service and the models volume. This page is the BOX; that page is what it composes.
+- `/charly-ollama:ollama-cli` — the compiled-in `charly ollama` management CLI (candy/plugin-ollama)
+- `ollama-cuda` / `ollama-rocm` — the opt-in GPU backend candies. Named in plain
+  backticks, not as `/charly-<plugin>:<skill>` references: neither candy declares a
+  `skill:` entity, so a reference form would be a well-formed link to nothing and the
+  docs generator's fail-closed gate rejects it.
+- `/charly-jupyter:notebook-ollama` — 6 Jupyter notebooks demonstrating Ollama APIs (requests, OpenAI, ollama lib, Anthropic, HuggingFace, GPU)
 
 ## Related Boxes
 
-- `/charly-distros:nvidia` — parent (GPU without Ollama)
-- **CachyOS variant** — `cachyos.ollama` is the CachyOS GPU sibling (built on the `cachyos.nvidia` GPU base) in the `opencharly/distro-cachyos` submodule. See `/charly-distros:cachyos`.
-- `/charly-openclaw:openclaw-desktop` — composes the `ollama` candy CPU-only (cachyos base, no `cuda`) alongside a streaming desktop + the openclaw gateway + the nested charly toolchain
-- `/charly-jupyter:jupyter-ml-notebook` — Jupyter with Ollama integration notebooks (receives `OLLAMA_HOST` automatically via env_provide when ollama is deployed)
-- `/charly-openwebui:openwebui` — Open WebUI (receives `OLLAMA_HOST` via env_provide, auto-configures as `OLLAMA_BASE_URL`)
+Deliberately NOT a list of what composes what. Every such statement here is a claim
+about a `box/<distro>` submodule that this page cannot keep true — the composition
+table above this section used to make exactly that claim and went stale. These are
+pointers to related SUBJECTS; run `charly box list candies <box>` for any actual
+composition.
 
-## Related Candies
-
-- `/charly-ollama:ollama` — the Ollama binary candy
-- `/charly-jupyter:notebook-ollama` — 6 Jupyter notebooks demonstrating Ollama APIs (requests, OpenAI, ollama lib, Anthropic, HuggingFace, GPU)
+- `/charly-distros:nvidia` — the GPU base family
+- `/charly-distros:cachyos` — the CachyOS image family, which carries its own ollama boxes
+- `/charly-openclaw:openclaw-desktop` — a desktop image that serves a local ollama
+- `/charly-jupyter:jupyter-ml-notebook` — receives `OLLAMA_HOST` via env_provide when ollama is deployed
+- `/charly-openwebui:openwebui` — receives `OLLAMA_HOST` via env_provide, auto-configures as `OLLAMA_BASE_URL`
 
 ## Verification
 
 After `charly start`:
 - `charly status ollama` — container running
 - `charly service status ollama` — all services RUNNING
-- `curl -s http://localhost:11434/api/tags` — Ollama API responds
+- `curl -s http://localhost:<host-port>/api/tags` — Ollama API responds, where
+  `<host-port>` is the left-hand side of the `Ports:` line in `charly status ollama`
+  (that line reads HOST:CONTAINER/proto; 11434 is the container-side port)
+- `charly check live ollama` — the baked runtime checks pass: `/api/tags` 200,
+  `ollama --version`, `ollama list` exit 0. This is the only one of these that
+  reports on the checks; `charly ollama list` lists MODELS and says nothing about
+  whether anything passed.
 
 ## When to Use This Skill
 
