@@ -137,7 +137,10 @@ This means containers like `jupyter-ml-notebook` automatically discover the Olla
 - `/charly-ollama:ollama-layer` — the ollama CANDY: the binary, the supervisord
   service and the models volume. This page is the BOX; that page is what it composes.
 - `/charly-ollama:ollama-cli` — the compiled-in `charly ollama` management CLI (candy/plugin-ollama)
-- `/charly-ollama:ollama-cuda`, `/charly-ollama:ollama-rocm` — the opt-in GPU backends
+- `ollama-cuda` / `ollama-rocm` — the opt-in GPU backend candies. Named in plain
+  backticks, not as `/charly-<plugin>:<skill>` references: neither candy declares a
+  `skill:` entity, so a reference form would be a well-formed link to nothing and the
+  docs generator's fail-closed gate rejects it.
 - `/charly-jupyter:notebook-ollama` — 6 Jupyter notebooks demonstrating Ollama APIs (requests, OpenAI, ollama lib, Anthropic, HuggingFace, GPU)
 
 ## Related Boxes
