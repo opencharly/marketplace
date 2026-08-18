@@ -350,10 +350,8 @@ Three things make the naive form of this check miss:
   past a 15-line window by long frontmatter — and the two deepest, at lines 331 and 610, are
   this page quoting the banner in prose.
 
-  **A 15-line window misses both carriers; a 20-line window catches them.** So the tail is not
-  hypothetical here, and a window sized to 98.29% of a corpus silently misses the rest.
-  **Grep the whole file** — not because the distribution is flat, but because the tail
-  is real, and a window sized to 98.29% of a corpus silently misses the rest.
+  **A 15-line window misses both carriers; a 20-line window catches them. Grep the
+  whole file** — a window sized to 98.29% of a corpus silently misses the rest.
 
   **Do not describe this as "19 distinct line numbers."** That is a UNION over the
   tree, and a union of positions looks like a spread while the underlying distribution
@@ -580,8 +578,8 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
    branch.** A symbol unreferenced on a consumer's in-flight `feat/` branch can
    still be live on that consumer's `main`; removing it as "dead" from the
    producer breaks every consumer that hasn't rebased onto the branch yet
-   (the sdk#66 over-removal incident: 4 wire types removed as dead were live
-   on charly `main`). Re-run the liveness grep yourself against the consumer's
+   (sdk#66 — over-removal: 4 wire types removed as dead were
+   live on charly `main`). Re-run the liveness grep yourself against the consumer's
    `origin/main`, not the PR author's claim.
    **How to CLASSIFY the sweep's hits — `references/evidence-and-freshness.md`.**
    The `CHANGELOG/` clause above covers only one slice: a hit in a prior release
@@ -728,7 +726,7 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
      non-compliant while building more on top of it. Landed precedent:
      `sdk#85`'s `clean_wire` cutover (the touched hand-written wire type was
      CUE-sourced in the same PR instead of extended as-is). Generalized by
-     standing operator directive 2026-07-22 (any PR modifying a hand-written
+     standing operator directive (any PR modifying a hand-written
      wire surface must convert it) — first applied to `sdk/spec/arbiter_wire.go`
      (`sdk#90`, LANDED: FLOOR-SLIM Unit-8B) and then to the entire remaining
      `sdk/spec/*_wire.go` class in one SDD-conversion batch (deploy, init, gpu,
@@ -743,7 +741,7 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
      unless the real command and its real output appear in the PR body or a
      comment; a plausible-sounding claim that was never actually re-run at the
      final head is a FRAUD-class finding, exactly like the R10 fraud clauses.
-     Motivating incident: `opencharly/charly#175` round 1 — the PR body's
+     Failure mode (charly#175): a PR body's
      pasted `git grep` output claimed only `CHANGELOG/`-context hits for a set
      of removed identifiers, but a fresh re-run against the PR's OWN head found
      60+ LIVE source hits (comments still naming the retired identifiers); the
