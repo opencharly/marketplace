@@ -179,7 +179,7 @@ explicitly. Without it the `setcap cap_setuid=ep /usr/bin/newuidmap` step exits
 build hard-fails on the deb path (and any image that did slip through would ship
 a capability-less `newuidmap`, so nested podman dies at runtime with
 `newuidmap: open of uid_map failed: Permission denied`). RDD-confirmed
-2026-06-15: this is the one non-format-agnostic deb dependency — every other
+This is the one non-format-agnostic deb dependency — every other
 piece of the recipe is shared.
 
 ## Config files — written to both system-wide and user locations
