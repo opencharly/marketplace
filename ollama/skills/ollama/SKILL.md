@@ -30,17 +30,24 @@ GPU-accelerated Ollama LLM inference server.
 
 ## GPU is box-level — the `ollama` candy is GPU-agnostic
 
-The `ollama` **candy** installs the distro-agnostic Ollama binary (a tarball
-extracted to `/usr`) and a supervisord `ollama serve` service. The binary
-auto-detects the GPU at runtime and falls back to CPU inference when none is
-present, so the candy carries **no `cuda` dependency** — it only `require:`s
-`supervisord`. GPU support is a **composition choice made at the box level**:
+The `ollama` **candy** installs the Ollama binary and a supervisord
+`ollama serve` service, and carries **no GPU dependency** — it only
+`require:`s `supervisord`. Two install paths converge on one layout
+(`/usr/bin/ollama` plus backends under `/usr/lib/ollama`): on Arch and its
+derivatives the packaged `ollama` (66 MiB) is installed, and everywhere else
+the upstream release tarball is extracted to `/usr`. The step is gated on
+whether the binary already exists rather than on a distro name, so any distro
+that gains an ollama package is picked up without an edit.
 
-- This `ollama` box keeps GPU acceleration via `base: nvidia` (the `nvidia`
-  box composes the `cuda` candy, inherited through the base chain).
-- CPU-only consumers compose the `ollama` candy on a non-NVIDIA base and get
-  CPU inference for free — e.g. `/charly-openclaw:openclaw-desktop` (cachyos base,
-  no `cuda`).
+GPU support is a **composition choice made at the box level**, and on the
+packaged path that choice is what keeps images small: the tarball bundles
+every backend (1.36 GiB), while the packages split them out.
+
+- The `ollama` box keeps GPU acceleration via `base: nvidia` and composes
+  `ollama-cuda` (~988 MiB) for the CUDA backend.
+- The `ollama-rocm` box composes `ollama-rocm` (~2.9 GiB) for AMD.
+- CPU-only consumers compose the `ollama` candy alone and pay for neither —
+  e.g. `/charly-openclaw:openclaw-desktop` (cachyos base, no GPU candy).
 
 ## Ports
 
@@ -71,6 +78,27 @@ charly alias install ollama
 # Now: ollama pull llama3  (runs inside the container)
 ```
 
+## The `charly ollama` management CLI
+
+The compiled-in `command:ollama` plugin (`candy/plugin-ollama`) manages a
+deployed Ollama server from the host over its HTTP API — no shell alias
+needed:
+
+```bash
+charly ollama list --server http://127.0.0.1:11434
+charly ollama pull llama3 --server http://127.0.0.1:11434
+charly ollama run llama3 "Hello" --server http://127.0.0.1:11434
+```
+
+Endpoint resolution: `--server` flag > `OLLAMA_HOST` env > `http://127.0.0.1:11434`.
+See `/charly-ollama:ollama-cli` for the full command tree.
+
+## Pinning the upstream version
+
+The candy installs the newest upstream release by default. Set the
+candy-local `var:` `OLLAMA_VERSION` to a release tag (e.g. `v0.32.14`)
+to pin an exact version.
+
 ## Service Environment
 
 When deployed via `charly config ollama`, this box automatically provides `OLLAMA_HOST=http://charly-ollama:11434` to all other deployed containers via the `env_provide` mechanism. Use `--update-all` to propagate to already-deployed services:
@@ -97,6 +125,7 @@ This means containers like `jupyter-ml-notebook` automatically discover the Olla
 ## Related Candies
 
 - `/charly-ollama:ollama` — the Ollama binary candy
+- `/charly-ollama:ollama-cli` — the compiled-in `charly ollama` management CLI (candy/plugin-ollama)
 - `/charly-jupyter:notebook-ollama` — 6 Jupyter notebooks demonstrating Ollama APIs (requests, OpenAI, ollama lib, Anthropic, HuggingFace, GPU)
 
 ## Verification
@@ -105,6 +134,7 @@ After `charly start`:
 - `charly status ollama` — container running
 - `charly service status ollama` — all services RUNNING
 - `curl -s http://localhost:11434/api/tags` — Ollama API responds
+- `charly ollama list` (or `charly check live ollama`) — the baked runtime checks pass: `/api/tags` 200, `ollama --version`, `ollama list` exit 0
 
 ## When to Use This Skill
 
