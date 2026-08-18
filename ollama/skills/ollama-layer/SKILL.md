@@ -32,7 +32,7 @@ description: |-
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `OLLAMA_VERSION` | `latest` | Upstream release for the TARBALL path only — `latest` tracks the newest GitHub release; set a tag (e.g. `v0.32.14`) to pin. Ignored on Arch, where the packaged `ollama` is installed and pacman owns the version |
+| `OLLAMA_VERSION` | `v0.32.14` | Upstream release for the TARBALL path only, and it must be a release TAG — the download cache is content-addressed by the sha256 of the URL, so a `latest` URL would hash to one key forever and keep serving the first tarball it ever fetched. Ignored on Arch, where the packaged `ollama` is installed and pacman owns the version |
 
 ## GPU backends (opt-in, box level)
 
@@ -87,7 +87,9 @@ baked into the `ai.opencharly.description` OCI label (see `/charly-check:check`
 for the full schema). Each step is one inline Op — a probe is a `check:`
 step — and its `context:` list gates where it runs:
 
-- **`context: [build]`** (run under `charly check box`):
+- **ungated** (no `context:`, so it runs wherever the plan runs — under
+  `charly check box` against the image AND under `charly check live`
+  against the deployed service):
   - the ollama binary exists at `/usr/bin/ollama` (`file:` check)
 - **`context: [runtime]`** (run under `charly check live` against a live
   service; `${HOST_PORT:11434}` resolves the deploy-time host port so

@@ -1,7 +1,8 @@
 ---
 name: ollama
 description: |-
-  Standalone Ollama LLM inference server with CUDA GPU support.
+  Standalone Ollama LLM inference server. GPU acceleration is composed at the
+  box level (`ollama-cuda` / `ollama-rocm`), never by this candy.
   Runs as a supervisord service on port 11434 with persistent model storage.
   MUST be invoked before building, deploying, configuring, or troubleshooting the ollama box.
 ---
@@ -10,23 +11,25 @@ description: |-
 
 # ollama
 
-GPU-accelerated Ollama LLM inference server.
+Ollama LLM inference server. CPU-only by itself; a GPU backend is composed
+at the box level.
 
 ## Box Properties
 
+The `ollama` BOX lives in a `box/<distro>` submodule, not here, so its exact
+composition is stated there and not on this page — an earlier version of this
+table listed a candy set that a later box edit made wrong, which is the failure
+mode a cross-repo composition table has by construction. What is stable, and
+all this page should claim:
+
 | Property | Value |
 |----------|-------|
-| Base | nvidia |
-| Candies | agent-forwarding, ollama |
-| Platforms | linux/amd64 |
 | Ports | 11434 |
+| Volumes | `models` → `~/.ollama` |
 | Registry | ghcr.io/opencharly |
 
-## Full Candy Stack
-
-1. `fedora` → `nvidia` (CUDA base)
-2. `pixi` → `python` → `supervisord` (transitive)
-3. `ollama` — LLM server, models volume
+The GPU base and the backend candy it composes are the box's choice; see
+`charly box list candies ollama` for what a given box actually stacks.
 
 ## GPU is box-level — the `ollama` candy is GPU-agnostic
 
@@ -34,18 +37,20 @@ The `ollama` **candy** installs the Ollama binary and a supervisord
 `ollama serve` service, and carries **no GPU dependency** — it only
 `require:`s `supervisord`. Two install paths converge on one layout
 (`/usr/bin/ollama` plus backends under `/usr/lib/ollama`): on Arch and its
-derivatives the packaged `ollama` (66 MiB) is installed, and everywhere else
+derivatives the packaged `ollama` (66 MiB installed) is installed, and elsewhere
 the upstream release tarball is extracted to `/usr`. The step is gated on
 whether the binary already exists rather than on a distro name, so any distro
 that gains an ollama package is picked up without an edit.
 
 GPU support is a **composition choice made at the box level**, and on the
 packaged path that choice is what keeps images small: the tarball bundles
-every backend (1.36 GiB), while the packages split them out.
+every backend into one 1.32 GiB download, while the packages split them out.
+Sizes below are INSTALLED, not download, so they are comparable to each other.
 
-- The `ollama` box keeps GPU acceleration via `base: nvidia` and composes
-  `ollama-cuda` (~988 MiB) for the CUDA backend.
-- The `ollama-rocm` box composes `ollama-rocm` (~2.9 GiB) for AMD.
+- A GPU box composes `ollama-cuda` (~988 MiB) beside this candy for the
+  CUDA backend, or `ollama-rocm` (~2.9 GiB) for AMD. Both are candies in
+  this repository; which boxes compose them is decided in the `box/<distro>`
+  submodules, so consult those rather than this page for the current list.
 - CPU-only consumers compose the `ollama` candy alone and pay for neither —
   e.g. `/charly-openclaw:openclaw-desktop` (cachyos base, no GPU candy).
 
@@ -95,9 +100,13 @@ See `/charly-ollama:ollama-cli` for the full command tree.
 
 ## Pinning the upstream version
 
-The candy installs the newest upstream release by default. Set the
-candy-local `var:` `OLLAMA_VERSION` to a release tag (e.g. `v0.32.14`)
-to pin an exact version.
+`OLLAMA_VERSION` is PINNED to a release tag (`v0.32.14` today) and must
+stay one — this is not a default you can swap for `latest`. The download
+cache is content-addressed by the sha256 of the URL, so a `latest` URL
+hashes to a single key forever and keeps serving the first tarball it ever
+fetched, long after upstream has moved on. Bump the tag to move the tarball
+distros; the packaged distros ignore it entirely, because pacman owns the
+version there.
 
 ## Service Environment
 
