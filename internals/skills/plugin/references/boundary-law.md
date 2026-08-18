@@ -94,7 +94,7 @@ spec.X` / `var y = spec.Y` re-export in `charly/` is ALWAYS an R-item under the 
 REGARDLESS of what it aliases — even a genuine E-envelope type. The alias is not "permanent because it's
 an E-type"; the alias IS the mislocated call site, the whole point of ZERO-ALIASES. Classify every
 `charly/*_aliases.go` (and stray `_alias.go`) entry as residue: delete it and repoint its callers to
-`spec.*` (or the owning kit) directly. Failure mode: an auditor counts `labels.go`'s `BoxMetadata =
+`spec.*` (or the owning kit) directly. Motivating incident: an auditor counted `labels.go`'s `BoxMetadata =
 spec.BoxMetadata` alias and `install_plan.go`'s `Scope`/`Venue`/`Phase` aliases (all grep-verified genuine
 `spec.*` E-types) as "permanent E," then self-corrected — an alias's TARGET being E doesn't make the alias
 itself permanent.
@@ -103,8 +103,12 @@ itself permanent.
 `InstallPlan`, `VenueDescriptor`, `#Node`/`#Step`/`#Op`, the wire replies. A struct NAMED after a concrete
 kind, with kind-specific fields and accessors, is that kind's TYPED SHAPE: an R-item, moving to its
 owning kit/plugin. `ResolvedBox` (now `spec.ResolvedBox`, CUE-generated) is the already-relocated
-precedent. "Carries data" is not the E test; kind-AGNOSTIC is. `layers.go` holds only kind-blind scan/parse
-functions; the typed shape lives in the `spec.CandyModel`/`spec.CandyView` pair.
+precedent. "Carries data" is not the E test; kind-AGNOSTIC is. Motivating incident (CLOSED, kept as a
+historical illustration — do not cite `layers.go`'s `Candy` struct as a still-live example, it no longer
+exists in ANY form): an auditor counted `layers.go`'s then-current `Candy` struct (grep-verified: 60+
+accessor methods, every one kind-specific) as E because it "carries data," then self-corrected — the
+struct was later fully dissolved (not relocated wholesale) into the `spec.CandyModel`/`spec.CandyView`
+pair (W9), so `layers.go` today holds only kind-blind scan/parse functions, not the typed shape itself.
 
 **The practical audit framing — invert the default.** Every file is an R-item (it moves to a plugin)
 UNLESS it is LITERALLY one of the tiny kernel whitelist: the three in-core M-mechanisms (plugin loading /
@@ -112,9 +116,9 @@ prescan-dispatch / the wire broker), the B bootstrap root, D kind-recognition
 data, or an E generic envelope. Auditing a cone by asking "is this hard to move" instead of "is this one
 of E/M/B/D" is the exact failure this framing forecloses: the bed runner, the check/ADE harness, the build
 engine, the deploy walk, and the VM engine are ALL R-items (the v2 ledger already names them plugins) —
-none of them earns kernel status by being awkward to relocate. Failure mode: auditors mis-classify the deploy + check cones as
-~90% permanent using exactly the "host-boundary/gather-engine"
-excuse; the true kernel in those cones is ~0.3%.
+none of them earns kernel status by being awkward to relocate. Motivating incident: two auditors
+independently mis-classified the deploy + check cones as ~90% permanent using exactly the
+"host-boundary/gather-engine" excuse; the true kernel in those cones is ~0.3%.
 
 **The canonical shape every kind copies — resolve-to-envelope.** `builder` is the reference: its plugin
 serves its own `#BuilderInput` schema, decodes into its own params, validates its own input, and RESOLVES

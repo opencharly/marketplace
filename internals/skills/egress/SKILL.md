@@ -27,7 +27,7 @@ description: |-
 > `sdk/deploykit`'s `renderSeamCaller.validateEgress` (a direct `verb:egress` `InvokeProvider`
 > peer dispatch, no host round-trip) — `charly` core no longer has a "text" mode caller at all.
 > The core-side `ValidateXMLEgress` wrapper was itself deleted as
-> unreached residue in the dead-code-radical-removal batch — the sole surviving
+> unreached residue in the 2026-07-22 dead-code-radical-removal batch — the sole surviving
 > `ValidateXMLEgress` is `candy/plugin-vm`'s own copy (`vm_egress_shim.go`), which Invokes
 > `verb:egress` directly (mode `xml`) over its own reverse channel for the rendered
 > libvirt-domain-XML path; every OTHER caller + the `vmshared.ValidateEgress` hook are unchanged. The
@@ -93,7 +93,7 @@ The `xml` mode (validate a rendered XML artifact — a libvirt domain — via th
 **best-effort**: a koala *decode* error → pass, deferring to the authoritative downstream gate; only a
 schema violation on a decoded document hard-fails) is still fully served by `verb:egress`'s
 `OpValidate` — there is simply no core-side `ValidateXMLEgress` convenience wrapper anymore (deleted as
-unreached residue). Its one real caller, `candy/plugin-vm`, Invokes `verb:egress` with
+unreached residue, 2026-07-22). Its one real caller, `candy/plugin-vm`, Invokes `verb:egress` with
 `mode: "xml"` directly through its own `ValidateXMLEgress` wrapper (`vm_egress_shim.go`) rather than
 through a core shim.
 
