@@ -73,8 +73,7 @@ distinction the table exists to draw.
 
 **Five sections are mechanism** — how charly and git actually behave: the
 cross-repo `skill:` cutover, the submodule revert, the validator-status false
-negative, multi-source assembly, and the vacuous guard. They are not instances of the question and no
-frame unifies them.
+negative, multi-source assembly, and the vacuous guard.
 
 **That split is load-bearing, and it is why this page's own first revision shipped a false
 claim.** An epistemic claim is checked by reasoning; a mechanism claim can only be checked
@@ -273,7 +272,7 @@ standard keys on a property of the **claim** (a count authored into a permanent 
 Different keys, same law. The code/prose register boundary is one special case of it, not
 the whole.
 
-**A pattern must anchor to the construct, not the token.** The same key produced both a
+**A pattern must anchor to the construct, not the token.** A token-anchored key produced both a
 miss and a false positive: `grep 'cmd:"[a-z_]'` later counted two *comment* lines as
 surviving tags. A count that cannot tell a tag from prose was never a measurement of the
 invariant. Anchor to what the construct looks like — `^\s+[A-Z]\w*\s+\S+\s+`...`cmd:"` —
@@ -945,6 +944,7 @@ is not a control. It is a description of what a careful person would do. **That 
 argument for the mechanical form, and it is now measured rather than asserted**: the
 documentary version was given the most favourable test available and failed it three times
 in one session.
+
 ### A guard that cannot fail is worse than no guard
 
 Four times in one cutover an unmerged change was written as landed fact — "presence **is**
@@ -957,13 +957,43 @@ attentional** — you cannot pay closer attention to a bias you cannot feel.
 **Guard 1 — every commit SHA an entry names, checked for landed state AND subject:**
 
 ```bash
-for sha in $(grep -ohE '\b[0-9a-f]{7,40}\b' CHANGELOG/<entry>.md | sort -u); do
-  for repo in . <superproject-path>; do        # BOTH — see below
-    git -C "$repo" cat-file -e "${sha}^{commit}" 2>/dev/null || continue
-    git -C "$repo" merge-base --is-ancestor "$sha" origin/main && st=LANDED || st=UNMERGED
-    printf '%s %s %s\n' "$sha" "$st" "$(git -C "$repo" log -1 --format=%s "$sha")"; break
+( # Run from the superproject OR any submodule — the root is resolved, not assumed.
+  root=$(git rev-parse --show-superproject-working-tree)
+  root=${root:-$(git rev-parse --show-toplevel)}
+  entry=$root/CHANGELOG/2026.229.2153.md   # substitute the entry under review
+
+  # REFUSE rather than narrow. Each of these is a way to report nothing convincingly.
+  [ -f "$entry" ] || { echo "guard: no such entry: $entry" >&2; exit 1; }
+  repos="$root $(git config -f "$root/.gitmodules" --get-regexp path \
+                   | awk -v r="$root" '{print r"/"$2}')"
+  [ "$repos" = "$root " ] && { echo "guard: no submodules under $root" >&2; exit 1; }
+  shas=$(grep -ohE '\b[0-9a-f]{7,40}\b' "$entry" | sort -u)
+  [ -n "$shas" ] || { echo "guard: $entry cites no SHAs — nothing was checked" >&2; exit 1; }
+
+  bad=0
+  for sha in $shas; do
+    found=
+    for repo in $repos; do
+      git -C "$repo" cat-file -e "${sha}^{commit}" 2>/dev/null || continue
+      # Capture rc and CLASSIFY it. 128 means "could not check" and is never a verdict;
+      # `&& ||` cannot tell it from 1, so it would print UNMERGED and pass.
+      git -C "$repo" merge-base --is-ancestor "$sha" origin/main; rc=$?
+      case $rc in
+        0) st=LANDED ;;
+        1) st=UNMERGED ;;
+        *) st=UNCHECKED; bad=1 ;;
+      esac
+      printf '%-9s %-10s %-9s %s\n' "$sha" "$st" "$(basename "$repo")" \
+             "$(git -C "$repo" log -1 --format=%s "$sha")"
+      found=1
+      break
+    done
+    # UNRESOLVED is a failure: nobody can check that citation. UNMERGED is INFORMATION --
+    # an entry citing its own open branch is legitimate, so the reader judges it, not the exit code.
+    [ -n "$found" ] || { printf '%-9s %-10s\n' "$sha" UNRESOLVED; bad=1; }
   done
-done
+  exit $bad
+)
 ```
 
 The **subject** is half the value: it catches citing the wrong commit, which happened here — a
@@ -983,7 +1013,16 @@ local-only resolve drops silently.
 **Guard 2 — grep the entry's own prose, with the exclusion that makes it usable:**
 
 ```bash
-grep -nE '\b(is|are) (now )?(enforced|generated|deleted|removed|fixed)\b' CHANGELOG/<entry>.md
+( # Same root resolution as guard 1 — the two guards MUST audit the same file.
+  root=$(git rev-parse --show-superproject-working-tree)
+  root=${root:-$(git rev-parse --show-toplevel)}
+  entry=$root/CHANGELOG/2026.229.2153.md   # substitute the entry under review
+
+  [ -f "$entry" ] || { echo "guard: no such entry: $entry" >&2; exit 1; }
+  hits=$(grep -nE '\b(is|are) (now )?(enforced|generated|deleted|removed|fixed)\b' "$entry")
+  # SAY the empty case. "found nothing" and "never ran" must not look alike.
+  [ -n "$hits" ] && printf '%s\n' "$hits" || echo "guard: no present-tense landed-state claims in $entry"
+)
 ```
 
 Most hits are CORRECT and must not be hedged. The discriminator:
