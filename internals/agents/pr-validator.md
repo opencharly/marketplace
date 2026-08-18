@@ -173,8 +173,8 @@ every one of them fails silently.** Measured, one tree each:
 
 | getting it wrong | finds |
 |---|---|
-| wrong **separator** (hyphen-only matcher) | 4 of 340 in `plugins` |
-| wrong **repo scope** (superproject-relative across a gitlink) | **0** of 340 |
+| wrong **separator** (hyphen-only matcher) | 6 of 349 in `plugins` |
+| wrong **repo scope** (superproject-relative across a gitlink) | **0** of 349 |
 | wrong **pathspec** (`-- '*.md'`) | **0** of 4 in `sdk`, **0** of 8 in `spec` |
 
 **Each in isolation returns a plausible result**, and two of the three return a clean
@@ -199,27 +199,55 @@ validation time:**
 anyone else is using**, and never in the one you are validating from.
 
 ```bash
-# 0. stand a scratch tree on the SOURCE head (resolution below), then put the
-#    ARTIFACT submodule on the PR HEAD — `submodule update` lands the source's
-#    PINNED gitlink, which is NOT the PR you are validating.
-git -C <superproject> worktree add /tmp/carrier-<n> <source-head>
-cd /tmp/carrier-<n> && git submodule update --init --recursive
-git -C <artifact-repo> fetch origin <pr-head-sha> && git -C <artifact-repo> checkout <pr-head-sha>
-git -C <artifact-repo> rev-parse HEAD    # MUST equal the PR head — read it back
-task build:binary
+# 0. Stand a scratch tree on the SOURCE head, then put the ARTIFACT submodule on
+#    the PR HEAD — `submodule update` lands the source's PINNED gitlink, which is
+#    NOT the PR you are validating. Set these five first:
+super=$(git rev-parse --show-toplevel)   # the superproject
+artifact=plugins                         # or docs — the submodule the PR targets
+suspect=path/inside/the/artifact.md      # the file you suspect is generated
+srchead=                                 # the SOURCE head — REQUIRED, no default:
+                             # a verdict that flips on which source commit you
+                             # stood at is not a property of the PR
+prhead=                                  # the ARTIFACT PR's head sha — REQUIRED
 
-# 1. delete the suspect and ask the generators to answer. `&&`, never `;` —
-#    with `;` the guard captures only the LAST command's status.
-rm <artifact-repo>/<suspect-path>
-./bin/charly marketplace generate \
-  && ./bin/charly docs generate --out docs/src/content/docs --root .
-rc=$?; [ "$rc" -eq 0 ] || { echo "UNEVALUATED: generation exited $rc"; exit 1; }
+# Nested, not `exit`: this block is meant to be PASTED, and an `exit` on a guard
+# path closes your terminal. Check what can be checked BEFORE anything exists.
+if [ -z "$prhead" ] || [ -z "$srchead" ]; then
+  echo "guard: set \$prhead and \$srchead — neither has a safe default" >&2
+else
+  # mktemp, NOT a fixed path: the teardown is destructive and a fixed name can
+  # name a peer's live worktree.
+  probe=$(mktemp -d /tmp/carrier.XXXXXX)
+  git -C "$super" worktree add "$probe" "$srchead"
 
-# 2. read the answer
-test -f <artifact-repo>/<suspect-path> && echo CARRIER || echo "not generated"
+  if ! cd "$probe"; then
+    # the probe already EXISTS by now — remove it rather than leak it
+    echo "guard: cannot enter $probe" >&2
+    git -C "$super" worktree remove --force "$probe"
+  else
+    git submodule update --init --recursive
+    git -C "$artifact" fetch origin "$prhead" && git -C "$artifact" checkout "$prhead"
+    git -C "$artifact" rev-parse HEAD    # MUST equal the PR head — read it back
 
-# 3. tear the scratch tree down
-cd - && git -C <superproject> worktree remove --force /tmp/carrier-<n>
+    task build:binary
+
+    # 1. Delete the suspect and ask the generators to answer. `&&`, never `;` —
+    #    with `;` the guard captures only the LAST command's status.
+    rm "$artifact/$suspect"
+    ./bin/charly marketplace generate \
+      && ./bin/charly docs generate --out docs/src/content/docs --root .
+    rc=$?
+    if [ "$rc" -ne 0 ]; then
+      echo "UNEVALUATED: generation exited $rc" >&2
+    else
+      # 2. Read the answer.
+      test -f "$artifact/$suspect" && echo CARRIER || echo "not generated"
+    fi
+
+    # 3. Tear the scratch tree down — destructive, which is why $probe is mktemp'd.
+    cd - && git -C "$super" worktree remove --force "$probe"
+  fi
+fi
 ```
 
 **Two setup traps, both of which produce a confident wrong answer rather than an
@@ -292,12 +320,19 @@ a revert, not a precise one. **Do not claim "reverts exactly"; the numbers are t
 claim.** It is the same measurement as the byte-identity check that proves a re-homing
 faithful, pointed the other way.
 
-The obvious tightenings were measured and both are worse. Restricting to a 20-line
+The obvious tightenings were measured, and neither removes the need to triage. Restricting to a 20-line
 header window still flags a CHANGELOG that quotes the banner in its opening paragraph.
 Requiring a comment-form line carrying both *generated* and the phrase drops the false
-positives but **misses 6 of 340 real banners in `plugins` and 7 of 899 in `docs`** — the
-same corpora and refs as the census below, so the two figures are comparable — trading a
-cost-one-glance error for the exact error that motivated the rule.
+positives, and drops **11 of 349** in `plugins` and **13 of 905** in `docs` — matcher pinned on
+all three axes it turns on: **comment-form, either order, case-insensitive**. **Every one of
+those twenty-four is a hand-authored mentioner**, so the tightening drops no genuine carrier.
+
+**Three unnamed switches, not an unstable corpus.** The same trees appear to drop 1, 11 or 344
+files depending on case, match direction, and comment-form-vs-loose — and the 344 is not a
+measurement at all: the banner reads `GENERATED`, lowercase `generated` appears in 5 files of
+349, so a case-sensitive arm reports 344 drops because it **never found them**. That is this
+page's own rule — a zero means *I found nothing*, never *there is nothing* — and a correct
+figure was once deleted here on the strength of it.
 
 A hand-edit to a generated artifact is a defect in KIND, independent of whether the
 prose is correct — the next regeneration silently reverts it, so a change that reads
@@ -309,18 +344,16 @@ erased, because every reviewer went straight to the content.
 Three things make the naive form of this check miss:
 
 - **The banner is usually near the top — and a fixed window still fails, because of a
-  one-file tail.** Measured over `plugins` @ `32f48d2`: **339 of 351 hits sit at line
-  ≤ 15 (96.6%)**, three above line 100, and **two of those three are this page quoting
-  the banner in prose**. There is exactly ONE genuinely deep carrier, at line **1214**.
-  **Grep the whole file** — not because the distribution is flat, but because the tail
-  is real, and a window sized to 96.6% of a corpus silently misses the rest.
+  real tail.** Measured over `plugins` @ `01edd45e`, spaced matcher, case-sensitive,
+  unrestricted: **345 of 351 hits sit at line ≤ 15 (98.29%)**. Of the six above it, **two are
+  genuine carriers** — `strict-policy/SKILL.md:19` and `vm-deploy-target/SKILL.md:20`, pushed
+  past a 15-line window by long frontmatter — and the two deepest, at lines 331 and 610, are
+  this page quoting the banner in prose.
 
-  **Here the RATIO is the claim and the totals only date it**: 338/350 and 339/351 at
-  two refs one commit apart — 96.57% and 96.58%, stable to two decimals while both
-  totals moved. That is the statistic this rule holds for; file it against the one it
-  is true of.
+  **A 15-line window misses both carriers; a 20-line window catches them. Grep the
+  whole file** — a window sized to 98.29% of a corpus silently misses the rest.
 
-  **Do not describe this as "24 distinct line numbers."** That is a UNION over the
+  **Do not describe this as "19 distinct line numbers."** That is a UNION over the
   tree, and a union of positions looks like a spread while the underlying distribution
   is tightly clustered — the population/union error this page warns about two
   paragraphs below, committed in the sentence warning about it. **Cite the
@@ -328,19 +361,19 @@ Three things make the naive form of this check miss:
 - **The two trees use OPPOSITE separators**, so a matcher written for either alone
   misses almost everything in the other. Measured:
 
-  | tree (ref) | `DO NOT EDIT` (spaced) | `DO-NOT-EDIT` (hyphenated) | `DO[- ]NOT[- ]EDIT` |
+  | tree (ref), **case-sensitive**, files | `DO NOT EDIT` (spaced) | `DO-NOT-EDIT` (hyphenated) | `DO[- ]NOT[- ]EDIT` |
   |---|---|---|---|
-  | `plugins` @ `32f48d2` | **339** | 4 | **340** |
-  | `docs` @ `3d11170` | 2 | **899** | **899** |
+  | `plugins` @ `01edd45e` | **347** | 6 | **349** |
+  | `docs` @ `eb92dc24` | 3 | **904** | **905** |
 
-  A hyphen-only matcher finds 4 of 340 in `plugins`; a space-only matcher finds 2 of
-  899 in `docs`. **Neither convention is wrong and neither is going away**, so `-i` and the
-  `[- ]` class are load-bearing rather than stylistic — a matcher that assumes one house
-  style reports a clean tree for the other.
+  A hyphen-only matcher finds 6 of 349 in `plugins`; a space-only matcher finds 3 of
+  905 in `docs`. **Neither convention is wrong and neither is going away**, so the
+  `[- ]` class is load-bearing rather than stylistic. **`-i` moves nothing on the tolerant
+  matcher** — 349 and 905 either way — but moves the `docs` spaced-only arm from 3 to 7.
 
   **The counts above are `spaced / hyphenated / tolerant`, and they do not add up
-  because `grep -l` UNIONS files rather than partitioning them** — 3 files carry BOTH
-  spellings, so `339 + 4 - 3 = 340`. Say that, or a careful reader spends their time
+  because `grep -l` UNIONS files rather than partitioning them** — 4 files carry BOTH
+  spellings, so `347 + 6 - 4 = 349`. Say that, or a careful reader spends their time
   suspecting your arithmetic instead of reading your point; one did.
 
   **Cite the REF a census was taken at, not a date.** "As they stood when this was
@@ -348,8 +381,7 @@ Three things make the naive form of this check miss:
   insufficient — two people counting the same corpus an hour apart briefly read two
   correct measurements as a disagreement. **State the claim here as an ORDINAL one:
   spaced dominates `plugins`, hyphenated dominates `docs`.** That survives the corpus
-  growing; the separator RATIO does not — it swung 24% (111.7:1 → 84.8:1) across a
-  single ref change, so it is not the durable form of this finding.
+  growing; the separator RATIO does not survive a change of ref, so it is not the durable form of this finding.
 - **A targeted edit never sees the top of the file.** `Edit` on a matched string, or a
   jump to a grep hit at line 240, never renders line 8. The banner is invisible to the
   access pattern a targeted edit actually uses, which is why the check has to be a
@@ -546,8 +578,8 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
    branch.** A symbol unreferenced on a consumer's in-flight `feat/` branch can
    still be live on that consumer's `main`; removing it as "dead" from the
    producer breaks every consumer that hasn't rebased onto the branch yet
-   (the sdk#66 over-removal incident: 4 wire types removed as dead were live
-   on charly `main`). Re-run the liveness grep yourself against the consumer's
+   (sdk#66 — over-removal: 4 wire types removed as dead were
+   live on charly `main`). Re-run the liveness grep yourself against the consumer's
    `origin/main`, not the PR author's claim.
    **How to CLASSIFY the sweep's hits — `references/evidence-and-freshness.md`.**
    The `CHANGELOG/` clause above covers only one slice: a hit in a prior release
@@ -694,7 +726,7 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
      non-compliant while building more on top of it. Landed precedent:
      `sdk#85`'s `clean_wire` cutover (the touched hand-written wire type was
      CUE-sourced in the same PR instead of extended as-is). Generalized by
-     standing operator directive 2026-07-22 (any PR modifying a hand-written
+     standing operator directive (any PR modifying a hand-written
      wire surface must convert it) — first applied to `sdk/spec/arbiter_wire.go`
      (`sdk#90`, LANDED: FLOOR-SLIM Unit-8B) and then to the entire remaining
      `sdk/spec/*_wire.go` class in one SDD-conversion batch (deploy, init, gpu,
@@ -709,7 +741,7 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
      unless the real command and its real output appear in the PR body or a
      comment; a plausible-sounding claim that was never actually re-run at the
      final head is a FRAUD-class finding, exactly like the R10 fraud clauses.
-     Motivating incident: `opencharly/charly#175` round 1 — the PR body's
+     Failure mode (charly#175): a PR body's
      pasted `git grep` output claimed only `CHANGELOG/`-context hits for a set
      of removed identifiers, but a fresh re-run against the PR's OWN head found
      60+ LIVE source hits (comments still naming the retired identifiers); the

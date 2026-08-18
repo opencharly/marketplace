@@ -36,7 +36,7 @@ can merge. See `/charly-internals:skills` for the source→projection model and
 | fix a claim a reviewer called false | the correction is a new claim with the same burden | "Sweep for what the fix invalidated" |
 | trust a check that reported nothing wrong | an absence claim decays differently from a presence claim, and goes stale silently | "Positive and negative claims decay differently" |
 | run a gate to decide whether a PR is safe to merge | you gated the head, and the MERGE is what lands | "The gate that matters at merge…" (its recipe is the probe below) |
-| land a `skill:` edit | the source and its generated copies are one cutover, not two | "A `skill:` source edit and its regeneration are one cutover across two repos" |
+| land a `skill:` edit | the source and its generated copies are one cutover, not two | "A `skill:` source edit and its regeneration are one cutover" |
 | resolve a submodule conflict | a `checkout -- .` plus `git add -A` silently reverts the gitlink | "Submodule pointers can be reverted by a merge without ever conflicting" |
 | conclude a validator never ran | the status can be absent for a reason that is not absence | "Status absence on a known head proves nothing" |
 | sweep for a claim a reviewer called false | the sweep inherits its key from that finding and stops at the register it arrived in | "A sweep inherits its key from the finding that prompted it" |
@@ -248,15 +248,14 @@ bodies, and the release note — which, unlike the page, is immutable once merge
 
 ### A sweep inherits its key from the finding that prompted it
 
-The section above says to sweep for what a fix invalidated. This one says why sweeps
-still miss, when run by people who know to run them.
+The section above says to sweep for what a fix invalidated. This one says why sweeps still
+miss, when run by people who know to run them.
 
 > **A sweep inherits its key from the finding that prompted it.**
 
-Every miss catalogued here was made with class-thinking fully engaged, by someone who
-had just fixed the same class elsewhere — and scoped to the artifact they arrived
-holding. Rigor pointed at the wrong domain by the thing that summoned it. `charly#280`
-produced four instances across three review rounds and one post-merge round:
+Every miss catalogued here was made with class-thinking fully engaged, by someone who had
+just fixed the same class elsewhere — and scoped to the artifact they arrived holding.
+`charly#280` produced four instances across three review rounds and one post-merge round:
 
 | Round | Fixed | Left bare | Why the sweep could not see it |
 |---|---|---|---|
@@ -265,62 +264,49 @@ produced four instances across three review rounds and one post-merge round:
 | 3 | the line that **records** the parent | the line that **consumes** it | the key was the finding's line, not the chain |
 | 4 (post-merge) | — | a miscount two lines from a rewritten sentence | the key was `list-ai`, so `Five` was invisible |
 
-Round 4 is the sharpest, and it caught two independent reviewers by different routes: the
-author swept on `list-ai` while editing the adjacent sentence, and the validator skipped a
-prose pass on a property of the **diff** ("touches no reader-facing page") where the
-standard keys on a property of the **claim** (a count authored into a permanent record).
-Different keys, same law. The code/prose register boundary is one special case of it, not
-the whole.
+Round 4 caught two independent reviewers by different routes: the author swept on `list-ai`
+while editing the adjacent sentence, and the validator keyed on a property of the **diff**
+where the standard keys on a property of the **claim**. The code/prose register boundary is
+one special case of this, not the whole.
 
-**A pattern must anchor to the construct, not the token.** A token-anchored key produced both a
-miss and a false positive: `grep 'cmd:"[a-z_]'` later counted two *comment* lines as
+**A pattern must anchor to the construct, not the token.** A token-anchored key produced
+both a miss and a false positive: `grep 'cmd:"[a-z_]'` later counted two *comment* lines as
 surviving tags. A count that cannot tell a tag from prose was never a measurement of the
-invariant. Anchor to what the construct looks like — `^\s+[A-Z]\w*\s+\S+\s+`...`cmd:"` —
-or state that the figure is a candidate count, not an answer.
+invariant. Anchor to the construct — `^\s+[A-Z]\w*\s+\S+\s+`...`cmd:"` — or state that the
+figure is a candidate count, not an answer.
 
-**Put the safeguard where the reader ACTS, not where it is true.** A rule that knows
-`rm` is destructive, knows a scratch worktree is the right mutation harness, and knows an
-exit code must be classified before absence is believed — and states all three several
-hundred lines away from the step that does the deleting — **has the knowledge and none of
-the benefit.** Measured in this very spec, twice: a procedure opened with `rm` on a
-tracked file, in whatever checkout the reader was standing in, while all three
-safeguards sat far below it; and the same page's `git -C <submodule> grep` form sat
-sections away from a command that could not reproduce its own worked example
-without it. **The exact distances are not published**, for the reason given below
-about counts: a line offset inside the document it measures is stale the next time
-that document is edited, which for this page has been every round.
-
-**A reader executes the invocation printed next to the instruction.** Anything true
-elsewhere in the document is, operationally, absent — so the test for a rule is not
-*"does the page contain the answer"* but *"is the answer at the point of action"*.
+**Put the safeguard where the reader ACTS, not where it is true.** A reader executes the
+invocation printed next to the instruction; anything true elsewhere in the document is
+operationally absent. So the test is not *"does the page contain the answer"* but *"is the
+answer at the point of action"*. Measured in this very spec twice: a procedure opened with
+`rm` on a tracked file while all three relevant safeguards sat far below it, and a
+`git -C <submodule> grep` form sat sections away from a command that could not reproduce
+its own worked example without it. **The exact distances are not published** — a line
+offset inside the document it measures is stale the next time that document is edited.
 
 **The operational corollary, which is where sweeps do damage rather than just miss:**
 
 > **A claim-keyed sweep produces a CANDIDATE list, never an EDIT list.**
 
 Every hit is re-derived against the artifact before it is touched. A sweep that edits its
-own hits is a find-and-replace wearing a sweep's name — and it fails in the direction that
-reports success. Three separate times in this program a mechanical unification across
+own hits is a find-and-replace wearing a sweep's name, and it fails in the direction that
+reports success. Three times in this program a mechanical unification across
 instances-that-must-differ turned a **correct** statement false while the sweep reported
-clean: a comment explaining why a name tag exists (correct, and a blanket deletion would
-have removed the explanation); a sibling count that genuinely was five (correct, and a
-blanket `Five → Four` would have falsified it); and a pair of comparators that were
-supposed to differ (unified, turning a staleness guard into a tautology while the suite
-stayed green).
+clean: a comment explaining why a name tag exists; a sibling count that genuinely was five;
+and a pair of comparators that were supposed to differ, unified into a tautology while the
+suite stayed green.
 
 **The sharpest case is sweeping a claim you have just CORRECTED**, because the correction
-itself quotes the old wording in order to retract it — so the sweep's hits include the
-fix. Measured: four hits for a superseded rule across two CHANGELOGs, **three of them
-retractions and one a live assertion.** A mechanical pass would have deleted the three
-retractions, leaving a page that no longer states the wrong thing and no longer records
-that it was wrong — **clean-looking, and stripped of exactly the history that stops the
-claim coming back.** Only reading each hit distinguishes *asserting X* from *saying X was
-wrong*, and no pattern can, because the two are the same string.
+quotes the old wording in order to retract it — so the sweep's hits include the fix.
+Measured: four hits for a superseded rule across two CHANGELOGs, **three retractions and one
+live assertion.** A mechanical pass would have deleted the three retractions, leaving a page
+that no longer states the wrong thing and no longer records that it was wrong. Only reading
+each hit distinguishes *asserting X* from *saying X was wrong*, and no pattern can, because
+the two are the same string.
 
 **Sweep across every REPO the claim reached, not the files a finding named.** The live
-assertion in that set was in a repository no finding mentioned, twenty lines above its own
-correction, and was found only because the sweep was run over the whole cutover rather
-than the reported sites.
+assertion in that set was in a repository no finding mentioned, and was found only because
+the sweep ran over the whole cutover rather than the reported sites.
 
 ### Gate the behaviour the title claims, not the artifact of the fix
 
@@ -329,8 +315,7 @@ a command *dispatches*, then only an assertion about **which capability was invo
 gate for it; an assertion that a struct field holds the right value is a gate for
 something else, and it stays green while the behaviour breaks.
 
-This is why rounds 2 and 3 above each left the next link bare. Recording a value and
-consuming it are different lines. A structural assertion about a stored field can only
+Recording a value and consuming it are different lines. A structural assertion about a stored field can only
 ever catch **one** link of a chain; a behavioural one catches every link the behaviour
 passes through — in `charly#280`, one behavioural test caught two of three load-bearing
 lines where three structural tests had caught one each.
@@ -358,69 +343,45 @@ the same instant, does.
 > One tree's state never distinguished the cases — at the start, in the middle, or at the
 > end. **Two observations at one timestamp did, every time.**
 
-Four measured instances, each failing at a different point:
+Four measured instances, each with the observation that separated them:
 
-**A shared worktree, written by a concurrent process.** `go test ./...` went green, then
-the same tests under `-run` failed seconds later on the same tree. That reads exactly like
-an ordering dependency in the test just added — the most plausible wrong answer available.
-**A concurrent writer presents as a flaky test**, which is the worst possible disguise
-when R1 forbids accepting that classification. The discriminator was **file mtime against
-the test-run timestamps**, not the test output. A green figure was retracted for *when* it
-ran rather than what it said.
-
-**A test reaching real storage.** A provenance test passed for weeks while stubbing a var
-the code under test never consulted — it called a different symbol the var was merely
-initialised from — so the stub was skipped and the test reached the real image store. The
-available wrong reading: *"it passes, the fixture is fine."* It surfaced only when a
-concurrent prune deleted the image it had silently depended on, again presenting as a
-flaky test caused by unrelated churn. The discriminating measurement was the **absence
-proof**: confirming the image was ABSENT *while the test still passed*. Only that pairing
-separates "hermetic" from "happens to find the image."
-
-**Two counts of one invariant.** Two reviewers measured the same thing and got 2 and 1.
-The 2 matched a **token** in two comments; the 1 matched the **construct**. The token
-figure was never a measurement of the invariant — and it failed in the direction that
-looks safer, because over-counting reads as extra coverage and nothing in the number says
-it drifted off what it names. It was reconcilable in one exchange **only because both
-parties published the pattern beside the number**; two bare figures could have been traded,
-not checked.
-
-**A claim one degree stronger than its table.** *"Measured against the exact tree that
-shipped"* was offered for a suite run — and was false by one commit, the validator's
-merge-time CalVer rename. The reachable claim was *"the shipped **code**, exactly; the
-shipped **tree** minus that rename"*: materially the same reassurance, one degree weaker,
-true. **A validator's CalVer commit lands after the author's last measurement by
-construction**, so "I measured the tree that shipped" is essentially never available to an
-author. The reachable form is always *"I measured the code that shipped, and here is the
-delta."*
+- **A shared worktree, written by a concurrent process.** `go test ./...` green, the same
+  tests under `-run` failing seconds later on the same tree. A concurrent writer presents
+  as a flaky test — the worst disguise available where R1 forbids that classification.
+  Discriminator: **file mtime against the test-run timestamps**, not the test output.
+- **A test reaching real storage.** A provenance test stubbed a var the code under test
+  never consulted, so it reached the real image store for weeks; it surfaced only when a
+  concurrent prune deleted the image. Discriminator: the **absence proof** — the image
+  ABSENT while the test still passed. Only that pairing separates "hermetic" from
+  "happens to find the image."
+- **Two counts of one invariant.** 2 matched a **token** in two comments; 1 matched the
+  **construct**. Over-counting reads as extra coverage, so it failed in the direction that
+  looks safer. Reconcilable in one exchange only because **both parties published the
+  pattern beside the number**.
+- **A claim one degree stronger than its table.** *"Measured against the exact tree that
+  shipped"* was false by one commit — the validator's merge-time CalVer rename, which
+  lands after the author's last measurement **by construction**. The reachable claim is
+  always *"the shipped code, exactly; the tree minus that rename."*
 
 **The remedy, one part per instance:**
 
-- **Make the silent dependency loud.** Where a test can silently reach shared state, make
-  reaching it an ERROR rather than a fallback — a stub that `t.Fatal()`s on any
-  real-storage fallthrough. A test that can pass by accident eventually will.
-- **Make the provenance inseparable from the figure.** Stamp every pasted measurement with
-  the tree it came from: head sha plus `git status`, bracketed **before and after** the
-  run. A suite result that straddles a write is a figure with no owner. And *clean
-  relative to a mutable reference is not clean* — diff against a recorded immutable ref,
-  never bare `HEAD`.
+- **Make the silent dependency loud** — a stub that `t.Fatal()`s on any real-storage
+  fallthrough. A test that can pass by accident eventually will.
+- **Make the provenance inseparable from the figure** — head sha plus `git status`,
+  bracketed before and after the run. Clean relative to a mutable reference is not clean:
+  diff against a recorded immutable ref, never bare `HEAD`.
 - **Publish the pattern beside the number.** A count whose pattern is not shown cannot be
   reconciled, only traded.
-- **State claims at the strength the table carries, and mark ANCHORED vs PROSPECTIVE.** An
-  anchored figure is reproducible from a recorded immutable reference and may be quoted
-  as-is; a prospective one is derived from live state that keeps moving and must be
-  re-derived at the moment of use, or quoted as a timestamped snapshot. Saying which is
-  which is half of what this section teaches, because the reader cannot infer it.
+- **Mark ANCHORED vs PROSPECTIVE.** Anchored reproduces from an immutable reference and
+  may be quoted as-is; prospective derives from live state and must be re-derived at use.
+  The reader cannot infer which.
 
-**What would refute this taxonomy**, named in advance because one remedy per instance is
-tidy enough to be suspicious: *if a fifth instance maps onto an existing bullet, the
-structure is real; if one maps onto none, it is decoration and should go.* It has since
-been tested and passed **by accident**, which is the only way that counts — a later
-finding (a count naming four items while asserting five) arrived from an unrelated
-direction and mapped cleanly onto *make the provenance inseparable from the figure*, since
-four names under a "five" is visible on the page the moment the figure carries what
-produced it. A test the author arranges to pass proves nothing; one a later finding
-happens to satisfy is evidence.
+**Pre-registered refutation:** if a fifth instance maps onto an existing bullet the
+structure is real; if one maps onto none it is decoration. It has since passed **by
+accident** — a later finding (a count naming four items while asserting five) arrived from
+an unrelated direction and mapped onto *make the provenance inseparable from the figure*.
+A test the author arranges to pass proves nothing; one a later finding happens to satisfy
+is evidence.
 
 ### Assembling several sources into one tree — measure between applications
 
@@ -456,8 +417,7 @@ and only one of them is recoverable.
 **A diagnostic that counts is not a diagnostic that verifies.** `charly docs: walking N
 repo root(s)` reports how many roots the generator visited — useful, and routinely
 misread as confirmation that all of them produced output. It says nothing about
-emission. The generalisation is the one this page keeps arriving at from different
-directions: **a check reporting "0 candidates examined" must FAIL, not pass.** A gate
+emission. **A check reporting "0 candidates examined" must FAIL, not pass.** A gate
 that finds nothing to inspect has not passed; it has abstained, and abstention rendered
 as green is the most expensive false signal a pipeline can carry.
 
@@ -541,302 +501,39 @@ Written reportorially — *"a validator measured…"* — it would assert a spec
 event and invite a reader to look for provenance that does not exist. Stating the
 failure SHAPE keeps every bit of the rule's force while claiming no measurement.
 
-### A `skill:` source edit and its regeneration are one cutover across two repos
+### A `skill:` source edit and its regeneration are one cutover
 
-Landing either half alone leaves `main` with `marketplace drift` red. **Both directions fail
-LOUDLY** — exit 1 and a stale-artifact listing either way, so neither is quiet. They are not
-equally legible, though, and the difference runs opposite to intuition:
+A `skill:` entity in a candy projects to `plugins/<family>/skills/<name>/SKILL.md`, and
+`charly docs generate` reads that projection — never the candy. So a source edit reaches
+readers only after the `plugins` landing merges and the superproject's gitlink advances.
+Advancing the gitlink without regenerating `docs` leaves the site stale, and only the drift
+gate says so.
 
-Pasted rather than described, because "a paste and its label are two separate
-claims" applies to this page's own tables. **Provenance, which this page's own
-rule demands of every figure in the BLOCK below:** one continuous session at superproject
-`a56240f0` — the commit that corrected the `drift` message quoted throughout. A
-squash-merge lands that commit on no branch, so it survives as an ancestor of
-`refs/pull/289/head`, which is where anything that needs it has to look. `plugins`
-was at `a8b51b16` and `docs` at `c641b99`, in a worktree checked out there with a
-binary built by `task build:binary`. Every command runs at the superproject root.
-`git status --porcelain` is shown EMPTY at the start and again at the end,
-untracked files included, because an untracked file carrying the generated header
-inside a walked tree is itself one of the perturbations. **Every elision is marked inline**; nothing is
-dropped silently. The count is 400 in all three clean runs — 1, 3 and 6 — because
-a content edit changes bytes, not the set of artifacts, and that holds across run
-3's perturbed tree as much as across the two baselines.
+**The projection merges before the source that pins it.** A source landing first pins a
+gitlink at a commit whose projection does not yet exist.
 
-**Run 3's two totals are both right, and they describe different sets** — worth
-stating, because a reader takes them for one. `generate` prints `len(em)`, all
-400, then lists every emitted path EXCEPT the seven its reporter filters by
-prefix: `CLAUDE.md`, `AGENTS.md`, `.claude/settings.json`, and the four
-`.claude/hooks/*`. 400 − 393 is exactly those seven. `drift` compares all 400
-either way — only the LISTING is filtered, which is why a figure read off the
-listing can never be reconciled against the gate's own count without knowing it.
+**`marketplace drift` compares on-disk sources to on-disk artifacts.** The package contains no
+`os/exec` and never invokes git, so it is a working-tree gate: it reports what your checkout
+would emit, not what any commit contains.
 
-**`drift`'s `clean` and `git status`'s clean are independent claims, and run 3 is
-them disagreeing.** `drift` regenerates in memory from the sources ON DISK and
-compares with the artifacts ON DISK; it never invokes git, so it answers only
-*would regeneration change a byte* — it prints `clean` on a tree carrying two
-uncommitted halves, and would answer the same in a directory that is not a
-repository at all. `git status` answers what is committed and says nothing about
-whether the mirror is stale. **A figure labelled only "a clean tree" names
-neither of them**, which is exactly how the count this block used to carry was
-executed, correct, and unfalsifiable at the same time.
+**The orphan scan is PATH-GATED and the generated header decides only inside the trees it
+walks.** A header-carrying file outside those paths is invisible to drift wherever it sits;
+`(stale)` marks the orphan — a generated path no source claims.
 
-A TRANSCRIPT — the `$` prompts and interleaved output are the evidence, so retype
-the commands rather than pasting the block. Every state it asserts is a state it
-runs, including the reverts between perturbations:
+**Regenerate from your own source tree, never from `charly/main`.** A regeneration from a
+stale base reverts landed prose, and the diff looks like an ordinary update.
 
-```
-# 1. BASELINE — git-clean and drift-clean at once; runs 4 and 6 return to it
-$ git status --porcelain | wc -l
-0
-$ charly marketplace drift
-… 8 `Note: local candy … shadows …` lines …
-marketplace drift: clean (400 artifact(s) on disk match their sources; regeneration is a no-op)
-$ echo $?
-0
+**The two trees use opposite banner separators** — `plugins` spells it spaced, `docs`
+hyphenated — so a matcher written for either alone reports a clean tree for the other. Use
+`DO[- ]NOT[- ]EDIT`, case-insensitive.
 
-# 2. SOURCE ahead — a candy `skill:` edit, mirror not yet regenerated
-$ sed -i 's/## Evidence discipline/## Evidence discipline (canary)/' candy/charly-internals/charly.yml
-$ git status --short
- M candy/charly-internals/charly.yml
-$ charly marketplace drift
-… 8 `Note: local candy … shadows …` lines …
-charly marketplace: marketplace drift: 1 generated artifact(s) are stale:
-  plugins/internals/skills/git-workflow/references/evidence-and-freshness.md
-run `charly marketplace generate`
-$ echo $?
-1
+**The banner is usually near the top and a fixed header window still misses carriers.** At
+`plugins@01edd45e`, `strict-policy/SKILL.md` and `vm-deploy-target/SKILL.md` carry it at lines
+19 and 20, pushed there by long frontmatter. Grep the whole file.
 
-# 3. BOTH halves on disk — the same edit, now regenerated, neither committed
-$ charly marketplace generate
-… 8 `Note: local candy … shadows …` lines …
-marketplace generate: wrote 400 artifact(s) across 26 family(ies)
-… 393 emitted paths …
-$ git status --short
- M candy/charly-internals/charly.yml
- m plugins
-$ charly marketplace drift
-… 8 `Note: local candy … shadows …` lines …
-marketplace drift: clean (400 artifact(s) on disk match their sources; regeneration is a no-op)
-$ echo $?
-0
-
-# 4. REVERT — both halves, so run 5 starts from the baseline and not from run 3
-$ git checkout -- candy/charly-internals/charly.yml && git -C plugins checkout -- .
-$ git status --porcelain | wc -l
-0
-
-# 5. GENERATED tree ahead — an orphan carrying the generated header, projected by nothing
-$ head -1 plugins/internals/skills/git-workflow/references/evidence-and-freshness.md \
-    > plugins/internals/skills/git-workflow/references/zz-orphan-canary.md
-$ git -C plugins status --short
-?? internals/skills/git-workflow/references/zz-orphan-canary.md
-$ charly marketplace drift
-… 8 `Note: local candy … shadows …` lines …
-charly marketplace: marketplace drift: 1 generated artifact(s) are stale:
-  plugins/internals/skills/git-workflow/references/zz-orphan-canary.md (stale)
-run `charly marketplace generate`
-$ echo $?
-1
-
-# 6. BASELINE again — the session leaves the tree as it found it
-$ rm plugins/internals/skills/git-workflow/references/zz-orphan-canary.md
-$ git status --porcelain | wc -l
-0
-$ charly marketplace drift
-… 8 `Note: local candy … shadows …` lines …
-marketplace drift: clean (400 artifact(s) on disk match their sources; regeneration is a no-op)
-$ echo $?
-0
-```
-
-Runs 1, 3 and 6 print the identical `clean` line — twice from a tree `git status`
-calls empty and once from a tree it calls dirty — which is why the success message
-names what it compared instead of calling the tree committed. It once did:
-`clean (N artifact(s) match the committed tree)` — a claim `drift` has no
-mechanism to establish. That wording is what made THIS example ambiguous, inside
-the block whose own rule forbids exactly that. The code was right and its own
-prose was wrong, so the prose moved (R4a), in the cutover that fixed this block.
-
-**`(stale)` marks the ORPHAN: a generated path no source claims.** `scanGenerated`
-collects the files its three arms reach (see below, and they are not all
-header-based); any of those the emissions map does not contain gets the suffix. So
-run 5's canary carries it — nothing projects that path — while run 2's artifact,
-which is behind its source, does not.
-
-The headline covers both directions: `N generated artifact(s) are stale`. The
-suffix therefore repeats the headline's word rather than naming what separates the
-subset, which is why it is the only discriminator between the two red outputs and
-also the least self-explaining part of them. `(orphan)` would say it; the code's
-own comment already calls them *"stale orphans"*, seven lines above the line that
-emits the suffix. **Filed as a message fix, not compensated for here** — this page
-does not teach a reader to invert a label, because a page that teaches the
-compensation has documented the defect instead of removing it.
-
-**The orphan scan is PATH-GATED, and the header only decides inside the trees it
-walks.** `scanGenerated` has three arms, and only the first reads a byte of any
-file: it walks `plugins/<family>/skills` and `.../agents` collecting whatever
-carries the generated header; it then adds a fixed list of known paths — each
-family's `plugin.json`, `.codex-plugin/plugin.json` and `.mcp.json`, plus
-`marketplace.json`, `profiles.json` and `setup` — if they exist, header or not;
-and it takes every file under `.claude/hooks/` outright. So one banner line is the
-whole detection surface exactly where run 5's canary sits, in a walked skills
-tree, which is why `head -1` of a real artifact is enough there. A header-less
-file is invisible only when it ALSO sits outside the known paths and the hooks
-directory — which is precisely the condition under which `plugins/README.md`,
-`CHANGELOG/`, `LICENSE` and the scripts survive regeneration, and `prune.go`'s own
-comment states both halves.
-
-An earlier draft of this paragraph said the scan keys on the header "not on the
-path", and that it is invisible "wherever it sits". Both directions are wrong, a
-validator refuted them against the function, and the sentence had stood while the
-block around it was rebuilt twice — a false mechanism claim survives review most
-easily when it is the *unchanged* part of a diff everyone is reading for what
-changed.
-
-**Then a paraphrase of it survived the correction itself, in the paragraph beside
-the one that replaced it** — and the gate that was supposed to catch it looked for
-the retired WORDING (`git grep` on the deleted sentence, which returned 0) rather
-than for the MODEL. A claim-keyed sweep keyed on a string cannot find the same
-claim restated in other words, and restating it is exactly what a correcting
-author does in the neighbouring paragraph. **Sweep for every site that NAMES the
-mechanism, and reconcile each against one derived ground truth.** An enumeration
-of sites is checkable; the absence of a string is not.
-
-**Run that sweep once per REPO, because `git grep` does not cross a gitlink.**
-`git grep -n scanGenerated` reaches, by tree — stated as reach rather than as a
-file count, since every entry that discusses the mechanism adds a hit and any
-number here would be stale by the next one:
-
-- **superproject** — the candy source, the two Go files, and whatever `CHANGELOG/`
-  entries discuss it; **never a path under `plugins/` or `docs/`**;
-- **`plugins`** — this page, plus the entries beside it that discuss it;
-- **`docs`** — the docs projection of this page.
-
-This page is projected twice, so a claim about it lives in three trees, and no one
-of them can see the other two. That is not hypothetical: the first draft of THIS
-rule prescribed one unrooted grep, and the live instance of the very claim it was
-written to kill was sitting in the `docs` projection, invisible to it.
-
-No count of those hits is published, and not for the reason a first draft gave.
-**The count is tree-dependent** — one number cannot be right for the superproject,
-`plugins` and `docs` at once — and it goes stale on the next edit. It is NOT the
-diffstat's self-reference: writing `3` adds no occurrence of the search term, so
-that count would converge immediately. Self-inclusion is not self-invalidation,
-and the earlier draft conflated them.
-
-**And the sweep has a window in which it cannot be complete.** The projection-first
-ordering guarantees a period where `plugins/main` carries prose `charly/main`
-cannot reproduce — the source is still in an unmerged superproject PR. **The number
-of open windows is the number of superproject legs that have not landed, each
-invisible from inside the others.** So regenerate from your own source tree, never
-from `charly/main`.
-
-**Your OWN leg's window is harmless; another leg's is not** — and the difference
-decides which check to run. While no other leg has landed into your base, an
-UNSCOPED whole-tree regenerate is clean and is the strongest evidence available:
-it proves byte-identity across all 400 artifacts, not just yours. The moment
-another leg's projection lands in your base, that same check turns destructive —
-regenerating from a source that lacks their candy entities deletes and reverts
-their landed work, and reports success while doing it. **The trigger is the base
-moving under you, not the mere existence of a window:** run the unscoped check
-while you can, and scope the assertion to the files your PR touches once another
-leg has merged beneath it.
-
-The anecdote it carried is unaffected and still worth having: the first two
-attempts at this perturbation used a header-less canary, got `clean`, and came
-close to being filed as a defect against the very claim they failed to test — the
-canary was in the references tree, where the header is what decides.
-
-The generated-ahead direction is if anything the more legible of the two. What makes both
-dangerous is not detection, it is that **`drift` runs in no CI workflow** — it is red only
-for whoever runs it. A regeneration performed for an unrelated reason picks the revert up
-into that person's diff, where it reads as noise from their own change.
-
-**`git status` distinguishes THREE dirty-submodule states, and which one you see
-says whose half is outstanding** — but ONLY under `--short`. Measured at the same
-commit as the six-run session above, in a **separate** session re-taken in a
-worktree checked out there — same provenance, different sitting, which is why it
-carries its own setup and revert rather than continuing the block above. git
-2.55.0:
-
-```
-$ echo canary >> plugins/README.md          # content modified INSIDE the submodule
-$ git status --short
- m plugins
-$ git status --porcelain
- M plugins
-
-$ git -C plugins checkout -- README.md      # revert; now UNTRACKED content instead
-$ head -1 plugins/README.md > plugins/zz-canary.md
-$ git status --short
- ? plugins
-$ git status --porcelain
- M plugins
-
-$ rm plugins/zz-canary.md                   # revert, then move the gitlink instead
-$ git -C plugins checkout -q --detach HEAD~1
-$ git status --short
- M plugins
-$ git status --porcelain
- M plugins
-
-$ git -C plugins checkout -q --detach a8b51b16   # revert: back to the pinned gitlink
-$ git status --porcelain | wc -l
-0
-```
-
-**This reading is about the SUBMODULE line only — and only ONE of the three has
-an ordinary-path meaning at all.** Measured in an isolated repo at git 2.55.0: a
-modified tracked file renders ` M root.txt`, so run 3's ` M` on the candy source
-is an ordinary modified file with nothing to do with a gitlink. The other two do
-not transfer: an untracked ordinary path is `?? untracked.txt` — **two columns,
-not ` ?`** — and lowercase ` m` never appears on an ordinary path at all, because
-it exists only to say *modified content inside a submodule*. So the collision a
-reader must watch for is ` M` alone; ` m` and ` ?` are unambiguous wherever they
-appear. The rule below is about the
-`plugins` line, not about every line of the run it sits in.
-
-Lowercase ` m` is modified content inside the submodule — someone regenerated and
-has not committed there (run 3). ` ?` is untracked content inside it, which is run
-5's own state seen from the superproject. Uppercase ` M` is a moved gitlink — the
-projection has landed in `plugins` and it is the superproject pin that is
-uncommitted.
-
-**The six-run session never reaches that third state, and not because of where it
-looks from.** No gitlink moves anywhere in the six runs — every perturbation edits
-or adds a file — so ` M` is unreachable no matter which repo you run `git status`
-in. Run 5 happens to report from inside the submodule (`git -C plugins`), but the
-superproject view of that same moment is ` ? plugins`, measured above. The state
-that says *someone else's projection has landed* is the one a two-repo cutover
-needs most, and it is the one the session cannot produce — which is why it is
-pasted here rather than pointed at.
-
-**`--porcelain` collapses all three to ` M`**, so the script-safe spelling is the
-one that loses every distinction. The two blocks use it differently on purpose:
-the **six-run session** above reaches for `--porcelain` only where it asserts
-*empty*, because there the count is the claim; the **three-state block** here uses
-it four times, three of them non-empty, because demonstrating the collapse IS its
-purpose. `--short` carries the argument in both.
-
-**And `charly version` cannot stand in for any of this.** The stamp is derived
-from the HEAD commit's UTC timestamp (`scripts/calver.sh`), deliberately, so that
-every build of one commit agrees — a dirty tree and a clean tree at the same
-commit produce the same string. The cost of that determinism is that the stamp
-cannot see uncommitted content: the binary that produced this block's first draft
-was compiled from a working tree already carrying the message change, at a HEAD
-one commit earlier, and reported that earlier commit's CalVer. So `charly
-version` identifies the COMMIT a build was made at, never the bytes that were
-compiled — which is why the runs above were re-taken in a worktree checked out at
-`a56240f0` with nothing uncommitted in it.
-
-So: run `charly marketplace drift` before and after any `charly marketplace generate`, and treat an
-unexplained artifact in the output as someone else's half-landed cutover rather than your
-own mess.
-
-Repair ownership, when `main` goes red from someone else's half-landed cutover: it is
-**blocking for your own landing**, not a separable cleanup. "Already red on main" and
-"belongs to that PR's author" are exactly the framings R2 names, and a validator will not
-put a release tag on a tree whose gate exits 1.
+**Every count here is a property of the matcher as much as of the corpus.** Separator, case,
+match direction and pathspec each move it, so a published count states all four or states
+none. This page states none: triage the hits.
 
 ### Submodule pointers can be reverted by a merge without ever conflicting
 
@@ -887,63 +584,18 @@ resolutions and the silent gitlink override sitting between them.
 
 ### Status absence on a known head proves nothing
 
-On PASS the evaluator typically adds a CalVer-finalization commit and posts
-`charly/pr-validator` on THAT sha, then squash-merges and deletes the branch — so polling
-`gh api repos/<r>/commits/<known-head>/statuses` can return "(none)" right up until the
-merge, indistinguishable from a hung run. (Observed on two of three landings in the
-motivating cutover; the pr-validator spec requires a status on the pre-finalization head,
-so treat this as behaviour that MAY occur, not a guarantee.) Poll the PR's
-`state`/`mergedAt` and re-resolve the head at check time instead.
+`count=0` on a commit's status list does not mean "nothing ran" and does not mean "something is
+running". It distinguishes nothing, because a validator that died mid-round and one that has not
+yet posted produce the identical reading.
 
-Related: when a validator does look stalled, **ping it for liveness before respawning**.
-A `pr-validator` merges and tags on PASS, so two of them on an unanswered head can both
-get there and race. Duplicated review is cheap; a double-merge or a contended tag is not.
+**Probe the process, not the inbox.** A message proves an agent has an inbox; `pgrep -af
+"<agent-name>"` proves it exists. Ping for liveness before respawning — two validators on one PR
+can both reach PASS and both try to merge.
 
-**`count=0` distinguishes nothing — and this paragraph is why the fix must be mechanical.**
+**A second validator finding a live claim stands down and reports the claimant.**
 
-The section above is a **documentary** control, and it has been measured failing. Read the
-correction first, because the intuitive reading is backwards in both directions:
-
-> An empty status list does **not** mean "nothing ran", and it does not mean "something is
-> running". It distinguishes **neither**. A validator posts its status only at verdict
-> time, so `count=0` is equally consistent with *none ran*, *one is running right now*, and
-> *one ran and posted on a finalization sha you are not polling*.
-
-**The requirement, stated so it is not confused with any one mechanism:** a validator's
-status must distinguish **three** states — *none ran* / *one is running* / *one has
-verdicted*. Today it distinguishes one. The available fix uses machinery that already
-exists: **claim the head before analysis** by posting a `pending` status naming yourself,
-which turns an invisible race into a visible one.
-
-**A second validator finding a live claim stands down AND reports the claimant.** Racing to
-a second verdict is strictly worse than not starting: two verdicts on one head have no
-tie-break, so the merge goes to whoever finishes first — not to whoever was more thorough.
-But a silent stand-down trades a race for a deadlock, so the claimant is always named, and
-a genuinely stalled one is then visible rather than blocking the PR forever.
-
-**Why this is not filed as "remember to check".** The measured answer is that the
-documentary control was given every possible advantage and lost anyway. When the race
-actually happened, **three independent layers each prescribed the correct action, and all
-three were skipped**:
-
-1. **This section, shipped** — the paragraph above already said *ping before respawning*,
-   in production, in the document the operator maintains and had been citing that day.
-2. **A loaded session memory** — *"check the PR before spawning a validator, not the
-   roster; absence proves nothing. **Probe with SendMessage**; budget 20+ min before
-   calling one stalled."*
-3. **A correction written minutes earlier, by the same operator** — the `count=0`
-   paragraph above, authored and then immediately read backwards as "nobody is on it".
-
-The prescribed action was concrete, available, and one call: `SendMessage` to the named
-validator. The tool was to hand, the target's name was known, and the instruction naming
-both was already in context. It was never sent.
-
-**The reflex fires before the knowledge does.** A rule that is documented, published,
-personally remembered, AND personally re-derived minutes beforehand — and still skipped —
-is not a control. It is a description of what a careful person would do. **That is the
-argument for the mechanical form, and it is now measured rather than asserted**: the
-documentary version was given the most favourable test available and failed it three times
-in one session.
+**Read the status description, not the count.** A count of 1 is the same whether it is this round's
+verdict or the previous round's, and only the description separates them.
 
 ### A guard that cannot fail is worse than no guard
 
