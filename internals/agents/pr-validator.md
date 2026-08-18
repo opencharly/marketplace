@@ -321,7 +321,9 @@ faithful, pointed the other way.
 The obvious tightenings were measured and both are worse. Restricting to a 20-line
 header window still flags a CHANGELOG that quotes the banner in its opening paragraph.
 Requiring a comment-form line carrying both *generated* and the phrase drops the false
-positives but **misses 1 of 349 real banners in `plugins` and 5 of 905 in `docs`** — the
+positives but **drops 1 of 349 hits in `plugins` and 5 of 905 in `docs` — and **every one of the six is a
+hand-authored mentioner**: five `CHANGELOG/` entries and `docs/CLAUDE.md`, none carrying a
+banner** — the
 same corpora and refs as the census below, so the two figures are comparable — trading a
 cost-one-glance error for the exact error that motivated the rule.
 
@@ -335,7 +337,7 @@ erased, because every reviewer went straight to the content.
 Three things make the naive form of this check miss:
 
 - **The banner is usually near the top — and a fixed window still fails, because of a
-  one-file tail.** Measured over `plugins` @ `01edd45e`, spaced matcher, unrestricted:
+  one-file tail.** Measured over `plugins` @ `01edd45e`, spaced matcher, case-sensitive, unrestricted:
   **345 of 351 hits sit at line
   ≤ 15 (98.29%)**, two above line 100, and **both are this page quoting
   the banner in prose**. At this ref there is **no** genuinely deep carrier — the deepest
