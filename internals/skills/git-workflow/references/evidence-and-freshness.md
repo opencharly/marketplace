@@ -73,8 +73,8 @@ distinction the table exists to draw.
 
 **Five sections are mechanism** — how charly and git actually behave: the
 cross-repo `skill:` cutover, the submodule revert, the validator-status false
-negative, multi-source assembly, and the vacuous guard. They are not instances of the question and no
-frame unifies them.
+negative, multi-source assembly, and the vacuous guard. They are not instances
+of the question.
 
 **That split is load-bearing, and it is why this page's own first revision shipped a false
 claim.** An epistemic claim is checked by reasoning; a mechanism claim can only be checked
@@ -273,7 +273,7 @@ standard keys on a property of the **claim** (a count authored into a permanent 
 Different keys, same law. The code/prose register boundary is one special case of it, not
 the whole.
 
-**A pattern must anchor to the construct, not the token.** The same key produced both a
+**A pattern must anchor to the construct, not the token.** A token-anchored key produced both a
 miss and a false positive: `grep 'cmd:"[a-z_]'` later counted two *comment* lines as
 surviving tags. A count that cannot tell a tag from prose was never a measurement of the
 invariant. Anchor to what the construct looks like — `^\s+[A-Z]\w*\s+\S+\s+`...`cmd:"` —
@@ -945,6 +945,7 @@ is not a control. It is a description of what a careful person would do. **That 
 argument for the mechanical form, and it is now measured rather than asserted**: the
 documentary version was given the most favourable test available and failed it three times
 in one session.
+
 ### A guard that cannot fail is worse than no guard
 
 Four times in one cutover an unmerged change was written as landed fact — "presence **is**
