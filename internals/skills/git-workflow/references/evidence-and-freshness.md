@@ -957,13 +957,43 @@ attentional** — you cannot pay closer attention to a bias you cannot feel.
 **Guard 1 — every commit SHA an entry names, checked for landed state AND subject:**
 
 ```bash
-for sha in $(grep -ohE '\b[0-9a-f]{7,40}\b' CHANGELOG/<entry>.md | sort -u); do
-  for repo in . <superproject-path>; do        # BOTH — see below
-    git -C "$repo" cat-file -e "${sha}^{commit}" 2>/dev/null || continue
-    git -C "$repo" merge-base --is-ancestor "$sha" origin/main && st=LANDED || st=UNMERGED
-    printf '%s %s %s\n' "$sha" "$st" "$(git -C "$repo" log -1 --format=%s "$sha")"; break
+( # Run from the superproject OR any submodule — the root is resolved, not assumed.
+  root=$(git rev-parse --show-superproject-working-tree)
+  root=${root:-$(git rev-parse --show-toplevel)}
+  entry=$root/CHANGELOG/2026.229.2153.md   # substitute the entry under review
+
+  # REFUSE rather than narrow. Each of these is a way to report nothing convincingly.
+  [ -f "$entry" ] || { echo "guard: no such entry: $entry" >&2; exit 1; }
+  repos="$root $(git config -f "$root/.gitmodules" --get-regexp path \
+                   | awk -v r="$root" '{print r"/"$2}')"
+  [ "$repos" = "$root " ] && { echo "guard: no submodules under $root" >&2; exit 1; }
+  shas=$(grep -ohE '\b[0-9a-f]{7,40}\b' "$entry" | sort -u)
+  [ -n "$shas" ] || { echo "guard: $entry cites no SHAs — nothing was checked" >&2; exit 1; }
+
+  bad=0
+  for sha in $shas; do
+    found=
+    for repo in $repos; do
+      git -C "$repo" cat-file -e "${sha}^{commit}" 2>/dev/null || continue
+      # Capture rc and CLASSIFY it. 128 means "could not check" and is never a verdict;
+      # `&& ||` cannot tell it from 1, so it would print UNMERGED and pass.
+      git -C "$repo" merge-base --is-ancestor "$sha" origin/main; rc=$?
+      case $rc in
+        0) st=LANDED ;;
+        1) st=UNMERGED ;;
+        *) st=UNCHECKED; bad=1 ;;
+      esac
+      printf '%-9s %-10s %-9s %s\n' "$sha" "$st" "$(basename "$repo")" \
+             "$(git -C "$repo" log -1 --format=%s "$sha")"
+      found=1
+      break
+    done
+    # UNRESOLVED is a failure: nobody can check that citation. UNMERGED is INFORMATION --
+    # an entry citing its own open branch is legitimate, so the reader judges it, not the exit code.
+    [ -n "$found" ] || { printf '%-9s %-10s\n' "$sha" UNRESOLVED; bad=1; }
   done
-done
+  exit $bad
+)
 ```
 
 The **subject** is half the value: it catches citing the wrong commit, which happened here — a
@@ -983,7 +1013,16 @@ local-only resolve drops silently.
 **Guard 2 — grep the entry's own prose, with the exclusion that makes it usable:**
 
 ```bash
-grep -nE '\b(is|are) (now )?(enforced|generated|deleted|removed|fixed)\b' CHANGELOG/<entry>.md
+( # Same root resolution as guard 1 — the two guards MUST audit the same file.
+  root=$(git rev-parse --show-superproject-working-tree)
+  root=${root:-$(git rev-parse --show-toplevel)}
+  entry=$root/CHANGELOG/2026.229.2153.md   # substitute the entry under review
+
+  [ -f "$entry" ] || { echo "guard: no such entry: $entry" >&2; exit 1; }
+  hits=$(grep -nE '\b(is|are) (now )?(enforced|generated|deleted|removed|fixed)\b' "$entry")
+  # SAY the empty case. "found nothing" and "never ran" must not look alike.
+  [ -n "$hits" ] && printf '%s\n' "$hits" || echo "guard: no present-tense landed-state claims in $entry"
+)
 ```
 
 Most hits are CORRECT and must not be hedged. The discriminator:
