@@ -36,6 +36,28 @@ API socket at uid 1000 and declares the named volume at `/run/user/1000` that
 makes it possible. Without it the verb reports that the venue serves no socket
 and names the path it tried.
 
+The default socket is `/run/user/1000/podman/podman.sock` — the uid-1000
+rootless path that composition serves. `--socket` overrides it.
+
+Composing it looks like this. Note which entity this is: `base:` marks it a
+BOX — the thing you build. Deploying that box on a container venue gives you
+the pod this verb targets; on a VM venue the twin verb is `charly vm cp-box`.
+The two arguments follow from that: `<target>` names the running deploy, never
+the box, and `<image>` is the artifact being delivered into it.
+
+```yaml
+my-spike-box:
+    candy:
+        version: 2026.230.1200
+        base: quay.io/fedora/fedora:43
+        description: A box that serves its own rootless podman socket, so a deploy of it can receive images.
+        distro:
+            - fedora:43
+            - fedora
+        candy:
+            - nested-podman-socket    # pulls in container-nesting itself
+```
+
 ## Usage
 
 ```bash
@@ -72,7 +94,23 @@ a size-limited `/tmp`.
 
 ## Verification
 
-`check-boxload-pod` is the R10 bed: it delivers a host image into the pod's nested
+`check-boxload-pod` is the R10 bed — a deploy in the project's own `charly.yml`
+marked `disposable: true`, the flag that authorizes charly to destroy and
+rebuild it unattended. It delivers a host image into the pod's nested
 store and asserts, THROUGH the socket, that the image is there. The assertion is
 socket-scoped deliberately — a plain in-container `podman images` would pass even
 if the image had gone to the wrong store.
+
+A successful delivery reports each stage, so a skip is distinguishable from a
+transfer:
+
+```
+box load: streaming localhost/my-image:latest into venue storage (save | load)...
+box load: localhost/my-image:latest is now in venue storage (verified intact)
+```
+
+and an already-present, verified image says so instead of re-streaming:
+
+```
+box load: venue already has localhost/my-image:latest (verified intact) — skipping transfer
+```
