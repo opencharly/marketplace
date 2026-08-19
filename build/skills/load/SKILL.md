@@ -45,7 +45,6 @@ the pod this verb targets; on a VM venue the twin verb is `charly vm cp-box`.
 The two arguments follow from that: `<target>` names the running deploy, never
 the box, and `<image>` is the artifact being delivered into it.
 
-
 ```yaml
 my-spike-box:
     candy:
