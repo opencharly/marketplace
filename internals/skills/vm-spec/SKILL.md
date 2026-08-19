@@ -20,7 +20,7 @@ Go type reference for the VM surface. `VmSpec` + `VmSource` + `VmChecksum` + `Vm
 |---|---|
 | `spec/spec/cue_types_gen.go` (generated; charly-name aliases in `spec/spec/charly_names.go`) | `VmSpec` (= `Vm`), `VmSource`, `VmChecksum`, `VmNetwork`, `VmSSH`, `VmKeyInjection` |
 | `spec/spec/cue_types_gen.go` (generated) | `VmCloudInit`, `VmCloudInitUser`, `VmCloudInitFile`, `VmCloudInitNetwork`, `VmCloudInitMirrors`, `VmCharlyInstall` |
-| `sdk/vmshared/libvirt_yaml.go` | `LibvirtDomain` + 30+ sub-types (features, CPU, clock, devices, etc.) |
+| `sdk/vmshared/libvirt_yaml.go` | stub — `LibvirtDomain` is the GENERATED struct in `spec/spec/cue_types_gen.go`, from `#LibvirtDomain` in `spec/schema/vm.cue` (see the CUE row below) |
 | `spec/schema/vm.cue` + `cue_kind_vm.go` | `#Vm` — the closed CUE schema validating `VmSpec` + the `#LibvirtDomain`/`#VmCloudInit` subtrees (registered in the per-kind CUE registry; the Go VM/libvirt validators were deleted) |
 
 ## VmSpec (top-level shape)
