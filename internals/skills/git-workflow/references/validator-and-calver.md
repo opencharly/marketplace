@@ -24,17 +24,18 @@ required skill, uninitialized declared gitlink, absent approval, or ambiguous ha
 `BLOCKED`: post the precise reason as the validator PR comment and stop. Do
 not bootstrap, run setup, retry around the boundary, or substitute candidate policy.
 
-- **Write access (the default):** the author opens the PR (B1 step 1); a fresh
+- **Write access (the default):** the author opens the PR (B1 step 1); the fresh
   `pr-validator` (new context, not the author's context, not a teammate that
-  authored the code) validates → posts `charly/pr-validator` → on PASS
-  finalizes the merge-time CalVer, `gh pr merge --squash --delete-branch`, tags.
-  Sequence + guardrails: `plugins/internals/agents/pr-validator.md`. The evaluator
-  never runs `gh pr merge --admin` (that bypasses the gate) and never force-pushes; a
-  `BEHIND` branch is recovered with `gh pr update-branch` (no force-push), the
-  status re-posted on the new head, then merged.
+  authored the code) certifies `Verdict: PASS|BLOCK` for the ORG-WIDE
+  `charly/pr-validator` GitHub Actions gate; on PASS the org-wide `auto-merge`
+  workflow finalizes the merge-time CalVer, `gh pr merge --squash --delete-branch`, tags.
+  Sequence + guardrails: `plugins/internals/agents/pr-validator.md`. The gate
+  never runs `gh pr merge --admin` (that bypasses it) and never force-pushes; a
+  `BEHIND` branch is recovered with `gh pr update-branch` (no force-push), then merged
+  on the new head.
 - **No write access — fork + PR:** ensure a fork (`gh repo fork --remote`), push
   `feat/<slug>` to the fork, `gh pr create --base main --head <fork>:feat/<slug>`
-  with the full template body. A maintainer's fresh `pr-validator` then validates
+  with the full template body. A maintainer's gate then validates
   and merges exactly as above. Never force-push, never need upstream write.
 
 **Why a status, not a review approval — and what it does not buy.** GitHub forbids a
