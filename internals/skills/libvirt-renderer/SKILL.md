@@ -25,7 +25,7 @@ The libvirt renderer converts `VmSpec` + `LibvirtDomain` into a libvirt domain X
 | `sdk/vmshared/libvirt_helpers.go` | helpers shared by the libvirt YAML bridge + `qemu_render` argv emitter (incl. `VmRuntimeParams`) | ~160 |
 | `sdk/vmshared/libvirt_yaml_listen.go` | structured `<listen>` support for `LibvirtGraphics` | ~130 |
 | `sdk/vmshared/qemu_render.go` | `RenderQemuArgv` for direct-QEMU backend | ~340 |
-| `spec/schema/vm.cue` | `#LibvirtDomain` — the closed CUE schema for the libvirt subtree (enums/ranges/PCI-hex + the `uefi-secure ⇒ smm` cross-rule); registered via `cue_kind_vm.go`. Validation lives here, not in Go |
+| `spec/schema/vm.cue` | `#LibvirtDomain` — the closed CUE schema for the libvirt subtree (enums/ranges/PCI-hex + the `uefi-secure ⇒ smm` cross-rule); registered via `cue_kind_vm.go`. Validation lives here, not in Go | ~720 |
 
 ## LibvirtDomain top-level
 
