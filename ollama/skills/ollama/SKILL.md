@@ -62,13 +62,19 @@ Every size below is INSTALLED. The one figure above is a COMPRESSED DOWNLOAD and
 deliberately not compared against them: the tarball's installed size is not stated
 anywhere here, so weighing 1.32 GiB against the installed numbers would compare two
 different axes. Read the download figure as what a tarball build FETCHES, and the
-table as what a packaged build COSTS on disk.
+two figures in the bullets below as what a packaged build COSTS on disk. (They are
+bullets, not a table — this page's only tables are Box Properties, Ports and Volumes.)
 
 - A GPU box composes `ollama-cuda` (~988 MiB) beside this candy for the
-  CUDA backend, or `ollama-rocm` (~2.9 GiB) for AMD. Both are candies in
-  this repository; which boxes compose them is decided in the distro submodules
-  (`box/fedora`, `box/cachyos`), so consult those rather than this page for the
-  current list.
+  CUDA backend, or `ollama-rocm` (~2.9 GiB) for AMD. Both are candies in this
+  repository and BOTH package only on Arch (`distro: {arch: …}` and nothing
+  else), which means the two behave differently off it: `ollama-cuda` degrades
+  into an ASSERTION that the tarball's bundled CUDA is present, while
+  `ollama-rocm` has no tarball path at all and its check correctly fails rather
+  than pretending. So an AMD box is an Arch-family box today. Which boxes
+  actually compose them is decided in the distro submodules — `box/cachyos` for
+  both, `box/fedora` for the CUDA assertion only — so consult those rather than
+  this page for the current list.
 - A consumer that composes neither pays for neither ON A PACKAGED DISTRO —
   e.g. `/charly-openclaw:openclaw-desktop` (cachyos base, no GPU candy). On a
   tarball distro it still carries the bundled CUDA backend.
