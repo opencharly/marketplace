@@ -43,6 +43,7 @@ can merge. See `/charly-internals:skills` for the source→projection model and
 | add a test that proves the fix is gated | you gated the value the fix stores, not the behaviour the title claims | "Gate the behaviour the title claims, not the artifact of the fix" |
 | retry a test that passed once and failed once | a concurrent writer presents as a flaky test, and only a second observation separates them | "One observation never distinguishes the cases — two at one timestamp do" |
 | fold several branches into one tree | a discrepancy you cannot attribute reads as inherited drift | "Assembling several sources into one tree — measure between applications" |
+| write a guard to enforce a claim | the guard reports clean on the exact case it was meant to catch | "A guard that cannot fail is worse than no guard" |
 
 **The page has two kinds of content, and they are true in different ways.**
 
@@ -103,9 +104,11 @@ attention. Verifying this one meant clearing `HOME`, `GIT_CONFIG_GLOBAL` and `GI
 and proving the isolation empty before trusting the result.
 
 **And executing it is only half — the other half is PROVENANCE: every measurement
-states the tree it was taken on.** This clause exists because the content-scoping rule
-two paragraphs up, in the form that shipped without it, did not prevent the next error. A drift figure on this
-very cutover was executed, correct, and false: `charly marketplace drift` was run
+states the tree it was taken on.** This clause exists because the content-scoping
+rule above ("The execution rule is scoped to CONTENT, not to sections"), in the
+form that shipped without it, did not prevent the next error. A drift figure on
+this very cutover was executed, correct, and false: `charly marketplace drift`
+was run
 with the superproject at `main` but the submodules checked out at their repo TIPS,
 and the result was reported as a fact about `main` — which pins its submodules at
 older gitlinks and is clean. Nothing was unexecuted. The measurement simply answered
@@ -691,3 +694,14 @@ ones, and an entry that hedges its own change reads as uncertainty about the cha
 heads to land and the change itself was correct at head one and never moved — every round was the
 *evidence narrative* being written faster than it could be verified. The code was never the
 bottleneck. These two checks cost seconds and catch precisely that class.
+
+**And it generalizes past guards — the page-wide detector.** A zero from a broken
+query is indistinguishable from a zero that is an answer, and the strongest form of
+the detector is: **a before/after check must show a NONZERO BEFORE** — the
+before-side is a positive control you are already running, proving the instrument
+can find the thing at all. If the before-side is zero, the instrument has never
+once proven it matches, and the after-side's zero carries no information
+whatsoever. Zero-on-both-sides can also be a true answer to a badly chosen question
+(the phrase genuinely was never there), so it does not prove the instrument broke —
+it proves the check never DISCRIMINATED, which is sufficient grounds to refuse the
+result either way.

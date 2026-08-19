@@ -199,7 +199,11 @@ not steps an charly user runs, and they never belong on a reader-facing page.
    `plugins/` tree, so a local regeneration picks the edit up immediately; every
    other reader gets it only once the gitlink advances. Advancing that gitlink
    WITHOUT regenerating `docs` in the same landing is precisely what leaves the
-   published site stale, and only the drift gate will say so.
+   published site stale, and only the drift gate will say so. Superproject-facing
+   drift is EXPECTED while the projection PR is in flight — the superproject
+   necessarily still pins the old gitlink until the projection merges — so that
+   redness is not the tagging bar for the projection PR itself: its gate is the
+   `plugins` tree, and the superproject catches up at step 5.
 3. **Regenerate and land `docs`** — `task docs:sync`, review the emitted pages,
    commit them in the `docs` submodule; `task docs:drift` is the gate, re-syncing
    and failing on any dirty path. Regeneration rewrites the generated trees

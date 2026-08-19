@@ -199,7 +199,7 @@ The VM path spans the following module topology:
 |---|---|
 | `spec/spec/cue_types_gen.go` (generated) | `VmSpec` (= `Vm`) + `VmSource` discriminated union (cloud_image / bootc) + `VmChecksum` + `VmNetwork` + `VmSSH` + `VmKeyInjection` |
 | `spec/spec/cue_types_gen.go` (generated) | `VmCloudInit` + `VmCloudInitUser/File/Network/Mirrors` + `VmCharlyInstall` (auto/scp/skip state machine) |
-| `sdk/vmshared/libvirt_yaml.go` | `LibvirtDomain` + 30+ sub-types (features, CPU, clock, memory backing, numatune, cputune, devices, seclabel, launch security, resource, sysinfo) — the opencharly YAML-facing shape of the `libvirt:` stanza |
+| `sdk/vmshared/libvirt_yaml.go` | stub — the per-device structs moved to `#LibvirtDomain` in `spec/schema/vm.cue` (generated `LibvirtDomain` into `spec/spec/cue_types_gen.go`); the opencharly YAML-facing shape of the `libvirt:` stanza is now CUE, its renderers `candy/plugin-vm/libvirt_yaml_bridge.go` |
 | `candy/plugin-vm/libvirt_yaml_bridge.go` | `RenderDomainXML`/`BuildLibvirtDomainXML` pure functions (build a `libvirtxml.Domain` tree, marshal to XML) + `buildDomainDevices` device emission (passt backend, portForward attribute order, virtio-gpu default, SMBIOS credentials, `XMLPassthrough` merge) |
 | `sdk/vmshared/qemu_render.go` | `RenderQemuArgv` for direct-QEMU backend |
 | `sdk/vmshared/cloud_init_render.go` + `cloud_init_iso.go` | `RenderCloudInit` + `ResolveKeyInjectionChannels` + `composeUsers` (adopt-merge) + `WriteSeedISO` via xorriso/genisoimage/mkisofs |

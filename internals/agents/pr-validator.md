@@ -854,9 +854,15 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
     docs-only change carrying history also stages one. Absent where required FAILS.
     **Strict CalVer checks:**
     - Filename MUST match `^\d{4}\.\d{3}\.\d{4}\.md$` (valid CalVer format)
-    - H1 heading MUST match `# <filename-without-.md> — <title>` (byte-equal CalVer)
+    - H1 heading MUST byte-equal the WHOLE line `# <filename-without-.md> — <title>`
+      (a reading scoping the byte-equality to the CalVer alone would exempt an H1 with
+      the right date and no title — the two-reader ambiguity this rule once caused)
     - The placeholder CalVer MUST NOT already exist as a `CHANGELOG/*.md` or `v*` tag on `main`
-    - `head -1 CHANGELOG/<file>.md` MUST byte-equal `# <CalVer> — <title>`
+    - `git show :CHANGELOG/<file>.md | head -1` MUST byte-equal `# <CalVer> — <title>`
+      — read the INDEX, what the commit will carry, never the working-tree path: the
+      path is the one layer that already agrees with you, so a staged rename with an
+      unstaged edit (the `RM` second character in `git status --short`) would pass it
+      while the index, commit and merge all hold the old H1
 
     **These four rules prevent a COLLISION, not a SURVIVAL, and the difference is the
     whole hazard.** The placeholder is required to be CalVer-shaped and self-consistent,
@@ -1264,8 +1270,10 @@ stamps collide and mis-order across concurrent PRs). Operate on the feat branch:
      the FILE but never touches its H1, so skipping this leaves the heading at the
      placeholder date — a filename↔H1 divergence (a recurring R1 incident). After
      the rewrite, SELF-VERIFY for EVERY `CHANGELOG/*.md` you staged this phase:
-     `head -1 CHANGELOG/$VER.md` MUST byte-equal `# $VER — <title>` before you post
-     the final status (step 4);
+     `git show :CHANGELOG/$VER.md | head -1` MUST byte-equal `# $VER — <title>` before
+     you post the final status (step 4) — the INDEX read: `head -1 <path>` returns the
+     working tree, which is exactly the layer an unstaged edit-after-rename leaves
+     agreeing with you while the commit still holds the old H1;
    - **AFTER tagging, verify the landed entry's CalVer equals the version you MINTED**
      — for every `CHANGELOG/*.md` this merge added on `main`, its basename MUST equal
      `$VER`, the same string as the `v$VER` tag you just pushed. This is the check that
