@@ -1,8 +1,11 @@
 ---
 name: ollama
 description: |-
-  Standalone Ollama LLM inference server. GPU acceleration is composed at the
-  box level (`ollama-cuda` / `ollama-rocm`), never by this candy.
+  Standalone Ollama LLM inference server. This candy DECLARES no GPU dependency —
+  a backend is composed at the box level (`ollama-cuda` / `ollama-rocm`). What that
+  yields differs by install path: on a packaged distro the base is genuinely CPU-only,
+  while on a tarball distro the single upstream archive already contains CUDA, so the
+  declaration is about what this candy REQUIRES, not about what ends up in the image.
   Runs as a supervisord service on port 11434 with persistent model storage.
   MUST be invoked before building, deploying, configuring, or troubleshooting the ollama box.
 ---
@@ -52,20 +55,34 @@ PACKAGED path is it also a size choice, and conflating the two is easy to do:
 - **Tarball distros** get one archive (1.32 GiB compressed) that already contains
   the CUDA backend, so there is nothing to opt out of. ROCm is the exception in the
   other direction: it is NOT in that archive — upstream publishes it as a separate
-  `ollama-linux-amd64-rocm` download — which is why `ollama-rocm` is Arch-only and
-  says so on its own page.
+  `ollama-linux-amd64-rocm` download, which this candy does not select. That is why
+  `ollama-rocm` is packaged for Arch only — it has no candy page of its own to say so
+  on, since it declares no `skill:` entity, so the constraint is stated here.
 
-Every size below is INSTALLED. The one figure above is a COMPRESSED DOWNLOAD and is
-deliberately not compared against them: the tarball's installed size is not stated
-anywhere here, so weighing 1.32 GiB against the installed numbers would compare two
-different axes. Read the download figure as what a tarball build FETCHES, and the
-table as what a packaged build COSTS on disk.
+Every size on this page is INSTALLED except ONE: the 1.32 GiB tarball figure, which
+is a COMPRESSED DOWNLOAD. (The 66 MiB figures above are installed sizes, so the axis
+does not split by position on the page — it splits by which figure.) The download is
+deliberately not compared against the installed numbers: the tarball's installed size
+is not stated anywhere here, so weighing 1.32 GiB against them would compare two
+different axes. Read it as what a tarball build FETCHES. The two
+figures in the bullets below are the two ALTERNATIVE BACKENDS, not the cost of a
+packaged build: a packaged image pays the 66 MiB base plus AT MOST ONE of them, and
+pays neither if it composes neither. Both are Arch figures — off Arch `ollama-cuda`
+adds no package at all, so its ~988 MiB is not a cost a tarball image pays on top.
+(They are bullets, not a table — this page's only tables are Box Properties, Ports
+and Volumes.)
 
 - A GPU box composes `ollama-cuda` (~988 MiB) beside this candy for the
-  CUDA backend, or `ollama-rocm` (~2.9 GiB) for AMD. Both are candies in
-  this repository; which boxes compose them is decided in the distro submodules
-  (`box/fedora`, `box/cachyos`), so consult those rather than this page for the
-  current list.
+  CUDA backend, or `ollama-rocm` (~2.9 GiB) for AMD. Both are candies in this
+  repository and BOTH package only on Arch (`distro: {arch: …}` and nothing
+  else), which means the two behave differently off it: `ollama-cuda` degrades
+  into an ASSERTION that the tarball's bundled CUDA is present, while
+  `ollama-rocm` has no tarball path at all and its check correctly fails rather
+  than pretending. A ROCm image is therefore an Arch-family image. Which boxes
+  compose which backend is decided in the distro submodules and changes there,
+  so consult those for the current list rather than this page — and read any
+  such list through the Arch-only rule above, which is the part that does not
+  move.
 - A consumer that composes neither pays for neither ON A PACKAGED DISTRO —
   e.g. `/charly-openclaw:openclaw-desktop` (cachyos base, no GPU candy). On a
   tarball distro it still carries the bundled CUDA backend.
