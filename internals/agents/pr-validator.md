@@ -1265,7 +1265,6 @@ author, whose stamps collide and mis-order across concurrent PRs):
    the feat branch (a normal, non-force push):
    - `git mv CHANGELOG/<placeholder>.md CHANGELOG/$VER.md` **AND rewrite the H1
      heading inside the file to match**: the first line is `# <placeholder> — …`;
-<<<<<<< HEAD
      rewrite it to `# $VER — …` (same title text, new date) — otherwise the filename
      and H1 diverge (a recurring R1 incident). Self-verify that
      `head -1 CHANGELOG/$VER.md` byte-equals `# $VER — <title>` BEFORE merging;

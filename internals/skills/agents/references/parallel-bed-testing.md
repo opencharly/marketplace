@@ -355,7 +355,7 @@ only via an explicit `host:container` entry (`port: ["8888:8888"]`) for
 specific container ports, never a bare `auto` token. References the
 assigned port via `${HOST_PORT}` / `${HOST:<member>:<port>}` in its checks
 — never a literal host port. A bed pins an image → layers → files, so
-owning a bed owns those source files. (Task #19, 2026-08-04: a nil/absent
+owning a bed owns those source files. (A nil/absent
 per-host overlay on a bed's first-ever `charly config` used to SKIP port
 resolution entirely — `candy/plugin-deploy-pod/config_setup.go`'s
 `resolveDeployPorts` now self-heals a nil overlay instead of skipping it,

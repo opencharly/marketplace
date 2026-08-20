@@ -674,11 +674,25 @@ local-only resolve drops silently.
   entry=$root/CHANGELOG/2026.229.2153.md   # substitute the entry under review
 
   [ -f "$entry" ] || { echo "guard: no such entry: $entry" >&2; exit 1; }
-  hits=$(grep -nE '\b(is|are) (now )?(enforced|generated|deleted|removed|fixed)\b' "$entry")
-  # SAY the empty case. "found nothing" and "never ran" must not look alike.
-  [ -n "$hits" ] && printf '%s\n' "$hits" || echo "guard: no present-tense landed-state claims in $entry"
+  hits=$(grep -nE '\b(is|are) (now )?(enforced|generated|deleted|removed|fixed)\b' "$entry"); rc=$?
+  # BRANCH ON THE STATUS, not on the output. grep returns 0 matched, 1 matched
+  # NOTHING, >=2 COULD NOT RUN (unreadable file, a directory, an I/O error) — and
+  # rc 1 and rc 2 both produce empty output, so `[ -n "$hits" ]` alone reports a
+  # grep that never ran as a clean tree. "found nothing" and "never ran" must not
+  # look alike, and only the status tells them apart.
+  case $rc in
+    0) printf '%s\n' "$hits" ;;
+    1) echo "guard: no present-tense landed-state claims in $entry" ;;
+    *) echo "guard: FAILED to read $entry (grep rc=$rc)" >&2; exit 1 ;;
+  esac
 )
 ```
+
+**Feed it the failing case before trusting it**, exactly as the block above demands
+of guard 1: point `entry` at a file you have `chmod 000`'d and require a nonzero exit
+with `FAILED to read`. The first version of this guard tested `[ -n "$hits" ]` and
+printed its clean line for that case, at exit 0 — the same vacuity as guard 1's, in a
+guard whose own comment forbids it.
 
 Most hits are CORRECT and must not be hedged. The discriminator:
 

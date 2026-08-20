@@ -115,12 +115,14 @@ emitted the Arch package name `openssh` (apt: `Unable to locate package openssh`
 `composeBootCmd` masks `ssh.socket` until cloud-init finishes, a socket-activated sshd (Ubuntu
 24.04's default) was left MASKED and never restarted. The guest booted fully and served nothing.
 
-There is deliberately **no fallback** for either value — as of this cutover, whose spec and sdk legs are unmerged at the time of writing; on released charly the field is still `distro?: string` with the inference in place. `spec.DistroSSHUnits[distro]` and
+There is deliberately **no fallback** for either value. `spec.DistroSSHUnits[distro]` and
 `spec.DistroInits[distro]` are bare lookups into the generated tables: an id outside the
-vocabulary yields an EMPTY unit name rather than a guess. An interim revision of this skill
-claimed the sshd start "falls back to the other unit name, so omitting it costs a redundant
-`systemctl` call rather than an unreachable VM" — that fallback existed briefly and was removed,
-because a fallback is what let a wrong input survive long enough to fail somewhere else. Presence
+vocabulary yields an EMPTY unit name rather than a guess, and there is no fallback to the other
+unit name — a fallback is what lets a wrong input survive long enough to fail somewhere
+else. Omitting the value is a VALIDATION ERROR at author time
+(`candy/plugin-substrate/validate_vm.go` `validateSourceDistro`, severity `error`); the
+unreachable-VM outcome is what the now-deleted `base_user` inference used to produce,
+not what omission costs today. Presence
 is enforced at author time instead, which is the only place the answer is actually known.
 
 **The symptom is worth memorising, because it names nothing:** the domain reports
