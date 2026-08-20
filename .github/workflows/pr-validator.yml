@@ -17,7 +17,7 @@ jobs:
     name: charly/pr-validator
     # Skip forks (secrets not available there / comment posting fails).
     if: github.event.pull_request.head.repo.fork == false
-    uses: opencharly/.github/.github/workflows/pr-validator.yml@main
+    uses: opencharly/.github/.github/workflows/pr-validator.yml@v1.0.0
     with:
       # Org vars are auto-available, but pass explicitly so the caller's overrides win.
       ai_review_provider: ${{ vars.AI_REVIEW_PROVIDER }}
