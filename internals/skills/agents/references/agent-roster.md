@@ -97,13 +97,15 @@ work.
   owns the 4-tier confidence table (must match the project rulebook).
 - **`layer-validator`** — pre-edit `charly.yml` sanity gate; defers the
   full schema to `/charly-image:layer` + `charly box validate`.
-- **`pr-validator`** — the fresh PR evaluator (the disposing half of the
+- **`pr-validator`** — the fresh PR evaluator (the validating half of the
   two-step landing). Spawned with new context, it independently
-  re-validates a PR against R0–R10 and the relevant skills, posts the
-  `charly/pr-validator` commit status, and only on PASS generates the
-  merge-time CalVer, rewrites the version surfaces on the feat branch,
-  merges (`gh pr merge --squash`), and tags. It is the only actor that
-  posts the status or merges; branch protection makes its status the
+  re-validates a PR against R0–R10 and the relevant skills and certifies
+  `Verdict: PASS|BLOCK` for the ORG-WIDE `charly/pr-validator` GitHub
+  Actions gate, whose check run is the branch-protection context. The
+  landing (CalVer, version surfaces, squash merge, tags) is performed by
+  the org-wide `auto-merge.yml` workflow when the gate goes green — the
+  agent neither posts the status nor merges; branch protection makes the
+  check the
   mechanical gate. Never the agent that authored the PR — the point is
   independent evaluation. See `/charly-internals:git-workflow` (B1 step 2,
   B5).

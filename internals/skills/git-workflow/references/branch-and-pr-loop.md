@@ -37,21 +37,23 @@ gh pr create --base main --head feat/<slug> \     # fill the PR template complet
 # STOP. Do NOT merge your own PR. Hand off to a FRESH pr-validator (Step 2).
 ```
 
-**Step 2 — Fresh evaluator** (`plugins/internals/agents/pr-validator.md`, spawned
-with NEW context): it independently re-validates the PR vs R0–R10 + the relevant
-skills, posts `charly/pr-validator` on the head SHA, and ONLY on PASS
-generates the merge-time CalVer, rewrites the version surfaces on `feat/` (the
-`CHANGELOG` rename + any schema bump), re-posts the status on the new head,
-`gh pr merge --squash --delete-branch`, and tags. Its inputs include the PR's
-FULL comment thread, per the pr-validator spec's comment-intake rule — every
+**Step 2 — Org-wide gate** (`plugins/internals/agents/pr-validator.md`, the fresh
+evaluator in NEW context): it independently re-validates the PR vs R0–R10 + the
+relevant skills and certifies `Verdict: PASS|BLOCK` for the ORG-WIDE
+`charly/pr-validator` GitHub Actions workflow (`opencharly/.github`), whose
+check run is the branch-protection context (green on PASS, red on BLOCK). On
+PASS the org-wide `auto-merge` workflow generates the merge-time CalVer,
+rewrites the version surfaces on `feat/` (the `CHANGELOG` rename + any schema
+bump), `gh pr merge --squash --delete-branch`, and tags. Its inputs include the
+PR's FULL comment thread, per the pr-validator spec's comment-intake rule — every
 comment is investigated independently and considered in the verdict, never
 granted or denied authority merely by existing (see
 `plugins/internals/agents/pr-validator.md` "Comment intake", never restated
-here). The author pastes the evaluator's verbatim verdict + what it
-merged/tagged (paste-proof survives delegation). On FAIL the PR stays OPEN
-and is **UPDATED IN PLACE** → the author R1-RCAs, fixes in the same tree,
-APPENDS a fix commit, and pushes it fast-forward (status resets) → the
-evaluator re-runs. **Never close a PR and open a replacement to carry a fix.**
+here). The author pastes the validator's verbatim verdict + the gate outcomes
+(paste-proof survives delegation). On FAIL the check stays RED and the PR is
+**UPDATED IN PLACE** → the author R1-RCAs, fixes in the same tree,
+APPENDS a fix commit, and pushes it fast-forward (the check resets) → the
+validator re-runs. **Never close a PR and open a replacement to carry a fix.**
 
 Because the merge is a SQUASH and `main` is protected linear, `main` gains exactly
 ONE commit per cutover — the author's change, any review-round fix commits, and the
