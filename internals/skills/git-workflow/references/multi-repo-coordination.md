@@ -368,7 +368,7 @@ the shell's current directory. A stronger, WRITE-side form of the same
 footgun: a MUTATING command (anything that writes files or runs `git
 submodule update` as a side effect — `task cue:gen` is the canonical
 offender) run against a stale, ambient cwd doesn't just misreport, it
-MUTATES the wrong tree. Live incident: a fresh evaluator ran `task cue:gen`
+MUTATES the wrong tree. Failure mode: a fresh evaluator runs `task cue:gen`
 with a persisted shell cwd that had drifted to the main session worktree —
 the task's own `git submodule update` chain rewound 5 submodule checkouts
 there before the mistake was caught (fully restored,
