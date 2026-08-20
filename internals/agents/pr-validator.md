@@ -857,9 +857,15 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
     docs-only change carrying history also stages one. Absent where required FAILS.
     **Strict CalVer checks:**
     - Filename MUST match `^\d{4}\.\d{3}\.\d{4}\.md$` (valid CalVer format)
-    - H1 heading MUST match `# <filename-without-.md> — <title>` (byte-equal CalVer)
+    - H1 heading MUST byte-equal the WHOLE line `# <filename-without-.md> — <title>`
+      (a reading scoping the byte-equality to the CalVer alone would exempt an H1 with
+      the right date and no title — the two-reader ambiguity this rule once caused)
     - The placeholder CalVer MUST NOT already exist as a `CHANGELOG/*.md` or `v*` tag on `main`
-    - `head -1 CHANGELOG/<file>.md` MUST byte-equal `# <CalVer> — <title>`
+    - `git show :CHANGELOG/<file>.md | head -1` MUST byte-equal `# <CalVer> — <title>`
+      — read the INDEX, what the commit will carry, never the working-tree path: the
+      path is the one layer that already agrees with you, so a staged rename with an
+      unstaged edit (the `RM` second character in `git status --short`) would pass it
+      while the index, commit and merge all hold the old H1
 
     **These four rules prevent a COLLISION, not a SURVIVAL, and the difference is the
     whole hazard.** The placeholder is required to be CalVer-shaped and self-consistent,
@@ -1259,6 +1265,7 @@ author, whose stamps collide and mis-order across concurrent PRs):
    the feat branch (a normal, non-force push):
    - `git mv CHANGELOG/<placeholder>.md CHANGELOG/$VER.md` **AND rewrite the H1
      heading inside the file to match**: the first line is `# <placeholder> — …`;
+<<<<<<< HEAD
      rewrite it to `# $VER — …` (same title text, new date) — otherwise the filename
      and H1 diverge (a recurring R1 incident). Self-verify that
      `head -1 CHANGELOG/$VER.md` byte-equals `# $VER — <title>` BEFORE merging;
