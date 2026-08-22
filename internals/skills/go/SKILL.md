@@ -73,7 +73,7 @@ go.mod. Clone with `--recurse-submodules` (no sdk checkout exists to fetch) or r
 ## Go Module Info
 
 - Go version: 1.26.0
-- Key dependencies: `kong` (CLI), `go-containerregistry` (OCI), and `github.com/opencharly/sdk` (the plugin contract module — required with `replace github.com/opencharly/sdk => ../sdk` for in-tree resolution). The credential store's `go-keyring` (Secret Service API) is NOT a core dependency — it links only into the out-of-process `candy/plugin-secrets` plugin (the C2 dep-shed)
+- Key dependencies: `kong` (CLI), `go-containerregistry` (OCI), and `github.com/opencharly/sdk` (the plugin contract module — required at the shared pinned version, resolved from the module proxy; there is no `replace`). The credential store's `go-keyring` (Secret Service API) is NOT a core dependency — it links only into the out-of-process `candy/plugin-secrets` plugin (the C2 dep-shed)
 - Module path: `charly/go.mod`
 
 ## Common Workflows
