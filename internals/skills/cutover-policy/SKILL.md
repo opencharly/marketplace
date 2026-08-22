@@ -88,7 +88,14 @@ Each of these has a specific failure mode that has occurred historically: the fi
 - **Deletion — in the same PR** — of every Go type, function, CLI flag, OCI label, YAML field, skill doc paragraph, and test fixture that references the removed surface.
 - **Relocation step-sequence PARITY (when the cutover relocates a dispatcher, orchestrator, or runner).** Before relocating, ENUMERATE the original's per-CLASS behavior arms — e.g. bring-up / update / teardown × each substrate or shape class — and PROVE each class's step sequence matches the original in the relocated code. Fixing one arm of a class while missing its siblings is the CHARACTERISTIC relocation defect: a generic fallback that silently mis-handles a special class passes every unit test and fails ONLY on that class's live bed. The acceptance roster MUST therefore carry a bed per SPECIAL class (a gate that cannot fail on the class proves nothing — see `/charly-check:check` "R10 gate by change class").
 - **Stale-reference sweep (R5).** Every reference, comment, docstring, error message, skill paragraph, migration help-text, test fixture, and hook string naming a deleted identifier MUST be updated or deleted in the same commit. After commit, `git grep '<deleted-id>'` returns ONLY historical mentions in `CHANGELOG/` or migration help-text.
-- **A `CHANGELOG/` entry** in the repo's per-CalVer file (`CHANGELOG/<YYYY.DDD.HHMM>.md`, the version shared by the changelog filename and the release tag) recording the cutover narrative — required for EVERY landing in EVERY repo, `plugins` and `docs` included (`plugins` and `docs` are no CHANGELOG-exceptions: the author writes a placeholder CalVer, the `pr-validator` finalizes it at merge and `git mv`s the file to the merge stamp — the same stamp that names the tag). Historical content lives ONLY in the repo's `CHANGELOG/`; the project rulebook and the skills state the new standing rules forward-looking, with no history. See the project rulebook "Where things are documented".
+- **A `CHANGELOG/` entry at merge** — the PR body IS the changelog: the org-wide
+  tag-on-merge workflow writes the merged PR's title + body to the repo's per-CalVer file
+  (`CHANGELOG/<YYYY.DDD.HHMM>.md`, the version shared by the changelog filename and the
+  release tag) at merge time, in EVERY repo, `plugins` and `docs` included. The author
+  stages no CHANGELOG file and mints no CalVer. Historical content lives ONLY in the
+  repo's `CHANGELOG/`; the project rulebook and the skills state the new standing rules
+  forward-looking, with no history. See the project rulebook "Where things are
+  documented".
 - **Engineering-discipline gates (R1–R5).** See `/charly-internals:strict-policy`. Every failure during the cutover triggers `/charly-internals:root-cause-analyzer` BEFORE any remediation (R1). Every issue surfaced is fixed in the cutover or escalated (R2). Duplication is refactored on first surface (R3). Workarounds are forbidden (R4). Stale references are swept (R5).
 
 ## Rationale
@@ -131,7 +138,10 @@ One PR, one commit, with these deliverables:
 - **Load-time error** — old projects loading under the new code get a hard error naming the legacy field and pointing at `charly migrate`.
 - **Documentation refresh** — every referring skill revised in the same sweep; no stale references to any deleted identifier in `plugins/`, `README.md`, or `AGENTS.md` / `CLAUDE.md` (R5 grep self-test).
 - **Test deletions** — fixtures and assertions exercising the legacy surface removed; new fixtures exercise the replacement.
-- **CHANGELOG entry** — the cutover narrative written to the repo's per-CalVer file `CHANGELOG/<YYYY.DDD.HHMM>.md` (the version shared by the changelog filename and the release tag); the repo's `CHANGELOG/` is the only home for its history.
+- **CHANGELOG entry at merge** — the merged PR's title + body are written by the
+  tag-on-merge workflow to the repo's per-CalVer file `CHANGELOG/<YYYY.DDD.HHMM>.md`
+  (the version shared by the changelog filename and the release tag); the repo's
+  `CHANGELOG/` is the only home for its history. The author stages no CHANGELOG file.
 
 The commit uses the Conventional Commits `!` breaking-change marker; the body lists every deleted identifier, every removed YAML field, and every updated test. `charly migrate` is runnable against old projects from that commit forward, with no additional steps.
 
