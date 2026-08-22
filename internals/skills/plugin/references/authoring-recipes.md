@@ -228,9 +228,9 @@ builtins subtree to mirror.
 
 ## Authoring an EXTERNAL plugin (out-of-tree git repo)
 
-The candy IS its own Go module — its `go.mod` carries `require github.com/opencharly/sdk v0.0.0`
-plus, while in-repo, `replace github.com/opencharly/sdk => ../../sdk`; a PUBLISHED out-of-tree module
-drops the replace and requires a TAGGED `github.com/opencharly/sdk` instead (tag scheme
+The candy IS its own Go module — its `go.mod` carries `require github.com/opencharly/sdk` at
+the shared pinned version (the require IS the resolution — the sdk contract module resolves
+from the module proxy at that version; there is no local checkout and no `replace`, tag scheme
 `v0.<YYYYDDD>.<HHMM leading-zeros-stripped>`, e.g. superproject `v2026.185.0751` ⇄ sdk `v0.2026185.751` —
 the superproject's own `vYYYY.DDD.HHMM` tags are not valid Go module versions). A plugin module imports
 ONLY the sdk module, never charly core. Mirror `candy/plugin-example-external/`:
@@ -264,9 +264,9 @@ placements, ZERO authoring change.
 - `pluginsgen` (`charly/internal/pluginsgen`, run by `task build:binary` before `go build`, `GOWORK=off`,
   stdlib+yaml only) reads `compiled_plugins:` and emits `charly/plugins_generated.go` (one
   `registerCompiledPlugin(<pkg>.NewProvider(), <pkg>.NewMeta())` per candy) + the repo-root `go.work`
-  (`use ./charly` + `use ./sdk` + a `use ./candy/<name>` per candy, so `go build ./charly` resolves the
-  candy imports; pluginsgen guards a missing sdk submodule with a clear `git submodule update --init sdk`
-  error). Both are COMMITTED + reproducibility-gated (`TestPluginsGenReproducible`).
+  (`use ./charly` + a `use ./candy/<name>` per candy, so `go build ./charly` resolves the
+  candy imports; the sdk + spec contract modules resolve from the module proxy at the
+  pinned require versions — no submodule, no checkout). Both are COMMITTED + reproducibility-gated (`TestPluginsGenReproducible`).
 - `registerCompiledPlugin` drives `InProcServedTransport`: it calls the candy's `Describe` IN-PROCESS, runs
   the SAME `buildUnit` capability-lift + schema gate an external goes through (so the compiled-in schema
   enters the SAME `loadBuiltinPluginUnits` gate), and registers each capability wrapped in an
