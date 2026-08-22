@@ -1,7 +1,7 @@
 ---
 name: pr-validator
 description: |-
-  Blocking - The FRESH PR evaluator. Independently validates a pull request against the active harness rulebook + relevant skills and certifies its verdict for the ORG-WIDE `charly/pr-validator` GitHub Actions gate (`Verdict: PASS|BLOCK` → green/red check run + a single PR comment). On PASS the org-wide `auto-merge` workflow squash-merges and CalVer-tags — NOT this agent. It is a different agent from the one that authored the PR; it trusts none of the author's claims.
+  Blocking - The FRESH PR evaluator. Independently validates a pull request against the active harness rulebook + relevant skills and certifies its verdict for the ORG-WIDE `charly/pr-validator` GitHub Actions gate (`Verdict: PASS|BLOCK` → green/red check run + a single PR comment). On PASS the org-wide workflow enables native auto-merge (squash), and tag-on-merge writes the CHANGELOG and CalVer-tags — NOT this agent. It is a different agent from the one that authored the PR; it trusts none of the author's claims.
 model: inherit
 ---
 
@@ -852,77 +852,13 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
     surface (or wrongly vanish) against another's, producing a stale/incorrect
     result attributed to the wrong PR. Set `GOLANGCI_LINT_CACHE` to a
     per-worktree path before every lint invocation you run.
-18. **CHANGELOG present.** A runtime-tier change stages a `CHANGELOG/<CalVer>.md`
-    entry (a placeholder CalVer is fine — you finalize it in Phase 3); a
-    docs-only change carrying history also stages one. Absent where required FAILS.
-    **Strict CalVer checks:**
-    - Filename MUST match `^\d{4}\.\d{3}\.\d{4}\.md$` (valid CalVer format)
-    - H1 heading MUST byte-equal the WHOLE line `# <filename-without-.md> — <title>`
-      (a reading scoping the byte-equality to the CalVer alone would exempt an H1 with
-      the right date and no title — the two-reader ambiguity this rule once caused)
-    - The placeholder CalVer MUST NOT already exist as a `CHANGELOG/*.md` or `v*` tag on `main`
-    - `git show :CHANGELOG/<file>.md | head -1` MUST byte-equal `# <CalVer> — <title>`
-      — read the INDEX, what the commit will carry, never the working-tree path: the
-      path is the one layer that already agrees with you, so a staged rename with an
-      unstaged edit (the `RM` second character in `git status --short`) would pass it
-      while the index, commit and merge all hold the old H1
-
-    **These four rules prevent a COLLISION, not a SURVIVAL, and the difference is the
-    whole hazard.** The placeholder is required to be CalVer-shaped and self-consistent,
-    so a placeholder whose Phase-3 rename is SKIPPED merges as a file indistinguishable
-    from a properly stamped entry — well-formed by construction, because these rules
-    demand it. Nothing downstream can tell that the date was guessed by an author rather
-    than minted at merge, and `plugins` has NO CI to catch it: at the gitlink this entry
-    pins it has no `.github` tree at all — 0 tracked paths under it, not an empty
-    workflows directory — while the same probe returns `ci.yml` and `release-binary.yml`
-    in `charly`, which is what makes that absence evidence rather than a failed lookup. **The rules and the agent performing Phase 3 are the
-    only things standing between a guessed date and `main`.**
-
-    One tempting remedy — a sentinel that announces itself, `CHANGELOG/UNSTAMPED-<slug>.md`
-    with `# UNSTAMPED — …` — **fails rule one by construction** and would be rejected on
-    the filename regex before anything else was read, and the org PR template
-    independently instructs authors to use a placeholder `CHANGELOG/<CalVer>.md`.
-
-    **A second remedy does pass the regex, and is already in live use**: a stamp that is
-    well-formed but impossible as a wall clock, `CHANGELOG/2026.229.9998.md`. It is
-    self-announcing to a human and accepted by rule one, so *self-announcing* and
-    *regex-valid* are not the exclusive alternatives this paragraph once implied. What it
-    does NOT do is bind anything: nothing rejects it, and a leg that skips Phase 3 still
-    merges a file whose name is a guess — merely a conspicuous one.
-
-    **And the check below does not cover that case either, because it lives inside
-    Phase 3.** It compares the landed entry against the version you MINTED, which
-    distinguishes a guessed date from a minted one — but only when Phase 3 runs at all.
-    Nothing inside a phase can detect that phase being skipped.
-
-    **The invariant that survives a skipped Phase 3 is external to it: an entry on
-    `main` with no matching `v<CalVer>` tag.** A skipped Phase 3 leaves both the
-    placeholder name and the absent tag, so the pair is checkable by anyone, at any
-    time, without knowing what was minted. **That is the check that catches the
-    PLAUSIBLE placeholder** — the dangerous kind, where filename and H1 agree because
-    both are the guess. A conspicuous stamp such as `9998` is at least visible in a file
-    listing; a plausible one has no surface that distinguishes it from a minted date,
-    so the tag pair is the only check that reaches it.
-
-    **Scope it, or it fires on a third of the history.** Tagging every landing is a
-    RECENT convention, and the two regimes interleave — measured in `plugins`:
-    **66 entries carry no tag**, all of them at or before `2026.215.1207`, while the
-    earliest tagged entry is `2026.193.1934`, well inside that stretch. Every entry
-    above `2026.215.1207` carries a tag; `2026.215.1207` is itself the LATEST untagged
-    entry, so it belongs to the old regime and the tagged run opens above it. Tagging
-    before that boundary was SPORADIC rather than absent — 70 of the 136 entries at or
-    below it do carry tags, which is what "interleave" means here. The corpus total and
-    the length of the tagged run are deliberately NOT stated: both grow with every
-    merge, so either is stale within hours of being written, while the untagged count
-    does not move. So the invariant reads: *every entry
-    landed since the convention took hold has a matching tag*; earlier entries predate
-    it and are evidence of nothing. A check written without that clause returns 66 false
-    positives and gets disabled by whoever inherits it.
-
-    And do not write it bidirectionally without a second clause: **3 tags have no
-    entry** (`v2026.195.0603`, `v2026.197.2231`, `v2026.215.1236`). That is not a
-    defect — a tag marks a merge, and a content-removal landing needs no CHANGELOG — but
-    a symmetric check fires on all three.
+18. **PR body IS the changelog.** No CHANGELOG file is staged in the PR diff and
+    no `## CHANGELOG` section is required — the merged PR's title + body ARE the
+    release notes. The org-wide tag-on-merge workflow writes
+    `CHANGELOG/<CalVer>.md` from the merged PR body at merge time (CalVer minted
+    at merge, never by the author). Absent a PR body where one is required FAILS.
+    A CHANGELOG file in the diff is neither required nor expected; treat one as an
+    ordinary diff item (it must not duplicate the merge-time entry).
 
 None of these is a formality: a rule you cannot POSITIVELY confirm from the diff +
 your own re-run is not "probably fine" — it is unverified, and unverified is FAIL
@@ -1235,19 +1171,21 @@ On FAIL: the workflow's check run goes red + the comment reports the blocking
 findings, DONE (the author fixes and re-pushes, which re-runs the workflow gate;
 you are re-run).
 
-## Phase 3 — On PASS: the org-wide auto-merge workflow lands the PR
+## Phase 3 — On PASS: the org-wide workflow enables native auto-merge; tag-on-merge lands the CalVer
 
-Your PASS alone merges nothing. `opencharly/.github` `.github/workflows/auto-merge.yml`
-runs when the `charly/pr-validator` workflow completes successfully and performs the
-landing, holding these invariants (CalVer is generated at merge — NEVER by the
+Your PASS alone merges nothing. `opencharly/.github` `.github/workflows/pr-validator.yml`
+enables GitHub native auto-merge (squash) when it completes successfully, and the
+org-wide `tag-on-merge` workflow writes the CHANGELOG and tags after the merge,
+holding these invariants (CalVer is generated at merge — NEVER by the
 author, whose stamps collide and mis-order across concurrent PRs):
 
-1. **Bring the branch up to date.** Strict protection requires the branch to be
-   current with `main`; if `gh pr view <N> --json mergeStateStatus` is `BEHIND`,
-   the workflow runs `gh pr update-branch <N> --repo <owner>/<repo>` (merges `main`
-   into the feat branch — no history rewrite, no force-push; the later
+1. **Native auto-merge waits for every required check.** GitHub's
+   `enablePullRequestAutoMerge` (squash) merges only when ALL branch-protection
+   required checks (the repo's CI gate + `validate / validate`) are green on the
+   head. If the branch is `BEHIND`, `gh pr update-branch <N> --repo <owner>/<repo>`
+   merges `main` into the feat branch (no history rewrite, no force-push; the
    squash-merge still yields a linear `main`).
-2. **Generate + guard the CalVer.** `VER=$(date -u +%Y.%j.%H%M)`. If the tag
+2. **Generate + guard the CalVer at merge time.** `VER=$(date -u +%Y.%j.%H%M)`. If the tag
    `v$VER` OR `CHANGELOG/$VER.md` already exists on the current `main` (a
    same-minute prior merge), advance to the next free minute. Every repo EXCEPT sdk
    uses `v<YYYY.DDD.HHMM>` (this form KEEPS the leading-zero HHMM);
@@ -1260,41 +1198,27 @@ author, whose stamps collide and mis-order across concurrent PRs):
    `plugins` and `docs` ARE tagged, with the same `v<YYYY.DDD.HHMM>` form as
    every non-sdk repo (they carry no `charly.yml`, so no schema `version:` bump —
    but the tag still marks the merge).
-3. **Rewrite every merge-time-dependent version surface to `$VER`** on the feat
-   branch, then commit (carrying the PR's validated `Assisted-by` trailer) and push
-   the feat branch (a normal, non-force push):
-   - `git mv CHANGELOG/<placeholder>.md CHANGELOG/$VER.md` **AND rewrite the H1
-     heading inside the file to match**: the first line is `# <placeholder> — …`;
-     rewrite it to `# $VER — …` (same title text, new date) — otherwise the filename
-     and H1 diverge (a recurring R1 incident). Self-verify that
-     `head -1 CHANGELOG/$VER.md` byte-equals `# $VER — <title>` BEFORE merging;
-   - **after tagging, verify the landed entry's CalVer equals the version MINTED** —
-     every `CHANGELOG/*.md` this merge adds to `main` must be `$VER`, the same string
-     as the `v$VER` tag. A mismatch means the entry carries an author's guess: rename
-     and re-head it on `main`'s new head, add-only;
-   - if the PR bumps the schema, re-stamp `#SchemaVersion`
+3. **Write the CHANGELOG from the PR body after the merge.** tag-on-merge creates
+   `CHANGELOG/$VER.md` on `main` from the merged PR's title + body (the PR body IS
+   the changelog; the author staged no CHANGELOG file), using a bot token (GitHub
+   App preferred, PAT fallback) that is the ruleset bypass actor for the single
+   CHANGELOG path on protected `main`:
+   - verify the landed entry's H1 byte-equals `# $VER — <title>` — a mismatch
+     means the entry carries an author's guess: rewrite it on `main`'s new head, add-only;
+   - if the PR bumped the schema, re-stamp `#SchemaVersion`
      (`spec/schema/version.cue`) + `version:` + the `candy/plugin-migrate/migrations.cue`
      entry to be strictly greater than the CURRENT `main` HEAD's schema version;
    - any other embedded release-version string.
-4. **Merge one byte sequence via `gh pr merge --squash --delete-branch`.**
-   `SQUASH_BODY` must carry the PR's validated
-   `Assisted-by: <Harness> <Provider Full Model Name> (<confidence>)` trailer as a
-   standalone, parseable trailer (the canonical helper
-   `<superproject>/plugins/scripts/squash_body.py` inserts exactly one blank line,
-   rejects same-line/duplicate/placeholder forms, and can `--check` the result; the
-   workflow runs the check and a `git interpret-trailers --parse` EXACT match on the
-   merged object before it tags). SQUASH, so `main` gains exactly ONE commit no
-   matter how many fix commits the review rounds added. Never let `gh` default the
-   subject to the concatenated commit list, and never drop the attribution trailer.
-   If the merge fails "not mergeable / base branch policy" because another PR merged
-   in between (branch went `BEHIND` again) → return to step 1. This loop keeps every
+4. **The squash merge keeps `main` linear.** Native auto-merge's squash produces
+   exactly ONE commit on `main` no matter how many fix commits the review rounds
+   added; the PR's validated
+   `Assisted-by: <Harness> <Provider Full Model Name> (<confidence>)` trailer is
+   carried in the squash body. If the merge fails "not mergeable / base branch
+   policy" because another PR merged in between (branch went `BEHIND` again) →
+   update the branch and re-validate. This keeps every
    version monotonic with real merge order.
-5. **Verify the emitted merge object, then tag.** The workflow resolves the merge
-   SHA from GitHub and verifies the FETCHED object's trailer equals the validated
-   trailer (`git -C <target> show -s --format=%B "$MERGED_SHA" | git
-   interpret-trailers --parse` must equal it exactly); an empty, extra, folded, or
-   different parser result revokes PASS — no tag, record the anomaly, run R1. Only
-   after that proof, tag EVERY repo (`plugins` and `docs` included; `sdk` substitutes
+5. **Tag after the merge.** tag-on-merge resolves the merged SHA and tags EVERY repo
+   (`plugins` and `docs` included; `sdk` substitutes
    its `v0.<…>` form): `git tag -a v$VER -m "<subject>" "$MERGED_SHA"`; `git push
    origin refs/tags/v$VER`. Only a SUPERPROJECT `v*` tag triggers the release-binary
    workflow; a `plugins` / `docs` tag fires NO workflow, so tagging them is harmless.
@@ -1337,7 +1261,7 @@ Checklist (every rule — mark [N/A] + a one-line reason where the class exclude
                  per-item trace: <for each staged charly/*.go: alias? kit-import(+exception conditions verified)? boundary-law E/M/B/D/R placement? *Legacy* relocation smell?>
   [PASS/FAIL] 16. disposable-only autonomy (destroy only on disposable: true)
   [PASS/FAIL] 17. clean architecture + go gates (gofmt/golangci-0/vet/test; repo invariants)
-  [PASS/FAIL] 18. CHANGELOG present
+  [PASS/FAIL] 18. PR body IS the changelog (no CHANGELOG file required; merge-time CalVer minted by tag-on-merge from the PR body)
 
 Comments considered: <one line per PR comment — author, one-line summary,
   disposition: verified-blocking | verified-non-blocking | unverified-dismissed
@@ -1351,7 +1275,7 @@ Gate: charly/pr-validator check run = <green PASS | red BLOCK> on <sha> (org-wid
 workflow posts it)
 PR comment posted: yes (ends with *Assisted-by: <Harness> <Provider Full Model Name> (<confidence>)*)
 Squash trailer proof: pre-merge parse = <exact trailer>; merged <merge-sha> parse = <exact trailer>
-Verdict: PASS → auto-merge workflow merged (squash) as <merge-sha>, tagged v<VER>
+Verdict: PASS → auto-merge workflow merged (squash) as <merge-sha>, tag-on-merge wrote CHANGELOG and tagged v<VER>
    OR    FAIL → not merged; blocking: <findings>
 ```
 
