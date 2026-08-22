@@ -56,7 +56,7 @@ users:
 
 No `useradd`, no sudoers write, no shell change — cloud-init interprets "name: X" on an existing account as "append ssh_authorized_keys". The parity is exact with the container-side `base_user:` + `user_policy: adopt` pattern (`/charly-image:image` "user_policy").
 
-**When `BaseUser` is empty and `VmSSH.User` is non-empty** (create pattern):
+**When `BaseUser` is empty and `VmSsh.User` is non-empty** (create pattern):
 
 ```yaml
 users:
@@ -193,7 +193,7 @@ Explicitly supported — not either/or. `VmKeyInjection.SMBIOS: enabled` + `VmKe
 
 ## Cross-References
 
-- `/charly-internals:vm-spec` — `VmCloudInit`, `VmSSH.KeyInjection`, `VmCharlyInstall` types
+- `/charly-internals:vm-spec` — `VmCloudInit`, `VmSsh.KeyInjection`, `VmCharlyInstall` types
 - `/charly-internals:libvirt-renderer` — SMBIOS-channel emission (domain XML side)
 - `/charly-internals:vm-deploy-target` — `EnsureCharlyInGuest` caller; SSH/cloud-init readiness waits
 - `/charly-vm:vm` — command-family; cloud-init flow

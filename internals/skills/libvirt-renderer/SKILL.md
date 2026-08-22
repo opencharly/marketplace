@@ -174,7 +174,7 @@ Boot's authenticated variables require SMM, the author MUST declare
 
 ## SMBIOS credentials (type 11 OEM strings)
 
-When `VmSSH.KeyInjection.SMBIOS` is enabled, the renderer emits:
+When `VmSsh.KeyInjection.SMBIOS` is enabled, the renderer emits:
 
 ```xml
 <sysinfo type='smbios'>
