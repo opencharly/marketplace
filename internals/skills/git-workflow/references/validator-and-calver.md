@@ -174,7 +174,7 @@ not "fix" a denial by editing the rule until you have confirmed the agent's proj
 for the durable-verdict-first protocol every validator must follow (a permission denial
 ends the agent's turn, so it records its verdict before attempting any gated action).
 
-## CalVer — generated AND rewritten at MERGE, by the evaluator
+## CalVer — generated at MERGE, by tag-on-merge
 
 The single CalVer stamp is `<YYYY.DDD.HHMM>` from the current UTC time. It is
 generated at the moment of merge, by the org-wide tag-on-merge workflow — not by the author.
