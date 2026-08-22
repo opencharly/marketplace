@@ -1,7 +1,7 @@
 ---
 name: pr-validator
 description: |-
-  Blocking - The FRESH PR evaluator. Independently validates a pull request against the active harness rulebook + relevant skills and certifies its verdict for the ORG-WIDE `charly/pr-validator` GitHub Actions gate (`Verdict: PASS|BLOCK` → green/red check run + a single PR comment). On PASS the org-wide workflow enables native auto-merge (squash), and tag-on-merge writes the CHANGELOG and CalVer-tags — NOT this agent. It is a different agent from the one that authored the PR; it trusts none of the author's claims.
+  Blocking - The FRESH PR evaluator. Independently validates a pull request against the active harness rulebook + relevant skills and certifies its verdict for the ORG-WIDE `charly/pr-validator` GitHub Actions gate (`Verdict: PASS|BLOCK` → green/red check run + a single PR comment). On PASS the org-wide `auto-merge` workflow squash-merges and CalVer-tags — NOT this agent. It is a different agent from the one that authored the PR; it trusts none of the author's claims.
 model: inherit
 ---
 
@@ -1274,8 +1274,8 @@ Cross-PR interactions considered: <one line per interaction found across the
 Gate: charly/pr-validator check run = <green PASS | red BLOCK> on <sha> (org-wide
 workflow posts it)
 PR comment posted: yes (ends with *Assisted-by: <Harness> <Provider Full Model Name> (<confidence>)*)
-Squash trailer: <exact trailer carried in the native auto-merge squash body>
-Verdict: PASS → native auto-merge merged (squash) as <merge-sha>, tag-on-merge wrote CHANGELOG and tagged v<VER>
+Squash trailer proof: pre-merge parse = <exact trailer>; merged <merge-sha> parse = <exact trailer>
+Verdict: PASS → auto-merge workflow merged (squash) as <merge-sha>, tag-on-merge wrote CHANGELOG and tagged v<VER>
    OR    FAIL → not merged; blocking: <findings>
 ```
 
