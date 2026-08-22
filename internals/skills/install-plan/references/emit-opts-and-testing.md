@@ -28,7 +28,7 @@ Home-bearing step fields carry the deferred `HomeToken` (`{{.Home}}`) rather
 than a home expanded at compile time. `compileShellHookStep` always emits the
 token; `CompileShellSnippetSteps` emits it for deploy targets (`hostCtx.Target`
 == `host`/`vm`) and keeps `img.Home` for the container build. Each
-`DeployTarget` calls `plan.ResolveHome(home)` once at emit with the home of the
+`EmitTarget` calls `plan.ResolveHome(home)` once at emit with the home of the
 **actual** destination:
 
 | Target | Home used |

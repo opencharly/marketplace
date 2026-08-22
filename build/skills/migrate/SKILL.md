@@ -95,12 +95,12 @@ A non-CalVer value (a legacy integer, empty, or garbage) parses as "older than e
 
 **From here to the end of "Standing rule" is maintenance the charly project performs on its OWN schema**, run from checkouts of the spec repo and the superproject. Nothing in these two sections is a step an charly user runs — the user-facing surface of a schema cutover is the single command `charly migrate`, unchanged. They are recorded here because this skill owns the migration table; the commands are named as this project's maintenance, not as instructions for the reader.
 
-The payoff of the declarative engine: the common case needs **zero new Go** — but since the schema lives in the spec module, a schema-version bump is **CROSS-REPO**: the spec repo lands + tags FIRST, then the superproject consumes it.
+The payoff of the declarative engine: the common case needs **zero new Go** — but since the schema lives in the spec module, a schema-version bump is **CROSS-REPO**: the spec repo lands + tags FIRST, then the superproject consumes the published module at the bumped require version (no submodule, no local checkout).
 
 1. Bump `#SchemaVersion` in **`spec/schema/version.cue`** to the new CalVer.
-2. Run the spec repo's **`task cue:gen`** to regenerate `spec/spec/version_gen.go` (the superproject `task cue:gen` chains it).
+2. Run the spec repo's **`task cue:gen`** to regenerate `spec/spec/version_gen.go` (the superproject `task cue:gen` regenerates only the plugin params).
 3. **Land + tag the spec repo** (its Go-module tag scheme `v0.<YYYYDDD>.<HHMM leading-zeros-stripped>` — see `/charly-internals:git-workflow`).
-4. In the superproject: bump the `spec` submodule pointer, append the matching entry to **`candy/plugin-migrate/migrations.cue`** (the TABLE lives in candy/plugin-migrate) with the same `version:` — **strictly greater** than the previous HEAD, expressing the transform as an `ops:` list (`rename_key` / `delete_key` / `remap_scalar` / `move_key`) — and run the superproject's own gates.
+4. In the superproject: bump the `github.com/opencharly/spec` require version in `charly/go.mod` and every lockstep go.mod (the canonical-go.mod gate in `tools/gomod-canonical` asserts one shared pin; `task mods:tidy` re-syncs the go.sum files), append the matching entry to **`candy/plugin-migrate/migrations.cue`** (the TABLE lives in candy/plugin-migrate) with the same `version:` — **strictly greater** than the previous HEAD, expressing the transform as an `ops:` list (`rename_key` / `delete_key` / `remap_scalar` / `move_key`) — and run the superproject's own gates.
 
 That is the whole common case — no bespoke migrator type, no registry function, no per-migrator Go file. Only a **structural reshape the four ops can't express** additionally registers ONE `goHooks` entry (a Go function named by the step's `apply:` field). Update the HEAD-CalVer fixtures + the repo's own versioned YAML in the same change.
 

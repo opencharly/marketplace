@@ -59,7 +59,7 @@ records in the install ledger and replays at `charly fleet del`
 `pluginDeployTarget` (`charly/unified_targets.go`) is the generic, thin,
 DATA-ONLY out-of-process adapter — the S3b replacement for the DELETED
 `externalDeployTarget` (`charly/deploy_target_external.go`). In-proc, NO
-targets implement the bare `DeployTarget` (Name + Emit) interface — the former
+targets implement the bare `EmitTarget` (Name + Emit) interface — the former
 in-proc overlay walker + the pod overlay target were DELETED in P11c (the pod
 overlay render now lives in the candy `plugin-deploy-pod`'s PrepareVenue (M4),
 via `deploykit.OCITarget` + `deploykit.NewRenderGeneratorFromProject`; `charly
@@ -181,7 +181,7 @@ Each Op:
 
 - The `pod` substrate is EXTERNAL (`deploy:pod`, candy/plugin-deploy-pod); the pod overlay render MOVED to the candy (P11c — `candy/plugin-deploy-pod/overlay.go`, via `deploykit.OCITarget`), and `charly/build_overlay.go` is now the host-side prep+resolve M-seam the candy reaches over `HostBuild("overlay")`. Its teardown record is keyed HOST-SIDE by `computeDeployID(name)` like every external deploy (the in-proc pod was record-free).
 - `vmNameFromDeployName` strips the `vm:` prefix. `vmEntityForPrepare` (`candy/plugin-deploy-vm/lifecycle.go`, ported verbatim from the DELETED `charly/vm_lifecycle_preresolve.go`'s `vmEntityForAdd` — FINAL/K5 unit 6a, M4b) resolves the `kind:vm` entity from a deploy node: the node's `vm:` cross-ref (`node.From`) wins, then a legacy `vm:<entity>` prefix, then the leaf of a nested dotted path.
-- `UnifiedDeployTarget` / `LifecycleTarget` interfaces (`spec/spec/deploy_target_unified.go`, the kind-agnostic contract — the option types repoint to the CUE-sourced `spec.DeployTarget*` wire types) + the `ResolveTarget` dispatcher (`charly/unified_targets.go`) provide the full lifecycle contract (`Add` / `Del` / `Update` / `Start` / `Stop` / `Status` / `Logs` / `Shell` / `Rebuild` — `Test` DELETED, #55 W3 B3 remainder: zero real callers anywhere in the tree). `ResolveTarget` returns a `pluginDeployTarget` (S3b) for every externalized substrate (local/vm/pod/kubernetes/android — all five).
+- `UnifiedDeployTarget` / `LifecycleTarget` interfaces (`spec/spec/deploy_target_unified.go`, the kind-agnostic contract — the option types repoint to the CUE-sourced `spec.DeployTargetDispatch*` wire types) + the `ResolveTarget` dispatcher (`charly/unified_targets.go`) provide the full lifecycle contract (`Add` / `Del` / `Update` / `Start` / `Stop` / `Status` / `Logs` / `Shell` / `Rebuild` — `Test` DELETED, #55 W3 B3 remainder: zero real callers anywhere in the tree). `ResolveTarget` returns a `pluginDeployTarget` (S3b) for every externalized substrate (local/vm/pod/kubernetes/android — all five).
 - Disposability is read per-`spec.Deploy` via `Deploy.IsDisposable()` (`spec/spec/charly_methods.go` — `disposable: true`, or ephemeral); it is NOT a `VmSpec` field. The disposability-as-authorization gate is NOT applied in the `charly update` path — `charly update <vm>` rebuilds on explicit invocation regardless (it only NOTES non-disposability, never refuses). `pluginDeployTarget.Rebuild` dispatches via `candy/plugin-fleet`'s `Invoke(OpDeployDispatch)` to the plugin's `OpRebuild` (over `HostBuild("cli")`), which recreates the domain THEN re-applies the deploy node's layers via the shared `charly fleet add <node>` path — the same layer-apply primitive the local/pod Rebuild use (R3).
 
 The `vm` substrate brings `charly fleet add vm:<name>` online: the same
@@ -377,8 +377,8 @@ type VmDeployState struct {
     InstanceID              string                  // stable UUIDv4 cloud-init instance-id, pinned across re-renders
     DiskPath                string                  // absolute path to the qcow2 (may be a CoW overlay on a cached base)
     SeedIso                 string                  // NoCloud cidata ISO path (empty for bootc with injection disabled)
-    SshPort                 int                     // host port forwarded to the guest's :22
-    SshUser                 string                  // guest account the deploy SSHes in as
+    SSHPort                 int                     // host port forwarded to the guest's :22
+    SSHUser                 string                  // guest account the deploy SSHes in as
     Backend                 string                  // "qemu" or "libvirt", pinned at first apply
     KeyInjectionResolved    *VmKeyInjectionResolved // resolved SSH key-injection plan
     CharlyInstallStrategy       string                  // how charly is installed into the guest
@@ -423,7 +423,7 @@ When the VM's network uses libvirt user-mode + `<backend type='passt'/>` + `<por
 
 ## Cross-References
 
-- `/charly-internals:install-plan` — InstallPlan IR (the in-proc DeployTarget implementers + step kinds; `pluginDeployTarget` consumes the IR for the external substrates)
+- `/charly-internals:install-plan` — InstallPlan IR (the in-proc deploy-target implementers + step kinds; `pluginDeployTarget` consumes the IR for the external substrates)
 - `/charly-internals:plugin` — the out-of-process plugin model + the executor reverse channel `candy/plugin-deploy-vm` rides
 - `/charly-internals:vm-spec` — VmSpec consumed by the vm deploy plugin's host prepare hook
 - `/charly-internals:libvirt-renderer` — renders domain XML; portForward + passt backend

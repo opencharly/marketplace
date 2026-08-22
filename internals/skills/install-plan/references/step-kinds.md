@@ -135,7 +135,7 @@ renders (`stepEmitSystemPackages` / `stepEmitBuilder` / `stepEmitLocalPkgInstall
 plugin-side (byte-equivalent): SystemPackages via `DistroCfg.FindFormat` → `phase.install.container`; Builder via
 `buildStageContext` → `kit.BuilderResolve` (C10 — the SAME render the box-build path + the plugin's OpResolve use for the
 externalized pixi/npm/aur multi-stage + cargo inline; a custom builder still via its vocabulary
-`stage_template`/`install_template`); LocalPkgInstall via the SAME
+`phases.install.container`); LocalPkgInstall via the SAME
 `deploykit.RenderLocalPkgImageInstall` `sdk/deploykit WriteCandySteps` calls for the image build; Op via the SAME
 `Generator.EmitTasks` `WriteCandySteps` (deploykit) calls for the box build, invoked from the plugin's own Generator
 instance. The only host seam left is the thin `oci-emit-step` dispatch forwarder: the candy's `deploykit.OCITarget`

@@ -12,13 +12,13 @@ description: |-
 
 # vm-spec
 
-Go type reference for the VM surface. `VmSpec` + `VmSource` + `VmChecksum` + `VmNetwork` + `VmSSH` + `VmKeyInjection` + `VmCloudInit` + `VmCharlyInstall` are the canonical types that drive `charly vm build`, `charly vm create`, and `charly fleet add vm:<name>`. This skill is the authoritative Go reference — field semantics, defaults, validation rules, migration history. The YAML-authoring companion is `/charly-vm:vms-catalog`.
+Go type reference for the VM surface. `VmSpec` + `VmSource` + `VmChecksum` + `VmNetwork` + `VmSsh` + `VmKeyInjection` + `VmCloudInit` + `VmCharlyInstall` are the canonical types that drive `charly vm build`, `charly vm create`, and `charly fleet add vm:<name>`. This skill is the authoritative Go reference — field semantics, defaults, validation rules, migration history. The YAML-authoring companion is `/charly-vm:vms-catalog`.
 
 ## Source files
 
 | File | Contents |
 |---|---|
-| `spec/spec/cue_types_gen.go` (generated; charly-name aliases in `spec/spec/charly_names.go`) | `VmSpec` (= `Vm`), `VmSource`, `VmChecksum`, `VmNetwork`, `VmSSH`, `VmKeyInjection` |
+| `spec/spec/cue_types_gen.go` (generated; charly-name aliases in `spec/spec/charly_names.go`) | `VmSpec` (= `Vm`), `VmSource`, `VmChecksum`, `VmNetwork`, `VmSsh`, `VmKeyInjection` |
 | `spec/spec/cue_types_gen.go` (generated) | `VmCloudInit`, `VmCloudInitUser`, `VmCloudInitFile`, `VmCloudInitNetwork`, `VmCloudInitMirrors`, `VmCharlyInstall` |
 | `sdk/vmshared/libvirt_yaml.go` | stub — `LibvirtDomain` is the GENERATED struct in `spec/spec/cue_types_gen.go`, from `#LibvirtDomain` in `spec/schema/vm.cue` (see the CUE row below) |
 | `spec/schema/vm.cue` + `cue_kind_vm.go` | `#Vm` — the closed CUE schema validating `VmSpec` + the `#LibvirtDomain`/`#VmCloudInit` subtrees (registered in the per-kind CUE registry; the Go VM/libvirt validators were deleted) |
@@ -36,7 +36,7 @@ type VmSpec struct {
     Backend  string       // auto | libvirt | qemu — pins the backend for this entity
     Autostart bool        // libvirt domain autostart (libvirt backend only)
     Network  *VmNetwork
-    SSH      *VmSSH
+    SSH      *VmSsh
     CloudInit *VmCloudInit
     Libvirt  *LibvirtDomain
 }
@@ -157,10 +157,10 @@ Do not confuse it with the `bootstrap` source kind, where `distro:` is also requ
 
 `base_user:` remains the adopt-user selector and nothing more. Leave IT empty only when the image has no default account — then declare a custom user in `spec.cloud_init.users`.
 
-## VmSSH / VmKeyInjection
+## VmSsh / VmKeyInjection
 
 ```go
-type VmSSH struct {
+type VmSsh struct {
     User         string   // default: cloud_image → "charly" OR base_user; bootc → "root"
     Port         int      // default: 2222
     KeySource    string   // auto | generate | none | <abs-path>
@@ -186,7 +186,7 @@ The renderer combines structured fields with renderer defaults:
 
 - `Packages`: prepended with `{openssh, curl, tar}`.
 - `RunCmd`: prepended with the D18 hardening drop-in, then an sshd start whose form depends on the guest's init system (systemd vs OpenRC) — so distro-specific setup can assume sshd is running and hardened. Step 1 is always the same self-testing `PerSourcePenalties no` sshd drop-in write+validate (plain shell into `sshd_config.d`, which OpenSSH Includes on every init); the start that follows is branched — `systemctl unmask ssh.socket` then `systemctl enable --now sshd` on systemd, `rc-update add sshd default && rc-service sshd start` on OpenRC (Alpine), which has neither ssh.socket nor systemctl. See `/charly-internals:cloud-init-renderer` "Guest SSH hardening (D18)" for the full mechanism + design trade-off.
-- `Users`: the `VmSSH.User` account is auto-injected unless already present; if present, the renderer appends the ssh pubkey to the user's existing entry.
+- `Users`: the `VmSsh.User` account is auto-injected unless already present; if present, the renderer appends the ssh pubkey to the user's existing entry.
 
 `Extra` is a raw-YAML escape hatch merged after structured fields. Prefer structured fields; `Extra` exists for long-tail cloud-init options the schema doesn't cover.
 

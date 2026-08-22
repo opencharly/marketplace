@@ -151,7 +151,7 @@ The policy kicks in when the change is **visible to consumers** (YAML authors, o
 - `/charly-build:migrate` — the single `charly migrate` command, its CalVer schema versioning, and the CUE-anchored declarative migration table
 - `/charly-internals:vm-spec` — example output of a cutover (new types replacing deleted ones)
 - `/charly-internals:capabilities` — example of coordinated label-map cleanup during a cutover
-- `/charly-internals:install-plan` — shared IR that survived the cutover unchanged (non-example — additive extension of the DeployTarget surface)
+- `/charly-internals:install-plan` — shared IR that survived the cutover unchanged (non-example — additive extension of the deploy-target surface)
 - the project rulebook "Hard Cutover by Default" — summary pointing at this skill
 
 Live-deploy verification: see /charly-check:check (the 11 Testing Standards) and /charly-internals:disposable.

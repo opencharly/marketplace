@@ -208,7 +208,7 @@ ALL pure/portable and run plugin-side directly, returning a
 - `candy/plugin-adb/deploy.go` — the `deploy:android` provider (boot gate + install
   loop with retry + uninstall reverse ops); `install.go` — the shared installer.
 - `deploykit.ApkInstallStep` (`sdk/deploykit/steps.go`); `sdk/deploykit/install_build.go` —
-  `compileApkStep` (the plugin-side preresolver reads this step; no DeployTarget executes it).
+  `compileApkStep` (the plugin-side preresolver reads this step; no deploy target executes it).
 - `sdk/loaderkit/load_unified.go` — loader wiring (mirrors every `kubernetes` site; the former `charly/unified.go` is DELETED, K-wave 2).
 - `spec.Deploy` (the deploy node — the former `charly/deploy.go`'s `FleetNode` is DELETED, K-wave 2) with `target: android`; `charly/fleet_add_cmd.go` dispatch +
   `--node-only`; `sdk/deploykit/deploy_chain.go` / `charly/deploy_tree.go` passthrough.
