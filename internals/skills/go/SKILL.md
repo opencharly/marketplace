@@ -53,22 +53,20 @@ project/
 │                              # build vocabulary + the sidecar: template library.
 │                              # Parsed by the SAME unified loader as any project
 │                              # charly.yml; a project ships none of it.
-├── sdk/                       # Git submodule (github.com/opencharly/sdk) — the plugin
-│                              # contract module: root package sdk, sdk/kit, spec/spec,
-│                              # spec/proto, spec/schema/*.cue, spec/schemaconcat, sdk/vmshared;
-│                              # its own Taskfile owns `task cue:gen` + `task proto:gen`
 ├── .build/                    # Generated Containerfiles (gitignored)
 ├── charly.yml                  # Image definitions
 ├── Taskfile.yml               # Bootstrap tasks only
 ├── taskfiles/                 # Build.yml, Cue.yml, Setup.yml
 ├── candy/<name>/             # Layer directories
 ├── plugins/                   # Git submodule (opencharly/plugins)
+├── docs/                      # Git submodule (opencharly/docs)
 └── templates/                 # supervisord.header.conf (referenced by init.supervisord.header_file)
 ```
 
-Submodule convention: `plugins/` is a submodule rooted at the
-`opencharly/plugins` repo, and `sdk/` is a submodule rooted at the
-`github.com/opencharly/sdk` repo. Clone with `--recurse-submodules` or run
+Submodule convention: `plugins/` (and `docs/`, `box/<distro>`) are submodules rooted at
+their own repos; the sdk contract module (`github.com/opencharly/sdk`) is NOT a
+submodule — it resolves from the module proxy at the pinned require version in every
+go.mod. Clone with `--recurse-submodules` (no sdk checkout exists to fetch) or run
 `git submodule update --init` after a plain clone. See
 `/charly-internals:skills` for the skill-authoring and sync conventions.
 
