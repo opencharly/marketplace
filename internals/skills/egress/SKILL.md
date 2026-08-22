@@ -44,8 +44,9 @@ charly's CUE work has two halves:
   (`charly.yml` / box / candy / vm / kubernetes / pod) against `spec/schema/*.cue`, AND is
   the single source for the Go param structs that config decodes into — the
   `@go()`-annotated `spec/schema/*.cue` GENERATE the `spec/spec` param structs via
-  `task cue:gen` (`cue exp gengotypes`, run in the spec repo; the superproject task
-  chains it), kept honest by the reproducibility + parity tests. Owned by `/charly-build:validate`; the schema-change codegen
+  `task cue:gen` (`cue exp gengotypes`, run in the spec repo — the spec module is
+  consumed from the module proxy at the pinned require version, so the superproject
+  task regenerates only the plugin params), kept honest by the reproducibility + parity tests. Owned by `/charly-build:validate`; the schema-change codegen
   recipe is `/charly-internals:go` "Updating Go code when an ingress CUE schema
   changes".
 - **Egress** (`candy/plugin-fleet/egress.go`, this skill): validates the OUTPUT config charly

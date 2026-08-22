@@ -63,7 +63,10 @@ source of truth"). The recipe:
    `spec/schema/version.cue`, run `task cue:gen` (which regenerates the
    `SchemaVersion`/`SchemaFloor` consts in `spec/spec/version_gen.go` that
    `kit.LatestSchemaVersion()` parses), land + tag the spec repo, then in the
-   superproject bump the spec submodule and append the matching entry to the
+   superproject bump the `github.com/opencharly/spec` require version
+   (charly/go.mod + every lockstep go.mod — the canonical-go.mod gate asserts
+   one shared pin; `task mods:tidy` re-syncs the go.sum files) and append the
+   matching entry to the
    declarative migration table (`candy/plugin-migrate/migrations.cue` — the TABLE lives in
    the compiled-in `command:migrate` plugin) per `/charly-build:migrate`. A pure
    Go-identifier change via `@go()` is NOT a format change (wire key preserved) —
