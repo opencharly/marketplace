@@ -32,7 +32,8 @@ real `main`, which only the merge produces.
 **A valid base is an ASSEMBLED PAIR, not a lone submodule advance.** A new consumer
 cutover branches from a base that is valid only once BOTH halves have merged: an `sdk`
 `main` advance is a valid consumer base ONLY after its superproject adaptation (the
-gitlink bump + any `charly/go.mod` require) has ALSO merged. Branch a consumer off a bare
+tagged sdk release adopted as the new shared pinned require — there is no gitlink) has
+ALSO merged. Branch a consumer off a bare
 `sdk` main advance whose super side is still open and you pin a superproject state no
 `main` records — the consumer's R10 builds against a half-assembled base and its pointer
 bump references a commit `main` has never seen. Wait for the pair before treating a
