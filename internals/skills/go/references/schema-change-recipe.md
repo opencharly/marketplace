@@ -24,7 +24,7 @@ source of truth"). The recipe:
    NOTE: def-level `@go(CharlyName)` is BROKEN in cue v0.16.1 (it dangles the
    referencing fields) — expose a charly type NAME via a Go alias in
    `spec/spec/charly_names.go` (`type BoxConfig = Box`) instead.
-3. **Regenerate: `task cue:gen`** (in the spec repo, or via the superproject task
+3. **Regenerate: `task cue:gen`** (in the spec module, or via the superproject task
    which chains the spec generation first, then the per-plugin params loop). It
    runs `cue exp gengotypes` into `spec/spec/cue_types_gen.go`, the companion
    `spec/internal/schemagen` into `spec/spec/vocab_gen.go` + `spec/spec/version_gen.go`,
@@ -59,13 +59,16 @@ source of truth"). The recipe:
    (`cue_kinds_corpus_test.go`).
 6. **Schema-version bump ONLY on an authored WIRE-key change.** Only if the
    change alters an authored WIRE key (the YAML users write) is it a FORMAT
-   change: then it is CROSS-REPO — bump `#SchemaVersion` in
+   change: bump `#SchemaVersion` in
    `spec/schema/version.cue`, run `task cue:gen` (which regenerates the
    `SchemaVersion`/`SchemaFloor` consts in `spec/spec/version_gen.go` that
-   `kit.LatestSchemaVersion()` parses), land + tag the spec repo, then in the
-   superproject bump the spec submodule and append the matching entry to the
+   `kit.LatestSchemaVersion()` parses), and append the matching entry to the
    declarative migration table (`candy/plugin-migrate/migrations.cue` — the TABLE lives in
-   the compiled-in `command:migrate` plugin) per `/charly-build:migrate`. A pure
+   the compiled-in `command:migrate` plugin) — ALL in the same superproject PR
+   (the spec module is vendored in-repo; there is no separate spec repo landing;
+   when the sdk or marketplace candies must consume the new contract out-of-tree,
+   sync the spec subtree to opencharly/spec and tag it with the spec Go-module
+   scheme as part of the same cutover) per `/charly-build:migrate`. A pure
    Go-identifier change via `@go()` is NOT a format change (wire key preserved) —
    do NOT bump the schema version.
 7. **Guards (all must pass):** `cd charly && go test ./...` (reproducibility +
