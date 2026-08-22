@@ -3,8 +3,9 @@ name: git-workflow
 description: |-
   Use when committing, branching, pushing, opening PRs, or landing a change with
   gh — the feat/-branch, R10-gated, PR-ONLY, org-workflow-validated, never-force-push
-  landing across the main repo, sdk/plugins submodules, and box distro
-  submodules. A direct push to main is FORBIDDEN and mechanically disabled; the
+  landing across the main repo, its plugins/docs/box submodules, and the
+  proxy-resolved sdk contract module (no submodule — consumed at the pinned
+  go.mod require). A direct push to main is FORBIDDEN and mechanically disabled; the
   org-wide `charly/pr-validator` GitHub Actions gate validates the PR and, on PASS,
   its `auto-merge` companion squash-merges and tags. Covers
   sync-to-upstream, branch/worktree pruning, the fork+PR path, cross-repo @github
