@@ -25,9 +25,10 @@ git worktree add .claude/worktrees/<slug> -b feat/<slug> origin/main
 #     (Risk Driven Development: prove high-risk assumptions on a bed first) ...
 
 # on R10 PASS, open the PR (do NOT merge):
-# write the cutover narrative to CHANGELOG/<placeholder>.md — a PLACEHOLDER CalVer
-#   (any valid YYYY.DDD.HHMM; the evaluator OVERWRITES it with the merge-time VER).
-git add <only the cutover's files> CHANGELOG/<placeholder>.md
+# the PR body IS the changelog — no CHANGELOG file is staged; the
+# org-wide tag-on-merge workflow writes CHANGELOG/<merge-time VER>.md
+# from the merged PR title + body after merge.
+git add <only the cutover's files>
 git commit -m "<conventional commit>" \
   -m "Assisted-by: <Harness> <Provider Full Model Name> (<confidence>)"
 git push origin feat/<slug>                       # feat push — allowed by the gate
@@ -42,9 +43,9 @@ evaluator in NEW context): it independently re-validates the PR vs R0–R10 + th
 relevant skills and certifies `Verdict: PASS|BLOCK` for the ORG-WIDE
 `charly/pr-validator` GitHub Actions workflow (`opencharly/.github`), whose
 check run is the branch-protection context (green on PASS, red on BLOCK). On
-PASS the org-wide `auto-merge` workflow generates the merge-time CalVer,
-rewrites the version surfaces on `feat/` (the `CHANGELOG` rename + any schema
-bump), `gh pr merge --squash --delete-branch`, and tags. Its inputs include the
+PASS the workflow enables GitHub native auto-merge (squash); after the merge
+the org-wide `tag-on-merge` workflow writes `CHANGELOG/<VER>.md` from the PR
+body, mints the `v<VER>` tag, and backfills any schema version bump. Its inputs include the
 PR's FULL comment thread, per the pr-validator spec's comment-intake rule — every
 comment is investigated independently and considered in the verdict, never
 granted or denied authority merely by existing (see
@@ -97,13 +98,15 @@ when written, false when read (`references/evidence-and-freshness.md`, "Three
 freshness surfaces, failing independently"). The delta re-gate above produces the
 fresh run; nothing in it updates the artifacts that CITE the old one, so a run
 directory named in the PR body or the CHANGELOG still points at a superseded tree
-— and it is the CHANGELOG that ships inside the commit the evaluator tags.
+— and it is the PR body that the tag-on-merge workflow writes to the CHANGELOG
+file at merge time.
 
 **Scope — block on what gets TAGGED, report what gets squashed away.** The
-CHANGELOG entry and the PR body are both durable: the entry lands in the tagged
+CHANGELOG entry (written from the PR body at merge) and the PR body are both
+durable: the entry lands in the tagged
 tree, and a merged PR body stays public and quotable long after the branch is
 deleted. A superseded run directory in either is BLOCKING. An intermediate commit
-message is replaced by the evaluator's squash message, so a stale citation there
+message is replaced by the squash merge, so a stale citation there
 is reportable but not blocking. The general form, which outlives the specific
 case: **a claim-keyed sweep runs LAST, once the final tree exists** — a record
 written alongside the change it describes is written before the tree its reader

@@ -177,47 +177,36 @@ ends the agent's turn, so it records its verdict before attempting any gated act
 ## CalVer — generated AND rewritten at MERGE, by the evaluator
 
 The single CalVer stamp is `<YYYY.DDD.HHMM>` from the current UTC time. It is
-generated at the moment of merge, by the fresh evaluator — not by the author.
+generated at the moment of merge, by the org-wide tag-on-merge workflow — not by the author.
 Author-time stamps do not survive concurrency: with multiple PRs open and approved
 out of order, an author-time CalVer collides (same minute) and mis-orders (merge
-order ≠ author order). The evaluator generates it at merge and applies it to both
-the changelog and the tag (the "one stamp for both" invariant, moved from
-author-landing to evaluator-merge). This holds for every repo, `plugins` and `docs` included:
+order ≠ author order). tag-on-merge generates it at merge and applies it to both
+the changelog and the tag (the "one stamp for both" invariant, applied at merge
+time). This holds for every repo, `plugins` and `docs` included:
 `plugins` and `docs` are no CHANGELOG-exceptions — every `plugins` AND every
-`docs` landing carries a `CHANGELOG/<YYYY.DDD.HHMM>.md` entry exactly like the
-superproject and `box/<distro>` (the `docs` convention is real: 24 of the last 25
-docs first-parent commits carry one; the single exception `a252df9` is exactly
-the commit that forced follow-up docs PR #46 to add its missing entry — a fresh
-validator reading the pre-this-edit enumeration, which named `plugins` but never
-`docs`, would conclude `docs` is an exception and the gap recurs). Once tagged,
+`docs` landing gets a `CHANGELOG/<YYYY.DDD.HHMM>.md` entry written from the merged
+PR body (the PR body IS the changelog) exactly like the
+superproject and `box/<distro>`. Once tagged,
 the same finalized CalVer names each repo's changelog file and its `v<…>` tag.
 Every component is fixed-width zero-padded so filenames and tags sort
 chronologically under a plain alphanumeric sort.
 
-- **The author writes a placeholder** `CHANGELOG/<placeholder>.md` (any valid
-  `YYYY.DDD.HHMM`, so the cutover carries its required history) and — for a schema cutover
-  — a placeholder `#SchemaVersion` / `migrations.cue` bump. The author owns none of
-  the final numbers.
-- **The evaluator, at merge:** `VER=$(date -u +%Y.%j.%H%M)` (guard uniqueness — if
+- **The author writes no CalVer and no CHANGELOG file.** The PR body IS the
+  changelog (title + body are the release-notes source). For a schema cutover
+  the author still bumps `#SchemaVersion` / `migrations.cue` strictly above
+  current `main` — but the final CalVer for tag and changelog filename is minted
+  at merge, never by the author.
+- **tag-on-merge, at merge:** `VER=$(date -u +%Y.%j.%H%M)` (guard uniqueness — if
   `v$VER` or `CHANGELOG/$VER.md` already exists on the current `main`, advance to
-  the next free minute); bring the branch up to date (`gh pr update-branch` on `BEHIND`,
-  no force-push); rewrite every merge-time-dependent version surface to `$VER`
-  (`git mv CHANGELOG/<placeholder>.md CHANGELOG/$VER.md`; a schema bump re-stamped
-  strictly above the current HEAD's `#SchemaVersion` + `version:` +
-  `migrations.cue` entry); commit + push feat (a normal, non-force push — an added
-  commit); re-post `charly/pr-validator` on the new head; `gh pr merge
-  --squash --delete-branch`; then tag the merged HEAD — `git tag -a v$VER -m
-  "<subject>" <merged-HEAD>` and `git push origin refs/tags/v$VER` (every repo;
-  `sdk` substitutes its Go-module `v0.<…>` form).
-- **Guard the `git mv` stale-pathspec footgun** — this flow's instance of the
-  all-or-nothing `git add` invariant in `SKILL.md` (see "never name a path that no
-  longer exists" for the mechanism and its tells). Here it lands as: `git mv
-  CHANGELOG/<placeholder>.md CHANGELOG/$VER.md` followed by `git add <old-path>
-  <new-path>` silently drops the H1-heading rewrite, leaving a rename-only commit
-  whose filename and heading disagree. Stage with `git add <new-path>` alone, then
-  verify `git show HEAD:<new-path> | head -1` (or `git diff --cached`) matches the
-  intended content BEFORE committing or posting the status. The most common
-  recurrence in this repo, and the one this step exists to stop.
+  the next free minute); after the squash merge, write `CHANGELOG/$VER.md` on
+  `main` from the merged PR's title + body (a bot token — GitHub App preferred,
+  PAT fallback — authorizes the protected-main write; the App is the ruleset
+  bypass actor for the single CHANGELOG path); then tag the merged HEAD —
+  `git tag -a v$VER -m "<subject>" <merged-HEAD>` and
+  `git push origin refs/tags/v$VER` (every repo;
+  `sdk` substitutes its Go-module `v0.<…>` form). A schema cutover's
+  `#SchemaVersion` + `version:` + `migrations.cue` re-stamp stays strictly above
+  the current HEAD.
 
 One fresh stamp per merge, immutable (only ever added), independent of `charly.yml`
 `version:` (the schema version, bumped only by a cutover raising `#SchemaVersion`).
@@ -228,15 +217,14 @@ forbids a leading-zero segment — `0733`→`733`). A YAML schema/format change 
 both: the schema bump and the tag. See `/charly-build:migrate`.
 
 **A merged `CHANGELOG/<CalVer>.md` is immutable, exactly like the tag sharing its
-CalVer.** Once the evaluator renames a cutover's placeholder to its final
-`CHANGELOG/$VER.md` and merges it, that file is closed history — follow-up work in
+CalVer.** Once tag-on-merge writes the entry from a PR body at
+`CHANGELOG/$VER.md`, that file is closed history — follow-up work in
 the same theme, branch, or session never appends to it or edits its content, even to
-add a directly-related narrative. It writes its own new placeholder
-`CHANGELOG/<placeholder>.md` entry instead, which its own evaluator stamps with its
-own merge-time CalVer at its own merge. Editing an already-merged entry re-dates
+add a directly-related narrative. It gets its own
+`CHANGELOG/<merge-time VER>.md` entry written from its own PR body at its own merge.
+Editing an already-merged entry re-dates
 history out from under its own filename↔tag pairing — a permanent divergence the
-instant it lands, not a convenience. (A fresh `pr-validator` FAIL is what catches this
-mistake before it lands.)
+instant it lands, not a convenience.
 
 ## After landing — cleanliness + report
 
