@@ -10,3 +10,4 @@ Thumbs.db
 
 # Syncthing conflict copies — per-machine, ephemeral, resolved by hand; never versioned.
 *.sync-conflict-*
+bin/
