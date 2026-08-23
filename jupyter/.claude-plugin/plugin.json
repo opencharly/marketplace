@@ -1,12 +1,11 @@
 {
   "name": "charly-jupyter",
   "description": "Self-contained skills + MCP wiring for the jupyter image family (jupyter, jupyter-ml, jupyter-ml-notebook, unsloth-studio). Ships the jupyter MCP server (port 8888).",
-  "version": "1.0.0",
   "author": {
     "name": "opencharly"
   },
   "homepage": "https://github.com/opencharly/charly",
-  "repository": "https://github.com/opencharly/charly-plugins",
+  "repository": "https://github.com/opencharly/marketplace",
   "license": "MIT",
   "keywords": [
     "charly",

@@ -1,11 +1,17 @@
 # OpenCharly Kimi profile — merge into ~/.kimi-code/config.toml.
 #
+# INSTALL THE MARKETPLACE FIRST: this repo (opencharly/marketplace) is one Kimi
+# plugin — install it with `/plugins install https://github.com/opencharly/marketplace`
+# (or browse the catalog at https://opencharly.github.io/marketplace/kimi.json via
+# `/plugins marketplace <url>` / KIMI_CODE_PLUGIN_MARKETPLACE_URL), then /reload.
+# The plugin's kimi.plugin.json lists every family's skills/ and agents/ dirs.
+#
 # Kimi has no project-level config.toml, so these rules live in the user-level
 # file. The hooks are repo-guarded: each fires only when the session's project
-# directory is an OpenCharly checkout (marker: plugins/.claude-plugin/
-# marketplace.json) and then delegates to the shared gate scripts in
-# .claude/hooks (payload-compatible: stdin JSON tool_input.command, exit 2 =
-# block, stdout appended to context). In every other project they exit 0.
+# directory is an OpenCharly checkout (marker: .claude/hooks/pre-commit-gate.sh)
+# and then delegates to the shared gate scripts in .claude/hooks (payload-
+# compatible: stdin JSON tool_input.command, exit 2 = block, stdout appended to
+# context). In every other project they exit 0.
 
 # Permission parity with the superproject's .claude/settings.json allow list:
 # narrow prefixes for the charly R10/check verbs and the pr-validator's
@@ -44,12 +50,12 @@ reason = "OpenCharly pr-validator status posts"
 [[hooks]]
 event = "PreToolUse"
 matcher = "Bash"
-command = "bash -c '[ -f \"$PWD/plugins/.claude-plugin/marketplace.json\" ] && [ -f \"$PWD/.claude/hooks/pre-commit-gate.sh\" ] && exec bash \"$PWD/.claude/hooks/pre-commit-gate.sh\" || exit 0'"
+command = "bash -c '[ -f \"$PWD/.claude/hooks/pre-commit-gate.sh\" ] && exec bash \"$PWD/.claude/hooks/pre-commit-gate.sh\" || exit 0'"
 timeout = 30
 
 [[hooks]]
 event = "PreToolUse"
 matcher = "Bash"
-command = "bash -c '[ -f \"$PWD/plugins/.claude-plugin/marketplace.json\" ] && [ -f \"$PWD/.claude/hooks/pre-push-gate.sh\" ] && exec bash \"$PWD/.claude/hooks/pre-push-gate.sh\" || exit 0'"
+command = "bash -c '[ -f \"$PWD/.claude/hooks/pre-push-gate.sh\" ] && exec bash \"$PWD/.claude/hooks/pre-push-gate.sh\" || exit 0'"
 timeout = 30
 

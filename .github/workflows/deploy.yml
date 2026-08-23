@@ -1,0 +1,131 @@
+# Build and gate the marketplace corpus.
+#
+# THIS WORKFLOW IS THE SOLE OWNER of marketplace generation. The marketplace is STANDALONE:
+# it pins the charly repository as a submodule (.gitmodules), and this workflow
+#
+#   1. checks out the pinned charly (with its box/* submodules),
+#   2. builds the charly binary from that checkout,
+#   3. regenerates the ENTIRE corpus with `charly marketplace generate` (the runtime
+#      plugin-marketplace generator, built on demand from the checkout),
+#   4. FAILS if the committed corpus does not match what the pinned charly generates
+#      (the drift gate: regeneration on a clean tree is a no-op, so any diff means a
+#      marketplace PR must bump the charly pin and carry the regenerated corpus),
+#   5. sanity-checks the per-harness catalogs (Claude/Codex/kimi/pi manifests parse,
+#      no version fields — commit-SHA versioning), and
+#   6. publishes a static catalog mirror to GitHub Pages: the catalogs, the kimi
+#      marketplace JSON (Kimi Code consumes a hosted URL) and a one-page index.
+#
+# There is no application to deploy: the repo itself IS the artifact every harness loads
+# (Claude Code clones it as `charly-plugins`, Codex registers it by GitHub source, kimi
+# installs it as one plugin, pi installs it as a git package).
+name: marketplace
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Never let two runs of the same ref race; the later one wins.
+concurrency:
+  group: marketplace-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # The pinned charly (with its box/* submodules) is the generator's source tree —
+          # this repo's committed corpus is a projection of it.
+          submodules: recursive
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: charly/charly/go.mod
+          cache-dependency-path: charly/charly/go.sum
+
+      - name: Build the charly binary from the pinned checkout
+        run: |
+          cd charly/charly && go build -buildvcs=false -ldflags "-X main.BuildCalVer=marketplace-ci" -o ../../bin/charly .
+
+      - name: Regenerate the corpus from the pinned charly
+        # The project root must be the charly checkout (the runtime plugin-marketplace
+        # binary builds on demand from the project's candy source); --root points at it,
+        # --out at this repo's root (the corpus lives at the marketplace root, flat).
+        run: |
+          cd charly && ../bin/charly marketplace generate --root . --out ..
+
+      - name: Drift gate — the committed corpus must match the pinned charly
+        # Regeneration on a clean tree is a no-op by contract (hand-authored files carry no
+        # DO-NOT-EDIT header and sit outside the known paths, so they are never rewritten). A
+        # diff here means a marketplace PR must bump the charly pin in .gitmodules and commit
+        # the regenerated corpus in the same change.
+        run: |
+          if ! git diff --exit-code; then
+            echo "DRIFT: the committed corpus does not match the pinned charly checkout."
+            echo "Bump the charly submodule in .gitmodules and commit the regenerated"
+            echo "corpus in the same marketplace PR (this workflow is the gate)."
+            exit 1
+          fi
+          echo "corpus: committed tree matches the pinned charly (regeneration is a no-op)."
+
+      - name: Catalog sanity — every per-harness manifest parses and carries the cutover contract
+        run: |
+          python3 - <<'PY'
+          import json, glob
+          m = json.load(open(".claude-plugin/marketplace.json"))
+          assert m["name"] == "charly-plugins" and m["plugins"]
+          a = json.load(open(".agents/plugins/marketplace.json"))
+          assert a["plugins"] and all(p["policy"]["installation"] == "INSTALLED_BY_DEFAULT" for p in a["plugins"])
+          k = json.load(open("kimi.plugin.json"))
+          assert k["skills"]
+          p = json.load(open("package.json"))
+          assert "pi-package" in p["keywords"] and p["pi"]["skills"]
+          for f in glob.glob("*/.claude-plugin/plugin.json") + glob.glob("*/.codex-plugin/plugin.json"):
+              d = json.load(open(f))
+              assert "version" not in d, f
+          print("catalogs OK: %d claude plugins, %d agents plugins, kimi+pi manifests, no version fields" % (len(m["plugins"]), len(a["plugins"])))
+          PY
+
+      - name: Assemble the static catalog mirror for Pages
+        run: |
+          mkdir -p _site
+          cp .claude-plugin/marketplace.json _site/claude-marketplace.json
+          cp .agents/plugins/marketplace.json _site/agents-marketplace.json
+          cp kimi.plugin.json _site/kimi.plugin.json
+          cp profiles.json _site/profiles.json
+          cp package.json _site/package.json
+          cp README.md _site/index.md
+          # The kimi marketplace catalog (Kimi Code's /plugins marketplace <URL> expects a
+          # catalog whose entries point at installable sources; the whole marketplace is one
+          # plugin via its GitHub URL).
+          cat > _site/kimi.json <<'EOF'
+          {"version":"2","plugins":[{"id":"charly","displayName":"OpenCharly","source":"https://github.com/opencharly/marketplace"}]}
+          EOF
+          printf '%s\n' '<!doctype html><html><head><meta charset="utf-8"><title>OpenCharly Marketplace</title></head>' \
+            '<body><h1>OpenCharly Marketplace</h1><p>The <a href="https://github.com/opencharly/marketplace">opencharly/marketplace</a> repo is the catalog; this Pages site mirrors it for URL-based harnesses.</p>' \
+            '<ul><li><a href="claude-marketplace.json">claude-marketplace.json</a></li><li><a href="agents-marketplace.json">agents-marketplace.json</a></li><li><a href="kimi.json">kimi.json</a></li><li><a href="kimi.plugin.json">kimi.plugin.json</a></li></ul></body></html>' > _site/index.html
+          echo "site: $(find _site -type f | wc -l) files"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,12 +1,11 @@
 {
   "name": "charly-kubernetes",
   "description": "Schema authoring for `kind: kubernetes` — Kustomize manifests, cluster probes via the `kube:` check verb, and the helm words (`helm-release` install step + `helm:` check verb).",
-  "version": "1.0.0",
   "author": {
     "name": "opencharly"
   },
   "homepage": "https://github.com/opencharly/charly",
-  "repository": "https://github.com/opencharly/charly-plugins",
+  "repository": "https://github.com/opencharly/marketplace",
   "license": "MIT",
   "keywords": [
     "charly",

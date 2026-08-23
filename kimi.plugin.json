@@ -1,0 +1,40 @@
+{
+  "name": "charly",
+  "description": "Claude Code, Codex, and Kimi plugins for OpenCharly, the Agent-in-the-Loop Factory — runtime commands, schema authoring, contributor internals, and deployable image families.",
+  "skills": [
+    "./agentteams/skills",
+    "./automation/skills",
+    "./build/skills",
+    "./check/skills",
+    "./coder/skills",
+    "./comfyui/skills",
+    "./core/skills",
+    "./distros/skills",
+    "./filebrowser/skills",
+    "./hermes/skills",
+    "./image/skills",
+    "./immich/skills",
+    "./infrastructure/skills",
+    "./internals/skills",
+    "./jupyter/skills",
+    "./kubernetes/skills",
+    "./languages/skills",
+    "./local/skills",
+    "./ollama/skills",
+    "./openclaw/skills",
+    "./openwebui/skills",
+    "./pod/skills",
+    "./selkies/skills",
+    "./tools/skills",
+    "./versa/skills",
+    "./vm/skills"
+  ],
+  "agents": [
+    "./automation/agents",
+    "./internals/agents"
+  ],
+  "interface": {
+    "displayName": "OpenCharly",
+    "shortDescription": "Claude Code, Codex, and Kimi plugins for OpenCharly, the Agent-in-the-Loop Factory — runtime commands, schema authoring, contributor internals, and deployable image families."
+  }
+}

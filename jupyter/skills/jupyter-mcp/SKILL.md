@@ -132,7 +132,7 @@ The `jupyter` MCP server name is **deliberately decoupled** from the candy name,
 |---|---|---|---|
 | `candy/jupyter/charly.yml` | `env.MCP_SERVER_NAME` | `"jupyter"` | Runtime advertisement |
 | `candy/jupyter/charly.yml` | `mcp_provide[0].name` | `jupyter` | Cross-container discovery (hermes, openwebui) |
-| `plugins/charly-jupyter/.mcp.json` | `mcpServers.jupyter` | — | Claude Code static registration |
+| the marketplace's `jupyter/.mcp.json` | `mcpServers.jupyter` | — | Claude Code static registration |
 
 **Package/candy/box names describe the artifact; the MCP name describes the service contract.** Rename the artifact freely; the contract is stable.
 

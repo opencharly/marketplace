@@ -1,11 +1,10 @@
 {
   "name": "charly-local",
-  "version": "1.0.0",
   "description": "Schema authoring for `kind: local` — local templates, ssh-host targets, managed ssh-config fragment.",
   "author": {
     "name": "opencharly"
   },
-  "repository": "https://github.com/opencharly/charly-plugins",
+  "repository": "https://github.com/opencharly/marketplace",
   "skills": "./skills/",
   "interface": {
     "displayName": "OpenCharly Local",

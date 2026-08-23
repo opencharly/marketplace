@@ -47,7 +47,8 @@ charly docs generate \
 | Flag | Meaning |
 |---|---|
 | `--out` | docs content root to write into (required) |
-| `--root` | repo root holding `charly.yml`, `candy/`, `box/`, `plugins/` (default: cwd) |
+| `--root` | repo root holding `charly.yml`, `candy/`, `box/` (default: cwd) |
+| `--plugins` | the opencharly/marketplace checkout the skill corpus is read from (default: `<root>/plugins`) — the docs deploy passes its marketplace submodule |
 
 ## What it emits
 
@@ -73,7 +74,7 @@ not the page.**
 
 | Tree | Source |
 |---|---|
-| `index.md` | `README.md`, H1 and tagline dropped (the frontmatter title and hero render them), `https://opencharly.ai/…` links rewritten site-relative, and the repo-relative targets `AGENTS.md`, `plugins/README.md` and `CHANGELOG/README.md` repointed at GitHub or their site equivalent |
+| `index.md` | `README.md`, H1 and tagline dropped (the frontmatter title and hero render them), `https://opencharly.ai/…` links rewritten site-relative, and the repo-relative targets `AGENTS.md`, the marketplace repo's README and `CHANGELOG/README.md` repointed at GitHub or their site equivalent |
 | `grievances.md` | `GRIEVANCES.md`, H1 dropped, repo-relative links rewritten for a web reader |
 | `vision.md` | `VISION.md`, H1 dropped, repo-relative links rewritten for a web reader |
 | `liberation.md` | `LIBERATION.md`, H1 dropped, repo-relative links rewritten — the deliberate easter-egg page, entered last in the sidebar as "Liberation" |
@@ -107,14 +108,16 @@ the pinned charly) belongs to the same cutover as the candy edit.
 
 **Skill prose — TWO hops.** `recipes/` is NOT read from `candy/*/charly.yml`. A skill is
 authored as a `skill:` entity in its owning candy; `charly marketplace generate` projects
-that into `plugins/<plugin>/skills/<name>/SKILL.md`, and `charly docs generate` reads
-**that projection** — the `plugins/` submodule tree, never the candy source. Editing a
-`skill:` entity therefore changes nothing on the site until `charly marketplace generate`
-has run, and on any CLEAN checkout the tree it reads is the pinned gitlink, so the change
-reaches readers only once the `plugins` landing merges and the superproject's `plugins`
-gitlink advances. **Advancing that gitlink without regenerating `docs` in the same change
-is what leaves the published site stale**, and nothing except the docs repo's drift gate
-will say so — which is precisely how the mirror has fallen behind before.
+that into the opencharly/marketplace repo (`<family>/skills/<name>/SKILL.md`), and
+`charly docs generate` reads **that projection** (via `--plugins` — the marketplace
+checkout the docs repo pins as a submodule), never the candy source. Editing a `skill:`
+entity therefore changes nothing on the site until `charly marketplace generate` has
+run and the marketplace landing merges; the docs repo pins the marketplace in its own
+`.gitmodules` (branch `main`), so the change reaches readers once the marketplace main
+advances and a docs PR regenerates the site at the moved corpus. **Advancing the corpus
+without regenerating `docs` in the same change is what leaves the published site stale**,
+and nothing except the docs repo's drift gate will say so — which is precisely how the
+mirror has fallen behind before.
 
 The ordering this forces — regenerate the projection, land the producer repo, then the
 consumer (docs) and its charly pin — is `/charly-internals:git-workflow` B6's

@@ -1,12 +1,11 @@
 {
   "name": "charly-agentteams",
   "description": "Self-contained skills for the AgentTeams multi-agent stack (CachyOS base): the decomposed agentteams box — minio, matrix/tuwunel, element, higress, controller — on pod and vm substrates, plus the compiled-in `charly agentteams` management CLI.",
-  "version": "1.0.0",
   "author": {
     "name": "opencharly"
   },
   "homepage": "https://github.com/opencharly/charly",
-  "repository": "https://github.com/opencharly/charly-plugins",
+  "repository": "https://github.com/opencharly/marketplace",
   "license": "MIT",
   "keywords": [
     "charly",

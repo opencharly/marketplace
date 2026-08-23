@@ -3,7 +3,7 @@ name: git-workflow
 description: |-
   Use when committing, branching, pushing, opening PRs, or landing a change with
   gh — the feat/-branch, R10-gated, PR-ONLY, org-workflow-validated, never-force-push
-  landing across the main repo, its plugins/docs/box submodules, and the
+  landing across the main repo, its box submodules, the marketplace repo, and the
   proxy-resolved sdk contract module (no submodule — consumed at the pinned
   go.mod require). A direct push to main is FORBIDDEN and mechanically disabled; the
   org-wide `charly/pr-validator` GitHub Actions gate validates the PR and, on PASS,
@@ -27,7 +27,7 @@ authorizes OPENING the PR, never a self-merge**: the two-step landing separates 
 author (who opens the PR) from the fresh validator (a check run on the same PR).
 This skill is the mechanics; the project rulebook "Post-Execution Policies" (`AGENTS.md` / `CLAUDE.md`) carries the
 mandate, `/charly-internals:cutover-policy` the one-phase rule, `/charly-build:migrate`
-the schema-version/tag coupling, and `plugins/internals/agents/pr-validator.md` the
+the schema-version/tag coupling, and the marketplace's `internals/agents/pr-validator.md` the
 validator's own spec.
 
 ## Non-negotiable invariants

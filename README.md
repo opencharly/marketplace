@@ -1,6 +1,15 @@
-# OpenCharly Plugins
+# OpenCharly Marketplace
 
-Claude Code, Codex, and Kimi plugins for OpenCharly — the fully equipped factory floor for you and your agents.
+Claude Code, Codex, Kimi, and pi plugins for OpenCharly — the fully equipped factory floor for you and your agents.
+
+This repository IS the marketplace: every plugin family lives flat at the repo root
+(`<family>/skills/…`, `<family>/agents/…`, per-family manifests), and the root carries one
+catalog per harness. Everything under the corpus trees is **GENERATED** from the
+[opencharly/charly](https://github.com/opencharly/charly) candies by
+`charly marketplace generate` — edit a `skill:`/`hook:`/`marketplace:` entity in charly's
+`candy/`, regenerate, and land the corpus here. Hand-authored files are only
+`README.md`, `CLAUDE.md`, `LICENSE`, `CHANGELOG/`, `scripts/squash_body.py` and
+`kimi-user-config.toml` — everything else carries a DO-NOT-EDIT header.
 
 ## How this marketplace is organized
 
@@ -13,13 +22,32 @@ Plugins are sorted into **four use-case buckets**:
 | **development** | "I'm a contributor working on the charly source code itself" | `charly-internals` |
 | **images** | "I want to deploy a specific image" | `charly-distros`, `charly-languages`, `charly-infrastructure`, `charly-tools`, `charly-jupyter`, `charly-coder`, `charly-selkies`, `charly-openclaw`, `charly-versa`, `charly-ollama`, `charly-openwebui`, `charly-comfyui`, `charly-immich`, `charly-hermes`, `charly-filebrowser` |
 
-The directory layout under `plugins/` is **flat** — every plugin sits at
-`plugins/<name>/` (no `charly-` prefix in directory names). The `charly-` prefix
-lives exclusively in each `plugin.json`'s `name:` field, which means every
-skill invocation is `/charly-<plugin>:<skill>` (e.g. `/charly-core:ssh`,
+The layout is **flat** — every plugin sits at `<family>/` (no `charly-` prefix in directory
+names). The `charly-` prefix lives exclusively in each `plugin.json`'s `name:` field, which
+means every skill invocation is `/charly-<plugin>:<skill>` (e.g. `/charly-core:ssh`,
 `/charly-jupyter:jupyter`, `/charly-distros:arch`). The `category:` field in
-`marketplace.json` provides the four-bucket grouping for the plugin
-manager UI.
+`marketplace.json` provides the four-bucket grouping for the plugin manager UI.
+
+## Install per harness
+
+| Harness | Install |
+|---|---|
+| **Claude Code / Cursor** | `/plugin marketplace add opencharly/marketplace`, then `/plugin install <name>@charly-plugins` (or `claude plugin marketplace add opencharly/marketplace`) — the catalog is `.claude-plugin/marketplace.json`. No `version` fields anywhere: plugins version by the marketplace commit SHA, so every corpus update is picked up on `/plugin marketplace update`. |
+| **Codex CLI / AGENTS** | register the repo by GitHub source (`codex plugin add opencharly/marketplace`) — the catalog is `.agents/plugins/marketplace.json`, entries `INSTALLED_BY_DEFAULT`. |
+| **Kimi Code** | `/plugins marketplace https://opencharly.github.io/marketplace/kimi.json` (or `KIMI_CODE_PLUGIN_MARKETPLACE_URL`), or install the whole repo as one plugin: `/plugins install https://github.com/opencharly/marketplace` — `kimi.plugin.json` lists every family's `skills/` + `agents/`. |
+| **pi** | add `"git:github.com/opencharly/marketplace"` to the project's `.pi/settings.json` `packages` — `package.json` declares the `pi` resource (`./*/skills` glob, `pi-package` keyword), installed automatically at startup. |
+| **Docs** | the opencharly/docs repo pins this repo as a submodule and passes it to `charly docs generate --plugins` — the site's recipe pages are a projection of this corpus. |
+
+The catalog mirror (the raw catalogs + the kimi JSON) is published to
+[GitHub Pages](https://opencharly.github.io/marketplace/).
+
+## Regeneration
+
+The `deploy.yml` workflow is the SOLE owner of generation: it checks out the pinned charly
+submodule (`.gitmodules`), builds the binary, regenerates the corpus, and **fails closed on
+any diff** (the drift gate) — a marketplace PR bumps the charly pin and carries the
+regenerated corpus in the same change. Locally: `./setup` (or `charly marketplace generate
+--root ./charly --out .`); `./setup --check` runs the fail-closed drift gate.
 
 ## Plugins by bucket
 
@@ -37,113 +65,41 @@ manager UI.
 | Plugin | MCP server | Purpose |
 |---|---|---|
 | **charly-image** | — | Schema for `kind: candy` (charly.yml authoring — `base:`/`from:` makes an image; neither makes a layer). |
-| **charly-vm** | — | Schema for `kind: vm` + bootc VM catalog (cloud_image vs bootc, libvirt/QEMU). Includes `cachyos` (bootstrap VM, in the `opencharly/distro-cachyos` submodule) and `debian` / `ubuntu` (debootstrap bootstrap VMs, in the `opencharly/distro-debian` / `opencharly/distro-ubuntu` submodules). |
-| **charly-kubernetes** | — | Schema for `kind: kubernetes` + cluster probes via the declarative `kube:` check verb (out-of-process `candy/plugin-kube`) + the helm words: the `helm-release` install step and the `helm:` check verb (out-of-process `candy/plugin-helm`). |
-| **charly-local** | — | Schema for `kind: local` + ssh-host deploys + managed ssh-config fragment. Includes `charly-cachyos` (operator CachyOS workstation profile, in the `opencharly/distro-cachyos` submodule). |
-| **charly-pod** | — | Schema for `kind: pod` and the `fleet` deploy kind — thin pointer to `/charly-core:deploy` for verb details. |
+| **charly-vm** | — | Schema for `kind: vm` + bootc VM catalog (cloud_image vs bootc, libvirt/QEMU). |
+| **charly-kubernetes** | — | Schema for `kind: kubernetes` (k8s manifests, helm). |
+| **charly-local** | — | Schema for `kind: local` (host-side templates). |
+| **charly-pod** | — | Schema for `kind: pod` (podman-based multi-container pods). |
 
-### development — contributor-only internals
-
-| Plugin | MCP server | Purpose |
-|---|---|---|
-| **charly-internals** | github (stdio) | Go source map, go-quality, install-plan IR, capabilities/OCI labels, vm-spec, vm-deploy-target, libvirt/cloud-init renderers, egress (validating the config files charly WRITES), cutover-policy, strict-policy, disposable, ovmf, generate-source, git-workflow, local-infra, plugin, skills, root-cause-analyzer, agents (the agents/workflows/teams guide). Ships the agents — enforcers root-cause-analyzer, layer-validator, testing-validator; executors check-bed-runner, deploy-verifier (drive the `charly check` beds). The `/verify-beds` + `/audit-deploy-configs` dynamic workflows live in the superproject's `.claude/workflows/`. |
-
-### images — deployable image catalog
-
-#### Foundation layers (`charly-distros` / `charly-languages` / `charly-infrastructure` / `charly-tools`)
+### development — contributor internals
 
 | Plugin | MCP server | Purpose |
 |---|---|---|
-| **charly-distros** | — | Base OS images, GPU runtime, per-distro builders. fedora (+ fedora-builder, fedora-nonfree — the base stack is owned by the `opencharly/distro-fedora` submodule, which is self-contained (`import: []`); the charly-fedora / fedora-test showcase images are owned by that submodule too), arch (+ arch-builder, owned by the self-contained `opencharly/distro-arch` submodule), cachyos (+ cachyos-pacstrap/-builder, owned by the `opencharly/distro-cachyos` submodule, which imports the `arch` namespace), debian / ubuntu (+ their `-builder` and `-debootstrap`/`-debootstrap-builder`, owned by the `opencharly/distro-debian` / `opencharly/distro-ubuntu` submodules), nvidia, cuda, rocm, etc. The `nvidia` GPU base image now lives in the `opencharly/distro-fedora` submodule (the `nvidia` / `cuda` / `rocm` layers stay in main). |
-| **charly-languages** | — | Programming language runtimes — pixi, python, python-ml, python-ml-layer. (golang/rust/nodejs live in `charly-coder` because they're tightly coupled to dev images.) |
-| **charly-infrastructure** | — | Databases, networking, security, system services. postgresql, redis, valkey, vectorchord, k3s, traefik, supervisord, tailscale, gocryptfs, virtualization, dbus-layer, tmux-layer, ssh-client, gnupg, etc. |
-| **charly-tools** | — | CLI utilities and the `charly` binary — ripgrep, himalaya, whisper, nano-pdf, summarize, ordercli, gogcli, sherpa-onnx, songsee, blogwatcher, sag, xurl, goplaces, mcporter, yay, vscode, charly, cue, docs-site. |
+| **charly-internals** | — | The contributor rulebook skills: git-workflow, root-cause-analyzer, strict-policy, cutover-policy, agents, skills, plugin, disposable, go, egress, generate-source, install-plan, local-infra, vm-deploy-target, vm-spec, ovmf, libvirt-renderer, cloud-init-renderer, capabilities. |
 
-#### Per-pod plugins
+### images — the deployable catalog
 
 | Plugin | MCP server | Purpose |
 |---|---|---|
-| **charly-jupyter** | jupyter @ 8888 | Jupyter image family (jupyter, jupyter-ml, jupyter-ml-notebook, unsloth-studio) + notebook templates + jupyter-mcp server. |
-| **charly-coder** | charly @ 18765 | charly coder/dev images (fedora-coder in the `opencharly/distro-fedora` submodule; arch-coder/charly-arch in `opencharly/distro-arch`; debian-coder in `opencharly/distro-debian`; ubuntu-coder in `opencharly/distro-ubuntu`) + language runtimes (golang/rust/nodejs/docker-ce). |
-| **charly-selkies** | chrome-devtools @ 9224 | Selkies-desktop family — labwc and full-KDE-Plasma flavors of the browser-streamed Wayland desktop, always a headless pod, per-GPU encode (VAAPI / NVENC / x264 auto-selected at runtime). |
-| **charly-openclaw** | — | OpenClaw AI gateway family (CachyOS base): the `openclaw` layer + headless `openclaw` / `openclaw-full` images + the all-in-one `openclaw-desktop` (streaming desktop + gateway + CPU ollama + nested charly toolchain) + composition layers (`openclaw-full`, `openclaw-full-ml`). |
-| **charly-versa** | marimo @ 22718, airflow @ 29999 | Versa image — marimo notebook + Airflow + OSM/GTFS analytics + martin vector tiles, versatiles, versatiles-fonts, versatiles-frontend, versatiles-style, maplibre-versatiles-styler, maputnik-layer, pmtiles-viewer, shortbread, osm-tools-layer, notebook-osm, debug-tools-layer, sway-browser-ecovoyage, marimo-mcp. |
-| **charly-ollama** | — | Ollama LLM-server image. Pair with `charly-jupyter` to expose to notebooks. |
-| **charly-openwebui** | — | OpenWebUI chat frontend. Consumes the jupyter MCP. |
-| **charly-comfyui** | — | ComfyUI image-generation/diffusion. |
-| **charly-immich** | — | Immich photo-management (immich + immich-ml variants). |
-| **charly-hermes** | — | Hermes agent image (hermes + hermes-playwright variants). Consumes the jupyter MCP. |
-| **charly-filebrowser** | — | Filebrowser web file management on top of an charly volume. |
+| **charly-distros** | — | The distro image families (arch/cachyos/debian/fedora/ubuntu + their builders and bootstrap variants). |
+| **charly-languages** | — | Language images. |
+| **charly-infrastructure** | — | Infrastructure services. |
+| **charly-tools** | — | The CLI tools catalog (ripgrep, yay, himalaya, dsh, gogcli, mcporter, nano-pdf, ordercli, sag, sherpa-onnx, songsee, summarize, whisper, xurl). |
+| **charly-jupyter** | — | JupyterLab + jupyter-mcp. |
+| **charly-coder** | — | Coder dev images. |
+| **charly-selkies** | — | Selkies virtual-desktop streaming. |
+| **charly-openclaw** | — | OpenClaw. |
+| **charly-versa** | — | versa. |
+| **charly-ollama** | — | Ollama. |
+| **charly-openwebui** | — | Open WebUI. |
+| **charly-comfyui** | — | ComfyUI. |
+| **charly-immich** | — | Immich. |
+| **charly-hermes** | — | Hermes. |
+| **charly-filebrowser** | — | Filebrowser. |
 
-## Skill invocation pattern
+## Contributing
 
-Every skill uses the namespaced form `/<plugin-name>:<skill-name>`. The
-plugin name carries the `charly-` prefix; the skill name does not. Examples:
-
-- `/charly-core:ssh` — open an interactive shell into a pod.
-- `/charly-image:layer` — schema authoring for `kind: candy`.
-- `/charly-distros:arch` — Arch Linux base image reference.
-- `/charly-jupyter:notebook-templates` — bundled notebook starter content.
-- `/charly-check:cdp` — Chrome DevTools Protocol live probe.
-
-## Skill name uniqueness
-
-Every skill in this marketplace has a globally-unique folder name. Where a
-short name could be ambiguous, the canonical names are:
-
-- `charly-infrastructure:tmux-layer` (the tmux package layer) vs `charly-automation:tmux` (the verb).
-- `charly-infrastructure:dbus-layer` (the D-Bus service layer) vs `charly-check:dbus` (the verb).
-- `charly-automation:openclaw-deploy` (the deployment topic) vs `charly-openclaw:openclaw` (the image).
-- `charly-vm:vms-catalog` (the VM catalog skill) vs the kind-name `vm`.
-- `charly-build:generate` (the build verb) vs `charly-internals:generate-source` (the source-reading reference).
-- `charly-distros:arch` (the distro) vs `charly-vm:arch-cloud-vm` (the cloud VM).
-- `charly-vm:cachyos-bootstrap-vm`, `charly-vm:debian-debootstrap-vm`, and
-  `charly-vm:ubuntu-debootstrap-vm` identify bootstrap VMs without colliding
-  with their distro skills.
-
-## Recent changes
-
-See this repo's [`CHANGELOG/`](CHANGELOG/README.md) — and the superproject's
-[`CHANGELOG/`](../CHANGELOG/README.md) for older project-wide history — for the
-full history of plugin reorganizations, skill renames, and marketplace version
-bumps (one file per CalVer version). This index and the skill docs themselves describe
-only the current structure.
-
-## Installation
-
-Use the same marketplace and skill tree in any of the three harnesses:
-
-```bash
-./setup claude                         # full developer mode (default)
-./setup codex developer
-./setup kimi developer
-./setup claude user                    # use/author Charly, do not develop it
-./setup codex container jupyter        # operate one generated container family
-./setup codex --check developer        # non-mutating drift check
-./setup kimi --check developer
-```
-
-`developer` installs all plugins. `user` installs the runtime, authoring,
-checking, kind, and foundation plugins but not contributor internals or a
-container family. `container FAMILY` installs `charly-core` plus one
-self-contained family plugin. The Charly repository always uses `developer`.
-
-The setup command writes only target-repository files: Claude writes
-`.claude/settings.json`; Codex writes `.agents/plugins/marketplace.json` and
-repo-native `.agents/skills/` symlinks to the selected canonical
-`plugins/<plugin>/skills/` directories. Kimi reads that same
-`.agents/skills/` tree natively as project-scope skills (on-demand `Skill`
-invocation), so setup syncs the identical links and additionally prints the
-`kimi-user-config.toml` snippet — permission rules and repo-guarded hooks for
-the user-level `~/.kimi-code/config.toml` (Kimi has no project-level config
-file) — which the operator merges by hand; setup never installs it. It never
-copies skill bodies, invokes a
-plugin CLI, or changes user configuration. Existing unrelated project settings,
-marketplace metadata, plugin entries, and skill paths are preserved; setup owns
-only the Charly entries it generates. Managed project roots must not be symlinks;
-setup refuses them instead of following a write path outside the repository. It
-is idempotent and does not change
-models, approval policy, credentials, trust, or permissions. A consumer
-repository must carry the Charly plugins repository at `./plugins`.
-Existing MCP declarations bundled by plugins remain normal plugin content;
-MCP is not required to install, select, or synchronize the skills.
+Skills, agents, hooks and catalog metadata are all generated — **edit the charly candy
+entities** (`candy/<name>/charly.yml` in opencharly/charly) and regenerate. A skill that
+must not be regenerated has no place here. The corpus validator (`charly marketplace drift
+--root ./charly --out .`) must be a no-op on every commit, and the deploy workflow enforces
+it.

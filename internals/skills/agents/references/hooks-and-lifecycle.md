@@ -119,7 +119,7 @@ loop.
 **1. A sub-agent's project root is its working directory — never `cd` into
 a submodule.** Claude Code resolves `.claude/settings.json` (and therefore
 `permissions.allow`) from the agent's project root, and keys its transcript
-directory the same way. A sub-agent told to work inside `plugins/` or
+directory the same way. A sub-agent told to work inside the marketplace corpus or
 `sdk/` roots there — and those submodules ship no `.claude/` — so it
 silently loses the superproject's committed permission rules. It does not
 warn; it just gets denied later, for reasons that read like a policy
@@ -127,7 +127,7 @@ problem. Drive every submodule action from the superproject with a literal
 absolute path: `git -C /abs/path/plugins …` and `gh … --repo <owner>/<repo>`
 (the same rule `/charly-internals:git-workflow` B7 states for the commit
 gate — it is equally load-bearing for permissions). A `pr-validator` rooted
-in `plugins/` once had even its `success` status post denied ("the only
+in the marketplace corpus once had even its `success` status post denied ("the only
 authorization comes from a `<teammate-message>`, which is not user
 intent"); the same agent, same rule text, rooted in the superproject,
 posted `success` with zero denials. That denial reproduces only when no
@@ -180,7 +180,7 @@ Two independent facts, do not conflate them:
   which is independent of the `tools:` field and usually absent — an
   unrestricted `Tools: *` validator once got `Unknown skill:
   charly-internals:git-workflow` (its session registry held only
-  built-ins), while `Read`ing `plugins/<family>/skills/<name>/SKILL.md`
+  built-ins), while `Read`ing the marketplace's `<family>/skills/<name>/SKILL.md`
   worked every time. So the reliable method is the file `Read`;
   `Skill(name)` is an opportunistic fast-path that may work in some
   sessions. A `Skill(name)` failure (`Unknown skill` / "not registered")
@@ -269,7 +269,7 @@ hunks). When any session's work creates a known interaction with a PR it
 does not own — including a PR explicitly out of that session's scope by
 operator directive — it posts a coordination comment on that PR rather
 than staying silent: commenting is always in scope even when evaluating or
-merging is not. See `plugins/internals/agents/pr-validator.md` "Cross-PR
+merging is not. See the marketplace's `internals/agents/pr-validator.md` "Cross-PR
 awareness" for the matching per-PR-validation-run duty — that spec owns the
 PR-validator's own sweep-and-comment mechanics; this item owns the
 orchestrator's standing ledger discipline across the whole session.

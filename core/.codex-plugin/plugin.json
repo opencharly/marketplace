@@ -1,11 +1,10 @@
 {
   "name": "charly-core",
-  "version": "1.0.0",
   "description": "Runtime/lifecycle CLI verbs — start, stop, restart, charly-status, logs, shell, ssh, deploy, charly-update, remove, charly-config, cmd, charly-version, charly-doctor.",
   "author": {
     "name": "opencharly"
   },
-  "repository": "https://github.com/opencharly/charly-plugins",
+  "repository": "https://github.com/opencharly/marketplace",
   "skills": "./skills/",
   "interface": {
     "displayName": "OpenCharly Core",
