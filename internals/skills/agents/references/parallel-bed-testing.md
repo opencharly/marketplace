@@ -530,8 +530,9 @@ The playbook:
    trees ran overlapping (one finishing in roughly 79s, nested inside a
    sibling's roughly 265s window), with separate per-tree
    `.check/`/`.build/` outputs, zero cross-contamination, zero leftover
-   deploys. Requirements: the worktree needs the `sdk` submodule inited
-   (`task build:binary` reads `scripts/calver.sh`) but
+   deploys. Requirements: the worktree needs NO sdk/spec checkout
+   (`task build:binary` reads `scripts/calver.sh`; the sdk + spec contract
+   modules resolve from the module proxy at the pinned require versions) but
    not the `box/<distro>` submodules for the root disposable roster: root
    `charly.yml` imports the distro namespaces (arch/cachyos/fedora) via
    remote `@github.com/opencharly/distro-*` refs (resolver-fetched into
