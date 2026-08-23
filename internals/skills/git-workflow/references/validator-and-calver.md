@@ -156,7 +156,7 @@ independently of project root; the scope-of-validity note below). So:
 
 - **Spawn the validator with its working directory at the superproject root**, for a PR
   in any repo (superproject, `sdk`, `plugins`, `docs`, `box/<distro>`).
-- **Drive the submodule with a literal absolute path**: `git -C /abs/path/plugins …`,
+- **Drive the submodule with a literal absolute path**: `git -C /abs/path/marketplace …`,
   `gh <cmd> --repo <owner>/<repo>`. Never `cd plugins && …` (B7 states the same rule for
   the commit gate; it is equally load-bearing for permissions).
 - Verify after the fact: the agent's transcript must live under

@@ -124,7 +124,7 @@ directory the same way. A sub-agent told to work inside the marketplace corpus o
 silently loses the superproject's committed permission rules. It does not
 warn; it just gets denied later, for reasons that read like a policy
 problem. Drive every submodule action from the superproject with a literal
-absolute path: `git -C /abs/path/plugins …` and `gh … --repo <owner>/<repo>`
+absolute path: `git -C /abs/path/marketplace …` and `gh … --repo <owner>/<repo>`
 (the same rule `/charly-internals:git-workflow` B7 states for the commit
 gate — it is equally load-bearing for permissions). A `pr-validator` rooted
 in the marketplace corpus once had even its `success` status post denied ("the only
