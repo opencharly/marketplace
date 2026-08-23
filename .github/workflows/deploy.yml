@@ -66,10 +66,14 @@ jobs:
         # diff here means a marketplace PR must bump the charly pin in .gitmodules and commit
         # the regenerated corpus in the same change.
         run: |
-          if ! git diff --exit-code; then
+          # git diff --exit-code alone is NOT fail-closed: a generator that emits NEW
+          # artifacts (a new skill/family/manifest) recreates them as UNTRACKED files on
+          # regeneration, which git diff ignores. The gate must catch untracked files too.
+          if ! git diff --exit-code || [ -n "$(git status --porcelain)" ]; then
             echo "DRIFT: the committed corpus does not match the pinned charly checkout."
             echo "Bump the charly submodule in .gitmodules and commit the regenerated"
             echo "corpus in the same marketplace PR (this workflow is the gate)."
+            git status --porcelain | head -20
             exit 1
           fi
           echo "corpus: committed tree matches the pinned charly (regeneration is a no-op)."
