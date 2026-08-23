@@ -1,0 +1,12 @@
+{
+  "name": "opencharly-marketplace",
+  "description": "Claude Code, Codex, and Kimi plugins for OpenCharly, the Agent-in-the-Loop Factory — runtime commands, schema authoring, contributor internals, and deployable image families.",
+  "keywords": [
+    "pi-package"
+  ],
+  "pi": {
+    "skills": [
+      "./*/skills"
+    ]
+  }
+}

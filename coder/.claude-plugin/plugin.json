@@ -1,12 +1,11 @@
 {
   "name": "charly-coder",
   "description": "Self-contained skills + MCP wiring for charly coder/dev images (arch-coder, debian-coder, fedora-coder, ubuntu-coder, charly-arch). Ships the charly MCP server (port 18765). Bundles language runtimes (golang, rust, nodejs).",
-  "version": "1.0.0",
   "author": {
     "name": "opencharly"
   },
   "homepage": "https://github.com/opencharly/charly",
-  "repository": "https://github.com/opencharly/charly-plugins",
+  "repository": "https://github.com/opencharly/marketplace",
   "license": "MIT",
   "keywords": [
     "charly",

@@ -136,7 +136,7 @@ One PR, one commit, with these deliverables:
 - **Replacement surface** — the new types / schema / deploy target that supersede the deleted ones.
 - **Migration** — one idempotent migration-table entry (`candy/plugin-migrate/migrations.cue`) that harvests legacy fields into the new shape, preserves pre-existing user keys, and never clobbers customizations.
 - **Load-time error** — old projects loading under the new code get a hard error naming the legacy field and pointing at `charly migrate`.
-- **Documentation refresh** — every referring skill revised in the same sweep; no stale references to any deleted identifier in `plugins/`, `README.md`, or `AGENTS.md` / `CLAUDE.md` (R5 grep self-test).
+- **Documentation refresh** — every referring skill revised in the same sweep; no stale references to any deleted identifier in the marketplace corpus, `README.md`, or `AGENTS.md` / `CLAUDE.md` (R5 grep self-test).
 - **Test deletions** — fixtures and assertions exercising the legacy surface removed; new fixtures exercise the replacement.
 - **CHANGELOG entry at merge** — the merged PR's title + body are written by the
   tag-on-merge workflow to the repo's per-CalVer file `CHANGELOG/<YYYY.DDD.HHMM>.md`

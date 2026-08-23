@@ -1,12 +1,11 @@
 {
   "name": "charly-comfyui",
   "description": "Self-contained skills for running the comfyui image-generation/diffusion image.",
-  "version": "1.0.0",
   "author": {
     "name": "opencharly"
   },
   "homepage": "https://github.com/opencharly/charly",
-  "repository": "https://github.com/opencharly/charly-plugins",
+  "repository": "https://github.com/opencharly/marketplace",
   "license": "MIT",
   "keywords": [
     "charly",

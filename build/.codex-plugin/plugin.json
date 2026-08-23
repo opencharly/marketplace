@@ -1,11 +1,10 @@
 {
   "name": "charly-build",
-  "version": "1.0.0",
   "description": "Build/authoring CLI verbs — build, generate, list, inspect, merge, new, pull, validate, secrets, settings, migrate, charly-mcp-cmd.",
   "author": {
     "name": "opencharly"
   },
-  "repository": "https://github.com/opencharly/charly-plugins",
+  "repository": "https://github.com/opencharly/marketplace",
   "skills": "./skills/",
   "interface": {
     "displayName": "OpenCharly Build",

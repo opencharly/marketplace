@@ -13,19 +13,20 @@ OpenCharly is driven from multiple agent harnesses' multi-agent primitives:
 | | Claude Code | Codex | Kimi |
 |---|---|---|---|
 | Rulebook | `CLAUDE.md` | `AGENTS.md` | `AGENTS.md` (read natively) |
-| Skills | plugin manager (`charly-*@charly-plugins`) | `.agents/skills/` repo-native links (also Kimi's source) | `.agents/skills/` project scope, on-demand `Skill` tool / `/skill:<name>`; when not in the session listing, `Read` the `plugins/<plugin>/skills/<name>/SKILL.md` path |
-| Sub-agents | custom agents (`plugins/internals/agents/*.md`, `.claude/agents/`) | fresh native agent threads (`.codex/agents/*.toml` roles, e.g. `pr-validator`) | built-in `coder` / `explore` / `plan` only — no custom subagent registry |
+| Skills | plugin manager (`charly-*@charly-plugins`, the opencharly/marketplace repo) | the marketplace's `.agents/plugins/marketplace.json` catalog (Codex registers the repo by GitHub source) | kimi plugin (the whole marketplace is one plugin, installed by GitHub URL) / on-demand `Skill` tool; when not in the session listing, `Read` the marketplace repo's `<family>/skills/<name>/SKILL.md` |
+| Sub-agents | custom agents (the marketplace's `internals/agents/*.md`, `.claude/agents/`) | fresh native agent threads (`.codex/agents/*.toml` roles, e.g. `pr-validator`) | built-in `coder` / `explore` / `plan` only — no custom subagent registry |
 | Fresh validator / teammate | sub-agent or team teammate with the agent brief | fresh agent thread with the role toml | a fresh separate `kimi` session (interactive or `kimi -p`) briefed with the agent `.md` by path — context isolation is what makes it independent |
 | Dynamic workflows | `.claude/workflows/*.js` (run `/<name>`) | re-derived per thread | re-derived per session (no workflow runtime) |
 | Teams | `~/.claude/teams/` (experimental) | concurrent fresh threads | concurrent fresh sessions |
 | Gates | `permissions.allow` + the auto-mode classifier (`.claude/settings.json` wires NO hooks — the gate scripts in `.claude/hooks/` are invoked by the other harnesses, not by Claude Code) | sandbox + on-request approvals (`.codex/config.toml`) | hooks + `[[permission.rules]]` in user-level `~/.kimi-code/config.toml` (no project-level config; repo-guarded delegation to `.claude/hooks/`) — no auto-mode classifier |
 | Hook events | UserPromptSubmit / PreToolUse / Stop / TaskCreated / TaskCompleted / TeammateIdle | — (approvals instead) | UserPromptSubmit / PreToolUse / Stop / SubagentStart / SubagentStop |
 
-**Harness-agnostic invariants:** the agent briefs in
-`plugins/internals/agents/*.md` are written for any harness's fresh
+**Harness-agnostic invariants:** the agent briefs in the marketplace's
+`internals/agents/*.md` are written for any harness's fresh
 evaluator; the `pr-validator` is always a fresh, independent context rooted
 at the superproject, loading the protected-main rulebook and triggered
-skills by path (`plugins/<plugin>/skills/<name>/SKILL.md`) before candidate
+skills (the marketplace's `<family>/skills/<name>/SKILL.md`, read by path
+from the harness's marketplace load) before candidate
 actions; and the two-step landing (author opens, fresh evaluator
 validates/merges/tags) is the sole landing path in every harness.
 
@@ -37,7 +38,7 @@ validates/merges/tags) is the sole landing path in every harness.
 | Holds the plan | Claude, turn by turn | The script | The lead + a shared task list |
 | Intermediate results | Claude's context | Script variables | Each teammate's own context |
 | Scale | a few per turn | dozens–hundreds of agents/run | 3–5 teammates |
-| Lives in | `plugins/internals/agents/*.md` (or `.claude/agents/`) | `.claude/workflows/*.js` (run `/<name>`) | runtime only — `~/.claude/teams/`, not pre-authored |
+| Lives in | the marketplace's `internals/agents/*.md` (or `.claude/agents/`) | `.claude/workflows/*.js` (run `/<name>`) | runtime only — `~/.claude/teams/`, not pre-authored |
 | Reads the rulebook | yes (full hierarchy, except Explore/Plan) | each `agent()` does | yes (each teammate) |
 
 - **Sub-agent** — isolate a verbose side task (run a bed, probe a deploy)
@@ -68,7 +69,7 @@ binding rule: running a bed is R10-class" in
 `references/parallel-bed-testing.md`). "Prefer agents" governs bounded
 work.
 
-## The charly agent roster (`plugins/internals/agents/`)
+## The charly agent roster (the marketplace's `internals/agents/`)
 
 **Executors** — run `charly check` and return verbatim proof:
 

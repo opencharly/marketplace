@@ -1,11 +1,10 @@
 {
   "name": "charly-automation",
-  "version": "1.0.0",
   "description": "Automation/customization knobs — tmux verb, host-side wrappers (alias, udev), topic flags (encryption, sidecars, openclaw deployment).",
   "author": {
     "name": "opencharly"
   },
-  "repository": "https://github.com/opencharly/charly-plugins",
+  "repository": "https://github.com/opencharly/marketplace",
   "skills": "./skills/",
   "interface": {
     "displayName": "OpenCharly Automation",

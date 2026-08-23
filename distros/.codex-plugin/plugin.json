@@ -1,11 +1,10 @@
 {
   "name": "charly-distros",
-  "version": "1.0.0",
   "description": "Base OS images and hardware runtime — arch, fedora, debian, ubuntu, aurora, bazzite, GPU runtime (nvidia/cuda/rocm), bootc bootstrap, per-distro builders.",
   "author": {
     "name": "opencharly"
   },
-  "repository": "https://github.com/opencharly/charly-plugins",
+  "repository": "https://github.com/opencharly/marketplace",
   "skills": "./skills/",
   "interface": {
     "displayName": "OpenCharly Distros",
