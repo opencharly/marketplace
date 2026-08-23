@@ -32,10 +32,10 @@ scalar, a Starlight config a version bump invalidated, a page whose markdown wil
 fails the **image build**, from the same input Cloudflare Pages builds, so the box catches it
 before a deploy can.
 
-## Why it clones instead of copying the submodule
+## Why it clones the published repo
 
-The `docs/` submodule sits right beside `candy/docs-site/` in the working tree, and the candy
-still cannot read it. Both escapes are closed by design:
+The docs repo is standalone — charly no longer carries it as a submodule — and the candy
+cannot read another directory even if it did. The escapes are closed by design:
 
 - `copy:` rejects `..` — `copy: "../../docs/x" may not contain .. (no traversal)` at validate.
 - There is **no** field for pointing a candy at another directory. (An older revision of
@@ -48,8 +48,10 @@ exact source Cloudflare builds.
 
 **Ordering consequence.** The candy fetches an IMMUTABLE COMMIT, never a branch, so `DOCS_REF`
 must be re-pinned to each new docs merge before this box — and the `check-docs` bed above it —
-prove the new content. `task docs:pin` fails if it drifts from the `docs` gitlink. That re-pin
-is a CONFIG edit and changes the landing's gate and attribution tier — see
+prove the new content. `task docs:pin` fails when `DOCS_REF` is not the docs repo's current
+`main` head (it fetches `ls-remote` and compares — charly has no `docs` gitlink anymore: the
+docs repo is standalone, and this candy's pin is the only thing that fixes what the bed tests).
+That re-pin is a CONFIG edit and changes the landing's gate and attribution tier — see
 `/charly-internals:git-workflow` (B6a step 4, and B2 "the derivation stops at the gitlink" for
 the general rule), which owns landing mechanics.
 
@@ -59,10 +61,10 @@ the general rule), which owns landing mechanics.
 substitution does not resolve a candy `var:`, so writing `${DOCS_REF}` in the matcher makes
 charly SKIP the step with "unresolved variables: DOCS_REF" — turning the anti-staleness guard
 into a non-event while the bed still reports PASS, which is the exact failure the guard exists
-to catch. `task docs:pin` therefore asserts BOTH: it compares `DOCS_REF` against the gitlink
-AND requires the sha to occur at least twice in the file, so a re-pin that updates only one of
-them fails the gate instead of leaving the check asserting a commit nobody builds. Re-pinning
-means editing both.
+to catch. `task docs:pin` therefore asserts BOTH: it compares `DOCS_REF` against the docs
+repo's current `main` head AND requires the sha to occur at least twice in the file, so a
+re-pin that updates only one of them fails the gate instead of leaving the check asserting a
+commit nobody builds. Re-pinning means editing both.
 
 A branch name here is a correctness bug, not a convenience: `var:` values are emitted as `ENV`
 above the steps, so with `main` the clone layer's cache key never moves and the bed silently
@@ -72,7 +74,7 @@ proving stale content until review caught it.
 | Var | Default |
 |---|---|
 | `DOCS_REPO` | `https://github.com/opencharly/docs.git` |
-| `DOCS_REF` | the `docs` gitlink sha — an immutable commit, **never a branch** (see above) |
+| `DOCS_REF` | the docs repo commit this bed tests — an immutable commit, **never a branch** (see above) |
 
 ## Verification
 
@@ -110,19 +112,20 @@ A `disposable: true` pod deploy of `docs-site-app`. Reaching steady state proves
 starts and stays up; the shape assertions already ran at image build.
 
 The generator's own cross-reference integrity gate (an unresolvable
-`/charly-<plugin>:<skill>` reference fails generation) is covered by the plugin's Go tests plus
-`task docs:drift` on the host — this bed covers the artifact those produce.
+`/charly-<plugin>:<skill>` reference fails generation) is covered by the plugin's Go tests —
+this bed covers the artifact those produce. The committed content's staleness against the
+pinned charly is gated by the docs repo's own deploy workflow, not here.
 
 ## Troubleshooting
 
 | Symptom | Cause |
 |---|---|
 | `docs-site-pinned-commit` FAILS | the clone layer is stale, or `DOCS_REF` was re-pinned without rebuilding |
-| `task docs:pin` fails | `DOCS_REF` (or the check's literal sha) drifted from the `docs` gitlink |
+| `task docs:pin` fails | `DOCS_REF` (or the check's literal sha) is not the docs repo's current `main` head — bump it in a charly PR |
 | fetch fails `upload-pack: not our ref <sha>` | `DOCS_REF` names a commit not reachable from ANY ref in the docs repo — never pushed, or garbage-collected |
 | fetch fails `couldn't find remote ref <x>` | `DOCS_REF` is not a FULL 40-hex sha — either a ref name (which the pinned-commit contract forbids) or an abbreviated sha, which `git fetch` rejects even when the commit exists |
 | `npm ci` fails on a lockfile mismatch | `package.json` and `package-lock.json` disagree — regenerate the lockfile in the docs repo |
-| a shape check fails but `index.html` exists | the generator emitted a different tree layout; re-run `task docs:sync` and check the diff |
+| a shape check fails but `index.html` exists | the generator emitted a different tree layout; regenerate in the docs repo (its deploy workflow) and check the diff in a docs PR |
 
 ## Cross-References
 

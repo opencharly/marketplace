@@ -207,14 +207,16 @@ not steps an charly user runs, and they never belong on a reader-facing page.
    necessarily still pins the old gitlink until the projection merges — so that
    redness is not the tagging bar for the projection PR itself: its gate is the
    `plugins` tree, and the superproject catches up at step 5.
-3. **Regenerate and land `docs`** — `task docs:sync`, review the emitted pages,
-   commit them in the `docs` submodule; `task docs:drift` is the gate, re-syncing
-   and failing on any dirty path. Regeneration rewrites the generated trees
-   WHOLESALE, so a mirror already behind cannot be brought forward selectively:
-   every pending page lands with the next commit or none of them do. Budget for
-   carrying someone else's backlog when the mirror has drifted.
+3. **Regenerate and land `docs`** — a docs PR that bumps the charly pin in
+   `docs/.gitmodules` and carries the regenerated pages; the docs repo's deploy
+   workflow is the gate (it regenerates on every run and fails on any diff).
+   Regeneration rewrites the generated trees WHOLESALE, so a mirror already
+   behind cannot be brought forward selectively: every pending page lands with
+   the next commit or none of them do. Budget for carrying someone else's
+   backlog when the mirror has drifted.
 4. **Re-pin the new `docs` merge** in `candy/docs-site/charly.yml`; `task
-   docs:pin` is the gate and asserts more than one occurrence
+   docs:pin` is the gate (it compares `DOCS_REF` against the docs repo's current
+   `main` head) and asserts more than one occurrence
    (`/charly-tools:docs-site` owns the pin contract). This step edits candy
    CONFIG rather than prose, so its own gate is the `check-docs` bed — a
    documentation-only change class does NOT cover it, and the commit that carries

@@ -56,8 +56,9 @@ Every skill in this repo is rendered as a page on **opencharly.ai** by `charly d
 - **`references/*.md` split files become child pages**, linked from their entry card. They carry
   no frontmatter by contract; only the entry `SKILL.md` does.
 
-The upside is that the corpus's internal consistency is now machine-checked: `task docs:drift`
-and the docs build together catch a stale cross-reference that a `git grep` sweep missed.
+The upside is that the corpus's internal consistency is now machine-checked: the docs
+repo's drift gate (its deploy workflow regenerates and fails on any diff) and the docs
+build together catch a stale cross-reference that a `git grep` sweep missed.
 
 ## When NOT to Update Skills
 
@@ -70,7 +71,7 @@ and the docs build together catch a stale cross-reference that a `git grep` swee
 ## How to Update
 
 1. **Edit the candy's `skill:` entity in `candy/<candy>/charly.yml`, then regenerate**
-   (`charly marketplace generate` → `task docs:sync`). Most of the corpus under
+   (`charly marketplace generate` → a docs PR carrying the regenerated pages). Most of the corpus under
    `plugins/**/SKILL.md` is a PROJECTION and carries a DO-NOT-EDIT banner: an edit
    there is reverted by the next regeneration, silently and without conflict. `git grep
    -l 'DO[- ]NOT[- ]EDIT'` tells you which files are generated — but triage the hits

@@ -989,7 +989,7 @@ Each of these caught a real defect that survived author review:
    head with every sibling repo at its **pinned gitlink** — a clean-input run. If
    it then disagrees with the author's pasted result, the author's gate was
    reading their working tree, which is the finding. (Caught twice in one PR body:
-   a `docs:drift` no-op offered as proof a page was generated, when deleting the
+   the docs repo's drift gate no-op offered as proof a page was generated, when deleting the
    generator entirely still passed; and a site build offered as proof a config
    line was safe, when a dead sidebar link builds green and renders on 852 pages.)
 7. **Re-run every sweep the body claims**, whole-tree, per-submodule, with `-E`.
@@ -1075,9 +1075,9 @@ tree you write to, read once, and destroy is not that.
 **Which gate am I citing, what does it actually read, and is what it reads the
 thing under review?** Four separate findings in this program were one pattern:
 reaching for the nearest green signal instead of the one that would go red if the
-claim were false. `docs:drift` cited as proof a page was generated; a site build
-cited as proof a config line was safe; a test cited as proof of a mixed engine
-pair; and `docs:drift` again, this time reading three dirty sibling worktrees. In
+claim were false. The docs drift gate cited as proof a page was generated; a site
+build cited as proof a config line was safe; a test cited as proof of a mixed engine
+pair; and the same docs gate again, this time reading three dirty sibling worktrees. In
 every case the conclusion happened to be true and the evidence was not
 load-bearing.
 

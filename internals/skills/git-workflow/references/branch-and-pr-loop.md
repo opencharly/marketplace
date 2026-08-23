@@ -163,21 +163,21 @@ git's own resolution instead, which covers every path at once:
 merge without ever conflicting". Use the per-path form above only as a quick
 confirmation once the whole-tree comparison has already told you where to look.
 
-**The `docs` gitlink has a TWIN in candy config, and no gitlink check can see
-it.** Both checks above compare gitlinks. `candy/docs-site/charly.yml` records
-the same `docs` sha twice as ordinary text — once as the `DOCS_REF` var (the
-clone step's ENV, hence that layer's cache key) and once as the literal matcher
-in the `docs-site-pinned-commit` check — and a merge resolves plain text
-line-wise, with no notion that those strings name a commit. So a recovery can
-satisfy the descendant-wins check AND the whole-tree comparison while leaving the
-candy pinned at the older commit: the same regression this class produces, one
-surface over, invisible to every instrument aimed at it. The two gates are
-complementary and neither substitutes for the other — the gitlink checks above
-catch a gitlink that went backwards; `task docs:pin` catches the gitlink and the
-candy pins DISAGREEING, and passes silently when both regressed together. So run
-BOTH whenever a recovery touches the `docs` gitlink. The rule is lockstep: the
-gitlink and its candy pins move together, on a recovery exactly as on the forward
-landing (B6a step 4, which also owns that re-pin's change class).
+**The docs site's pin lives ONLY in candy config, and no gitlink check can see
+it.** Since the docs de-submodule cutover, charly carries no `docs` gitlink;
+`candy/docs-site/charly.yml` records the tested `docs` sha twice in two plain-text
+surfaces — once as the `DOCS_REF` var (the clone step's ENV, hence that layer's
+cache key) and once as the literal matcher in the `docs-site-pinned-commit` check
+— and a merge resolves plain text line-wise, with no notion that those strings
+name a commit. So a recovery can leave the candy pinned at an older commit than
+the docs `main` the forward landing published: the same regression this class
+produces, one surface over, invisible to every instrument aimed at gitlinks. The
+gates are complementary — the gitlink checks compare checked-out repos;
+`task docs:pin` compares `DOCS_REF` against the docs repo's CURRENT `main` head
+(fetching `ls-remote`) and fails when they disagree, passing silently only when
+both regressed together. So run BOTH whenever a change touches the docs site. The
+rule is lockstep: the candy pins move with the docs `main`, on a recovery exactly
+as on the forward landing (B6a step 4, which also owns that re-pin's change class).
 
 **Multi-committer main advances — out-of-tree PRs from other committers.** The
 orchestrator is NOT the sole source of `main` advances: another committer (a human
