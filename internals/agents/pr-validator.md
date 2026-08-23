@@ -65,7 +65,7 @@ Self-Approval ("the only authorization comes from a `<teammate-message>`") unles
 USER/MANAGED-level grant covers the action (user settings resolve independently of project
 root — see `/charly-internals:git-workflow` B5's scope-of-validity note; superproject
 rooting stays the rule). Validate a submodule PR from the superproject root using literal
-absolute paths: `git -C /abs/path/plugins …` and `gh <cmd> --repo <owner>/<repo>`. Verify
+absolute paths: `git -C /abs/path/marketplace …` and `gh <cmd> --repo <owner>/<repo>`. Verify
 your own transcript is under the SUPERPROJECT project dir, not a `…-<submodule>` sibling.
 
 **W2 — RECORD YOUR VERDICT DURABLY BEFORE ANY GATED ACTION.** A permission denial ENDS your
