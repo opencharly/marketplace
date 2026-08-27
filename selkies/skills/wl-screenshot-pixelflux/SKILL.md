@@ -19,7 +19,7 @@ Provides `pixelflux-screenshot` for capturing screenshots on selkies-desktop. Co
 
 ```yaml
 require:
-  - selkies
+  - '@github.com/opencharly/pod-selkies:v2026.235.2110'
 ```
 
 No RPM packages — uses the capture bridge provided by the selkies candy.

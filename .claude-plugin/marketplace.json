@@ -4,7 +4,7 @@
     "name": "opencharly"
   },
   "metadata": {
-    "description": "Claude Code, Codex, and Kimi plugins for OpenCharly, the Agent-in-the-Loop Factory — runtime commands, schema authoring, contributor internals, and deployable image families.",
+    "description": "Claude Code, Codex, and Kimi plugins for OpenCharly, the open infrastructure compiler — runtime commands, schema authoring, contributor internals, and deployable image families.",
     "version": "3.1.0"
   },
   "plugins": [

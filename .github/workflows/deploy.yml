@@ -57,11 +57,17 @@ jobs:
           cd /tmp/charly/charly && go build -buildvcs=false -ldflags "-X main.BuildCalVer=marketplace-ci" -o /tmp/charly/bin/charly .
 
       - name: Regenerate the corpus from the pinned charly
-        # The project root must be the charly checkout (the runtime plugin-marketplace
-        # binary builds on demand from the project's candy source); --root points at it,
-        # --out at this repo's root (the corpus lives at the marketplace root, flat).
+        # --root is the CHARLY CHECKOUT (like the pre-cutover workflow): its candy/ dirs own the
+        # in-repo skill entities (charly-build, charly-check, ...) that are NOT standalone repos,
+        # plus candy/charly-marketplace/charly.yml carries the refs to every standalone candy repo
+        # that owns skill:/hook: entities. The marketplace checkout's candy/charly-marketplace/charly.yml
+        # is the AUTHORITATIVE refs list (it adds the plugin-* subpath refs and the full family
+        # closure), so it is copied OVER the charly checkout's copy before generating — the
+        # charly checkout only supplies the in-repo candy dirs, never the refs. --out is this
+        # repo's root (the corpus lives at the marketplace root, flat).
         run: |
-          cd /tmp/charly && /tmp/charly/bin/charly marketplace generate --root . --out ${{ github.workspace }}
+          cp ${{ github.workspace }}/candy/charly-marketplace/charly.yml /tmp/charly/candy/charly-marketplace/charly.yml
+          cd /tmp/charly && /tmp/charly/bin/charly marketplace generate --root /tmp/charly --out ${{ github.workspace }}
 
       - name: Drift gate — the committed corpus must match the pinned charly
         # Regeneration on a clean tree is a no-op by contract (hand-authored files carry no

@@ -47,13 +47,13 @@ fedora-coder:
     - charly                          # the full toolchain: charly binary + virtualization + gocryptfs + socat
     - charly-mcp                      # MCP gateway for the entire charly CLI
     - container-nesting           # rootless nested podman/buildah/skopeo
-    - dbus
-    - tmux
+    - '@github.com/opencharly/pod-dbus:v2026.235.2115'
+    - '@github.com/opencharly/layer-tmux:v2026.235.2057'
 
     # Language runtimes + managers
     - language-runtimes           # Go + PHP + .NET 9 + nodejs-devel + python3-devel
-    - golang
-    - nodejs                       # generic nodejs candy (Node 22 on Fedora)
+    - '@github.com/opencharly/layer-golang:v2026.235.2057'
+    - '@github.com/opencharly/layer-nodejs:v2026.235.2056'  # generic nodejs candy (Node 22 on Fedora)
     - rust
     - pixi
     - uv                          # direct-download binary (no pixi env)
@@ -70,7 +70,7 @@ fedora-coder:
     # AI coding CLIs
     - claude-code
     - codex
-    - gemini
+    - '@github.com/opencharly/layer-gemini:v2026.235.2110'
     - forgecode                   # 5th CLI (astral-sh-style)
     - oracle
 

@@ -17,9 +17,9 @@ Provides XDG Desktop Portal support for Sway containers. Installs the portal dae
 
 ```yaml
 require:
-  - dbus
-  - sway
-  - pipewire
+  - '@github.com/opencharly/pod-dbus:v2026.235.2115'
+  - '@github.com/opencharly/pod-sway:v2026.235.2110'
+  - '@github.com/opencharly/pod-pipewire:v2026.235.2110'
 
 env:
   XDG_CURRENT_DESKTOP: "sway"

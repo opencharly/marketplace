@@ -38,11 +38,11 @@ ubuntu-coder:
     - charly
     - charly-mcp
     - container-nesting
-    - dbus
-    - tmux
+    - '@github.com/opencharly/pod-dbus:v2026.235.2115'
+    - '@github.com/opencharly/layer-tmux:v2026.235.2057'
     - language-runtimes
-    - golang
-    - nodejs
+    - '@github.com/opencharly/layer-golang:v2026.235.2057'
+    - '@github.com/opencharly/layer-nodejs:v2026.235.2056'
     - rust
     - pixi
     - uv
@@ -55,11 +55,11 @@ ubuntu-coder:
     - asciinema
     - claude-code
     - codex
-    - gemini
+    - '@github.com/opencharly/layer-gemini:v2026.235.2110'
     - forgecode
     - oracle
     - devops-tools
-    - kubernetes
+    - '@github.com/opencharly/layer-kubernetes:v2026.237.457'
     - docker-ce
     - github-actions
     - google-cloud

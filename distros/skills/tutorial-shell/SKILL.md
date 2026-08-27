@@ -41,7 +41,7 @@ readable when quoted in full on a documentation page:
 
 | Candy | Teaches |
 |---|---|
-| `/charly-tools:ripgrep` | a **tool** candy — packages plus deterministic probes, no service |
+| `ripgrep` (its own repo, opencharly/layer-ripgrep) | a **tool** candy — packages plus deterministic probes, no service |
 | `/charly-coder:sshd` | a **service** candy, and the canonical init-polymorphism example: ONE `service:` list carrying both a `use_packaged:` systemd form and a custom `exec:` supervisord form |
 
 **The init is deliberately absent from that list.** Because `sshd` declares a service, charly

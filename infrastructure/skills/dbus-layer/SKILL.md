@@ -37,7 +37,7 @@ RPM: `dbus-daemon` (Fedora) · PAC: `dbus` (Arch) · DEB: `dbus` (Debian/Ubuntu)
 # charly.yml -- now included in all images with supervisord
 my-image:
   candy:
-    - dbus
+    - '@github.com/opencharly/pod-dbus:v2026.235.2115'
 ```
 
 ## The `dbus:` check verb

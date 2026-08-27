@@ -43,7 +43,7 @@ comfyui:
   candy:
     base: nvidia
     candy:
-      - comfyui
+      - '@github.com/opencharly/pod-comfyui:v2026.237.558'
 ```
 
 ## Used In Boxes

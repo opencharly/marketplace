@@ -644,8 +644,8 @@ Candies declare dependencies via `require`. The generator resolves transitively,
 my-app:
   candy:
     require:
-      - python
-      - build-toolchain
+      - '@github.com/opencharly/layer-python:v2026.235.2057'
+      - '@github.com/opencharly/layer-build-toolchain:v2026.237.455'
 ```
 
 ### `require` vs `candy` (composition)
@@ -1069,7 +1069,7 @@ my-go-tool:
   candy:
     version: 2026.144.1531
     require:
-      - golang
+      - '@github.com/opencharly/layer-golang:v2026.235.2057'
     env:
       GOPATH: "~/go"
     path_append:
