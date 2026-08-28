@@ -179,3 +179,7 @@ charly-marketplace:
             - '@github.com/opencharly/plugin-agentteams/candy/plugin-agentteams:v2026.237.1414'
             - '@github.com/opencharly/plugin-ollama/candy/plugin-ollama:v2026.239.1609'
             - '@github.com/opencharly/plugin-dsh/candy/plugin-dsh:v2026.239.1623'
+        plan:
+            - check: the marketplace corpus source resolves via the charly binary
+              exit_status: 0
+              command: charly marketplace generate --root . --out /tmp/mkt-plan-check
