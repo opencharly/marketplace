@@ -66,6 +66,7 @@ jobs:
         # charly checkout only supplies the in-repo candy dirs, never the refs. --out is this
         # repo's root (the corpus lives at the marketplace root, flat).
         run: |
+          mkdir -p /tmp/charly/candy/charly-marketplace
           cp ${{ github.workspace }}/candy/charly-marketplace/charly.yml /tmp/charly/candy/charly-marketplace/charly.yml
           cd /tmp/charly && /tmp/charly/bin/charly marketplace generate --root /tmp/charly --out ${{ github.workspace }}
 
