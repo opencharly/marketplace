@@ -169,7 +169,6 @@ charly-marketplace:
             - '@github.com/opencharly/pod-nested-podman-socket:v2026.239.1601'
             - '@github.com/opencharly/layer-notebook-openrouter:v2026.239.1600'
             - '@github.com/opencharly/layer-charly-jupyter:v2026.239.1644'
-            - '@github.com/opencharly/heroic-heroic:v2026.237.1054'
             - '@github.com/opencharly/layer-heroic:v2026.239.1602'
             - '@github.com/opencharly/layer-steam:v2026.239.1603'
             - '@github.com/opencharly/layer-sway-desktop:v2026.239.1605'
