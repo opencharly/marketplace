@@ -326,7 +326,7 @@ charly-mcp:
 charly-mcp-candy:
     candy:
         - charly
-        - '@github.com/opencharly/layer-supervisord:v2026.235.2056'
+        - '@github.com/opencharly/layer-supervisord:v2026.239.1300'
 charly-mcp-port:
     port:
         - 18765
