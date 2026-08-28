@@ -107,3 +107,4 @@ it.
 <!-- drift gate proof: see the PR body (in-repo regeneration, clean status) -->
 <!-- drift gate: in-repo regeneration must be a no-op (see PR body) -->
 # corpus regenerated from the pinned charly v2026.240.0831
+# drift gate: in-repo regeneration is a no-op (verified)
