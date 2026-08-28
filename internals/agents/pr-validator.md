@@ -88,13 +88,13 @@ Skill / SendMessage / Agent / … — the same tools the main session has). But 
 a SEPARATE matter: they are registered per-SESSION, and a sub-agent's session usually does NOT have
 them — verified live, an unrestricted `Tools: *` validator got `Unknown skill: charly-internals:git-workflow`.
 So the RELIABLE way to load a skill is to **`Read` its `SKILL.md` by PATH** from the
-protected object map: `plugins/internals/skills/git-workflow/SKILL.md` (MANDATORY — the authoritative PR-validation +
+protected object map: `marketplace/internals/skills/git-workflow/SKILL.md` (MANDATORY — the authoritative PR-validation +
 landing flow) AND every skill the change's area triggers per the project rulebook Skill Dispatcher — spot-check
-the diff and `Read` ALL matching: `plugins/internals/skills/go/SKILL.md` (charly/sdk Go),
-`plugins/internals/skills/plugin/SKILL.md` (a plugin / kernel-boundary change),
-`plugins/check/skills/check/SKILL.md` (a check verb / bed / R10-gate claim),
-`plugins/image/skills/{layer,image}/SKILL.md` (candy/box config),
-`plugins/internals/skills/strict-policy/SKILL.md` (R1–R5), the relevant `plugins/build/skills/*/SKILL.md`
+the diff and `Read` ALL matching: `marketplace/internals/skills/go/SKILL.md` (charly/sdk Go),
+`marketplace/internals/skills/plugin/SKILL.md` (a plugin / kernel-boundary change),
+`marketplace/check/skills/check/SKILL.md` (a check verb / bed / R10-gate claim),
+`marketplace/image/skills/{layer,image}/SKILL.md` (candy/box config),
+`marketplace/internals/skills/strict-policy/SKILL.md` (R1–R5), the relevant `marketplace/build/skills/*/SKILL.md`
 (a build/validate/migrate change), etc. Validate against the skill TEXT, never from memory.
 
 You MAY first try `Skill(charly-internals:git-workflow)` BY NAME — if your session happens to have the
@@ -870,7 +870,7 @@ until the author supplies the proof. If ANY item fails, go to Phase 2 with
 **Applies when the diff touches a reader-facing narrative page**: `README.md`,
 `VISION.md`, `GRIEVANCES.md`, `AGENTS.md`, anything hand-authored under the docs
 site (`start/`, `concepts/`, `guides/`), **and any `SKILL.md` or agent spec under
-`plugins/`**. Generated trees are exempt — fix their source, not the projection.
+`marketplace/`**. Generated trees are exempt — fix their source, not the projection.
 
 **Skills are in scope, and the reason needs stating because it is easy to get
 wrong.** A `SKILL.md` reads like an internal note, which invites the assumption

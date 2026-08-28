@@ -38,7 +38,7 @@ gh pr create --base main --head feat/<slug> \     # fill the PR template complet
 # STOP. Do NOT merge your own PR. Hand off to a FRESH pr-validator (Step 2).
 ```
 
-**Step 2 — Org-wide gate** (`plugins/internals/agents/pr-validator.md`, the fresh
+**Step 2 — Org-wide gate** (`marketplace/internals/agents/pr-validator.md`, the fresh
 evaluator in NEW context): it independently re-validates the PR vs R0–R10 + the
 relevant skills and certifies `Verdict: PASS|BLOCK` for the ORG-WIDE
 `charly/pr-validator` GitHub Actions workflow (`opencharly/.github`), whose
@@ -49,7 +49,7 @@ body, mints the `v<VER>` tag, and backfills any schema version bump. Its inputs 
 PR's FULL comment thread, per the pr-validator spec's comment-intake rule — every
 comment is investigated independently and considered in the verdict, never
 granted or denied authority merely by existing (see
-`plugins/internals/agents/pr-validator.md` "Comment intake", never restated
+`marketplace/internals/agents/pr-validator.md` "Comment intake", never restated
 here). The author pastes the validator's verbatim verdict + the gate outcomes
 (paste-proof survives delegation). On FAIL the check stays RED and the PR is
 **UPDATED IN PLACE** → the author R1-RCAs, fixes in the same tree,

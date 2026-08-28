@@ -15,7 +15,7 @@ it.
 
 **Terms.** *The gate* — whichever check a claim rests on; usually `charly box validate`,
 `charly marketplace drift`, or `charly docs generate`. *`marketplace drift`* compares every
-generated artifact — the `plugins/` corpus AND the harness surface it also emits
+generated artifact — the `marketplace/` corpus AND the harness surface it also emits
 (`CLAUDE.md`, `AGENTS.md`, `.claude/settings.json`, `.claude/hooks/*`) — against what the
 candy `skill:` / `hook:` / `marketplace:` sources currently project — a *candy* being an entity defined in `candy/<name>/charly.yml` —
 exiting 1 when any differs. `charly marketplace generate` re-emits them. *Superproject* — the `opencharly/charly`
@@ -506,7 +506,7 @@ failure SHAPE keeps every bit of the rule's force while claiming no measurement.
 
 ### A `skill:` source edit and its regeneration are one cutover
 
-A `skill:` entity in a candy projects to `plugins/<family>/skills/<name>/SKILL.md`, and
+A `skill:` entity in a candy projects to `marketplace/<family>/skills/<name>/SKILL.md`, and
 `charly docs generate` reads that projection — never the candy. So a source edit reaches
 readers only after the `plugins` landing merges and the superproject's gitlink advances.
 Advancing the gitlink without regenerating `docs` leaves the site stale, and only the drift
