@@ -44,7 +44,7 @@ jobs:
 
       - name: Fetch the pinned charly source (CI-time temp checkout, recursive for box/*)
         run: |
-          git clone --recursive --depth 1 --branch v2026.240.2158 https://github.com/opencharly/charly.git /tmp/charly
+          git clone --recursive --depth 1 --branch v2026.240.2301 https://github.com/opencharly/charly.git /tmp/charly
 
       - uses: actions/setup-go@v5
         with:
