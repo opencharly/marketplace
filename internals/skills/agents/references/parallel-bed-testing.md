@@ -67,7 +67,7 @@ conflating the host binary with a worktree's own build is the single most
 common way an in-flight cutover leaks onto shared host state.
 
 - **Two binaries, two roles.** Per-worktree `bin/charly` — built via `task
-  build:binary` (a CalVer-stamped build plus a `candy/charly/bin/charly`
+  build:binary` (a CalVer-stamped build plus a `candy/charly-dev/bin/charly`
   copy, gitignored, no install step) — is the dev binary: every teammate
   uses its own worktree's `./bin/charly` for every charly verb. The
   host-installed `charly` is a distro-native package
@@ -173,7 +173,7 @@ common way an in-flight cutover leaks onto shared host state.
   at the same time — see "Handling a long-running bed" below for the
   launch-mechanism half of the same failure.)
 - **Side-effects (documented elsewhere — pointers, not copies).** `task
-  build:binary` keeps the dual path `bin/charly` ↔ `candy/charly/bin/charly`
+  build:binary` keeps the dual path `bin/charly` ↔ `candy/charly-dev/bin/charly`
   in sync (a manual `go build -o` does not) — see `/charly-internals:go`
   "Quick Reference" / "Debug a Build Issue" + `/charly-tools:charly`. It
   does not touch any packaging source — the native packages are built by
