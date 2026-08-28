@@ -60,10 +60,10 @@ npx playwright --version
 hermes-playwright:
   base: fedora
   candy:
-    - agent-forwarding
-    - hermes
-    - hermes-playwright
-    - dbus
+    - '@github.com/opencharly/layer-agent-forwarding:v2026.238.1851'
+    - '@github.com/opencharly/pod-hermes:v2026.237.936'
+    - '@github.com/opencharly/layer-hermes-playwright:v2026.238.2102'
+    - '@github.com/opencharly/pod-dbus:v2026.235.2115'
     - charly
 ```
 

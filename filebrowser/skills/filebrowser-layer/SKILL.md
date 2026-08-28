@@ -56,9 +56,9 @@ charly config filebrowser --bind files=/mnt/nas/shared
 filebrowser:
   base: fedora
   candy:
-    - agent-forwarding
-    - filebrowser
-    - dbus
+    - '@github.com/opencharly/layer-agent-forwarding:v2026.238.1851'
+    - '@github.com/opencharly/pod-filebrowser:v2026.237.558'
+    - '@github.com/opencharly/pod-dbus:v2026.235.2115'
     - charly
   ports:
     - "8085:8080"

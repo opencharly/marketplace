@@ -17,9 +17,9 @@ Open WebUI with auto-configured LLM providers (Ollama, OpenRouter), MCP server d
 openwebui:
   base: fedora
   candy:
-    - agent-forwarding
+    - '@github.com/opencharly/layer-agent-forwarding:v2026.238.1851'
     - openwebui
-    - dbus
+    - '@github.com/opencharly/pod-dbus:v2026.235.2115'
     - charly
   ports:
     - "8080:8080"

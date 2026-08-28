@@ -33,7 +33,7 @@ selkies-kde:
   candy:
     - agent-forwarding
     - selkies-kde-desktop    # the KDE metalayer (selkies-core + kde-selkies → kde-shell)
-    - dbus
+    - '@github.com/opencharly/pod-dbus:v2026.235.2115'
     - charly
   port: ["3000:3000", "9222:9222", "9224:9224", "2222:2222"]
   platform: [linux/amd64]

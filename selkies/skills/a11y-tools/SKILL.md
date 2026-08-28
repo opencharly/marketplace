@@ -19,7 +19,7 @@ Used by the `wl: atspi` verb.
 
 ```yaml
 require:
-  - dbus
+  - '@github.com/opencharly/pod-dbus:v2026.235.2115'
 
 rpm:
   packages:

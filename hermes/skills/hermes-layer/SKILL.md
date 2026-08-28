@@ -147,16 +147,16 @@ charly service start hermes hermes-whatsapp
 hermes:
   base: fedora
   candy:
-    - agent-forwarding
-    - hermes-full
-    - dbus
+    - '@github.com/opencharly/layer-agent-forwarding:v2026.238.1851'
+    - '@github.com/opencharly/pod-hermes-full:v2026.237.938'
+    - '@github.com/opencharly/pod-dbus:v2026.235.2115'
 ```
 
 ## Related Candies
 
 - `/charly-coder:nodejs` -- Node.js runtime dependency
 - `/charly-infrastructure:supervisord` -- process manager dependency
-- `/charly-tools:ripgrep` -- fast search dependency
+- `ripgrep` (opencharly/layer-ripgrep) -- fast search dependency
 - `/charly-selkies:ffmpeg` -- audio/video processing (negativo17 nonfree codecs)
 - `/charly-selkies:pipewire` -- audio support for voice features
 - `/charly-hermes:hermes-playwright` -- optional Playwright Chromium browser (standalone headless mode)
