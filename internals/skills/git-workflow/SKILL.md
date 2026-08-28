@@ -18,11 +18,17 @@ description: |-
 
 Every change to an OpenCharly repo lands through ONE discipline: a **pull request**
 gated by the ORG-WIDE `charly/pr-validator` GitHub Actions workflow
-(`opencharly/.github`), which validates and, on a PASS verdict, feeds the
-`auto-merge` workflow that merges (squash) and CalVer-tags. A **direct
-push to `main` is FORBIDDEN and mechanically disabled** — GitHub branch protection
-(`enforce_admins`) block it in every repo (the `pre-push-gate` adds a local
-backstop in the harnesses that wire it — NOT Claude Code). The **R10 pass
+(`opencharly/.github`), which validates and, on a PASS verdict, enables GitHub's
+OWN native auto-merge (squash) inline — there is no separate `auto-merge`
+workflow; the CalVer tag and the CHANGELOG are written afterwards by the
+independent `tag-on-merge` workflow, triggered by the merge. A **direct
+push to `main` is FORBIDDEN and mechanically disabled** — a per-repo branch
+RULESET blocks it (`creation`/`deletion`/`non_fast_forward` + a required
+`validate / validate` status check); the legacy branch-protection API is NOT used
+and `branch-protection.sh` actively removes it, because it has no bypass slot for
+the app that writes the CHANGELOG. The `pre-push-gate` adds a local backstop in
+every harness that wires it — including Claude Code, via
+`.claude/settings.json`'s PreToolUse hooks. The **R10 pass
 authorizes OPENING the PR, never a self-merge**: the two-step landing separates the
 author (who opens the PR) from the fresh validator (a check run on the same PR).
 This skill is the mechanics; the project rulebook "Post-Execution Policies" (`AGENTS.md` / `CLAUDE.md`) carries the
@@ -32,7 +38,7 @@ validator's own spec.
 
 ## Non-negotiable invariants
 
-- **No direct push to `main`** (the project rulebook's PR-only landing mandate — see "Post-Execution Policies"). Enforced by GitHub branch protection (the `charly/pr-validator` check run + a PR + linear history + `enforce_admins`), which is what makes it mechanical; the `pre-push-gate` adds a local backstop only in the harnesses that wire it (`.reasonix`, kimi) — it is NOT wired under Claude Code. Organization-wide apply/verify is owned only by `opencharly/.github/scripts/branch-protection.sh`.
+- **No direct push to `main`** (the project rulebook's PR-only landing mandate — see "Post-Execution Policies"). Enforced by a per-repo branch RULESET on `refs/heads/main` — `creation` + `deletion` + `non_fast_forward` + a strict required status check named exactly **`validate / validate`**, with the `charly-auto-merge` GitHub App as the only bypass actor (its scoped bypass is what lets tag-on-merge's CHANGELOG commit land on a protected `main`). The LEGACY branch-protection API is deliberately NOT used: it has no bypass slot for that app, so `branch-protection.sh` deletes it wherever it survives, and `enforce_admins` plays no part. The `pre-push-gate` adds a local backstop in every harness that wires it — Claude Code included, via `.claude/settings.json`'s PreToolUse hooks. Organization-wide apply/verify is owned only by `opencharly/.github/scripts/branch-protection.sh`.
 - **Never force-push, on any branch, ever** (mandate, same rulebook section). `main` only fast-forwards via native auto-merge's squash; a `feat/` branch, once pushed, advances only by ADDING commits (the author's change plus any review-round fix commits), and the squash-merge collapses them. A stale `feat/` catches up with `gh pr update-branch` (a merge, NOT a rebase-force); tags are add-only. **Amending a `feat/` branch is a normal authoring action — legal until the first push** (amending a pushed branch would require a force-push, which is forbidden).
 - **R10-gated; the merge requires the `charly/pr-validator` gate's green check run.** R10 PASS authorizes opening the PR (with pasted evidence); a rule violation or R10 FAIL means a red `charly/pr-validator` check and no merge — fix in the same tree, re-run R10, re-push; the check resets and the validator re-runs.
 - **Zero warnings is part of R10** (project rulebook R1). A version-mismatch warning clears with `charly box reconcile`; any other warning gets `/charly-internals:root-cause-analyzer` then a real fix — "warning" is never an accepted end state.
@@ -63,7 +69,7 @@ validator's own spec.
 ## Cross-References
 
 - the project rulebook "Post-Execution Policies" — the mandate this skill operationalizes.
-- `plugins/internals/agents/pr-validator.md` — the fresh evaluator's full spec.
+- `marketplace/internals/agents/pr-validator.md` — the fresh evaluator's full spec.
 - `opencharly/.github/scripts/branch-protection.sh` — the sole organization-wide
   branch-protection apply/verify owner.
 - `/charly-internals:cutover-policy` — one-phase, atomic-commit, R10-at-the-end.

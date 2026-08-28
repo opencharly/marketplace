@@ -5,7 +5,7 @@ description: |-
   libvirtxml library) and QEMU argv. Covers RenderDomainXML, device emission (passt
   backend, portForward attribute order, virtio-gpu defaults), firmware plumbing, and
   LibvirtDomain schema shape.
-  Source: sdk/vmshared/libvirt_yaml.go, candy/plugin-vm/libvirt_yaml_bridge.go,
+  Source: sdk/vmshared/libvirt_yaml.go, plugin-vm/candy/plugin-vm/libvirt_yaml_bridge.go,
   sdk/vmshared/libvirt_helpers.go, sdk/vmshared/qemu_render.go.
   MUST be invoked before editing libvirt XML emission.
 ---
@@ -20,8 +20,8 @@ The libvirt renderer converts `VmSpec` + `LibvirtDomain` into a libvirt domain X
 
 | File | Contents | LOC |
 |---|---|---|
-| `sdk/vmshared/libvirt_yaml.go` | stub — the per-device structs moved to `#LibvirtDomain` in `spec/schema/vm.cue` (generated into `spec/spec/cue_types_gen.go`); `RenderDomainXML`/`BuildLibvirtDomainXML` moved to `candy/plugin-vm/libvirt_yaml_bridge.go` | ~3 |
-| `candy/plugin-vm/libvirt_yaml_bridge.go` | `RenderDomainXML`/`BuildLibvirtDomainXML` top-level composition (builds a `libvirtxml.Domain`); `buildDomainDevices` `<devices>` child emitters — channels, graphics, video, rng, memballoon, hostdev, interface (with portForward), filesystem; firmware plumbing (D17); SMBIOS credentials; `XMLPassthrough` merge | ~1800 |
+| `sdk/vmshared/libvirt_yaml.go` | stub — the per-device structs moved to `#LibvirtDomain` in `spec/schema/vm.cue` (generated into `spec/spec/cue_types_gen.go`); `RenderDomainXML`/`BuildLibvirtDomainXML` moved to `plugin-vm/candy/plugin-vm/libvirt_yaml_bridge.go` | ~3 |
+| `plugin-vm/candy/plugin-vm/libvirt_yaml_bridge.go` | `RenderDomainXML`/`BuildLibvirtDomainXML` top-level composition (builds a `libvirtxml.Domain`); `buildDomainDevices` `<devices>` child emitters — channels, graphics, video, rng, memballoon, hostdev, interface (with portForward), filesystem; firmware plumbing (D17); SMBIOS credentials; `XMLPassthrough` merge | ~1800 |
 | `sdk/vmshared/libvirt_helpers.go` | helpers shared by the libvirt YAML bridge + `qemu_render` argv emitter (incl. `VmRuntimeParams`) | ~160 |
 | `sdk/vmshared/libvirt_yaml_listen.go` | structured `<listen>` support for `LibvirtGraphics` | ~24 |
 | `sdk/vmshared/qemu_render.go` | `RenderQemuArgv` for direct-QEMU backend | ~340 |

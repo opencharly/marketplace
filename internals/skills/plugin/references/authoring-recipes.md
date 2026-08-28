@@ -181,7 +181,7 @@ See "Authoring an external COMMAND plugin" below.
   into a real executor (the live executor never crosses the wire), and `OpPreresolve` still returns the
   opaque `DeployVenue.Substrate` payload, generalizing the in-core kubernetes/android preresolvers. Reference
   (out-of-process-only): `candy/plugin-example-lifecycle`; mechanism: `/charly-internals:install-plan`
-  (`candy/plugin-fleet/deploy_target.go`). This is the channel M4 reuses to externalize the pod/vm lifecycles. An external **`run:` plugin verb /
+  (`plugin-fleet/candy/plugin-fleet/deploy_target.go`). This is the channel M4 reuses to externalize the pod/vm lifecycles. An external **`run:` plugin verb /
   step** composed INSIDE a deploy (a `local:`/`vm:` target, where the install runs ON the target, not baked
   into an image) likewise EXECUTES at deploy: it lowers to an `ExternalPluginStep` IR node which the external
   `local:`/`vm:` deploy walk reaches as a host-engine step over `RunHostStep`, where the shared `invokeExternalStep`

@@ -31,7 +31,7 @@ not bootstrap, run setup, retry around the boundary, or substitute candidate pol
   workflow enables native auto-merge (squash), and the org-wide `tag-on-merge`
   workflow then finalizes the merge-time CalVer, writes `CHANGELOG/<CalVer>.md`
   from the merged PR body, and tags the merged HEAD.
-  Sequence + guardrails: `plugins/internals/agents/pr-validator.md`. The gate
+  Sequence + guardrails: `marketplace/internals/agents/pr-validator.md`. The gate
   never runs `gh pr merge --admin` (that bypasses it) and never force-pushes; a
   `BEHIND` branch is recovered with `gh pr update-branch` (no force-push), then merged
   on the new head.
@@ -56,7 +56,7 @@ passed … regardless of whether the agent believes it verified its own code," i
 the session spawned is "an automation the agent controls." So by those definitions an
 agent posting the status is self-approval and an agent merging is merge-without-review.
 The project accepts that posture deliberately. What branch protection still mechanically
-enforces: PR-only landing, linear history, `enforce_admins`, no force-push, and that the
+enforces: PR-only landing, linear history, no force-push (the ruleset's `non_fast_forward`), and that the
 status exists — never `gh pr merge --admin`, never a force-push, never editing protection.
 
 **Two separate gates — landing must clear both, and they are not the same thing.**
@@ -116,7 +116,7 @@ job is to hand the operator the exact rule to paste.
 
 - **The `permissions.allow` rules live in the superproject.** Claude Code resolves
   `.claude/settings.json` from the agent's project root (its working directory), and
-  neither `plugins/` nor `sdk/` ships a `.claude/`. A validator rooted inside a submodule
+  neither `marketplace/` nor `sdk/` ships a `.claude/`. A validator rooted inside a submodule
   loads no permission rules, so even its `success` POST is denied as Self-Approval
   (*"the only authorization comes from a `<teammate-message>`"*) — unless a user/managed-level
   grant covers the action (user settings resolve independently of project root; see the
@@ -147,7 +147,7 @@ superproject.** The status-post half of the loop depends on the standing
 there, so a whole team inherits them and the `success` POST is autonomous by default
 (the merge half additionally needs the operator's `autoMode.allow` rule — the two-gate
 model above). Claude Code resolves `.claude/settings.json` from the agent's project root,
-which is its working directory. A validator told to work *inside* `plugins/` or `sdk/`
+which is its working directory. A validator told to work *inside* `marketplace/` or `sdk/`
 roots in that submodule — which ships no `.claude/` — and therefore silently loads no
 permission rules at all. Its `success` status POST is then denied as Self-Approval
 (*"the only authorization comes from a `<teammate-message>`"*), because nothing ever
@@ -163,7 +163,7 @@ independently of project root; the scope-of-validity note below). So:
   `~/.claude/projects/-<superproject-path-slug>/`, not the `…-plugins` sibling.
 
 **Proven by controlled experiment (single variable):** with the rule text unchanged, a
-`pr-validator` rooted in `plugins/` was denied even the `success` POST; the same validator
+`pr-validator` rooted in `marketplace/` was denied even the `success` POST; the same validator
 rooted in the superproject posted `success` with zero denials. Scope was the entire cause
 of the status-post denial (the merge is the separate Merge-Without-Review gate above).
 **Scope of validity:** the denial reproduces only when no
@@ -257,7 +257,7 @@ For every harness, the enforced trailer form is exactly
 composing a squash-merge trailer preserves the authoring harness, full provider
 model name, and proof-supported confidence.
 
-The canonical constructor is `plugins/scripts/squash_body.py` in the
+The canonical constructor is `marketplace/scripts/squash_body.py` in the
 superproject. It receives prose on standard input plus the concrete trailer via
 `--trailer`, inserts the required blank line, and refuses output unless
 `git interpret-trailers --parse` returns exactly that trailer. The validator

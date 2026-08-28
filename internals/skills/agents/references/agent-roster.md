@@ -13,7 +13,7 @@ OpenCharly is driven from multiple agent harnesses' multi-agent primitives:
 | | Claude Code | Codex | Kimi |
 |---|---|---|---|
 | Rulebook | `CLAUDE.md` | `AGENTS.md` | `AGENTS.md` (read natively) |
-| Skills | plugin manager (`charly-*@charly-plugins`, the opencharly/marketplace repo) | the marketplace's `.agents/plugins/marketplace.json` catalog (Codex registers the repo by GitHub source) | kimi plugin (the whole marketplace is one plugin, installed by GitHub URL) / on-demand `Skill` tool; when not in the session listing, `Read` the marketplace repo's `<family>/skills/<name>/SKILL.md` |
+| Skills | plugin manager (`charly-*@charly-plugins`, the opencharly/marketplace repo) | the marketplace's `.agents/marketplace/.claude-plugin/marketplace.json` catalog (Codex registers the repo by GitHub source) | kimi plugin (the whole marketplace is one plugin, installed by GitHub URL) / on-demand `Skill` tool; when not in the session listing, `Read` the marketplace repo's `<family>/skills/<name>/SKILL.md` |
 | Sub-agents | custom agents (the marketplace's `internals/agents/*.md`, `.claude/agents/`) | fresh native agent threads (`.codex/agents/*.toml` roles, e.g. `pr-validator`) | built-in `coder` / `explore` / `plan` only — no custom subagent registry |
 | Fresh validator / teammate | sub-agent or team teammate with the agent brief | fresh agent thread with the role toml | a fresh separate `kimi` session (interactive or `kimi -p`) briefed with the agent `.md` by path — context isolation is what makes it independent |
 | Dynamic workflows | `.claude/workflows/*.js` (run `/<name>`) | re-derived per thread | re-derived per session (no workflow runtime) |
