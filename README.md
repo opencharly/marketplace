@@ -104,5 +104,5 @@ entities** (`candy/<name>/charly.yml` in opencharly/charly) and regenerate. A sk
 must not be regenerated has no place here. The corpus validator (`charly marketplace drift
 --root ./charly --out .`) must be a no-op on every commit, and the deploy workflow enforces
 it.
-// drift gate proof: see the PR body (in-repo regeneration, clean status)
+<!-- drift gate proof: see the PR body (in-repo regeneration, clean status) -->
 <!-- drift gate: in-repo regeneration must be a no-op (see PR body) -->
