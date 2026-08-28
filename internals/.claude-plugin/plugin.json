@@ -1,6 +1,6 @@
 {
   "name": "charly-internals",
-  "description": "Development internals for charly contributors — Go source map, install-plan IR, capabilities/OCI labels, vm-spec, libvirt/cloud-init renderers, cutover-policy, strict-policy, disposable, ovmf, generate-source, skill maintenance, and the agents/workflows/teams guide. Ships five agents (root-cause-analyzer, layer-validator, testing-validator, check-bed-runner, deploy-verifier) and the github MCP server.",
+  "description": "Development internals for charly contributors — Go source map, install-plan IR, capabilities/OCI labels, vm-spec, libvirt/cloud-init renderers, cutover-policy, strict-policy, disposable, ovmf, generate-source, skill maintenance, and the agents/workflows/teams guide. Ships five agents (root-cause-analyzer, layer-validator, testing-validator, check-bed-runner, deploy-verifier).",
   "author": {
     "name": "opencharly"
   },
@@ -15,6 +15,5 @@
     "ir",
     "agents",
     "workflows"
-  ],
-  "mcpServers": "./.mcp.json"
+  ]
 }
