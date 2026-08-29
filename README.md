@@ -43,12 +43,16 @@ The catalog mirror (the raw catalogs + the kimi JSON) is published to
 
 ## Regeneration
 
-The `deploy.yml` workflow is the SOLE owner of generation: it checks out the pinned charly
-submodule (`.gitmodules`), builds the binary, regenerates the corpus, and **fails closed on
-any diff** (the drift gate — including untracked files) — a marketplace PR bumps the charly
-pin and carries the regenerated corpus in the same change. Locally: `charly marketplace
-generate --root ./charly --out .` (run from the charly checkout) or the generated `./setup`
-launcher.
+The `deploy.yml` workflow is the SOLE owner of generation: it clones charly at the pinned
+CI-time tag (this repo carries no charly submodule — a declared submodule is initialized on
+every fetch, which dragged the whole charly repo into consumer trees), builds the binary,
+regenerates the corpus, and **fails closed on any diff** (the drift gate — including untracked
+files). A marketplace PR bumps the charly pin and carries the regenerated corpus in the same
+change.
+
+The generator produces the corpus and nothing else. It no longer writes charly's harness
+surface (`.claude/hooks`, a `.claude/settings.json` merge, the R0 dispatcher splice), and the
+`./setup` launcher it used to emit is gone with the local-generation workflow it existed for.
 
 ## Plugins by bucket
 
