@@ -42,9 +42,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Fetch the pinned charly source (CI-time temp checkout, recursive for box/*)
+      - name: Fetch the pinned charly source (CI-time temp checkout — binary + CLI word)
+        # NOT recursive any more. box/* was cloned because --root used to be this checkout and
+        # candywalk walks box/<distro> for entities; nothing in the charly tree is an input to
+        # generation now, so the submodules are dead weight.
         run: |
-          git clone --recursive --depth 1 --branch v2026.241.1243 https://github.com/opencharly/charly.git /tmp/charly
+          git clone --depth 1 --branch v2026.241.1243 https://github.com/opencharly/charly.git /tmp/charly
 
       - uses: actions/setup-go@v5
         with:
@@ -56,33 +59,40 @@ jobs:
           mkdir -p /tmp/charly/bin
           cd /tmp/charly/charly && go build -buildvcs=false -ldflags "-X main.BuildCalVer=marketplace-ci" -o /tmp/charly/bin/charly .
 
-      - name: Regenerate the corpus from the pinned charly
-        # --root is the CHARLY CHECKOUT (like the pre-cutover workflow): its candy/ dirs own the
-        # in-repo skill entities (charly-build, charly-check, ...) that are NOT standalone repos,
-        # plus candy/charly-marketplace/charly.yml carries the refs to every standalone candy repo
-        # that owns skill:/hook: entities. The marketplace checkout's candy/charly-marketplace/charly.yml
-        # is the AUTHORITATIVE refs list (it adds the plugin-* subpath refs and the full family
-        # closure), so it is copied OVER the charly checkout's copy before generating — the
-        # charly checkout only supplies the in-repo candy dirs, never the refs. --out is this
-        # repo's root (the corpus lives at the marketplace root, flat).
+      - name: Regenerate the corpus from THIS repo's refs list
+        # --root is THIS repo. It holds candy/charly-marketplace/charly.yml — the authoritative
+        # refs list — and every skill:/hook: entity resolves transitively from the @github refs
+        # in it. That is the ONE input.
+        #
+        # It used to be the charly checkout, and the refs list had to be copied IN over charly's
+        # own stale copy, because charly's candy/ dirs owned in-repo skill entities. Both reasons
+        # are gone: the candy de-submodule cutover moved every candy to its own repo and emptied
+        # charly/candy/ entirely (opencharly/charly#457). Verified byte-identical — generating
+        # with --root pointed here produces the same 397 artifacts across 26 families.
+        #
+        # The `cd /tmp/charly` is still required, and NOT for paths: `marketplace` is an
+        # out-of-tree command plugin, and the word only enters the CLI grammar when charly runs
+        # inside a project whose prescan declares it. Running from this repo exits 80 with the
+        # generic usage. Fixing that means giving this repo a root charly.yml declaring the word,
+        # which needs a local plugin shim — a remote ref does NOT register a command word
+        # (measured) — and would add the first Go module here. That is Phase C.2, kept separate.
         run: |
-          mkdir -p /tmp/charly/candy/charly-marketplace
-          cp ${{ github.workspace }}/candy/charly-marketplace/charly.yml /tmp/charly/candy/charly-marketplace/charly.yml
-          cd /tmp/charly && /tmp/charly/bin/charly marketplace generate --root /tmp/charly --out ${{ github.workspace }}
+          cd /tmp/charly && /tmp/charly/bin/charly marketplace generate --root ${{ github.workspace }} --out ${{ github.workspace }}
 
       - name: Drift gate — the committed corpus must match the pinned charly
         # Regeneration on a clean tree is a no-op by contract (hand-authored files carry no
         # DO-NOT-EDIT header and sit outside the known paths, so they are never rewritten). A
-        # diff here means a marketplace PR must bump the charly CI-time tag and commit
-        # the regenerated corpus in the same change.
+        # A diff here means this repo's refs list moved without the corpus being regenerated
+        # in the same commit (or, less often, that the generator changed behind the CI-time
+        # charly tag).
         run: |
           # git diff --exit-code alone is NOT fail-closed: a generator that emits NEW
           # artifacts (a new skill/family/manifest) recreates them as UNTRACKED files on
           # regeneration, which git diff ignores. The gate must catch untracked files too.
           if ! git diff --exit-code || [ -n "$(git status --porcelain)" ]; then
-            echo "DRIFT: the committed corpus does not match the pinned charly checkout."
-            echo "Bump the charly CI-time tag in deploy.yml and commit the regenerated"
-            echo "corpus in the same marketplace PR (this workflow is the gate)."
+            echo "DRIFT: the committed corpus does not match this repo's refs list."
+            echo "Regenerate and commit the corpus in the same marketplace PR"
+            echo "(this workflow is the gate)."
             git status --porcelain | head -20
             exit 1
           fi
