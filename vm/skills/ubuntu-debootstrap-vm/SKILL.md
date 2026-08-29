@@ -35,7 +35,7 @@ check-ubuntu-debootstrap-vm`. Drive the VM lifecycle from the submodule:
 | Disk / RAM / CPU | 20G / 4G / 2 |
 | Machine / firmware | q35 / uefi-insecure |
 | Network | user mode |
-| SSH | user `ubuntu`, port 12229, key_source generate |
+| SSH | user `ubuntu`, `port_auto: true` (the runner allocates a free host port at vm-create and persists it in vm_state), key_source generate |
 
 The `ubuntu` distro config (`inherits: debian`; debootstrap suite `noble`,
 mirror, base packages) comes from the embedded build vocabulary

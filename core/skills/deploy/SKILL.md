@@ -111,7 +111,7 @@ When `<ref>` is omitted, the ref falls back to the deploy's `image:` field (or t
 - `--allow-root-tasks` — opt-in for arbitrary `cmd: user: root` task bodies
 - `--skip-incompatible` — skip layers lacking a host-matching format section instead of failing
 - `--builder-image <ref>` — override the compile-builder image
-- `--yes` / `-y` — all three gates plus skip sudo preflight
+- `--assume-yes` / `-y` — all three gates plus skip sudo preflight
 
 ### `charly fleet del <name>`
 

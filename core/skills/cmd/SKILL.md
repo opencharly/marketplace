@@ -19,7 +19,6 @@ Runs a single command inside a running container via `<engine> exec` and sends a
 |--------|---------|-------------|
 | Run command | `charly cmd <image> "command"` | Execute command in running container |
 | With instance | `charly cmd <image> "command" -i 2` | Target specific instance |
-| With env vars | `charly cmd <image> "command" -e KEY=VALUE` | Pass environment variables |
 
 ## Usage
 
@@ -28,7 +27,7 @@ Runs a single command inside a running container via `<engine> exec` and sends a
 charly cmd fedora "uname -a"
 
 # Run with environment variables
-charly cmd jupyter "python script.py" -e CUDA_VISIBLE_DEVICES=0
+charly cmd jupyter "python script.py"
 
 # Target a specific instance
 charly cmd ollama "ollama list" -i 2
@@ -39,7 +38,6 @@ charly cmd ollama "ollama list" -i 2
 | Flag | Description |
 |------|-------------|
 | `-i, --instance INSTANCE` | Target a specific container instance (default: 1) |
-| `-e, --env KEY=VALUE` | Pass environment variables to the command |
 | `--sidecar NAME` | Run in the named SIDECAR container (`charly-<box>[-<inst>]-<name>`) instead of the app container |
 
 ## Behavior

@@ -28,7 +28,7 @@ Container service lifecycle management with two modes: **quadlet** (systemd user
 | Stop service | `charly stop <image>` | Stop running service |
 | Configure deployment | `charly config <image>` | Generate .container file, daemon-reload |
 | Remove deployment | `charly config remove <image>` | Disable quadlet service (quadlet file remains) |
-| Service status | `charly status [<image>]` | Structured status table (IMAGE, STATUS, PORTS, TUNNEL, DEVICES, TOOLS); IMAGE merges `image[/instance]` |
+| Service status | `charly status [<image>]` | Structured status table (KIND, IMAGE, STATUS, PORTS, TUNNEL, DEVICES, TOOLS); IMAGE merges `image[/instance]` |
 | All services | `charly status --all` | Include stopped/enabled services in listing |
 | Detailed status | `charly status <image>` | Detailed key-value view with live tool probes |
 | JSON output | `charly status --json` | Machine-readable JSON output |
@@ -240,15 +240,16 @@ charly shell <image> -c "<service-command>"
 ## Status Output
 
 `charly status` shows a structured table of all charly containers. The table
-has a TUNNEL column and the IMAGE column merges `image[/instance]`:
+leads with a KIND column (the substrate discriminator), has a TUNNEL column, and the
+IMAGE column merges `image[/instance]`:
 
 ```
-IMAGE                              STATUS   PORTS                 TUNNEL                  DEVICES  TOOLS
-sway-browser-vnc                   running  5900,9222,9224        -                       dri,gpu  cdp:9222,dbus,charly,supervisord,sway,vnc:5900,wl
-selkies-desktop/work               running  3001,9240             tailscale (all ports)   -        cdp:9240,dbus,charly,supervisord,wl
-selkies-desktop/personal           running  3002,9241             tailscale (all ports)   -        cdp:9241,dbus,charly,supervisord,wl
-ollama                             running  11434                 -                       gpu      dbus,charly,supervisord
-jupyter                            stopped  8888                  tailscale (all ports)   -        -
+KIND  IMAGE                        STATUS   PORTS                 TUNNEL                  DEVICES  TOOLS
+pod   sway-browser-vnc             running  5900,9222,9224        -                       dri,gpu  cdp:9222,dbus,charly,supervisord,sway,vnc:5900,wl
+pod   selkies-desktop/work         running  3001,9240             tailscale (all ports)   -        cdp:9240,dbus,charly,supervisord,wl
+pod   selkies-desktop/personal     running  3002,9241             tailscale (all ports)   -        cdp:9241,dbus,charly,supervisord,wl
+pod   ollama                       running  11434                 -                       gpu      dbus,charly,supervisord
+pod   jupyter                      stopped  8888                  tailscale (all ports)   -        -
 ```
 
 - **IMAGE**: `image` for base deploys, `image/instance` for multi-

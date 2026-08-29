@@ -199,9 +199,10 @@ charly migrate
 # parameter.tailnet set.
 ```
 
-Use `--tailnet armadillo-quail.ts.net` to skip the prompt, or
-`--delete-legacy` to remove the original `TS_AUTHKEY` entry after the
-rename. Idempotent.
+Idempotent. Note there are no `--tailnet` or `--delete-legacy` flags — `charly
+migrate` is a single idempotent chain, so the tailnet comes from the prompt (or the
+auto-detected running sidecar) and the legacy `TS_AUTHKEY` entry is left in place for
+you to remove yourself once the per-tailnet entry is confirmed.
 
 Any deploy with a tailscale sidecar that doesn't supply
 `parameter.tailnet:` fails at `charly config` time with the message:

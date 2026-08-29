@@ -490,7 +490,6 @@ plan:
 | `port_relay` | `[]int` | Ports needing eth0 → loopback socat relay. Auto-adds `socat` dependency. |
 | `secret` | `[]SecretYAML` | Image-owned container secrets (auto-generated per instance). |
 | `hook` | `CandyHook` | Lifecycle hooks: `post_enable` (after `charly config`), `pre_remove` (before `charly remove`). |
-| `libvirt` | `[]string` | Raw libvirt XML snippets for VM domain XML injection. |
 | `data` | `[]DataYAML` | Data mappings (`src` → volume `dest`) for volume staging. |
 | `env_provide` | `map[string]string` | Env vars injected into OTHER containers when this service is deployed. Template: `{{.ContainerName}}`. |
 | `env_require` | `[]EnvDependency` | Plaintext env vars this candy MUST have. Hard error at `charly config` if missing. |
@@ -774,7 +773,7 @@ sshd:
 | `name` | yes | both | Service identifier; passed to `service_template` as `.Name` |
 | `use_packaged` | form 1 | packaged | Distro-shipped unit name (e.g., `postgresql.service`); mutually exclusive with `exec` |
 | `exec` | form 2 | custom | Command to run (`ExecStart` in systemd, `command` in supervisord) |
-| `distro` | no | both | List of distros this entry renders on — a bare name (`debian`) or a versioned tag (`debian:13`). Empty/absent = every distro (the default). The service analogue of a check step's `exclude_distros:` — it scopes an entry to the distros whose packaging actually ships that unit/binary, so ONE candy carries per-distro-DIVERGENT daemons without a `<name>-host` sibling (R3). Filtered at render time in BOTH the build path (supervisord fragments + bootc `system_enable`) and the deploy path (`compileServiceSteps`). Canonical example: `/charly-infrastructure:virtualization` (modular `virtqemud`/`virtnetworkd` on Fedora/Arch vs monolithic `libvirtd` on Debian/Ubuntu). |
+| `distro` | no | both | List of distros this entry renders on — a bare name (`debian`) or a versioned tag (`debian:13`). Empty/absent = every distro (the default). The service analogue of a check step's `exclude_distro:` — it scopes an entry to the distros whose packaging actually ships that unit/binary, so ONE candy carries per-distro-DIVERGENT daemons without a `<name>-host` sibling (R3). Filtered at render time in BOTH the build path (supervisord fragments + bootc `system_enable`) and the deploy path (`compileServiceSteps`). Canonical example: `/charly-infrastructure:virtualization` (modular `virtqemud`/`virtnetworkd` on Fedora/Arch vs monolithic `libvirtd` on Debian/Ubuntu). |
 | `env` | no | both | Map of env vars; systemd renders as `Environment="K=V"`, supervisord as `environment=K="V",...` |
 | `restart` | no | custom | `no` / `on-failure` / `always` / `unless-stopped`; mapped by init-specific template helper |
 | `working_directory` | no | custom | `WorkingDirectory=` (systemd) / `directory=` (supervisord) |
@@ -790,7 +789,7 @@ sshd:
 
 ### Lifecycle-directive overlay (supervisord-only fields)
 
-Beyond the core `service:` schema above, supervisord-rendered entries accept additional lifecycle fields: `auto_start`, `start_retries`, `start_secs`, `stop_signal`, `exit_codes`, `priority`, `kind: eventlistener` + `events:`. See `/charly-infrastructure:supervisord` for the directive table and `/charly-selkies:chrome` for the eventlistener worked example.
+Beyond the core `service:` schema above, supervisord-rendered entries accept additional lifecycle fields. Note the YAML keys are SINGULAR where the Go field name is plural: `auto_start`, `start_retry` (Go StartRetries), `start_sec` (Go StartSecs), `stop_signal`, `exit_code` (Go ExitCode), `priority`, `kind: eventlistener` + `event:` (Go Events). See `/charly-infrastructure:supervisord` for the directive table and `/charly-selkies:chrome` for the eventlistener worked example.
 
 ### Rendering to init systems
 

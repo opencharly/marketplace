@@ -122,27 +122,25 @@ arch:
       charly_install:
         strategy: auto
 
-# Every non-scalar block becomes a CHILD NODE `<entity>-<key>`, never nested under `vm:`.
-arch-libvirt:
-  libvirt:
-    devices:
-      channels:
-        - {type: spicevmc, name: com.redhat.spice.0}
-      graphics:
-        # Socket-only SPICE — virt-manager and `remote-viewer
-        # --connect qemu+ssh://…` auto-forward the UNIX socket over
-        # libvirt RPC, zero extra setup. libvirt auto-allocates the
-        # socket path under $XDG_RUNTIME_DIR/libvirt/qemu/.
-        - type: spice
-          listen:
-            - type: socket
-      video:
-        - {model: virtio, vram: 65536, heads: 1, accel3d: false}
-      rng:
-        - {model: virtio, backend: /dev/urandom}
-      memballoon: {model: virtio}
-    snippets:
-      - "<channel type='unix'><target type='virtio' name='org.qemu.guest_agent.0'/></channel>"
+    libvirt:
+      devices:
+        channels:
+          - {type: spicevmc, name: com.redhat.spice.0}
+        graphics:
+          # Socket-only SPICE — virt-manager and `remote-viewer
+          # --connect qemu+ssh://…` auto-forward the UNIX socket over
+          # libvirt RPC, zero extra setup. libvirt auto-allocates the
+          # socket path under $XDG_RUNTIME_DIR/libvirt/qemu/.
+          - type: spice
+            listen:
+              - type: socket
+        video:
+          - {model: virtio, vram: 65536, heads: 1, accel3d: false}
+        rng:
+          - {model: virtio, backend: /dev/urandom}
+        memballoon: {model: virtio}
+      snippets:
+        - "<channel type='unix'><target type='virtio' name='org.qemu.guest_agent.0'/></channel>"
 ```
 
 ## Connecting from a remote workstation
@@ -208,9 +206,13 @@ For commands that don't need their output to land locally:
 charly settings set hosts.o o.example.org
 charly --host o status
 charly --host o vm list
-charly --host o test libvirt info arch
-charly --host o test libvirt screenshot arch - > /tmp/shot.png
+charly --host o check live arch
 ```
+
+There is no `charly test` command, and the libvirt probes (`info`, `domain-xml`,
+`screenshot`, `qmp`, …) have NO host subcommand — `charly check libvirt …` does not
+exist either. They are DECLARATIVE check verbs authored as `libvirt:` on a plan step
+and executed by `charly check live` / `charly check run <bed>`; see the recipe below.
 
 `charly` re-execs itself over SSH (via your system's `ssh`, so `~/.ssh/config`
 and agent forwarding just work). `-` as a screenshot path writes PNG bytes
@@ -333,11 +335,19 @@ charly vm create arch --no-auto-detect
 ```
 
 ### BIOS firmware + virtio-gpu took effect
-```bash
-charly check libvirt domain-xml arch \
-  | grep -E "<loader|<nvram|<firmware|<type arch|<model type"
+
+`domain-xml` is a check VERB, not a host command — assert it from the bed's `plan:`
+and run it with `charly check live arch`:
+
+```yaml
+- check: libvirt=domain-xml
+  id: libvirt-domain-xml-virtio
+  libvirt: "domain-xml"
+  stdout: {contains: "type='virtio'"}
+  context: [runtime]
 ```
-Pass: NO `<loader>` / `<nvram>` / `<firmware>` elements; `<model type='virtio'>` inside `<video>`.
+Pass: `<model type='virtio'>` inside `<video>`, and — for `firmware: bios` — NO
+`<loader>` / `<nvram>` / `<firmware>` elements in the emitted domain XML.
 
 ### No simpledrm race
 ```bash

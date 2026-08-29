@@ -35,7 +35,7 @@ check-debian-debootstrap-vm`. Drive the VM lifecycle from the submodule:
 | Disk / RAM / CPU | 20G / 4G / 2 |
 | Machine / firmware | q35 / uefi-insecure |
 | Network | user mode |
-| SSH | user `debian`, port 12227, key_source generate |
+| SSH | user `debian`, `port_auto: true` (the runner allocates a free host port at vm-create and persists it in vm_state), key_source generate |
 
 The `debian` distro config (debootstrap suite/mirror, base packages, bootloader
 template) comes from the embedded `distro:` build vocabulary baked into the

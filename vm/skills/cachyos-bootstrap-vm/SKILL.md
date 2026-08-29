@@ -33,7 +33,7 @@ from the submodule: `charly -C box/cachyos vm build cachyos-vm` +
 | Disk / RAM / CPU | 25G / 4G / 2 |
 | Machine / firmware | q35 / uefi-insecure |
 | Network | user mode |
-| SSH | user `cachy`, port 12226, key_source generate |
+| SSH | user `cachy`, `port_auto: true` (the runner allocates a free host port at vm-create and persists it in vm_state), key_source generate |
 
 The `cachyos` distro config (base packages, keyring, mirrors, repos) comes from
 the embedded `distro: cachyos` build vocabulary baked into the `charly` binary
