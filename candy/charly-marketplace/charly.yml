@@ -22,7 +22,7 @@ charly-marketplace:
             - '@github.com/opencharly/layer-charly-internals:v2026.241.1506'
             - '@github.com/opencharly/layer-charly-internals-extra:v2026.241.1216'
             - '@github.com/opencharly/layer-charly-build:v2026.241.1216'
-            - '@github.com/opencharly/layer-charly-check:v2026.241.1216'
+            - '@github.com/opencharly/layer-charly-check:v2026.241.2052'
             - '@github.com/opencharly/layer-charly-kubernetes:v2026.241.1216'
             - '@github.com/opencharly/layer-charly-image:v2026.241.1216'
             - '@github.com/opencharly/layer-charly-immich:v2026.241.1216'
