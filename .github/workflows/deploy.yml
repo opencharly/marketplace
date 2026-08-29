@@ -70,14 +70,13 @@ jobs:
         # charly/candy/ entirely (opencharly/charly#457). Verified byte-identical — generating
         # with --root pointed here produces the same 397 artifacts across 26 families.
         #
-        # The `cd /tmp/charly` is still required, and NOT for paths: `marketplace` is an
-        # out-of-tree command plugin, and the word only enters the CLI grammar when charly runs
-        # inside a project whose prescan declares it. Running from this repo exits 80 with the
-        # generic usage. Fixing that means giving this repo a root charly.yml declaring the word,
-        # which needs a local plugin shim — a remote ref does NOT register a command word
-        # (measured) — and would add the first Go module here. That is Phase C.2, kept separate.
+        # No `cd /tmp/charly` any more. That used to be required to borrow the CLI grammar:
+        # `marketplace` is an out-of-tree command plugin, and the word only enters the grammar
+        # when charly runs inside a project whose prescan declares it. This repo now declares it
+        # itself (tools/marketplace-cli), so the verb resolves here. The charly clone is purely
+        # the BINARY.
         run: |
-          cd /tmp/charly && /tmp/charly/bin/charly marketplace generate --root ${{ github.workspace }} --out ${{ github.workspace }}
+          /tmp/charly/bin/charly marketplace generate --root ${{ github.workspace }} --out ${{ github.workspace }}
 
       - name: Drift gate — the committed corpus must match the pinned charly
         # Regeneration on a clean tree is a no-op by contract (hand-authored files carry no

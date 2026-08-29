@@ -1,0 +1,15 @@
+version: 2026.240.1943
+# opencharly/marketplace — the published Claude Code plugin marketplace.
+#
+# This file exists for ONE reason: to make `charly marketplace` resolvable when charly runs
+# in this repo. The word is served by an out-of-tree command plugin, and it only enters the
+# CLI grammar when the prescan finds a candy declaring it on a `discover:` path. Without
+# this, `charly marketplace generate` here exits 80 with the generic usage, and the
+# workflows had to `cd` into a charly checkout purely to borrow the grammar.
+#
+# It is NOT a box/deploy project: nothing here is built or deployed. The corpus at this
+# repo's root is GENERATED output, and candy/charly-marketplace/charly.yml is the refs list
+# it is generated from.
+discover:
+    - path: tools
+      recursive: true

@@ -1,0 +1,40 @@
+marketplace-cli:
+    candy:
+        version: 2026.240.1943
+        description: |-
+            Declaration of the OUT-OF-TREE `charly marketplace` command plugin — the
+            generator that produces this repo's corpus. The plugin itself lives in
+            opencharly/plugin-marketplace; this candy is a THIN RE-EXPORT SHIM whose only Go
+            content is a `cmd/serve` main handing the external module's provider to
+            `sdk.Main`.
+
+            Declaring it here is what puts `marketplace` into charly's CLI grammar when
+            charly runs in THIS repo: the prescan walks the project's `discover:` paths,
+            finds this candy's `plugin.providers`, and registers the word. A remote candy
+            ref does NOT register a command word — a project pinning only
+            `@github.com/opencharly/plugin-marketplace/...` exits 80 with the generic usage
+            — so the declaration has to be local, and the host builds this directory
+            (resolved through its OWN go.mod require; `source:` is identity metadata, never
+            a fetch).
+
+            Before this, `deploy.yml` and `refresh.yml` had to `cd` into a charly checkout
+            purely to borrow the grammar. It also closes a pin hole: resolving the word from
+            a charly checkout fetched `plugin-marketplace:main`, a MUTABLE ref. This shim
+            pins the generator by go.mod require instead.
+        plugin:
+            providers:
+                - command:marketplace
+            source: github.com/opencharly/plugin-marketplace/candy/plugin-marketplace
+        plan:
+            - # ADE check: build-context and deliberately trivial — mirroring the
+              # generate-packages shim, the reference template for an out-of-tree command
+              # plugin. The shim carries no image content to probe, and the CLI it declares
+              # needs a project context a build-context check does not have. What this step
+              # asserts is upstream of itself: the candy loads, the `plugin.providers` word
+              # parses, and the module the host will build is present. The verb's real proof
+              # is `charly marketplace generate` running in CI.
+              check: the marketplace shim ships a buildable Go module (go.mod + the cmd/serve main) that re-exports the out-of-tree generator; the resolvable-verb end-to-end is exercised by this repo's deploy workflow
+              id: marketplace-cli-module-present
+              context:
+                - build
+              command: "true"
