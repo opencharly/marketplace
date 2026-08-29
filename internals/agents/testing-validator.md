@@ -165,4 +165,4 @@ At PR time the fresh **`pr-validator`** re-enforces this SAME proof gate
 independently (new context, adversarial): the attribution tier claimed in the PR
 must be justified by the pasted evidence, or the PR FAILs and does not merge. This
 agent gates the author's own claim; `pr-validator` gates it again at the landing.
-See `/charly-internals:git-workflow` + `plugins/internals/agents/pr-validator.md`.
+See `/charly-internals:git-workflow` + `marketplace/internals/agents/pr-validator.md`.

@@ -190,7 +190,7 @@ merged first" rule applies. `/charly-build:docs` owns the projection model; the
 load-bearing part of it is that the two chains have DIFFERENT lengths — candy and
 box prose is a ONE-hop projection read straight off each repo's `charly.yml`,
 while skill prose is a TWO-hop projection that `charly docs generate` reads from
-the `plugins/` tree, never from `candy/*/charly.yml`.
+the `marketplace/` tree, never from `candy/*/charly.yml`.
 
 The commands below are maintenance THIS REPOSITORY performs on itself. They are
 not steps an charly user runs, and they never belong on a reader-facing page.
@@ -199,7 +199,7 @@ not steps an charly user runs, and they never belong on a reader-facing page.
    `plan:`, or the owning candy's `skill:` content.
 2. **For a skill edit, project and land `plugins` FIRST** (`charly marketplace
    generate`, then the `plugins` PR). Locally the docs generator reads the dirty
-   `plugins/` tree, so a local regeneration picks the edit up immediately; every
+   `marketplace/` tree, so a local regeneration picks the edit up immediately; every
    other reader gets it only once the gitlink advances. Advancing that gitlink
    WITHOUT regenerating `docs` in the same landing is precisely what leaves the
    published site stale, and only the drift gate will say so. Superproject-facing

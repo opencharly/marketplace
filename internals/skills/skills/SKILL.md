@@ -11,7 +11,7 @@ description: |-
 
 ## Overview
 
-Skills are living documents at `plugins/<plugin>/skills/<name>/SKILL.md`. They
+Skills are living documents at `marketplace/<family>/skills/<name>/SKILL.md`. They
 are the primary procedural knowledge source for every supported agent harness
 and are always loaded before codebase exploration. This skill covers when and
 how to update them.
@@ -23,7 +23,7 @@ harness-specific adapter and `AGENTS.md` is the harness-neutral rulebook for
 compatible readers. Keep their trigger → skill mappings and overall policy
 equivalent while confining harness-specific mechanics to the adapter and
 skills. When multiple triggers apply, load all matching skills before acting.
-Full index: `plugins/README.md`.
+Full index: `marketplace/README.md`.
 
 ## The corpus must actually LOAD — audit delivery, not just content
 
@@ -132,11 +132,11 @@ build together catch a stale cross-reference that a `git grep` sweep missed.
 
 1. **Edit the candy's `skill:` entity in `candy/<candy>/charly.yml`, then regenerate**
    (`charly marketplace generate` → a docs PR carrying the regenerated pages). Most of the corpus under
-   `plugins/**/SKILL.md` is a PROJECTION and carries a DO-NOT-EDIT banner: an edit
+   `marketplace/**/SKILL.md` is a PROJECTION and carries a DO-NOT-EDIT banner: an edit
    there is reverted by the next regeneration, silently and without conflict. `git grep
    -l 'DO[- ]NOT[- ]EDIT'` tells you which files are generated — but triage the hits
    rather than trusting them, since a file may MENTION the banner without carrying one
-   (agent definitions under `plugins/<plugin>/agents/` are hand-authored).
+   (agent definitions under `marketplace/<family>/agents/` are hand-authored).
 2. If the insight affects cross-skill behavior, update the project rulebook (`AGENTS.md` / `CLAUDE.md`) too
 3. After any non-trivial deployment session, ask: "Did we learn anything that future sessions should know?"
 
@@ -291,9 +291,9 @@ swept in the same commit as any rename or removal (R5):
 
 - the 2 hooks in `.claude/hooks/` (`pre-commit-gate.sh`, `pre-push-gate.sh` — deterministic
   command-mechanics gates only; there is no reminder-hook layer),
-- the agents in `plugins/internals/agents/*.md`,
+- the agents in `marketplace/internals/agents/*.md`,
 - the 9 per-directory signpost `CLAUDE.md` files (`charly/`, `candy/`,
-  `plugins/`, `docs/`, each `box/<distro>`),
+  `marketplace/`, `docs/`, each `box/<distro>`),
 - the workflows in `.claude/workflows/*.js`,
 - every SKILL.md that quotes a section name (grep before assuming).
 
@@ -304,7 +304,7 @@ mirroring surface valid for free.
 
 ## Command skills vs topic skills
 
-Most skills under `plugins/charly-core/skills/` and `plugins/charly-build/skills/`
+Most skills under `marketplace/core/skills/` and `marketplace/build/skills/`
 map 1:1 to a top-level charly command (e.g. `/charly-build:build` ↔ `charly box build`,
 `/charly-core:charly-status` ↔ `charly status`).
 **Topic skills** are the exception: they don't correspond to a
@@ -322,15 +322,15 @@ When adding a new command, always create a matching command skill. Consider a to
 ## Plugin Structure
 
 Plugins are sorted into four use-case buckets. Directory names live at
-`plugins/<name>/` (no `charly-` prefix); plugin.json `name:` fields keep the
+`marketplace/<name>/` (no `charly-` prefix); plugin.json `name:` fields keep the
 `charly-` prefix; every skill is invoked as `/charly-<plugin>:<skill>`.
 
 The authoritative per-plugin skill counts and purposes are the bucket tables
-in `plugins/README.md` — point there, never copy them (counts drift).
+in `marketplace/README.md` — point there, never copy them (counts drift).
 
 ## Agent & signpost conventions
 
-### Agents (`plugins/<plugin>/agents/<name>.md`)
+### Agents (`marketplace/<family>/agents/<name>.md`)
 
 Sub-agents are markdown + YAML frontmatter (`name`, `description`, `tools`,
 `model`, …), discovered from a plugin's `agents/` directory
@@ -346,7 +346,7 @@ content — they live in the superproject's `.claude/workflows/*.js`.
 ### Per-directory CLAUDE.md signposts (hybrid)
 
 The repo-root `CLAUDE.md` is the complete R0–R10 harness adapter.
-Per-directory `CLAUDE.md` files (`charly/`, `candy/`, `plugins/`, `docs/`, and each
+Per-directory `CLAUDE.md` files (`charly/`, `candy/`, `marketplace/`, `docs/`, and each
 `box/<distro>` submodule) are THIN signposts only: they name the skills to
 load for that area and point back to root. They MUST NOT restate any rule body —
 duplication drifts (an earlier layer-validator and the reminder hooks both drifted
@@ -441,7 +441,7 @@ skill's grep self-test caught). Audit and fix them as follows:
 1. **Extract the claims**: pull every `charly/*.go` filename reference and identifier
    reference out of the skills, and check each against the live source — file exists?
    symbol still defined? (`gopls`/`grep` confirm.)
-2. **Search INSIDE the submodule**: `plugins/` is a git submodule, so a superproject
+2. **Search INSIDE the submodule**: `marketplace/` is a git submodule, so a superproject
    `git grep -- plugins` is a **FALSE ZERO** (git grep does not cross the gitlink). Use
    `git -C plugins grep` or filesystem `grep -rn`.
 3. **Filter the false-positive classes** before flagging:

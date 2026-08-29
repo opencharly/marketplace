@@ -58,12 +58,12 @@ project/
 ├── Taskfile.yml               # Bootstrap tasks only
 ├── taskfiles/                 # Build.yml, Cue.yml, Setup.yml
 ├── candy/<name>/             # Layer directories
-├── plugins/                   # Git submodule (opencharly/plugins)
+├── marketplace/                   # Git submodule (opencharly/plugins)
 ├── docs/                      # Git submodule (opencharly/docs)
 └── templates/                 # supervisord.header.conf (referenced by init.supervisord.header_file)
 ```
 
-Submodule convention: `plugins/` (and `docs/`, `box/<distro>`) are submodules rooted at
+Submodule convention: `marketplace/` (and `docs/`, `box/<distro>`) are submodules rooted at
 their own repos; the sdk contract module (`github.com/opencharly/sdk`) is NOT a
 submodule — it resolves from the module proxy at the pinned require version in every
 go.mod. Clone with `--recurse-submodules` (no sdk checkout exists to fetch) or run
