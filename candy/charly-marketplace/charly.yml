@@ -10,7 +10,18 @@ charly-marketplace:
             transitively. The family dirs at this repo's root are the GENERATED corpus,
             not the source — regeneration is a no-op on a clean tree (the drift gate).
         candy:
-            - '@github.com/opencharly/charly:v2026.240.2345'
+            # charly's own skill:/hook:-owning candies, referenced individually. The repo ROOT
+            # is not a candy node: '@github.com/opencharly/charly:vTAG' resolved to
+            # unknown candy "github.com/opencharly/charly".
+            - '@github.com/opencharly/charly/candy/charly:v2026.240.2345'
+            - '@github.com/opencharly/charly/candy/charly-build:v2026.240.2345'
+            - '@github.com/opencharly/charly/candy/charly-check:v2026.240.2345'
+            - '@github.com/opencharly/charly/candy/charly-image:v2026.240.2345'
+            - '@github.com/opencharly/charly/candy/charly-immich:v2026.240.2345'
+            - '@github.com/opencharly/charly/candy/charly-internals:v2026.240.2345'
+            - '@github.com/opencharly/charly/candy/charly-internals-extra:v2026.240.2345'
+            - '@github.com/opencharly/charly/candy/charly-kubernetes:v2026.240.2345'
+            - '@github.com/opencharly/charly/candy/charly-mcp:v2026.240.2345'
             - '@github.com/opencharly/pod-charly-hooks:v2026.240.2141'
             - '@github.com/opencharly/layer-ripgrep:v2026.235.1653'
             - '@github.com/opencharly/layer-supervisord:v2026.239.1300'
