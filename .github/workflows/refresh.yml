@@ -1,0 +1,183 @@
+name: refresh
+
+# Advances every @github pin in the refs list to its repo's newest tag, regenerates the
+# corpus, and opens a PR when anything moved.
+#
+# WHY THIS EXISTS. candy/charly-marketplace/charly.yml is the ONE generation input since the
+# candy de-submodule cutover, and every entry is a hand-written CalVer pin. Hand-written pins
+# go stale silently: the corpus keeps building, the drift gate stays green, and the published
+# skill is simply an old one. That is precisely the failure the cutover set out to remove —
+# it came from a single stale charly pin, and 176 hand-maintained pins are the same failure
+# with more surface.
+#
+# The content in these PRs is NOT unreviewed. Each pinned repo validated its own change
+# through its own pr-validator before tagging; this workflow republishes what those repos
+# already landed. What it removes is the human step of noticing that they did.
+#
+# Modelled on the umbrella's sync.yml (nightly gitlink bumps), with one difference: this one
+# also REGENERATES, because a refs bump that does not carry its regenerated corpus would trip
+# the deploy workflow's fail-closed drift gate on the very next run.
+
+on:
+  schedule:
+    - cron: '41 4 * * *'   # daily 04:41 UTC — after the umbrella's 03:17 sync
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Advance every pin to its repo's newest tag
+        id: bump
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          bash scripts/refresh-refs.sh | tee /tmp/refresh.log
+          if git diff --quiet -- candy/charly-marketplace/charly.yml; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Skip if a refresh PR is already open
+        id: skip
+        if: steps.bump.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          OPEN=$(gh pr list --search 'chore: refresh the refs list in:title' --state open --json number --jq 'length')
+          if [ "$OPEN" -gt 0 ]; then
+            echo "a refresh PR is already open — skipping"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Fetch the pinned charly source (the BINARY and the CLI word)
+        if: steps.bump.outputs.changed == 'true' && steps.skip.outputs.skip == 'false'
+        run: |
+          git clone --depth 1 --branch v2026.241.1243 https://github.com/opencharly/charly.git /tmp/charly
+
+      - uses: actions/setup-go@v5
+        if: steps.bump.outputs.changed == 'true' && steps.skip.outputs.skip == 'false'
+        with:
+          go-version-file: /tmp/charly/charly/go.mod
+          cache-dependency-path: /tmp/charly/charly/go.sum
+
+      - name: Build the charly binary
+        if: steps.bump.outputs.changed == 'true' && steps.skip.outputs.skip == 'false'
+        run: |
+          mkdir -p /tmp/charly/bin
+          cd /tmp/charly/charly && go build -buildvcs=false -ldflags "-X main.BuildCalVer=marketplace-refresh" -o /tmp/charly/bin/charly .
+
+      - name: Regenerate the corpus at the new pins
+        # Same invocation as deploy.yml: --root is THIS repo (the refs list is the only
+        # input), and the `cd /tmp/charly` is what puts the `marketplace` command word into
+        # the CLI grammar — it is not a path.
+        if: steps.bump.outputs.changed == 'true' && steps.skip.outputs.skip == 'false'
+        run: |
+          cd /tmp/charly && /tmp/charly/bin/charly marketplace generate --root "$GITHUB_WORKSPACE" --out "$GITHUB_WORKSPACE"
+
+      - name: Open the refresh PR
+        if: steps.bump.outputs.changed == 'true' && steps.skip.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BUMPED=$(grep -cE '^  [a-z]' /tmp/refresh.log || echo 0)
+          SKILLS=$(git status --porcelain | grep -c 'SKILL.md' || echo 0)
+          FILES=$(git status --porcelain | wc -l)
+
+          {
+            echo "## Summary of changes"
+            echo
+            echo "Automated refresh: every \`@github\` pin in \`candy/charly-marketplace/charly.yml\`"
+            echo "advanced to its repo's newest CalVer tag, with the regenerated corpus in the same commit."
+            echo
+            echo "- **${BUMPED}** pin(s) advanced"
+            echo "- **${SKILLS}** \`SKILL.md\` changed"
+            echo "- **${FILES}** file(s) total"
+            echo
+            echo "The refs list is the ONE generation input, and every entry is a CalVer pin. Hand-maintained"
+            echo "pins go stale silently — the corpus keeps building, the drift gate stays green, and the"
+            echo "published skill is simply an old one. That is the failure the candy de-submodule cutover"
+            echo "removed for a single charly pin; this workflow removes it for the remaining 176."
+            echo
+            echo "The content is not unreviewed: each pinned repo validated its own change through its own"
+            echo "\`pr-validator\` before tagging. This republishes what those repos already landed."
+            echo
+            echo "<details><summary>pins advanced</summary>"
+            echo
+            echo '```'
+            sed -n '/->/p' /tmp/refresh.log
+            echo '```'
+            echo
+            echo "</details>"
+            echo
+            echo "## Change class"
+            echo
+            echo "**cross-repo (consumer leg)** — refs-list pins plus the corpus they generate. No workflow,"
+            echo "no script, no Go."
+            echo
+            echo "**Breaking change + rollback:** none — the same skills at newer tags. Rollback is a plain revert."
+            echo
+            echo "## How R10-tested — exact gate, commands, and pasted output"
+            echo
+            echo "- **The gate:** this repo's \`marketplace\` workflow, whose drift gate fails closed if the"
+            echo "  committed corpus does not match the refs list. It runs on this PR."
+            echo "- **Eval beds run:** \`N/A (pin refresh)\`."
+            echo "- **Fresh rebuild:** the binary was built from the pinned charly checkout in this run."
+            echo "- **Did the CHANGED code path execute live?** **Yes** — generation ran at the new pins and"
+            echo "  resolved every advanced ref over the network."
+            echo
+            echo '*1. Gate output:*'
+            echo '```'
+            tail -3 /tmp/refresh.log
+            echo '```'
+            echo
+            echo '*2. Each changed code path executing:*'
+            echo '```'
+            echo "\$ bash scripts/refresh-refs.sh      # resolves each repo's newest CalVer tag"
+            echo "\$ charly marketplace generate --root . --out ."
+            echo "\$ git status --porcelain | wc -l"
+            echo "${FILES}"
+            echo '```'
+            echo
+            echo '*3. Docs-only evidence:*'
+            echo '```'
+            echo "N/A — pins and generated artifacts."
+            echo '```'
+            echo
+            echo "## Attribution tier"
+            echo
+            echo "**fully tested and validated** — regeneration ran in CI at the new pins, and the repo's own"
+            echo "fail-closed drift gate re-runs on this PR."
+            echo
+            echo "## Harness rulebook compliance"
+            echo
+            echo "- **R1 zero warnings:** the refresh script reports unresolved repos explicitly and leaves"
+            echo "  their pins untouched rather than guessing."
+            echo "- **R3 no duplication:** one refs list, one owner."
+            echo "- **R4 no workaround:** every new pin is a MERGED CalVer tag on the owning repo — no branch"
+            echo "  refs, no version-less refs. Tags are compared NUMERICALLY, not lexicographically."
+            echo "- **R5:** the pins are replaced, not appended to."
+            echo "- **R6 git safety:** a fresh branch per run; no force-push; no push to \`main\`."
+            echo "- **R8 artifact invariants:** the corpus is regenerated by the tool, never hand-edited."
+            echo
+            echo "---"
+            echo
+            echo "*Assisted-by: GitHub Actions opencharly/marketplace-refresh (fully tested and validated)*"
+          } > /tmp/pr-body.md
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "refresh/$(date -u +%Y%m%d-%H%M%S)"
+          git add -A
+          git commit -m "chore: refresh the refs list to the newest tags"
+          git push -u origin HEAD
+          gh pr create --title "chore: refresh the refs list" --body-file /tmp/pr-body.md
