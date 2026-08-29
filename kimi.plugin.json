@@ -24,6 +24,7 @@
     "./openclaw/skills",
     "./openwebui/skills",
     "./pod/skills",
+    "./punktfunk/skills",
     "./selkies/skills",
     "./tools/skills",
     "./versa/skills",

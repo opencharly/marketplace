@@ -22,6 +22,7 @@
     "charly-openclaw",
     "charly-openwebui",
     "charly-pod",
+    "charly-punktfunk",
     "charly-selkies",
     "charly-tools",
     "charly-versa",
@@ -53,6 +54,7 @@
     "ollama",
     "openclaw",
     "openwebui",
+    "punktfunk",
     "selkies",
     "versa"
   ]
