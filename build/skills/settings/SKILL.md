@@ -30,9 +30,9 @@ Manage charly's runtime configuration stored in `~/.config/charly/config.yml`. C
 
 | Key | Default | Env Var | Description |
 |-----|---------|---------|-------------|
-| `engine.build` | `docker` | `CHARLY_ENGINE_BUILD` | Build engine (docker/podman) |
-| `engine.run` | `docker` | `CHARLY_ENGINE_RUN` | Run engine (docker/podman) |
-| `run_mode` | `quadlet` | `CHARLY_RUN_MODE` | Deployment mode (quadlet/direct) |
+| `engine.build` | `auto` | `CHARLY_BUILD_ENGINE` | Build engine (docker/podman) |
+| `engine.run` | `auto` | `CHARLY_RUN_ENGINE` | Run engine (docker/podman) |
+| `run_mode` | `auto` | `CHARLY_RUN_MODE` | Deployment mode (quadlet/direct) |
 | `bind_address` | `127.0.0.1` | `CHARLY_BIND_ADDRESS` | Default bind address for ports |
 | `encrypted_storage_path` | `~/.local/share/charly/encrypted` | `CHARLY_ENCRYPTED_STORAGE_PATH` | Base path for gocryptfs volumes |
 | `volumes_path` | `~/.local/share/charly/volumes` | `CHARLY_VOLUMES_PATH` | Base path for bind-mounted volumes |

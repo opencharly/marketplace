@@ -34,7 +34,7 @@ The generator is **config-driven** — distro format templates, builder stage te
 | Generate all | `charly box generate` | Generate Containerfiles for all enabled images |
 | With tag | `charly box generate --tag TAG` | Override the image tag |
 
-`charly box generate` takes **no positional image argument** — it always writes the full `.build/` tree for every enabled image in `charly.yml`. To inspect a single image's output, run `charly box generate` (fast — it reuses scratch-stage caches) and then `cat .build/<image>/Containerfile`. Filtering to one image happens implicitly via `charly box build <image>`, which invokes generate internally and then builds only the requested image + its dependencies.
+`charly box generate` takes an OPTIONAL positional box list (`generate [<boxes> ...]`; the sentinel `all`, or no argument, means every enabled image in `charly.yml`). To inspect a single image's output, run `charly box generate <image>` — or the full `charly box generate` (fast — it reuses scratch-stage caches) — and then `cat .build/<image>/Containerfile`. Filtering to one image happens implicitly via `charly box build <image>`, which invokes generate internally and then builds only the requested image + its dependencies.
 
 ```bash
 # Generate all Containerfiles

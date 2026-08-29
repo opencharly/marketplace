@@ -131,7 +131,7 @@ Runtime environment variables are injected from multiple sources. Resolution pri
 
 1. **Deploy config `env:`** (charly.yml / charly.yml) -- lowest priority
 2. **Deploy config `env_file:`** (charly.yml / charly.yml)
-3. **Workspace `.env`** file -- auto-loaded from `-w` directory
+3. **Workspace `.env`** file -- auto-loaded from the deployment's workspace directory
 4. **CLI `--env-file`** flag
 5. **CLI `-e`** flags -- highest priority
 
@@ -183,7 +183,7 @@ Source: `sdk/deploykit/quadlet_pod.go` / `sdk/deploykit/quadlet.go` (the shared-
 | Container state | Running only | Running or starts new |
 | Notification | Yes (`--[no-]notify`) | No |
 | Process model | `exec.Command` (returns) | `syscall.Exec` (replaces) |
-| Workspace mount | No | Yes (`-w`) |
+| Workspace mount | No | Yes (from the deployment's workspace, not a flag) |
 | Device auto-detect | No | Yes |
 | Use case | Quick commands + notification | Full container setup + command |
 

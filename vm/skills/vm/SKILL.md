@@ -236,8 +236,10 @@ the `/charly-distros:workspace-mount` layer. See `/charly-vm:vms-catalog`.
 ## `kind: vm` entity reference
 
 Canonical node-form shape, condensed from `/charly-vm:vms-catalog`. Each VM is a
-name-first top-level node; every non-scalar block (here `libvirt:`) is a CHILD NODE
-`<entity>-<key>`, never nested under `vm:`:
+name-first top-level node, and EVERY block — `libvirt:` included — lives INLINE in the
+`vm:` kind value. The former named child-node shape (`<entity>-<key>`) was deleted by
+the schema-compaction cutover and is now a hard loader error:
+`no kind discriminator — collections and plan steps live INLINE in the kind value`.
 
 ```yaml
 # cloud_image source
@@ -279,11 +281,10 @@ arch:
     cloud_init:
       package: [sudo, spice-vdagent]
       charly_install: {strategy: auto}
-arch-libvirt:                                       # CHILD NODE — libvirt block hoisted out of `vm:`
-  libvirt:
-    devices:
-      video: [{model: virtio, vram: 65536, heads: 1, accel3d: false}]
-      graphics: [{type: spice, autoport: "yes", listen: 127.0.0.1}]
+    libvirt:
+      devices:
+        video: [{model: virtio, vram: 65536, heads: 1, accel3d: false}]
+        graphics: [{type: spice, autoport: "yes", listen: 127.0.0.1}]
 
 # bootc source
 my-bootc:
@@ -368,8 +369,8 @@ is idle between calls). The only valid signals are the **socket**
 rootless-first (`qemu:///session`), so a non-root user with only the system
 daemon still needs the user-session path (which `resolveVmBackend()` autospawns).
 
-For projects whose check beds use `charly check libvirt …` and `charly check
-spice …` probes (e.g., the project's `arch:` VM template), pin the
+For projects whose check beds use the `libvirt:` and `spice:` check verbs
+(e.g., the project's `arch:` VM template), pin the
 backend explicitly via `backend: libvirt` on the kind:vm entity —
 `backend: auto` would silently fall through to qemu when the daemon
 is missing, breaking every libvirt-RPC probe with a confusing
@@ -464,11 +465,11 @@ Per-VM overrides live on the VM entity in `charly.yml`. The user-level defaults 
 
 ## Libvirt XML configuration
 
-Primary surface is the structured `LibvirtDomain` in the VM's `<name>-libvirt` child node (`<name>-libvirt: {libvirt: {features, cpu, clock, devices, sysinfo, launch_security, …}}`). See `/charly-internals:libvirt-renderer` for the full schema.
+Primary surface is the structured `LibvirtDomain` on the VM entity's own INLINE `libvirt:` field (`<name>: {vm: {…, libvirt: {features, cpu, clock, devices, sysinfo, launch_security, …}}}` — `#Vm.libvirt?: #LibvirtDomain`). See `/charly-internals:libvirt-renderer` for the full schema.
 
-Raw-XML escape hatch: the `<name>-libvirt` node's `libvirt.snippets:` (list of strings) — classified by element name. Device-scoped elements go into `<devices>`, domain-scoped before `</domain>`. Deduplicated by exact string match.
+Raw-XML escape hatch: the VM entity's inline `libvirt.snippets:` (list of strings) — classified by element name. Device-scoped elements go into `<devices>`, domain-scoped before `</domain>`. Deduplicated by exact string match.
 
-Layer-level raw snippets: a candy's `charly.yml` `libvirt.snippets:` is supported for layers that contribute device XML (e.g., `/charly-distros:qemu-guest-agent` contributes the virtio-serial channel). Box-level `libvirt: [...]` is not a valid field — VM XML lives on the VM entity's `<name>-libvirt` child node.
+Raw XML passthrough: `libvirt.snippets:` and `libvirt.xml_passthrough:` are typed-open escape hatches INSIDE the VM entity's own `libvirt:` block. The CANDY-level `libvirt:` raw-snippet field was REMOVED (zero live Go consumers, retired alongside the box-level libvirt hard cutover — see the note at `spec/schema/candy.cue`), so a layer can no longer contribute device XML that way; authoring it now fails closed with `libvirt: field not allowed`. Box-level `libvirt: [...]` is likewise not a valid field — VM XML lives on the VM entity's inline `libvirt:`.
 
 Source: `candy/plugin-vm/libvirt.go` (`InjectLibvirtXML` — the former `charly/libvirt.go` is DELETED, K-wave 2), `sdk/vmshared/libvirt_yaml.go`, `candy/plugin-vm/libvirt_yaml_bridge.go`.
 

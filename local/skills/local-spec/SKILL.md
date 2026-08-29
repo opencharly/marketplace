@@ -10,7 +10,7 @@ description: |-
 
 ## Overview
 
-`kind: local` declares a reusable candy-stack template that gets applied to a Linux filesystem (deployed by a `local:` deploy whose `from:` field selects this template). Unlike `kind: pod` / `kind: vm` / `kind: kubernetes` which wrap an image, a `kind: local` is defined entirely by its `layers` + `install_opts` + `env` — there's no OCI artifact backing it. The convention file is `local.yml`; templates may also be authored inline in `charly.yml` as top-level name-first nodes (`<name>: { local: {…} }`).
+`kind: local` declares a reusable candy-stack template that gets applied to a Linux filesystem (deployed by a `local:` deploy whose `from:` field selects this template). Unlike `kind: pod` / `kind: vm` / `kind: kubernetes` which wrap an image, a `kind: local` is defined entirely by its `candy` + `install_opts` + `env` — there's no OCI artifact backing it. The convention file is `local.yml`; templates may also be authored inline in `charly.yml` as top-level name-first nodes (`<name>: { local: {…} }`).
 
 Legacy `kind: host` projects migrate via `charly migrate`.
 
@@ -70,7 +70,7 @@ charly-cachyos-app:
 
 | Field | Required | Description |
 |---|---|---|
-| `layers` | Yes | Ordered candy stack. `[]` permitted as a placeholder (warning, not error). |
+| `candy` | Yes | Ordered candy stack (the key is `candy`, not `layers`). `[]` permitted as a placeholder (warning, not error). |
 | `install_opts` | No | Default install gates. Deployment overrides merge on top. |
 | `env` | No | Shell-profile env vars as a `{KEY: value}` map. Deployment env wins on key collision. |
 | `description` | No | Plain string — the profile's purpose; first line = the summary. |
@@ -87,8 +87,10 @@ steps. The deploy applies host packages + configs only. There is no
 
 Test-bed image preflight is the **check entry point's** job, not the
 deploy's. When `charly check run --on-host <name>` resolves to a host
-target, the runner walks the bed's plan steps, collects every distinct
-step `pod:` value plus the bed's target image, and ensures each
+target, the runner walks the bed's plan steps, collects each step's
+venue (derived from its position in the fleet tree — the per-step `pod:`
+field is RETIRED and authoring it is a closed-schema rejection) plus the
+bed's target image, and ensures each
 image is present in local podman storage (LocalImageExists →
 `charly box pull` → fall back to `charly box build` for short names that
 resolve via `cfg.Images`). Operators who never run `charly check run`
@@ -110,8 +112,8 @@ When a `local:` deploy carries `from: <template-name>`:
 
 | Field | Template provides | Deployment overrides | CLI overrides | Effective value |
 |---|---|---|---|---|
-| `layers` | base list | — | — | `template.Layers` |
-| `add_layers` | — | extra list | `--add-candy` | `deployment.AddCandies ++ CLI.AddCandy` |
+| `candy` | base list | — | — | `template.Layers` |
+| `add_candy` | — | extra list | `--add-candy` | `deployment.AddCandies ++ CLI.AddCandy` |
 | effective layer order | — | — | — | `template.Layers ++ deployment.AddCandies ++ CLI.AddCandy` |
 | `install_opts.*` (bool) | default | wins over template | wins over both | CLI > deployment > template |
 | `install_opts.builder_image` | default `""` | wins | wins over both | CLI > deployment > template |

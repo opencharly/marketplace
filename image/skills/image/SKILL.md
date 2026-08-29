@@ -219,9 +219,13 @@ Every setting resolves through: **image -> defaults -> hardcoded fallback** (fir
 | `distro` | `[]` | Distro identity tags in priority order: `["fedora:43", fedora]`. For packages: first matching section wins (override). For plan steps: additive. Inherited from base image |
 | `build` | `["rpm"]` | Package formats tied to builder definitions: `[rpm]` or `[pac, aur]`. ALL formats installed in order. Valid: rpm, deb, pac, aur, apk. Inherited from base image |
 | `candy` | `[]` | Candy composition list (image-specific, not inherited) |
-| `extract` | `[]` | Pull files out of another OCI image at build time — each `{source, path, dest}` renders `FROM <source> AS <candy>-extract-<i>` + `COPY --from=<stage> --chown=<uid>:<gid> <path> <dest>` (`sdk/deploykit/candy_stage.go`). The charly-native way to reuse a binary or static tree from an upstream image without adopting its init, scripts, or root layout. Counts as an install file for Agent Driven Evaluation (ADE) validation (a candy that only extracts ships no package/manifest/task files). First consumer: the agentteams candies (minio/mc, tuwunel, element-web from the `higress/*` images) |
 | `user` | `"user"` | Username for non-root operations. See `user_policy:` — may be overridden at resolve time when adopt mode fires |
 | `uid` | `1000` | User ID (may be overridden by `base_user:` under adopt) |
+
+> **`extract:` is NOT an image field.** It is a CANDY (layer) field —
+> `spec/schema/candy.cue` `extract?: [...#CandyExtract]` — and authoring it on a node
+> that carries `base:` fails closed with `extract: field not allowed`. Pull files out of another OCI image at build time — each `{source, path, dest}` renders `FROM <source> AS <candy>-extract-<i>` + `COPY --from=<stage> --chown=<uid>:<gid> <path> <dest>` (`sdk/deploykit/candy_stage.go`). The charly-native way to reuse a binary or static tree from an upstream image without adopting its init, scripts, or root layout. Counts as an install file for Agent Driven Evaluation (ADE) validation (a candy that only extracts ships no package/manifest/task files). First consumer: the agentteams candies (minio/mc, tuwunel, element-web from the `higress/*` images)
+> See `/charly-image:layer`.
 | `gid` | `1000` | Group ID (may be overridden by `base_user:` under adopt) |
 | `user_policy` | `"auto"` | How to reconcile `user:` against the base image's pre-existing uid-1000 account. Values: `auto` / `adopt` / `create`. See "user_policy" section below |
 | `merge` | `null` | Layer merge settings |

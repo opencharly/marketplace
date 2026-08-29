@@ -19,7 +19,6 @@ Displays logs from a running or recently stopped service container. In quadlet m
 |--------|---------|-------------|
 | View logs | `charly logs <image>` | Show recent logs |
 | Follow logs | `charly logs <image> -f` | Stream logs in real time |
-| Tail N lines | `charly logs <image> -n 50` | Show last N lines |
 | With instance | `charly logs <image> -i 2` | Logs from specific instance |
 
 ## Usage
@@ -32,13 +31,13 @@ charly logs jupyter
 charly logs ollama -f
 
 # Show last 100 lines
-charly logs immich -n 100
+charly logs immich
 
 # Logs from a specific instance
 charly logs openclaw -i 2
 
 # Combine follow with tail
-charly logs comfyui -f -n 50
+charly logs comfyui -f
 ```
 
 ## Flags
@@ -46,7 +45,6 @@ charly logs comfyui -f -n 50
 | Flag | Description |
 |------|-------------|
 | `-f, --follow` | Stream logs continuously |
-| `-n, --lines LINES` | Number of recent lines to show |
 | `-i, --instance INSTANCE` | Target a specific container instance |
 | `--sidecar NAME` | Show the named SIDECAR container's logs instead of the app container's |
 

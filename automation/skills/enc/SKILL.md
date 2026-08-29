@@ -23,7 +23,7 @@ Encrypted volume backing is configured at deploy time via `charly config --encry
 | Status | `charly config status <image>` | Show mount status |
 | Change password | `charly config passwd <image>` | Change encryption password |
 
-All commands accept `--volume NAME` to target a specific volume (otherwise all encrypted volumes are affected).
+`charly config mount` and `charly config unmount` accept `--volume NAME` to target a specific volume (otherwise all encrypted volumes are affected). `charly config status` and `charly config passwd` do NOT — they take only the deployment (and `-i/--instance`), and passing `--volume` to them fails with `unknown flag --volume`.
 
 ## Configuration
 

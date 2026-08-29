@@ -49,7 +49,7 @@ charly stop immich --unmount
 - **Direct mode:** Runs `<engine> stop <container>`
 - Does not remove the container or its configuration -- use `charly remove` for that
 - Does not disable the service -- the container may restart on next login if enabled
-- To stop and disable: `charly start <image> --enable=false` then `charly stop <image>`
+- To stop and disable: `charly stop <image>` then `charly config remove <image>` (which disables the quadlet service; `charly start` has no `--enable` flag, and there is no `enable`/`disable` verb)
 - **By design**, plain `charly stop` does NOT tear down encrypted FUSE mounts — the `charly-enc-*.scope` units are deliberately decoupled from the container service cgroup so they survive `KillMode=mixed` on stop and let the next start fast-path through the `charly config mount` short-circuit. Use `--unmount` for the full teardown semantics.
 
 ## Cross-References
