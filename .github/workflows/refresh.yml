@@ -214,15 +214,38 @@ jobs:
           git commit -m "chore: refresh the refs list to the newest tags"
           git push -u origin HEAD
 
-          # The branch is pushed FIRST and the PR attempted second, so a token problem
-          # costs a PR rather than a night's refresh — the work is already safe on a branch.
-          if ! gh pr create --title "chore: refresh the refs list" --body-file /tmp/pr-body.md; then
-            BR=$(git rev-parse --abbrev-ref HEAD)
-            echo "::error title=refresh: cannot open the PR::the bot token could not create it."
+          # The branch is pushed FIRST and the PR attempted second, so a failure here costs
+          # a PR rather than a night's refresh — the work is already safe on a branch.
+          #
+          # GitHub's GraphQL API returns a transient 504 often enough to have eaten a run
+          # already ("We couldn't respond to your request in time … Please try
+          # resubmitting"). Retry a BOUNDED number of times — but check first whether the
+          # PR now exists, because a 504 can mean the write succeeded and only the response
+          # timed out, in which case a retry would fail with "already exists" and mask a
+          # success.
+          BR=$(git rev-parse --abbrev-ref HEAD)
+          created=""
+          for attempt in 1 2 3; do
+            if gh pr create --title "chore: refresh the refs list" --body-file /tmp/pr-body.md; then
+              created=yes
+              break
+            fi
+            if [ -n "$(gh pr list --head "$BR" --state open --json number --jq '.[].number')" ]; then
+              echo "attempt $attempt reported an error, but the PR exists — the write landed."
+              created=yes
+              break
+            fi
+            echo "attempt $attempt failed and no PR exists; retrying…"
+            sleep $((attempt * 10))
+          done
+
+          if [ -z "$created" ]; then
+            echo "::error title=refresh: cannot open the PR::three attempts failed."
             echo "The refreshed branch IS pushed and nothing is lost: $BR"
             echo "Open it by hand:  https://github.com/${GITHUB_REPOSITORY}/pull/new/$BR"
-            echo "Check the CHARLY_AUTO_MERGE_APP_ID / _PRIVATE_KEY org secrets and that the"
-            echo "app is installed on this repository. Do NOT 'fix' this by enabling"
+            echo "If the error was a permission one rather than a 5xx, check the"
+            echo "CHARLY_AUTO_MERGE_APP_ID / _PRIVATE_KEY org secrets and that the app is"
+            echo "installed on this repository. Do NOT 'fix' it by enabling"
             echo "can_approve_pull_request_reviews — that also lets workflows approve PRs."
             exit 1
           fi
