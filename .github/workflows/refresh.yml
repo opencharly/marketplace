@@ -78,11 +78,12 @@ jobs:
 
       - name: Regenerate the corpus at the new pins
         # Same invocation as deploy.yml: --root is THIS repo (the refs list is the only
-        # input), and the `cd /tmp/charly` is what puts the `marketplace` command word into
-        # the CLI grammar — it is not a path.
+        # input). The former `cd /tmp/charly` is gone — this repo declares the `marketplace`
+        # command word itself (tools/marketplace-cli), so the verb resolves here and the
+        # charly clone is purely the BINARY.
         if: steps.bump.outputs.changed == 'true' && steps.skip.outputs.skip == 'false'
         run: |
-          cd /tmp/charly && /tmp/charly/bin/charly marketplace generate --root "$GITHUB_WORKSPACE" --out "$GITHUB_WORKSPACE"
+          /tmp/charly/bin/charly marketplace generate --root "$GITHUB_WORKSPACE" --out "$GITHUB_WORKSPACE"
 
       # GITHUB_TOKEN cannot open a pull request: "Allow GitHub Actions to create and
       # approve pull requests" is off across this org, deliberately — the same switch also
