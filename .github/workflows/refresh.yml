@@ -84,10 +84,43 @@ jobs:
         run: |
           cd /tmp/charly && /tmp/charly/bin/charly marketplace generate --root "$GITHUB_WORKSPACE" --out "$GITHUB_WORKSPACE"
 
+      # GITHUB_TOKEN cannot open a pull request: "Allow GitHub Actions to create and
+      # approve pull requests" is off across this org, deliberately — the same switch also
+      # lets a workflow APPROVE pull requests, which would let automation bypass review.
+      #
+      # The org already solves this class of problem for tag-on-merge (whose CHANGELOG
+      # commit GITHUB_TOKEN cannot write to a protected main): mint a GitHub App token,
+      # with a PAT fallback. Same pattern, same secrets.
+      - name: Create bot token (GitHub App)
+        id: bot-token-app
+        if: steps.bump.outputs.changed == 'true' && steps.skip.outputs.skip == 'false'
+        continue-on-error: true
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547
+        with:
+          app-id: ${{ secrets.CHARLY_AUTO_MERGE_APP_ID }}
+          private-key: ${{ secrets.CHARLY_AUTO_MERGE_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+
+      - name: Use PAT bot token
+        id: bot-token-pat
+        if: steps.bump.outputs.changed == 'true' && steps.skip.outputs.skip == 'false'
+        run: echo "token=${{ secrets.CHARLY_BOT_TOKEN }}" >> "$GITHUB_OUTPUT"
+
+      - name: Require bot token
+        if: steps.bump.outputs.changed == 'true' && steps.skip.outputs.skip == 'false'
+        env:
+          APP_TOKEN: ${{ steps.bot-token-app.outputs.token }}
+          PAT_TOKEN: ${{ steps.bot-token-pat.outputs.token }}
+        run: |
+          if [ -z "$APP_TOKEN" ] && [ -z "$PAT_TOKEN" ]; then
+            echo "::error::No bot token configured: set org secrets CHARLY_AUTO_MERGE_APP_ID + CHARLY_AUTO_MERGE_PRIVATE_KEY (GitHub App) or CHARLY_BOT_TOKEN (PAT)."
+            exit 2
+          fi
+
       - name: Open the refresh PR
         if: steps.bump.outputs.changed == 'true' && steps.skip.outputs.skip == 'false'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.bot-token-app.outputs.token || steps.bot-token-pat.outputs.token }}
         run: |
           BUMPED=$(grep -cE '^  [a-z]' /tmp/refresh.log || echo 0)
           SKILLS=$(git status --porcelain | grep -c 'SKILL.md' || echo 0)
@@ -181,23 +214,15 @@ jobs:
           git commit -m "chore: refresh the refs list to the newest tags"
           git push -u origin HEAD
 
-          # `gh pr create` from a workflow requires the repository setting
-          # "Allow GitHub Actions to create and approve pull requests"
-          # (repos/<owner>/<repo>/actions/permissions/workflow ->
-          # can_approve_pull_request_reviews). It is OFF across this org, deliberately:
-          # the same switch also lets a workflow APPROVE pull requests, which would let
-          # automation bypass review.
-          #
-          # So the branch is pushed FIRST and the PR attempted second. If the setting is
-          # off, the work is already safe on a branch and this step says exactly what to do
-          # instead of losing a night's refresh to an opaque GraphQL error.
+          # The branch is pushed FIRST and the PR attempted second, so a token problem
+          # costs a PR rather than a night's refresh — the work is already safe on a branch.
           if ! gh pr create --title "chore: refresh the refs list" --body-file /tmp/pr-body.md; then
             BR=$(git rev-parse --abbrev-ref HEAD)
-            echo "::error title=refresh: cannot open the PR::GitHub Actions is not permitted to create pull requests in this repo."
+            echo "::error title=refresh: cannot open the PR::the bot token could not create it."
             echo "The refreshed branch IS pushed and nothing is lost: $BR"
             echo "Open it by hand:  https://github.com/${GITHUB_REPOSITORY}/pull/new/$BR"
-            echo "Or enable it:     gh api repos/${GITHUB_REPOSITORY}/actions/permissions/workflow \\"
-            echo "                    -X PUT -F can_approve_pull_request_reviews=true"
-            echo "Note that switch ALSO permits workflows to approve PRs — which is why it is off."
+            echo "Check the CHARLY_AUTO_MERGE_APP_ID / _PRIVATE_KEY org secrets and that the"
+            echo "app is installed on this repository. Do NOT 'fix' this by enabling"
+            echo "can_approve_pull_request_reviews — that also lets workflows approve PRs."
             exit 1
           fi
