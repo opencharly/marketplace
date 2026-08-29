@@ -25,7 +25,7 @@ description: |-
 
 ## Cross-distro coverage
 
-`rpm:` (Fedora) · `pac:` (Arch) · `deb:` (Debian/Ubuntu — `dnsutils` replaces `bind-utils`, `jq`, `rsync` identical). The cloud-CLI tools (AWS, Scaleway, kubectx/kubens, OpenTofu) are curl-downloaded binaries — distro-agnostic by construction, no per-package-manager work needed.
+`rpm:` (Fedora) · `pac:` (Arch) · `deb:` (Debian/Ubuntu — `dnsutils` replaces `bind-utils`, `jq`, `rsync` identical). The cloud-CLI tools (AWS, Scaleway, kubectx/kubens, OpenTofu) are declarative download-verb binaries — distro-agnostic by construction, no per-package-manager work needed.
 
 ## Usage
 
