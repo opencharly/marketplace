@@ -53,8 +53,9 @@ runs the streaming desktop's browser for BOTH flavors — declared in
 launcher (R3). Fields: `restart: always` relaunches Chrome on any exit (including
 the clean self-exit a Chrome started during the nested compositor's startup-race
 produces — the relaunch lands post-settle, where Chrome stays up); `autostart`
-defaults true and is **self-synchronizing** because `chrome-wrapper` polls for the
-`wayland-0` client socket itself (no per-flavor `supervisorctl start` handoff);
+defaults true and is **self-synchronizing** because the service's `wait_for:` blocks
+on the `wayland-0` client socket before Chrome execs (no per-flavor
+`supervisorctl start` handoff);
 `start_secs: 5` + `start_retries: 3` let the one startup-race exit reset the retry
 budget rather than trip `FATAL`; `priority: 30`; `env WAYLAND_DISPLAY=wayland-0`.
 
