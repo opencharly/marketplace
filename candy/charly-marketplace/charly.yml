@@ -10,8 +10,8 @@ charly-marketplace:
             transitively. The family dirs at this repo's root are the GENERATED corpus,
             not the source — regeneration is a no-op on a clean tree (the drift gate).
         candy:
-            - '@github.com/opencharly/charly:v2026.240.0831'
-            - '@github.com/opencharly/pod-charly-hooks:v2026.239.1634'
+            - '@github.com/opencharly/charly:v2026.240.2345'
+            - '@github.com/opencharly/pod-charly-hooks:v2026.240.2141'
             - '@github.com/opencharly/layer-ripgrep:v2026.235.1653'
             - '@github.com/opencharly/layer-supervisord:v2026.239.1300'
             - '@github.com/opencharly/layer-nodejs:v2026.239.1624'
@@ -144,7 +144,7 @@ charly-marketplace:
             - '@github.com/opencharly/pod-kde-selkies:v2026.239.1559'
             - '@github.com/opencharly/layer-language-runtimes:v2026.238.2140'
             - '@github.com/opencharly/layer-python-ml:v2026.238.2102'
-            - '@github.com/opencharly/pod-selkies-core:v2026.239.1558'
+            - '@github.com/opencharly/pod-selkies-core:v2026.240.2344'
             - '@github.com/opencharly/layer-tailscale-up:v2026.238.2102'
             - '@github.com/opencharly/pod-unsloth-studio:v2026.239.1618'
             - '@github.com/opencharly/pod-waybar-labwc:v2026.240.0122'
