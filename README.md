@@ -20,7 +20,7 @@ Plugins are sorted into **four use-case buckets**:
 | **commands** | "I want to run charly verbs" | `charly-core`, `charly-build`, `charly-check`, `charly-automation` |
 | **kind** | "I want to author the YAML schema for an entity" | `charly-image`, `charly-vm`, `charly-kubernetes`, `charly-local`, `charly-pod` |
 | **development** | "I'm a contributor working on the charly source code itself" | `charly-internals` |
-| **images** | "I want to deploy a specific image" | `charly-distros`, `charly-languages`, `charly-infrastructure`, `charly-tools`, `charly-jupyter`, `charly-coder`, `charly-selkies`, `charly-openclaw`, `charly-versa`, `charly-ollama`, `charly-openwebui`, `charly-comfyui`, `charly-immich`, `charly-hermes`, `charly-filebrowser` |
+| **images** | "I want to deploy a specific image" | `charly-distros`, `charly-languages`, `charly-infrastructure`, `charly-tools`, `charly-jupyter`, `charly-coder`, `charly-selkies`, `charly-openclaw`, `charly-punktfunk`, `charly-versa`, `charly-ollama`, `charly-openwebui`, `charly-comfyui`, `charly-immich`, `charly-hermes`, `charly-filebrowser` |
 
 The layout is **flat** — every plugin sits at `<family>/` (no `charly-` prefix in directory
 names). The `charly-` prefix lives exclusively in each `plugin.json`'s `name:` field, which
@@ -62,7 +62,7 @@ surface (`.claude/hooks`, a `.claude/settings.json` merge, the R0 dispatcher spl
 |---|---|---|
 | **charly-core** | — | Lifecycle: start, stop, service, charly-status, logs, shell, ssh, deploy, charly-update, remove, charly-config, cmd, charly-version, charly-doctor, clean. |
 | **charly-build** | — | Build/authoring: build, generate, list, inspect, merge, new, pull, validate, secrets, settings, migrate, reconcile, charly-mcp-cmd, docs (the opencharly.ai site generator). |
-| **charly-check** | — | Live-container evaluation: `check` orchestrator + cdp, wl, wl-overlay, dbus, vnc, spice, libvirt, record, adb, appium probes + `android` (the `kind: android` device + `apk:` package format + Android-device deploy) + the `check-sway-browser-vnc-pod` R10 bed. |
+| **charly-check** | — | Live-container evaluation: `check` orchestrator + cdp, wl, wl-overlay, dbus, vnc, spice, libvirt, record, adb, appium, punktfunk probes + `android` (the `kind: android` device + `apk:` package format + Android-device deploy) + the `check-sway-browser-vnc-pod` R10 bed. |
 | **charly-automation** | — | tmux verb, agent control plane (agent skill + agent-control-operator agent), host-side wrappers (alias, udev), topic flags (enc, sidecar, openclaw-deploy). |
 
 ### kind — schema-kind authoring
@@ -93,6 +93,7 @@ surface (`.claude/hooks`, a `.claude/settings.json` merge, the R0 dispatcher spl
 | **charly-coder** | — | Coder dev images. |
 | **charly-selkies** | — | Selkies virtual-desktop streaming. |
 | **charly-openclaw** | — | OpenClaw. |
+| **charly-punktfunk** | — | Punktfunk streaming host (`punktfunk/1` QUIC + Moonlight compat). |
 | **charly-versa** | — | versa. |
 | **charly-ollama** | — | Ollama. |
 | **charly-openwebui** | — | Open WebUI. |

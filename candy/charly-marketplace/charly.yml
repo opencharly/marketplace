@@ -15,7 +15,7 @@ charly-marketplace:
             # here ('@github.com/opencharly/charly:vTAG') was not a candy node and
             # resolved to unknown candy "github.com/opencharly/charly" - silently in
             # this repo, but as a hard validation error in every consumer of the list.
-            - '@github.com/opencharly/pod-charly-hooks:v2026.240.2141'
+            - '@github.com/opencharly/pod-charly-hooks:v2026.241.2134'
             # The candies extracted out of charly/candy/ by the de-submodule cutover's
             # Phase D (opencharly/charly#451). Before this, their skills reached the corpus
             # only through the --root charly checkout at the CI pin below.
@@ -190,10 +190,12 @@ charly-marketplace:
             - '@github.com/opencharly/layer-sway-desktop-vnc:v2026.239.1557'
             - '@github.com/opencharly/layer-thunar:v2026.239.1603'
             - '@github.com/opencharly/layer-xfce4-terminal:v2026.239.1558'
+            - '@github.com/opencharly/layer-punktfunk:v2026.241.2145'
             - '@github.com/opencharly/pod-charly-automation:v2026.241.0820'
             - '@github.com/opencharly/plugin-agentteams/candy/plugin-agentteams:v2026.240.0121'
             - '@github.com/opencharly/plugin-ollama/candy/plugin-ollama:v2026.239.1609'
             - '@github.com/opencharly/plugin-dsh/candy/plugin-dsh:v2026.239.1623'
+            - '@github.com/opencharly/plugin-punktfunk/candy/plugin-punktfunk:v2026.241.2146'
         plan:
             - check: the marketplace corpus source resolves via the charly binary
               exit_status: 0

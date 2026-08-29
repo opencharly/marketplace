@@ -269,6 +269,18 @@
       "category": "kind"
     },
     {
+      "name": "charly-punktfunk",
+      "source": {
+        "source": "local",
+        "path": "./punktfunk"
+      },
+      "policy": {
+        "installation": "INSTALLED_BY_DEFAULT",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "images"
+    },
+    {
       "name": "charly-selkies",
       "source": {
         "source": "local",

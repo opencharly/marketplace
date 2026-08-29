@@ -1,0 +1,17 @@
+{
+  "name": "charly-punktfunk",
+  "description": "Self-contained skills for the punktfunk streaming-host image family (CachyOS base): the punktfunk/1 QUIC host daemon, its browser console and its plugin runner, installed from unom's signed pacman repo with a headless Sway compositor for the host to drive.",
+  "author": {
+    "name": "opencharly"
+  },
+  "homepage": "https://github.com/opencharly/charly",
+  "repository": "https://github.com/opencharly/marketplace",
+  "license": "MIT",
+  "keywords": [
+    "charly",
+    "punktfunk",
+    "streaming",
+    "moonlight",
+    "sway"
+  ]
+}

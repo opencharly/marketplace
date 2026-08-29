@@ -419,6 +419,25 @@
       "category": "kind"
     },
     {
+      "name": "charly-punktfunk",
+      "source": "./punktfunk",
+      "description": "Self-contained skills for the punktfunk streaming-host image family (CachyOS base): the punktfunk/1 QUIC host daemon, its browser console and its plugin runner, installed from unom's signed pacman repo with a headless Sway compositor for the host to drive.",
+      "author": {
+        "name": "opencharly"
+      },
+      "homepage": "https://github.com/opencharly/charly",
+      "repository": "https://github.com/opencharly/marketplace",
+      "license": "MIT",
+      "keywords": [
+        "charly",
+        "punktfunk",
+        "streaming",
+        "moonlight",
+        "sway"
+      ],
+      "category": "images"
+    },
+    {
       "name": "charly-selkies",
       "source": "./selkies",
       "description": "Self-contained skills + MCP wiring for the selkies-desktop family (Wayland desktop in a container with VNC + Chrome). Ships the chrome-devtools MCP server (port 9224).",
