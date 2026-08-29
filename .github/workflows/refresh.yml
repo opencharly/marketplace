@@ -180,4 +180,24 @@ jobs:
           git add -A
           git commit -m "chore: refresh the refs list to the newest tags"
           git push -u origin HEAD
-          gh pr create --title "chore: refresh the refs list" --body-file /tmp/pr-body.md
+
+          # `gh pr create` from a workflow requires the repository setting
+          # "Allow GitHub Actions to create and approve pull requests"
+          # (repos/<owner>/<repo>/actions/permissions/workflow ->
+          # can_approve_pull_request_reviews). It is OFF across this org, deliberately:
+          # the same switch also lets a workflow APPROVE pull requests, which would let
+          # automation bypass review.
+          #
+          # So the branch is pushed FIRST and the PR attempted second. If the setting is
+          # off, the work is already safe on a branch and this step says exactly what to do
+          # instead of losing a night's refresh to an opaque GraphQL error.
+          if ! gh pr create --title "chore: refresh the refs list" --body-file /tmp/pr-body.md; then
+            BR=$(git rev-parse --abbrev-ref HEAD)
+            echo "::error title=refresh: cannot open the PR::GitHub Actions is not permitted to create pull requests in this repo."
+            echo "The refreshed branch IS pushed and nothing is lost: $BR"
+            echo "Open it by hand:  https://github.com/${GITHUB_REPOSITORY}/pull/new/$BR"
+            echo "Or enable it:     gh api repos/${GITHUB_REPOSITORY}/actions/permissions/workflow \\"
+            echo "                    -X PUT -F can_approve_pull_request_reviews=true"
+            echo "Note that switch ALSO permits workflows to approve PRs — which is why it is off."
+            exit 1
+          fi
