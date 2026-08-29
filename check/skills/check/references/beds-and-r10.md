@@ -155,28 +155,52 @@ memory) is always preserved. Set `defaults.keep_check_runs` in `charly.yml`
 
 ### The ecosystem's disposable test-bed deploys
 
+The live roster is `grep '^check-.*:' <repo>/charly.yml` — this table is a
+snapshot of the headline beds; rosters change across cutovers, so verify a
+bed name against the live tree before launching it.
+
 | Bed | Target | Ref | Surface |
 |---|---|---|---|
-| `check-sway-browser-vnc-pod` | pod | `image: sway-browser-vnc` | cdp/wl/vnc/dbus/mcp/record + pod-side file/service/port/process/http |
 | `check-k3s-vm` | vm | `from: k3s-vm` | kube (all the methods) + guest-side file/service/port/process, http via port-forward, the external vm deploy end-to-end |
-| `check-pod` | pod | `image: check-pod` | combined mechanism bed: `candy:` image build (a `candy:` carrying `base:`/`from:`) + `candy:` layer composition order + `kind: pod` runtime (nc :18794 + supervisord) + every deploy-target rendering path |
-| `check-local` | local | `from: check-local-app` | `kind: local` layer apply via ShellExecutor |
-| `check-jupyter-pod` | pod | `image: jupyter` | jupyter-mcp regression coverage |
-| `check-jupyter-ml-pod` | pod | `image: jupyter-ml` | jupyter-ml spacy/quarto + GPU MCP probes |
+| `check-helm-vm` | vm | `from: k3s-vm` | the helm-release install step + `verb:helm` release-status assertion against a real k3s control plane |
+| `check-local-vm` | vm | `from: eval-host-vm` | guest-as-host proof of the `kind: local` layer-application path via ShellExecutor, run INSIDE the disposable eval VM |
+| `check-builder-vm` | vm | `from: eval-vm` | the cross-host builder (npm/cargo/pixi/aur) + machine-venue extract |
+| `check-substrate` | vm | `from: eval-vm` | the externalized substrate structural kinds (pod/vm/kubernetes/local/android) decode + deploy |
+| `check-charly-vm` | vm | `from: charly-vm` | `charly` toolchain binary-install witness (the candy's `copy: bin/charly` run step lands the in-development binary at /usr/bin/charly) on the cloud VM |
+| `check-arch-repo` / `check-fedora-repo` / `check-debian-repo` / `check-ubuntu-repo` | vm | `from: <distro>-repo-vm` | the distro package-repo publish + install end-to-end |
+| `check-alpine-repo` | pod | `image: alpine-repo-box` | the Alpine leg (a raw registry image cannot be a pod's `image:`, so a container is the honest substrate) |
+| `check-sidecar-pod` | pod | `image: check-k8s-deploy-app` | the sidecar de-type (Cutover D) — `charly config` generates the sidecar quadlet end-to-end |
+| `check-pod-overlay` | pod | `image: check-pod-overlay-app` | the pod overlay merge (project ↔ per-machine) |
+| `check-docs` | pod | `image: docs-site-app` | the opencharly.ai documentation site build + steady state |
+| `check-marketplace` | pod | `image: marketplace-app` | the marketplace corpus generation + drift gate |
+| `check-dsh-pod` | pod | `image: dsh-app` | the dsh (distributed shell) pod |
+| `check-agentteams-pod` / `check-agentteams-snapshot` / `check-agentteams-vm` | pod/vm | `image: agentteams` / `from: agentteams-vm` | the AgentTeams multi-agent stack (minio/matrix/element/higress/controller) |
+| `check-boxload-pod` | pod | `image: check-boxload-app` | `charly box load` into a nested rootless podman store |
+| `check-k8s-deploy` | group | `target: kubernetes` | the deploy:kubernetes preresolver → Kustomize tree → apply |
+| `check-group` | group | members | the group de-type (targetless group with members) |
+| `check-preflight-local` | group | members | the check-run image PREFLIGHT arm (iterate path, host target) |
+| `check-structkind` | examplestructkind | nested vm | the external STRUCTURAL plugin kind with authored-member input-threading |
+| `check-exampledeploy` | exampledeploy | host | the external (out-of-process) deploy-target lifecycle over the E3b reverse channel |
+| `check-commands-local` / `check-udev-local` / `check-preempt-local` / `check-migrate-local` / `check-feature-local` / `check-agent-local` / `check-doctor-local` / `check-gpu-local` | local | `host: local` | the externalized CLI command witnesses (clean/settings/candy/box/authoring/status/udev/preempt/migrate/feature/agent/doctor/gpu) — command-only probes, no install content |
+| `check-sway-browser-vnc-pod` | pod | `image: sway-browser-vnc` | cdp/wl/vnc/dbus/mcp/record + pod-side file/service/port/process/http |
+| `check-pod` | pod | `image: check-pod` | combined mechanism bed: `candy:` image build + `candy:` layer composition order + `kind: pod` runtime (nc :18794 + supervisord) + every deploy-target rendering path |
+| `check-jupyter-pod` / `check-jupyter-ml-pod` | pod | `image: jupyter` / `image: jupyter-ml` | jupyter-mcp regression coverage; jupyter-ml spacy/quarto + GPU MCP probes |
 | `check-versa-pod` | pod | `image: versa` | versa OSM analytics + vector-tile + marimo MCP |
 | `check-android-emulator-pod` | pod | `image: android-emulator` | Android 14 emulator (/dev/kvm) + adb/appium |
-| `check-openclaw-pod` | pod | `image: openclaw` | minimal headless gateway + dbus/service/port and exact installed CLI version |
-| `check-openclaw-full-pod` | pod | `image: openclaw-full` | maximal headless gateway + AI CLI and media/database tool stack |
-| `check-openclaw-desktop-pod` | pod | `image: openclaw-desktop` | combined streamed desktop + gateway + AI CLI + ollama + nested Charly toolchain |
-| `check-charly-vm` | vm | `from: charly-vm` | `charly` toolchain binary-install witness (the candy's `copy: bin/charly` run step lands the in-development binary at /usr/bin/charly) on the cloud VM |
+| `check-openclaw-pod` / `check-openclaw-full-pod` / `check-openclaw-desktop-pod` | pod | `image: openclaw*` | minimal / maximal / streamed-desktop headless gateway |
+| `check-cachyos-gpu-vm` / `check-selkies-labwc-nvidia-vm` / `check-selkies-kde-nvidia-vm` | vm | `from: cachyos-gpu-vm` | VFIO GPU-passthrough + nested selkies NVENC streaming (`requires_exclusive: [nvidia-gpu]` — serialized) |
+| `check-arch-pacstrap-vm` / `check-arch-vm` / `check-cachyos-vm` / `check-debian-debootstrap-vm` / `check-ubuntu-debootstrap-vm` / `check-fedora-vm` | vm | `from: <distro>-vm` | the distro bootstrap-VM beds (pacstrap / debootstrap) |
+| `check-cross-pod-cdp` / `check-cross-vm-http` / `check-cross-local-http` / `check-cross-local-driver` | pod/vm/local | — | cross-deployment probing (pod→pod, host→pod/VM) |
+| `check-preempt-arbiter-pod` / `check-preempt-live-pod` / `check-preempt-vm-live` | pod/vm | — | the resource-arbitration (preempt) beds |
+| `check-enc-pod` / `check-enc-port-pod` / `check-tunnel-pod` / `check-tutorial-shell` / `check-addcandy-pod` / `check-stepkind-emit-pod` / `check-ollama-pod` / `check-fedora-coder-pod` / `check-charly-fedora-pod` / `check-fedora-test-pod` | pod | — | the fedora mechanism + tooling beds |
+| `check-arch-vscode-pod` / `check-tmux-pod` / `check-agent-pod` / `check-agent-live` / `check-agent-live-claude` | pod | — | the arch tooling + agent beds |
+| `check-cachyos-jupyter-ml-pod` / `check-cachyos-ollama-pod` / `check-cachyos-ollama-rocm-pod` / `check-cachyos-comfyui-pod` / `check-cachyos-unsloth-studio-pod` / `check-cachyos-immich-ml-pod` / `check-selkies-kde-pod` / `check-selkies-labwc-pod` / `check-charly-selftest-pod` / `check-githubrunner-pod` | pod | — | the cachyos ML/desktop/tooling beds |
+| `check-debian-coder-pod` / `check-ubuntu-coder-pod` | pod | — | the debian/ubuntu coder pods |
 
-Bed homes: the main repo's `charly.yml` owns `check-k3s-vm`, `check-local`, and
-`check-charly-vm`; the pod beds above are top-level deploys in the `box/<distro>`
-submodules' `charly.yml` (`check-pod`, `check-jupyter-pod`, `check-jupyter-ml-pod`,
-`check-sway-browser-vnc-pod` in `box/fedora`; `check-versa-pod`,
-`check-android-emulator-pod`, `check-openclaw-pod`, `check-openclaw-full-pod`,
-and `check-openclaw-desktop-pod` in `box/cachyos`) and run from that submodule
-(e.g. `charly -C box/fedora check run check-pod`).
+Bed homes: the main repo's `charly.yml` owns the 33 beds above (the vm/pod/
+group/local/external mechanism beds); the `box/<distro>` submodules own the
+distro beds (arch 7, cachyos 19, debian 2, fedora 22, ubuntu 2) and run from
+that submodule (e.g. `charly -C box/fedora check run check-pod`).
 
 Naming: `check-<descriptor>-<kind>`, dropping a redundant suffix when the
 descriptor already equals the kind AND the short form is free (`check-local`,
@@ -220,7 +244,7 @@ construction.
 
 `check-pod` ~110s idle but **842s measured under a concurrent roster** (one build →
 deploy → check → fresh-update → teardown cycle covering all four mechanisms) ·
-`check-local` ~45s · `check-sidecar-pod` ~180–290s · `check-k3s-vm` ~5–7 min ·
+`check-local-vm` ~45s · `check-sidecar-pod` ~180–290s · `check-k3s-vm` ~5–7 min ·
 `check-openclaw-full-pod` ~1414s · the heavy feature beds
 (`check-sway-browser-vnc-pod` ~2477s ≈ 41 min incl. image build) longer.
 
