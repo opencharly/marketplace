@@ -19,7 +19,7 @@ charly-marketplace:
             # The candies extracted out of charly/candy/ by the de-submodule cutover's
             # Phase D (opencharly/charly#451). Before this, their skills reached the corpus
             # only through the --root charly checkout at the CI pin below.
-            - '@github.com/opencharly/layer-charly-internals:v2026.241.1506'
+            - '@github.com/opencharly/layer-charly-internals:v2026.241.2050'
             - '@github.com/opencharly/layer-charly-internals-extra:v2026.241.1216'
             - '@github.com/opencharly/layer-charly-build:v2026.241.1216'
             - '@github.com/opencharly/layer-charly-check:v2026.241.2052'
@@ -33,7 +33,7 @@ charly-marketplace:
             - '@github.com/opencharly/layer-golang:v2026.239.1614'
             - '@github.com/opencharly/pod-pipewire:v2026.239.1555'
             - '@github.com/opencharly/layer-ffmpeg:v2026.239.1614'
-            - '@github.com/opencharly/pod-sway:v2026.239.1611'
+            - '@github.com/opencharly/pod-sway:v2026.241.2004'
             - '@github.com/opencharly/layer-cuda:v2026.239.1557'
             - '@github.com/opencharly/layer-socat:v2026.240.0229'
             - '@github.com/opencharly/pod-selkies:v2026.240.2150'
@@ -190,12 +190,12 @@ charly-marketplace:
             - '@github.com/opencharly/layer-sway-desktop-vnc:v2026.239.1557'
             - '@github.com/opencharly/layer-thunar:v2026.239.1603'
             - '@github.com/opencharly/layer-xfce4-terminal:v2026.239.1558'
-            - '@github.com/opencharly/layer-punktfunk:v2026.241.2145'
+            - '@github.com/opencharly/layer-punktfunk:v2026.242.0831'
             - '@github.com/opencharly/pod-charly-automation:v2026.241.0820'
-            - '@github.com/opencharly/plugin-agentteams/candy/plugin-agentteams:v2026.240.0121'
-            - '@github.com/opencharly/plugin-ollama/candy/plugin-ollama:v2026.239.1609'
-            - '@github.com/opencharly/plugin-dsh/candy/plugin-dsh:v2026.239.1623'
-            - '@github.com/opencharly/plugin-punktfunk/candy/plugin-punktfunk:v2026.241.2146'
+            - '@github.com/opencharly/plugin-agentteams/candy/plugin-agentteams:v2026.242.0525'
+            - '@github.com/opencharly/plugin-ollama/candy/plugin-ollama:v2026.242.0532'
+            - '@github.com/opencharly/plugin-dsh/candy/plugin-dsh:v2026.242.0528'
+            - '@github.com/opencharly/plugin-punktfunk/candy/plugin-punktfunk:v2026.242.0620'
         plan:
             - check: the marketplace corpus source resolves via the charly binary
               exit_status: 0
