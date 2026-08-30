@@ -134,6 +134,8 @@ schema; a scalar value is the verb's primary-field shorthand (`file: /x`,
 | `exclude_distro: [<tag>, ...]` | Skip the check when any of the image's `distro:` tags matches an entry. Use for probes that only apply on some distros (e.g. `file: /usr/bin/fastfetch` is valid on Fedora/Arch/Debian but fastfetch is dropped from Ubuntu 24.04's noble main). Matched against the image's full distro list (`["ubuntu:24.04", "ubuntu", "debian"]`), so either `ubuntu:24.04` or `ubuntu` matches. See `charly/checkspec.go:Op.ExcludeDistros` and `charly/checkrun.go:runOne`. |
 | `timeout: "5s"` | Per-check timeout (http, addr). |
 | `context: [build\|deploy\|runtime]` | Which contexts the step runs in (a list). Build steps run in `charly check box`; deploy/runtime steps need a live deployment. |
+| `eventually: "30s"` | POLL until the check passes, re-running it every `retry_interval` until this deadline. The FIRST pass wins and returns immediately; on failure the LAST attempt is reported, annotated `(after N attempts over D)`. Absent means the check runs exactly once. |
+| `retry_interval: "2s"` | Poll interval for `eventually:`. Default 1s. Clamped if it exceeds the deadline. |
 
 #### `exclude_distro:` worked example
 
