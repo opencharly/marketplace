@@ -87,7 +87,7 @@ arch:
                               # any of them. Alpine is first-class: `distro: alpine` selects apk and
                               # OpenRC. openSUSE is still absent and has no near relative (zypper);
                               # adding it is one entry in that file.
-                              # Note also that #DistroID (13 ids) and the embedded `distro:` BUILD vocabulary are
+                              # Note also that #DistroID (14 ids, omarchy included) and the embedded `distro:` BUILD vocabulary are
                               # different sets, and the gap is SILENT: `buildVmSyntheticBox` resolves this field against
                               # the build vocabulary and on a miss leaves `img.Pkg` unset, so candy installation compiles
                               # ZERO package steps while `fleet add` reports success. A schema-valid id is therefore not

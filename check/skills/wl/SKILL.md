@@ -280,6 +280,79 @@ Other sway methods: `wl: sway-workspaces` / `sway-outputs` (JSON queries),
 `sway-layout` / `sway-workspace` (window/workspace control via `target:`),
 and `sway-reload` (reload sway config).
 
+## Hyprland-Specific Methods (`wl: hypr-*`)
+
+The Hyprland IPC methods are the hyphenated `wl: hypr-*` methods. They require a
+running Hyprland (hyprctl) and error elsewhere. The plugin recovers
+`HYPRLAND_INSTANCE_SIGNATURE` from `$XDG_RUNTIME_DIR/hypr` itself — it is absent
+from Hyprland's own `/proc/<pid>/environ`, so a bare env probe finds nothing.
+
+```yaml
+- check: the compositor reports at least one monitor
+  context: [deploy]
+  wl: hypr-monitors
+  stdout: {contains: '"name"'}
+- run: close a window through the Lua dispatcher
+  context: [deploy]
+  wl:
+    method: hypr-dispatch
+    command: hl.dsp.window.close({ window = "class:foot" })
+```
+
+`hypr-monitors` / `hypr-clients` / `hypr-workspaces` return `hyprctl -j` JSON
+verbatim; `hypr-systeminfo` returns text. `hypr-dispatch` and `hypr-eval` take a
+**Lua** expression on `command:` — Hyprland >= 0.55 replaced the legacy string
+dispatchers, and the old form (`closewindow title:foo`) is rejected outright.
+There is deliberately no `hypr-keyword`: on a Lua-config Hyprland `hyprctl
+keyword` refuses while still exiting 0, which would pass a check while changing
+nothing. Use `hypr-eval`.
+
+### `wl: hypr-layers` — layer-shell surfaces, with an on-screen verdict
+
+`hypr-clients`, `toplevel` and `windows` see only TOPLEVEL windows. On a
+Quickshell/wlroots desktop the bar, notification popups, launcher, OSD, wallpaper
+and lockscreen are none of them toplevels — they are `zwlr_layer_shell_v1`
+surfaces, invisible to every other method. `hypr-layers` is how a bed asserts
+they exist.
+
+It does not forward `hyprctl -j layers` verbatim, because that is not enough to
+write a check against: a layer surface can be MAPPED but parked outside the
+monitor, which is exactly how a hidden bar is implemented (unmapping would force
+the surface to be rebuilt on reveal). Shown and hidden are the same JSON except
+for coordinates. So the method correlates the surfaces against monitor geometry —
+scale-divided, and axis-swapped on an odd `transform` — and emits one
+tab-separated record per surface ending in `onscreen`, `offscreen` or `unknown`:
+
+```
+omarchy-bar         HEADLESS-1  0  0    1920  40    onscreen
+omarchy-background  HEADLESS-1  0  0    1920  1080  onscreen
+omarchy-bar         HEADLESS-1  0  -40  1920  40    offscreen
+```
+
+which makes each assertion one matcher:
+
+```yaml
+- check: the bar surface exists
+  context: [deploy]
+  wl: hypr-layers
+  stdout: {contains: omarchy-bar}
+- check: the bar is actually visible, not parked off-screen
+  context: [deploy]
+  eventually: 30s
+  wl: hypr-layers
+  stdout: {matches: 'omarchy-bar\s.*\sonscreen'}
+- check: hiding the bar parks it without unmapping it
+  context: [deploy]
+  eventually: 15s
+  wl: hypr-layers
+  stdout: {matches: 'omarchy-bar\s.*\soffscreen'}
+```
+
+`unknown` means the surface sits on a monitor `hyprctl -j monitors` did not
+report, so no bounds exist to judge it. It matches neither an `onscreen` nor an
+`offscreen` matcher on purpose — the check fails loudly rather than reading a
+guessed verdict as a real one.
+
 ## Differences from VNC
 
 | Aspect | `wl:` verb | `vnc:` verb |

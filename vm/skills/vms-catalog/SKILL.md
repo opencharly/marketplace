@@ -11,7 +11,7 @@ description: |-
 
 # vms
 
-`vm.yml` is the authoring surface for `kind: vm` entities — VM primitives that pair with either a remote cloud-image URL (`source.kind: cloud_image`) or an in-repo bootc container image (`source.kind: bootc`). Loaded through `charly.yml`'s `import:` (or inline under its root). Entries are resolved by `LoadUnified` into `VmSpec` Go types (generated in `spec/spec/`) and consumed by `charly vm build`, `charly vm create`, and `charly fleet add vm:<name>`.
+`vm.yml` is the authoring surface for `kind: vm` entities — VM primitives sourced four ways: a remote cloud-image URL (`source.kind: cloud_image`), an in-repo bootc container image (`source.kind: bootc`), a rootfs built from packages by the distro's own bootstrapper (`source.kind: bootstrap`), or the distro's own installer ISO driven unattended by a charly-rendered answers volume (`source.kind: iso`). Loaded through `charly.yml`'s `import:` (or inline under its root). Entries are resolved by `LoadUnified` into `VmSpec` Go types (generated in `spec/spec/`) and consumed by `charly vm build`, `charly vm create`, and `charly fleet add vm:<name>`.
 
 The VM surface parallels the `candy:` image surface: one YAML entry per entity, kind-keyed, discovered through includes. The Go types that back it live in `/charly-internals:vm-spec`; the rendering paths in `/charly-internals:libvirt-renderer` and `/charly-internals:cloud-init-renderer`.
 
@@ -37,7 +37,7 @@ The VM surface parallels the `candy:` image surface: one YAML entry per entity, 
                                           # (fedora/rhel/centos/rocky/almalinux), Debian-family (debian/ubuntu) and
                                           # alpine, which is first-class: `distro: alpine` selects apk and OpenRC. Only
                                           # openSUSE is still absent, with no near relative (zypper) — one entry adds it.
-                                          # Note also that #DistroID (13 ids) and the embedded `distro:` BUILD vocabulary are
+                                          # Note also that #DistroID (14 ids, omarchy included) and the embedded `distro:` BUILD vocabulary are
                                           # different sets, and the gap is SILENT: `buildVmSyntheticBox` resolves this field against
                                           # the build vocabulary and on a miss leaves `img.Pkg` unset, so candy installation compiles
                                           # ZERO package steps while `fleet add` reports success. A schema-valid id is therefore not

@@ -22,6 +22,8 @@ description: |-
 
 - **`source.kind: cloud_image`** — fetches a pre-built qcow2 from an external URL (Arch, Fedora, Ubuntu, Debian, CentOS Cloud images). Renders a NoCloud seed ISO with cloud-init. Canonical example: `/charly-vm:arch-cloud-vm`.
 - **`source.kind: bootc`** — pairs (via its `box:` source field) with a `candy:` image entry that has `bootc: true`. Runs `bootc install to-disk` inside a privileged container.
+- **`source.kind: bootstrap`** — builds a rootfs from PACKAGES with the distro's own bootstrapper (pacstrap / debootstrap / dnf) inside a privileged builder box, partitions a disk, and installs the distro's bootloader. Canonical examples: `/charly-vm:cachyos-bootstrap-vm`, `/charly-vm:debian-debootstrap-vm`.
+- **`source.kind: iso`** — boots a distro's OWN installer ISO with a charly-rendered answers volume, so the distro installs itself with nobody at the keyboard. The answer FORMAT belongs to the distro (`#DistroInstaller`); the answer DATA belongs to the VM entity (`installer:`). The blank disk is FIRST in the boot order, so the firmware falls through to the ISO on the first boot and the installed system boots from disk ever after — no eject, no detach, and no reboot-loop hazard. Canonical example: `/charly-vm:omarchy-vm`.
 
 VMs are not configured on `candy:` image entries — `vm:` / `libvirt:` on a `candy:` image are rejected at load time. `bootc: true` stays on a `candy:` image entry to mark it bootable. The legacy on-image `vm:`/`libvirt:` fields predate the schema floor and are no longer migratable — a config still carrying them must be re-authored as a name-first `kind: vm` node (see `/charly-build:migrate`). For the YAML authoring reference, see `/charly-vm:vms-catalog`; for the Go types, see `/charly-internals:vm-spec`.
 
@@ -263,7 +265,7 @@ arch:
                                                    # any of them. Alpine is first-class: `distro: alpine` selects apk and
                                                    # OpenRC. openSUSE is still absent and has no near relative (zypper);
                                                    # adding it is one entry in that file.
-                                                   # Note also that #DistroID (13 ids) and the embedded `distro:` BUILD vocabulary are
+                                                   # Note also that #DistroID (14 ids, omarchy included) and the embedded `distro:` BUILD vocabulary are
                                                    # different sets, and the gap is SILENT: `buildVmSyntheticBox` resolves this field against
                                                    # the build vocabulary and on a miss leaves `img.Pkg` unset, so candy installation compiles
                                                    # ZERO package steps while `fleet add` reports success. A schema-valid id is therefore not
