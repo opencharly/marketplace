@@ -45,8 +45,8 @@ debian-coder:
 
     # Language runtimes
     - language-runtimes           # Go + PHP + .NET 9 (via Microsoft dotnet-install.sh)
-    - '@github.com/opencharly/layer-golang:v2026.235.2057'
-    - '@github.com/opencharly/layer-nodejs:v2026.235.2056'  # Debian's packaged Node
+    - '@github.com/opencharly/layer-golang:v2026.239.1614'
+    - '@github.com/opencharly/layer-nodejs:v2026.239.1624'  # Debian's packaged Node
     - rust
     - pixi
     - uv
@@ -63,7 +63,7 @@ debian-coder:
     # AI coding CLIs
     - claude-code
     - codex
-    - '@github.com/opencharly/layer-gemini:v2026.235.2110'
+    - '@github.com/opencharly/layer-gemini:v2026.243.0409'
     - forgecode
     - oracle
 

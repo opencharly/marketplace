@@ -41,8 +41,8 @@ ubuntu-coder:
     - '@github.com/opencharly/pod-dbus:v2026.235.2115'
     - '@github.com/opencharly/layer-tmux:v2026.235.2057'
     - language-runtimes
-    - '@github.com/opencharly/layer-golang:v2026.235.2057'
-    - '@github.com/opencharly/layer-nodejs:v2026.235.2056'
+    - '@github.com/opencharly/layer-golang:v2026.239.1614'
+    - '@github.com/opencharly/layer-nodejs:v2026.239.1624'
     - rust
     - pixi
     - uv
@@ -55,7 +55,7 @@ ubuntu-coder:
     - asciinema
     - claude-code
     - codex
-    - '@github.com/opencharly/layer-gemini:v2026.235.2110'
+    - '@github.com/opencharly/layer-gemini:v2026.243.0409'
     - forgecode
     - oracle
     - devops-tools

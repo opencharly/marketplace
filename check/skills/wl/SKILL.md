@@ -10,11 +10,11 @@ description: |-
 
 ## Overview
 
-The `wl:` check verb is the unified desktop automation verb for wlroots compositors (sway, labwc) **and KWin (KDE Plasma)**. It is **NOT a host `charly check` subcommand** — it is a declarative check verb served out-of-process by its plugin (`candy/plugin-wl`), parallel to the `cdp:`/`vnc:`/`dbus:` plugin verbs. Author a `wl:` step in a candy/box plan and run it against a live deployment with `charly check live <image> --filter wl`. It provides screenshots, input (click, type, key combos, scroll, drag), window management, clipboard, resolution control, accessibility introspection (AT-SPI2), and window geometry queries. Works on sway-desktop, selkies-desktop (labwc), and selkies-kde-desktop (KWin) images.
+The `wl:` check verb is the unified desktop automation verb for wlroots compositors (sway, labwc), **Hyprland**, **and KWin (KDE Plasma)**. It is **NOT a host `charly check` subcommand** — it is a declarative check verb served out-of-process by its plugin (`candy/plugin-wl`), parallel to the `cdp:`/`vnc:`/`dbus:` plugin verbs. Author a `wl:` step in a candy/box plan and run it against a live deployment with `charly check live <image> --filter wl`. It provides screenshots, input (click, type, key combos, scroll, drag), window management, clipboard, resolution control, accessibility introspection (AT-SPI2), and window geometry queries. Works on sway-desktop, selkies-desktop (labwc), selkies-kde-desktop (KWin), and cstream-desktop (nested Hyprland) images.
 
 **Served out-of-process — no host CLI subcommand.** The host dispatches the `wl:` verb through the provider registry exactly like a built-in (`ResolveVerb("wl")` → the out-of-process gRPC provider → `Provider.Invoke` with the full `Op`), and the plugin drives the running container's compositor. Authoring is unchanged from a built-in verb: you write `wl: screenshot`, never `plugin: wl`.
 
-**Per-compositor routing.** The plugin's `detectCompositor` picks the backend per method. On wlroots: `wlrctl` (pointer + `wlrctl toplevel` window management), `wlr-randr` (resolution). On **KWin**: window management (toplevel/windows/focus/close/fullscreen/minimize/geometry) via **`kdotool`** (KWin scripting) + screenshot via `pixelflux`; `status` reports `compositor: kwin`. KWin **keyboard** (type/key — `wtype` needs `zwp_virtual_keyboard_manager_v1`), **clipboard** (`wl-clipboard` needs `wlr-data-control`), **pointer** (click/double-click/mouse/scroll/drag) and **resolution** (`wlr-randr` needs `wlr-output-management`) have NO KWin backend — those wlroots protocols are unimplemented by KWin — so plugin-wl returns a clear "unsupported on KWin" error (not a hang). Proven live on `check-selkies-kde-pod`: `wl: status` → `compositor: kwin`. See the Compositor Compatibility table below.
+**Per-compositor routing.** The plugin's `detectCompositor` picks the backend per method. On wlroots: `wlrctl` (pointer + `wlrctl toplevel` window management), `wlr-randr` (resolution). On **KWin**: window management (toplevel/windows/focus/close/fullscreen/minimize/geometry) via **`kdotool`** (KWin scripting) + screenshot via `pixelflux`; `status` reports `compositor: kwin`. KWin **keyboard** (type/key — `wtype` needs `zwp_virtual_keyboard_manager_v1`), **clipboard** (`wl-clipboard` needs `wlr-data-control`), **pointer** (click/double-click/mouse/scroll/drag) and **resolution** (`wlr-randr` needs `wlr-output-management`) have NO KWin backend — those wlroots protocols are unimplemented by KWin — so plugin-wl returns a clear "unsupported on KWin" error (not a hang). Proven live on `check-selkies-kde-pod`: `wl: status` → `compositor: kwin`. On **Hyprland**: window management and resolution route through **`hyprctl`** (`wl: status` reports `window=hyprctl resolution=hyprctl`), while pointer, keyboard and clipboard keep their wlroots backends — Hyprland implements all six protocols the tooling needs. See the Compositor Compatibility table below.
 
 ### Authoring a `wl:` step
 
@@ -70,18 +70,18 @@ Run a candy's baked `wl:` steps against a live deployment with
 
 Backend availability per compositor (the plugin routes each method to the available one):
 
-| Tool | Protocol | sway | labwc (selkies) | KWin (KDE Plasma) |
-|------|----------|------|-----------------|-------------------|
-| grim | wlr-screencopy | YES | NO (nested compositor) | NO |
-| pixelflux-screenshot | pixelflux API | NO | YES | YES |
-| wtype | zwp_virtual_keyboard_v1 | YES | YES | NO — fail-fast (KWin lacks the protocol) |
-| wlrctl pointer | wlr-virtual-pointer | YES | YES | NO — pointer unsupported on KWin |
-| wlrctl toplevel | wlr-foreign-toplevel-management | YES | YES | NO — window mgmt via `kdotool` |
-| kdotool | KWin scripting (D-Bus) | NO | NO | YES (toplevel/focus/close/fullscreen/minimize/geometry) |
-| wlr-randr | wlr-output-management | YES | YES | NO — resolution unsupported on KWin |
-| wl-copy/paste | wlr-data-control | YES | YES | NO — fail-fast (KWin lacks wlr-data-control) |
-| xdotool | X11 (XWayland) | YES | YES (on-demand) | YES (on-demand) |
-| swaymsg | i3 IPC | YES | NO | NO |
+| Tool | Protocol | sway | labwc (selkies) | KWin (KDE Plasma) | Hyprland (cstream) |
+|------|----------|------|-----------------|-------------------|--------------------|
+| grim | wlr-screencopy | YES | NO (nested compositor) | NO | YES — but `enforce_permissions` denies screencopy per binary, so it needs an `hl.permission` grant |
+| pixelflux-screenshot | pixelflux API | NO | YES | YES | NO |
+| wtype | zwp_virtual_keyboard_v1 | YES | YES | NO — fail-fast (KWin lacks the protocol) | YES |
+| wlrctl pointer | wlr-virtual-pointer | YES | YES | NO — pointer unsupported on KWin | protocol present (`wl: status` → `pointer=yes`); not exercised in-bed |
+| wlrctl toplevel | wlr-foreign-toplevel-management | YES | YES | NO — window mgmt via `kdotool` | NO — window mgmt routes through `hyprctl` Lua dispatchers |
+| kdotool | KWin scripting (D-Bus) | NO | NO | YES (toplevel/focus/close/fullscreen/minimize/geometry) | NO |
+| wlr-randr | wlr-output-management | YES | YES | NO — resolution unsupported on KWin | routed to `hyprctl`; **must not be used** on a GWD-driven output — see below |
+| wl-copy/paste | wlr-data-control | YES | YES | NO — fail-fast (KWin lacks wlr-data-control) | YES |
+| xdotool | X11 (XWayland) | YES | YES (on-demand) | YES (on-demand) | XWayland installed; not exercised |
+| swaymsg | i3 IPC | YES | NO | NO | NO |
 
 **KWin (selkies-kde-desktop) notes.** On a headless rootless nested KWin pod the
 wlroots-backed `wl:` tools do NOT work — KWin implements none of the wlroots
@@ -99,6 +99,39 @@ PROVEN live on `check-selkies-kde-pod`: the `wl-verb-dispatches` probe passes
 stream coverage the labwc flavor also asserts. (The KDE session itself is a
 `kwin_wayland --wayland-display wayland-1` nested compositor — see
 `/charly-selkies:selkies-kde-desktop` "De-SDDM".)
+
+**Hyprland (cstream-desktop) notes.** Hyprland implements all six wlroots protocols the
+`wl:` tooling needs, so unlike KWin nothing fail-fasts — but two methods route differently
+and one carries a hazard.
+
+*Routing.* `wl: status` reports `window=hyprctl resolution=hyprctl pointer=yes keyboard=yes
+clipboard=yes`. Window management does NOT go through `wlrctl toplevel`; it goes through
+Hyprland's Lua dispatchers (`hl.dsp.*`), because Hyprland >= 0.55 replaced the legacy string
+dispatchers with Lua. Keyboard (`wtype`), clipboard (`wl-clipboard`) and pointer keep their
+wlroots backends.
+
+*Screenshots need a permission grant.* The session sets `ecosystem.enforce_permissions = true`,
+which gates screencopy PER BINARY. Without an explicit
+`hl.permission("/usr/(bin|local/bin)/grim", "screencopy", "allow")` every capture is denied — so
+`wl: screenshot` fails on an otherwise healthy compositor.
+
+*Do NOT use `wl: resolution` on a GWD-driven output.* On a cstream desktop the streamer owns the
+output size, so changing it out-of-band makes the compositor and the encoder disagree with NO
+error anywhere: measured once with both at 640x480, a `wl: resolution 1280x720` moved the
+compositor to 1280x720 while the streamer's capsfilter stayed at 640x480. Resize must go through
+the cstream control socket. This is a second-writer hazard, not a backend gap — it applies
+whichever tool performs the write.
+
+*Selectors.* Use `address:` from `hl.get_windows()`, or `initialtitle:`. Plain `title:` is
+unreliable for automation: a terminal rewrites its title after mapping, so the selector stops
+matching and Hyprland answers `hl.focus: window not found`.
+
+PROVEN live on `check-cstream-pod`, each action paired with an observation rather than an absence
+of error: `wl: type` + `wl: key Return` (the typed line RAN — the process exists), `wl: key-combo
+ctrl+c` (the process is GONE), `wl: focus` both ways between two mapped windows, `wl: minimize`
+(the window really moved to `special:minimized`), `wl: close` targeting a NAMED window while the
+focused one survives, a clipboard set/get round-trip asserting the value returns exactly, a
+non-uniform `wl: screenshot`, and a keymap switch to `de` that the compositor then reports.
 
 **Coordinates.** The `wl:` verb takes **desktop-absolute** `x:`/`y:`. To click an
 element located by CSS selector, read its desktop coordinates from a `cdp: coords`

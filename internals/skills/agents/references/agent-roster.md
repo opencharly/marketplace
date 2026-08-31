@@ -172,7 +172,7 @@ as an agent-team teammate.
   unified `charly status` surface. It runs no beds — every substrate bed is
   disqualified from sub-agent ownership (`check-pod` measured ≥600s,
   `check-k3s-vm` is a VM bed, `check-android-emulator-pod` is an android
-  bed, `check-local` is host-local), so a runner form would be invalid by
+  bed, `check-local-vm` is a VM bed and the `check-*-local` beds are host-local), so a runner form would be invalid by
   construction. It emits, per substrate, the exact `charly check run <bed>`
   command, the `summary.yml` path to read, and the `status-shows-*`
   deploy-scope assertion that bed proves; the persistent session owns each

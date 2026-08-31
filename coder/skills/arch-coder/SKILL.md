@@ -48,8 +48,8 @@ arch-coder:
 
     # Language runtimes + managers
     - language-runtimes           # Go + PHP + .NET 9 + python3-devel
-    - '@github.com/opencharly/layer-golang:v2026.235.2057'
-    - '@github.com/opencharly/layer-nodejs:v2026.235.2056'  # Arch ships a current Node (v26)
+    - '@github.com/opencharly/layer-golang:v2026.239.1614'
+    - '@github.com/opencharly/layer-nodejs:v2026.239.1624'  # Arch ships a current Node (v26)
     - rust
     - pixi
     - uv
@@ -66,7 +66,7 @@ arch-coder:
     # AI coding CLIs
     - claude-code
     - codex
-    - '@github.com/opencharly/layer-gemini:v2026.235.2110'
+    - '@github.com/opencharly/layer-gemini:v2026.243.0409'
     - forgecode
     - oracle
 
