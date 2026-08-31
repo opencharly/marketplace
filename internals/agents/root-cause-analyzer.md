@@ -1,7 +1,7 @@
 ---
 name: root-cause-analyzer
 description: |-
-  MUST BE USED when any unexpected behavior, error, warning, or anomaly occurs. Performs deep root cause analysis following mandatory 8-step process. Never accepts "probably expected" without investigation.
+  Mandatory first response to any failure, error, warning, or anomaly (R1): 8-step root cause analysis with evidence.
 model: inherit
 ---
 

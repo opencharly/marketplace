@@ -1,7 +1,7 @@
 ---
 name: pr-validator
 description: |-
-  Blocking - The FRESH PR evaluator. Independently validates a pull request against the active harness rulebook + relevant skills and certifies its verdict for the ORG-WIDE `charly/pr-validator` GitHub Actions gate (`Verdict: PASS|BLOCK` → green/red check run + a single PR comment). On PASS the org-wide workflow enables native auto-merge (squash), and tag-on-merge writes the CHANGELOG and CalVer-tags — NOT this agent. It is a different agent from the one that authored the PR; it trusts none of the author's claims.
+  Blocking — the FRESH PR evaluator. Independently validates a pull request against the active harness rulebook + relevant skills and certifies its verdict (PASS/BLOCK). Uses gh_pr_status for pull-request state. Spawned with a NEW context; re-derives everything from the PR itself.
 model: inherit
 ---
 

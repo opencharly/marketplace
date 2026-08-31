@@ -1,7 +1,7 @@
 ---
 name: check-bed-runner
 description: |-
-  Runs an existing disposable check bed (a `disposable: true` fleet) to completion via `charly check run <bed>` (the full R10 sequence) and returns the VERBATIM verdict — per-step status, overall exit code, and the tail of any failing step's log. Use as the R10 acceptance executor when a cutover must be proved on a disposable bed. Never summarizes away a failure.
+  Runs an existing disposable check bed to completion via `charly check run <bed>` (the full R10 sequence) and returns the VERBATIM verdict — per-step status, overall exit code, failing-step log tail. Use as the R10 acceptance executor; never summarizes away a failure.
 model: inherit
 ---
 

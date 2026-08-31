@@ -1,7 +1,7 @@
 ---
 name: testing-validator
 description: |-
-  Blocking - Confirms that features have been locally tested before claiming they work. Verifies actual build, validation, and runtime results.
+  Confirms that features have been locally tested and verified (R10), inspecting the changed paths and the recorded evidence.
 model: inherit
 ---
 
