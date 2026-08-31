@@ -30,7 +30,7 @@ openclaw-desktop:
     - ollama                   # CPU ollama (GPU-agnostic layer)
     - charly                       # the full toolchain: charly binary + virtualization + gocryptfs + socat
     - container-nesting        # nested rootless podman/buildah/skopeo
-    - '@github.com/opencharly/layer-golang:v2026.235.2057'
+    - '@github.com/opencharly/layer-golang:v2026.239.1614'
     - gh
     - '@github.com/opencharly/pod-dbus:v2026.235.2115'
     - charly

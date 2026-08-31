@@ -26,7 +26,7 @@ description: |-
 # charly.yml -- typically used via sway-desktop composition
 my-image:
   candy:
-    - '@github.com/opencharly/layer-sway-desktop:v2026.238.2103'
+    - '@github.com/opencharly/layer-sway-desktop:v2026.242.1839'
 ```
 
 ## Used In Boxes
