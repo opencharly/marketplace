@@ -16,7 +16,7 @@ workflow expression of the B3 model (`/charly-internals:git-workflow`), not
 an exemption from it:
 
 - **Partition the parallel work by check bed.** One disjoint disposable bed
-  per parallel owner (`check-pod` / `check-k3s-vm` / `check-local` /
+  per parallel owner (`check-pod` / `check-k3s-vm` / `check-local-vm` /
   `check-android-emulator-pod` / …). Distinct beds get distinct
   `charly-<bed>` container/VM/domain names, and a bed run tags every
   fixture image it builds with a per-run `<bed-root>-<runCalver>` tag, so
@@ -571,7 +571,7 @@ The playbook:
    (never a teammate that authored code) validates and merges it.
    Teammates never commit, push, or merge.
 
-Worked partition (illustrative): A → `{check-pod, check-local}`, B →
+Worked partition (illustrative): A → `{check-pod, check-local-vm}`, B →
 `{check-jupyter-pod, check-versa-pod}`, C → `{check-k3s-vm}` (VM, needs the
 libvirt user session), D → `{check-sway-browser-vnc-pod}` (heavy). All
 concurrent → multiple pods and a VM live at once; wall-clock is roughly the
