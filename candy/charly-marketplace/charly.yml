@@ -136,7 +136,7 @@ charly-marketplace:
             - '@github.com/opencharly/pod-comfyui:v2026.239.1647'
             - '@github.com/opencharly/layer-wl-tools:v2026.240.0121'
             - '@github.com/opencharly/layer-cue:v2026.239.1620'
-            - '@github.com/opencharly/layer-direnv:v2026.241.0738'
+            - '@github.com/opencharly/layer-direnv:v2026.242.1147'
             - '@github.com/opencharly/layer-desktop-fonts:v2026.239.1629'
             - '@github.com/opencharly/layer-dev-tools:v2026.239.1624'
             - '@github.com/opencharly/layer-devops-tools:v2026.241.0701'
