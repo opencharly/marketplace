@@ -42,7 +42,7 @@ description: |-
 # charly.yml -- adds ML to an immich image
 immich-ml:
   candy:
-    - '@github.com/opencharly/pod-immich-ml:v2026.237.936'
+    - '@github.com/opencharly/pod-immich-ml:vTAG'
 ```
 
 ## Used In Boxes

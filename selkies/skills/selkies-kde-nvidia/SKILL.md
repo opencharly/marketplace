@@ -30,7 +30,7 @@ selkies-kde-nvidia:
   candy:
     - agent-forwarding
     - selkies-kde-desktop
-    - '@github.com/opencharly/pod-dbus:v2026.235.2115'
+    - '@github.com/opencharly/pod-dbus:vTAG'
     - charly
   port: ["3000:3000", "9222:9222", "9224:9224", "2222:2222"]
   platform: [linux/amd64]

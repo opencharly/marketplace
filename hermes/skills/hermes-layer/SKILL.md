@@ -147,9 +147,9 @@ charly service start hermes hermes-whatsapp
 hermes:
   base: fedora
   candy:
-    - '@github.com/opencharly/layer-agent-forwarding:v2026.238.1851'
-    - '@github.com/opencharly/pod-hermes-full:v2026.237.938'
-    - '@github.com/opencharly/pod-dbus:v2026.235.2115'
+    - '@github.com/opencharly/layer-agent-forwarding:vTAG'
+    - '@github.com/opencharly/pod-hermes-full:vTAG'
+    - '@github.com/opencharly/pod-dbus:vTAG'
 ```
 
 ## Related Candies

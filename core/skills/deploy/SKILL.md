@@ -1040,7 +1040,7 @@ check-arch-vm:
     local:                         # NO host: field — the venue comes from the parent
       disposable: true
       add_candy:
-        - '@github.com/opencharly/charly/candy/direnv:v2026.183.1359'
+        - '@github.com/opencharly/charly/candy/direnv:v2026.243.1028'
       plan:
         - check: command=test -d /home/arch/.config/opencharly/installed/deploys
           id: ah-ledger-deploys-dir       # the ledger lands in the GUEST, not the host

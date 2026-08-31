@@ -40,13 +40,13 @@ debian-coder:
     - charly
     - charly-mcp
     - container-nesting
-    - '@github.com/opencharly/pod-dbus:v2026.235.2115'
-    - '@github.com/opencharly/layer-tmux:v2026.235.2057'
+    - '@github.com/opencharly/pod-dbus:vTAG'
+    - '@github.com/opencharly/layer-tmux:vTAG'
 
     # Language runtimes
     - language-runtimes           # Go + PHP + .NET 9 (via Microsoft dotnet-install.sh)
-    - '@github.com/opencharly/layer-golang:v2026.239.1614'
-    - '@github.com/opencharly/layer-nodejs:v2026.239.1624'  # Debian's packaged Node
+    - '@github.com/opencharly/layer-golang:vTAG'
+    - '@github.com/opencharly/layer-nodejs:vTAG'  # Debian's packaged Node
     - rust
     - pixi
     - uv
@@ -63,13 +63,13 @@ debian-coder:
     # AI coding CLIs
     - claude-code
     - codex
-    - '@github.com/opencharly/layer-gemini:v2026.243.0409'
+    - '@github.com/opencharly/layer-gemini:vTAG'
     - forgecode
     - oracle
 
     # DevOps / cloud / infra
     - devops-tools
-    - '@github.com/opencharly/layer-kubernetes:v2026.237.457'
+    - '@github.com/opencharly/layer-kubernetes:vTAG'
     - docker-ce
     - github-actions
     - google-cloud

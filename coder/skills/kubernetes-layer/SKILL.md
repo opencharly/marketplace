@@ -29,7 +29,7 @@ RPM: `kubernetes-client`, `helm`
 # charly.yml
 my-devops:
   candy:
-    - '@github.com/opencharly/layer-kubernetes:v2026.237.457'
+    - '@github.com/opencharly/layer-kubernetes:vTAG'
 ```
 
 ## Used In Boxes

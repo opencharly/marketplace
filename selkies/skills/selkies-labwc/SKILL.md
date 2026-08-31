@@ -21,7 +21,7 @@ selkies-labwc:
   candy:
     - agent-forwarding
     - selkies-desktop
-    - '@github.com/opencharly/pod-dbus:v2026.235.2115'
+    - '@github.com/opencharly/pod-dbus:vTAG'
     - charly
   ports:
     - "3000:3000"

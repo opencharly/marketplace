@@ -88,7 +88,7 @@ jupyter:
   candy:
     - agent-forwarding
     - jupyter
-    - '@github.com/opencharly/pod-dbus:v2026.235.2115'
+    - '@github.com/opencharly/pod-dbus:vTAG'
     - charly
   ports:
     - "8888:8888"

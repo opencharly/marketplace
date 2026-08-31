@@ -12,6 +12,13 @@ description: |-
 
 # Check — unified declarative + AI-iteration evaluation
 
+## Bed & entity naming — dot-free, always
+
+Deploy-tree keys and entity names must be DOT-FREE: an entity named
+`check-mise-26.04` breaks the deploy-tree keying (the dot reads as a
+namespace separator) — keep dots out of every `check-*` entity name
+(e.g. `check-mise-ubuntu-2604`, not `…-26.04`).
+
 ## Overview
 
 `charly` ships a goss-inspired declarative testing framework built into the

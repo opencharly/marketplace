@@ -68,7 +68,7 @@ All pnpm commands use `npm_config_cache=/tmp/npm-root-cache` to avoid creating r
 # charly.yml
 immich:
   candy:
-    - '@github.com/opencharly/pod-immich:v2026.237.806'
+    - '@github.com/opencharly/pod-immich:vTAG'
 ```
 
 ## Used In Boxes
