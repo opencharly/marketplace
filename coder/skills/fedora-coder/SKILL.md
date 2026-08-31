@@ -52,8 +52,8 @@ fedora-coder:
 
     # Language runtimes + managers
     - language-runtimes           # Go + PHP + .NET 9 + nodejs-devel + python3-devel
-    - '@github.com/opencharly/layer-golang:v2026.235.2057'
-    - '@github.com/opencharly/layer-nodejs:v2026.235.2056'  # generic nodejs candy (Node 22 on Fedora)
+    - '@github.com/opencharly/layer-golang:v2026.239.1614'
+    - '@github.com/opencharly/layer-nodejs:v2026.239.1624'  # generic nodejs candy (Node 22 on Fedora)
     - rust
     - pixi
     - uv                          # direct-download binary (no pixi env)
@@ -70,7 +70,7 @@ fedora-coder:
     # AI coding CLIs
     - claude-code
     - codex
-    - '@github.com/opencharly/layer-gemini:v2026.235.2110'
+    - '@github.com/opencharly/layer-gemini:v2026.243.0409'
     - forgecode                   # 5th CLI (astral-sh-style)
     - oracle
 

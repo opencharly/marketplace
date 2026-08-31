@@ -58,6 +58,39 @@ reported as such.
 | lifecycle | `actions` `action-invoke` `end-game` |
 | stream | `events` |
 
+### Client methods — the headless `punktfunk` CLI
+
+The groups above are the HOST management API. These are the CLIENT half, served
+by the headless `punktfunk` CLI that every Linux client package ships, so a
+fleet bed can drive both ends of a stream in charly verbs instead of shelling
+out to `command:`.
+
+| Group | Methods |
+|---|---|
+| saved hosts | `hosts-list` (`probe:`) `hosts-add` `hosts-forget` |
+| enrolment | `pair` (`pin:`) |
+| streaming | `launch` (`game:`) `open` (`auto_approve:`) `speed-test` |
+| client-side reads | `client-library` `reachable` `profiles-list` |
+| maintenance | `wake` `client-reset` |
+
+They take `host:` — the documented `<host-ref>`, a saved name or `host[:port]` —
+and run inside the venue where `punktfunk-client` is installed. `client_bin:`
+overrides the binary for the Flatpak build, which is not on PATH.
+
+**The PIN travels on stdin, never argv.** Upstream documents `--pin <value>` as
+visible in the process list and `--pin -` as the scripting form; `pair` uses the
+latter. Omitting `pin:` selects the console-approval flow instead, where the
+client requests and a `punktfunk: approve` step on the host completes it — which
+is the flow an automated fleet bed wants, because no secret crosses the member
+boundary.
+
+**Exit codes are mapped, not collapsed.** The CLI documents `0` success,
+`2` connection failed, `3` trust rejected (re-pair needed), `4` renderer startup
+failed, `5` no match for the reference, `6` interactive action required. Each
+becomes a distinct verdict message, so a bed reports *which* thing broke rather
+than that something did. `6` is the one to watch in automation: it means the CLI
+wanted a human, i.e. the unattended contract is broken.
+
 `health` is the only unauthenticated route, so it works before a token exists —
 which makes it the right first probe on a fresh host.
 
@@ -80,12 +113,44 @@ device or reboot a machine.
 | `kinds` / `count` / `event_timeout` | the `events` subscription window |
 | `json_path` | dotted path into the response; stdout becomes that value |
 
+## Scalar shorthand works — but the plugin candy must be in scan range
+
+```yaml
+punktfunk: status          # scalar sugar
+punktfunk:                 # map form — identical meaning
+  method: status
+```
+
+Both parse. The sugar is enabled by this candy's `plugin.primary: {punktfunk:
+method}`, which charly reads in a PRE-CONNECT prescan — before any plugin is
+connected — so the declaration has to be reachable at parse time.
+
+**That is the one real requirement: the plugin candy must be composed into the
+box that authors the step.** charly reads `primary:` off candies in scan range,
+so a bed that authors `punktfunk: status` without composing this candy fails with
+
+```
+plugin verb "punktfunk" takes a MAP input
+(it declares no primary field for the scalar shorthand)
+```
+
+and that failure is not local to the offending step — it blocks the parse for
+every bed sharing the project closure.
+
+*Historical note.* Until 2026-08-30 the same error appeared even when the candy
+WAS composed, whenever it arrived by `@github` ref rather than being discovered
+locally: the remote-ref prescan leg was gated behind a local `discover:` block.
+That was opencharly/charly#471, fixed by charly#473 — verified by an A/B on the
+identical fixture, which fails on `v2026.242.0649` and passes on the fix. Do not
+reintroduce the map-form workaround this file used to prescribe.
+
 ## Examples
 
 ```yaml
 # Liveness, before any token exists.
 - check: the host's management API reports itself live
-  punktfunk: health
+  punktfunk:
+    method: health
   stdout: [{contains: '"status":"ok"'}]
   eventually: 90s
   retry_interval: 5s
@@ -101,7 +166,8 @@ device or reboot a machine.
 
 # Managing is a run: step, never a check:.
 - run: arm native pairing so a device can enrol
-  punktfunk: pair-arm
+  punktfunk:
+    method: pair-arm
 
 # Wait for a TRANSITION rather than polling a state.
 - check: a stream actually started
