@@ -185,16 +185,16 @@ fedora-builder:
     base: fedora
     produce: [pixi, npm, cargo]  # declares what this builder can build
     candy:
-      - '@github.com/opencharly/layer-pixi:v2026.239.1634'
-      - '@github.com/opencharly/layer-nodejs:v2026.239.1624'
-      - '@github.com/opencharly/layer-build-toolchain:v2026.239.1636'
+      - '@github.com/opencharly/layer-pixi'
+      - '@github.com/opencharly/layer-nodejs'
+      - '@github.com/opencharly/layer-build-toolchain'
 
 my-app:
   candy:
     base: fedora
     env_file: "~/.config/my-app/.env"
     candy:
-      - '@github.com/opencharly/pod-traefik:v2026.243.0508'
+      - '@github.com/opencharly/pod-traefik'
       - my-service          # declares service: — the init is injected, not listed here.
                             # Published ports are inherited from the candies (no box `port:`)
     env:

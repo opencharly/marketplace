@@ -55,7 +55,7 @@ my-spike-box:
             - fedora:43
             - fedora
         candy:
-            - '@github.com/opencharly/pod-nested-podman-socket:v2026.243.0411'  # pulls in container-nesting itself
+            - '@github.com/opencharly/pod-nested-podman-socket'  # pulls in container-nesting itself
 ```
 
 ## Usage

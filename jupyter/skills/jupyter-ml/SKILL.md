@@ -19,7 +19,7 @@ jupyter-ml:
     - agent-forwarding
     - jupyter-ml
     - notebook-templates
-    - '@github.com/opencharly/pod-dbus:v2026.235.2115'
+    - '@github.com/opencharly/pod-dbus'
     - charly
   ports:
     - "8888:8888"
