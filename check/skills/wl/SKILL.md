@@ -33,7 +33,7 @@ Each method is the declarative `wl:` step you author — an ordered list item un
 
 | Action | Declarative step | Description |
 |--------|------------------|-------------|
-| Screenshot | `wl: screenshot` + `artifact:` | Capture desktop as PNG via grim |
+| Screenshot | `wl: screenshot` + `artifact:` | Capture desktop as PNG via grim; assert on it with the artifact validators below |
 | Click | `wl: click` + `x:` + `y:` | Click at absolute coordinates via wlrctl |
 | Double-click | `wl: double-click` + `x:` + `y:` | Double-click with configurable delay |
 | Type text | `wl: type` + `text:` | Send keyboard input via wtype |
@@ -48,7 +48,7 @@ Each method is the declarative `wl:` step you author — an ordered list item un
 | Close window | `wl: close` + `target:` | Close window via wlrctl toplevel |
 | Fullscreen | `wl: fullscreen` + `target:` | Toggle fullscreen via wlrctl toplevel |
 | Minimize | `wl: minimize` + `target:` | Toggle minimize via wlrctl toplevel |
-| Launch app | `wl: exec` + `command:` | Launch application in container |
+| Launch app | `wl: exec` + `command:` | Launch an app DETACHED — see the note below on when NOT to use it |
 | Resolution | `wl: resolution` + `target:` | Set output resolution via wlr-randr |
 | Clipboard | `wl: clipboard` + `action:` (+ `text:` for set) | Read/write Wayland clipboard (get/set/clear) |
 | Window props | `wl: xprop` + `target:` | Query X11 window properties |
@@ -65,6 +65,89 @@ only `stdout:`/`stderr:`/`exit_status:` and `context:`/`id:`/`timeout:` are sibl
 
 Run a candy's baked `wl:` steps against a live deployment with
 `charly check live <image> --filter wl` (add `-i <instance>` for multi-instance).
+
+### `wl: exec` launches; it does not run-and-wait
+
+`exec` detaches the process (`setsid`) and redirects its streams to `/dev/null`. That
+is exactly right for what it exists for — a GUI app that maps a window and keeps
+running — and exactly wrong for a fast state change.
+
+Two consequences worth knowing before authoring:
+
+- **It returns immediately, before the command has done anything.** Assert the EFFECT
+  afterwards (a window appears, a layer maps) with `eventually:`, never the exec step
+  alone.
+- **It discards the command's output and exit status.** A launch that fails silently
+  looks identical to one that succeeded. So for a short command whose exit status IS
+  the assertion — a toggle, a config write, an IPC call — use the `command:` verb
+  instead, which waits and reports. A bed that used `wl: exec` for a bar toggle had
+  the toggle silently not land, and the failure surfaced two steps later against
+  unrelated state.
+
+The streams are redirected for a mechanical reason, not tidiness: a backgrounded child
+that inherits stdout keeps the capture pipe open, so the verb blocks for its whole
+deadline on a process that never exits. Before that was fixed, launching a terminal
+reported `DeadlineExceeded` while the very next step found its window mapped. The same
+applies to `wl: clipboard set` — `wl-copy` stays alive to own the Wayland selection.
+
+## Asserting on a screenshot: the artifact validators
+
+`wl: screenshot` writes a PNG to `artifact:`. On its own that proves only that grim
+exited — the shared SDK artifact pipeline is what turns the file into an assertion.
+Five validators, authored INSIDE the `wl:` map alongside `artifact:`:
+
+| Validator | Asserts |
+|---|---|
+| `artifact_min_bytes:` | the file is at least N bytes |
+| `artifact_min_dimensions:` | the decoded image is at least `WxH` |
+| `artifact_not_uniform:` | the image is not one flat colour |
+| `artifact_min_cast_events:` | (asciicast artifacts) at least N events |
+| `artifact_contains_text:` | **OCR reads this text out of the image**, case-insensitively |
+
+They are a LADDER, not alternatives — each rules out a different way a capture can be
+worthless, and only the last proves the desktop DREW anything. `min_bytes` passes on a
+blank PNG. `not_uniform` passes on a wallpaper with every panel missing.
+`contains_text` fails unless the pixels actually spell something.
+
+That matters most for layer-shell surfaces: `hypr-layers` can report a surface
+present, correctly sized and on screen while it renders nothing, so a bed asserting
+presence alone will pass a shell that came up broken. Pair them.
+
+```yaml
+- check: the weather panel surface is mapped
+  context: [deploy]
+  wl: hypr-layers
+  stdout:
+    - contains: omarchy-keyboard-panel
+
+- check: the weather panel actually renders its location
+  context: [deploy]
+  wl:
+    method: screenshot
+    artifact: /tmp/weather.png
+    artifact_min_bytes: 10000
+    artifact_contains_text: SAN FRANCISCO
+```
+
+### `artifact_contains_text:` needs an OCR engine ON THE HOST
+
+The validators run host-side on the pulled artifact, not in the venue — so `tesseract`
+plus a language pack must be where `charly` runs, NOT in the image under test. charly
+declares both as OPTIONAL package dependencies (`tesseract` + `tesseract-data-eng` on
+arch, `tesseract-ocr` + `tesseract-ocr-eng` on deb), because only beds authoring this
+modifier need them.
+
+**A missing engine or language pack is an ERROR, never a no-match.** With no language
+data tesseract writes its complaint to stderr and exits with EMPTY stdout — which is
+indistinguishable from "the text is not on screen" to anything reading stdout alone.
+The validator checks stderr first and names the cause, so a broken OCR setup says so
+instead of silently failing every assertion as though the desktop were blank.
+
+The image is enlarged before OCR: tesseract wants roughly document resolution and a
+desktop capture is screen resolution. Measured on a 1280x800 capture whose bar reads
+`Monday 10:52` plainly to a human, tesseract returned ZERO words at native size and
+read the clock correctly once enlarged. Sparse-text segmentation is used, because a
+desktop is scattered labels rather than a page of prose.
 
 ## Compositor Compatibility
 
