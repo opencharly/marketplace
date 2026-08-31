@@ -29,8 +29,8 @@ description: |-
 # charly.yml — typically used with sway-desktop-vnc + steam
 sway-browser-vnc-steam-heroic:
   candy:
-    - '@github.com/opencharly/layer-sway-desktop-vnc:v2026.237.1056'
-    - '@github.com/opencharly/layer-steam:v2026.237.1055'
+    - '@github.com/opencharly/layer-sway-desktop-vnc'
+    - '@github.com/opencharly/layer-steam'
     - heroic
 ```
 

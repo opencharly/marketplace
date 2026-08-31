@@ -28,7 +28,7 @@ my-box:
   candy:
     base: fedora
     candy:
-      - '@github.com/opencharly/layer-tmux:v2026.235.2057'
+      - '@github.com/opencharly/layer-tmux'
 ```
 
 ## Used In Boxes

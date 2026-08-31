@@ -17,9 +17,9 @@ Full-featured standalone Hermes AI agent. No browser or desktop — designed for
 hermes:
   base: fedora
   candy:
-    - '@github.com/opencharly/layer-agent-forwarding:v2026.243.0408'
+    - '@github.com/opencharly/layer-agent-forwarding'
     - hermes-full      # hermes + claude-code + codex + gemini + dev-tools + devops-tools + charly + tmux
-    - '@github.com/opencharly/pod-dbus:v2026.235.2115'
+    - '@github.com/opencharly/pod-dbus'
 ```
 
 ## Candy Stack

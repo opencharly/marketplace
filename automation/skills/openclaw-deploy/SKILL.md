@@ -60,10 +60,10 @@ openclaw-desktop:
   candy:
     base: fedora
     candy:
-      - '@github.com/opencharly/layer-agent-forwarding:v2026.238.1851'
-      - '@github.com/opencharly/layer-openclaw-full:v2026.238.2103'
-      - '@github.com/opencharly/layer-sway-desktop:v2026.242.1839'
-      - '@github.com/opencharly/pod-dbus:v2026.235.2115'
+      - '@github.com/opencharly/layer-agent-forwarding'
+      - '@github.com/opencharly/layer-openclaw-full'
+      - '@github.com/opencharly/layer-sway-desktop'
+      - '@github.com/opencharly/pod-dbus'
       - charly
 ```
 

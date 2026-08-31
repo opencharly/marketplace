@@ -58,9 +58,9 @@ description: |-
 local:
   charly-cachyos:
     candy:
-      - '@github.com/opencharly/layer-direnv:v2026.242.1147'
-      - '@github.com/opencharly/layer-gnupg:v2026.239.1615'
-      - '@github.com/opencharly/layer-keepassxc:v2026.239.1624'
+      - '@github.com/opencharly/layer-direnv'
+      - '@github.com/opencharly/layer-gnupg'
+      - '@github.com/opencharly/layer-keepassxc'
       - keepassxc-keyring     # this layer
       ...
 ```
