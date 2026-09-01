@@ -23,7 +23,7 @@ charly-marketplace:
             - '@github.com/opencharly/layer-charly-internals-extra:v2026.243.2143'
             - '@github.com/opencharly/layer-charly-build:v2026.243.2145'
             - '@github.com/opencharly/layer-charly-check:v2026.243.2146'
-            - '@github.com/opencharly/plugin-wl/candy/plugin-wl:v2026.243.2150'
+            - '@github.com/opencharly/plugin-wl/candy/plugin-wl:v2026.244.0851'
             - '@github.com/opencharly/plugin-quickshell/candy/plugin-quickshell:v2026.243.1942'
             - '@github.com/opencharly/layer-charly-kubernetes:v2026.243.2148'
             - '@github.com/opencharly/layer-charly-image:v2026.243.2149'
