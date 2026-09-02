@@ -64,24 +64,55 @@ checks), not upstream's mocked call sequences — strictly stronger.
 
 ## The procedure
 
+0. Evaluate from the template: opencharly/eval-omarchy's
+   eval/PR-EVAL-TEMPLATE.md — every report and posted comment is
+   rendered from it and carries its EXTERNAL, NON-AUTHORITATIVE
+   (by opencharly.ai) disclaimer verbatim. Pick the CHANNEL base the
+   PR targets: dev = source-checkout lane (PR head in ~/omarchy);
+   edge/rc/stable = package-level lane; rc = the release-validation
+   flow (channel-set + update + migrations).
 1. Load the rubric: omarchy's agents/skills (acceptance-tests,
    visual-verification, migrations, shell-dev, install-scripts,
    command-metadata, icon-font, hyprland, capture) — vendored and
    pinned at a quattro hash so evaluation criteria are version-locked.
-2. Tier 0: classify the diff (the venue ladder) and assign a venue;
-   extract the PR's "## Verification" claim; hardware-bound classes
-   get PARTIAL/NOT-EVALUABLE, never a faked bed.
-3. Tier 1: `charly check run check-omarchy-suite-pod` (or the
+2. Tier 0: classify the diff (the venue-ladder map) and assign a
+   venue; extract the PR's "## Verification" claim; hardware-bound
+   classes get PARTIAL/NOT-EVALUABLE, never a faked bed.
+3. Apply the PR at the channel's seam (the apply contract): fetch
+   pull/<N>/head SHA-pinned, install ONLY the changed files over the
+   installed tree (dev lane: check out the PR head in ~/omarchy),
+   and prove application with a pr-applied check — the known-red
+   fixture surfaces a missed apply per-check.
+4. Tier 1: `charly check run check-omarchy-suite-pod` (or the
    PR-variant bed) — the suite pod's charly checks.
-4. Tier 2 (by class): `charly check run check-omarchy-pr-vm` /
+5. Tier 2 (by class): `charly check run check-omarchy-pr-vm` /
    `check-omarchy-pr-vm-visual` — the VM PR injection + visual
    evidence loop.
-5. Evidence contract: the check-run summary.yml + the screenshot
+6. Snapshot lane (batches): one base VM per channel, clean-snapshotted
+   (vm deploy `snapshot: on_finalize: golden`); per PR: libvirt
+   snapshot/revert → re-apply the PR → `charly check live` →
+   evidence → revert. Record base provenance (channel, ISO calver,
+   snapshot id) in the report; verdicts can go STALE — compare the
+   evaluated head with the PR's current head.
+7. Evidence contract: the check-run summary.yml + the screenshot
    artifact + the ADE verdict (charly check feature run --agent).
-6. Render the validation comment from the results; POST only
-   behind the operator approval gate.
-7. Batch loop: repeated bed runs, one per PR, with the SHA-keyed
-   result cache (scripts/omarchy-rollup.py) skipping unchanged heads.
+8. Render the validation comment from eval/PR-EVAL-TEMPLATE.md;
+   POST only behind the operator approval gate.
+9. Batch loop: repeated bed runs, one per PR, with the SHA-keyed
+   result cache (eval-omarchy's scripts/omarchy-rollup.py) skipping
+   unchanged heads.
+
+## Update-channel machinery (channel-class PRs)
+
+- `omarchy-channel-set <ch>` round-trips (get/set; re-set the same
+  channel is a no-op).
+- Updates run pending migrations per channel (the S5 harness is the
+  per-channel variant); the stable mirror runs one month behind —
+  assert tracking, not a version string.
+- The pacman guard: a bare `pacman -Syu` / `yay -Syu` is stopped and
+  pointed at `omarchy update` (one-transaction bypass exists).
+- The dev channel binds the OS to a git checkout in ~/omarchy: apply
+  PRs there by checking out the PR head and updating.
 
 ## Guardrails (from doctrine)
 
@@ -91,15 +122,3 @@ checks), not upstream's mocked call sequences — strictly stronger.
 - Assert the SERVES not the RUNS (quickshell: ping reads responses;
   a supervisor uptime can pass on a wait wrapper).
 - PR-body claims are claims, not facts.
-
-## When to Use This Skill
-
-**MUST be invoked** when evaluating an omacom/omarchy PR, running the
-omarchy evaluation beds, or grading omarchy visual changes.
-
-## Related
-
-- /charly-distros:omarchy — the base image
-- /charly-vm:omarchy-vm — the ISO-installed VM
-- /charly-check:check — the check-run surface the beds use
-- /charly-vm:vm — the VM substrate (VFIO passthrough, snapshots)
