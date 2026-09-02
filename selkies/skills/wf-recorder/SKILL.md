@@ -18,7 +18,7 @@ description: |-
 
 ## Packages
 
-RPM: `wf-recorder`
+RPM: `wf-recorder` · PAC: `wf-recorder` (arch/omarchy, extra repo)
 
 ## What It Does
 
