@@ -19,7 +19,8 @@ my-plugin:
       What this plugin provides.
     plugin:
       providers: [verb:myprobe]     # "<class>:<word>" — class ∈ kind|verb|deploy|step|builder|command|build
-      source: builtin               # OR github.com/org/repo/candy/<name>  (out-of-tree)
+      source: github.com/org/repo/candy/my-plugin   # EXTERNAL (out-of-tree) is the DEFAULT for new plugins;
+                                                  # `source: builtin` is the LEGACY in-repo linkage form
       primary:
         myprobe: marker             # scalar sugar target: `myprobe: hello` == {marker: hello}
     plan:
@@ -30,6 +31,18 @@ my-plugin:
 
 A candy with no `plugin:` block is an ordinary candy; one WITH it is a plugin. Full candy authoring surface
 applies (`/charly-image:layer`), including the mandatory `version:`/`description:`/`plan:`+`check:` (ADE).
+
+## Placement — EXTERNAL by default for new plugins
+
+A plugin is authored placement-agnostic (the same provider serves both placements, F8) and the DEFAULT
+for a NEW plugin is **external** (out-of-tree, out-of-process): projects compose it via the
+`@github.com/<org>/<repo>/candy/<name>:<ref>` candy ref, and charly connects it by word at runtime
+(host-builds `./cmd/serve`, speaks go-plugin gRPC) with ZERO charly-module changes — clean
+core/sdk/plugin separation per the boundary law below. Compiling a plugin INTO the charly binary
+(`compiled_plugins:` + a go.mod require + pluginsgen) is a per-charly-build DECISION reserved for
+curated kernel-adjacent builtins; the strategic direction migrates those external over time, so do
+not reach for it for a new plugin. Never write the placement into the description prose (it drifts;
+the docs compute it from `compiled_plugins:`).
 
 ## A plugin's declarations are a PUBLISHED surface
 
@@ -64,8 +77,9 @@ reach a repo it does not have, so its author publishes from the identical surfac
 - `charly box validate` — the candy + `plugin:` block (`candy/plugin-box/validate_rules.go`'s
   `IsPlugin` check — an explicit, documented 1:1 port of the former core `validatePluginCandy`, deleted
   as dead code in the dead-code-radical-removal batch once its call site moved here —
-  verifies each capability is well-formed and, for `source: builtin`, that the provider is actually
-  compiled in).
+  verifies each capability is well-formed and, for the LEGACY `source: builtin` linkage form, that
+  the provider is actually compiled in; an external `source: github.com/...` candy needs no
+  compiled-in wiring at all).
 - R10: a disposable bed composing a builtin AND an external plugin, driven to a fresh `charly update` — the
   builtin's baked check + the external's out-of-process check both pass.
 
