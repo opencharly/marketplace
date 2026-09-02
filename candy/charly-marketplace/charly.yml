@@ -79,6 +79,8 @@ charly-marketplace:
             - '@github.com/opencharly/pod-charly-core:v2026.243.2149'
             - '@github.com/opencharly/layer-kde-shell:v2026.239.1627'
             - '@github.com/opencharly/layer-charly-distros:v2026.244.1915'
+            - '@github.com/opencharly/layer-omarchy-base:v2026.242.0701'
+            - '@github.com/opencharly/layer-omarchy-shell:v2026.243.1941'
             - '@github.com/opencharly/layer-songsee:v2026.243.0410'
             - '@github.com/opencharly/layer-keepassxc:v2026.239.1624'
             - '@github.com/opencharly/layer-sqlite:v2026.239.1638'
