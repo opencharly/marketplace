@@ -57,6 +57,7 @@ the step carries spice-exclusive fields — those live INSIDE the `spice:` map:
 | `status` | `spice: status` | — | handshake + channel enumeration (first line `SPICE:     ok`) |
 | `screenshot` | `spice: {method: screenshot, artifact: …}` | `artifact:` | native SPICE display-channel decode → PNG |
 | `cursor` | `spice: {method: cursor, artifact: …}` | `artifact:` | capture cursor bitmap + position → PNG |
+| `record` | `spice: {method: record, action: start\|stop, fps?}` + `record_name?/`artifact:` on stop | `artifact:` + validators | HOST-SIDE MJPEG video capture of the VM display: start polls the SPICE display framebuffer at fps (default 5), encoding every poll as a JPEG frame into a single MJPEG stream; stop flushes it to the host artifact (pure-Go; limits: server video streams/GLZ are not decoded by the vendored client, audio stubbed) |
 | `click` | `spice: {method: click, x: …, y: …}` | `x:`, `y:`, `button:` | mouse press/release via the inputs channel |
 | `mouse` | `spice: {method: mouse, x: …, y: …}` | `x:`, `y:` | pointer move (no click) |
 | `type` | `spice: {method: type, text: …}` | `text:` | type text as PC-AT scancodes |
@@ -108,6 +109,36 @@ console login sequence walks the form with `spice: key` / `spice: type` steps:
   context: [deploy]
 # … followed by `spice: {method: type, text: arch}` and `spice: {method: key, key: tab}`
 # steps to walk the login form.
+
+### Capturing the display as video (`record`)
+
+```yaml
+- check: SPICE video recording starts on the VM display
+  id: spice-rec-start
+  context: [deploy]
+  spice:
+    method: record
+    action: start
+    record_name: vm-walk
+    fps: 5
+- check: a desktop-visible action runs during the capture
+  id: spice-rec-drive
+  context: [deploy]
+  command: "notify-send 'demo' 'capturing' 2>/dev/null || true; sleep 3"
+- check: the recording stops and a real MJPEG stream lands on the HOST
+  id: spice-rec-stop
+  context: [deploy]
+  spice:
+    method: record
+    action: stop
+    record_name: vm-walk
+    artifact: /tmp/demo.mjpeg
+    artifact_min_bytes: 20000
+```
+
+The artifact is pulled host-side at stop BEFORE the disposable bed's teardown
+destroys the venue (copy-before-teardown); reality-check with `ffprobe` (frame count)
+and a frame extract (`ffmpeg -i <file>.mjpeg -frames:v 1 out.png`).
 ```
 
 ## Remote libvirt (qemu+ssh://)
