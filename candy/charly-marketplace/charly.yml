@@ -126,7 +126,7 @@ charly-marketplace:
             - '@github.com/opencharly/pod-chrome-devtools-mcp:v2026.243.0508'
             - '@github.com/opencharly/pod-wayvnc:v2026.243.0508'
             - '@github.com/opencharly/layer-chrome-sway:v2026.243.1820'
-            - '@github.com/opencharly/layer-wf-recorder:v2026.240.0122'
+            - '@github.com/opencharly/layer-wf-recorder:v2026.245.1357'
             - '@github.com/opencharly/layer-pavucontrol:v2026.243.0515'
             - '@github.com/opencharly/layer-claude-code:v2026.239.1626'
             - '@github.com/opencharly/layer-whisper:v2026.243.0516'
