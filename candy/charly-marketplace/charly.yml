@@ -199,7 +199,7 @@ charly-marketplace:
             - '@github.com/opencharly/plugin-agentteams/candy/plugin-agentteams:v2026.242.0525'
             - '@github.com/opencharly/plugin-ollama/candy/plugin-ollama:v2026.242.0532'
             - '@github.com/opencharly/plugin-dsh/candy/plugin-dsh:v2026.242.0528'
-            - '@github.com/opencharly/plugin-herdr/candy/plugin-herdr:v2026.245.0926'
+            - '@github.com/opencharly/plugin-herdr/candy/plugin-herdr:v2026.245.1008'
             - '@github.com/opencharly/pod-herdr:v2026.245.0944'
             - '@github.com/opencharly/plugin-punktfunk/candy/plugin-punktfunk:v2026.243.1139'
         plan:
