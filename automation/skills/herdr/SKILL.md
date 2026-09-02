@@ -71,7 +71,7 @@ The verb skips under `charly check box` (no live venue on a disposable
 
 ## Cross-References
 
-- `/charly-pod:herdr` — the herdr stack box + check-herdr-pod bed (pod-herdr repo).
+- `/charly-automation:herdr-box` — the herdr stack box + check-herdr-pod bed (pod-herdr repo).
 - `/charly-internals:plugin` — compiled-in command plugins, the provider model.
 - The herdr agent skill (herdrdev/herdr v0.8.2 `skills/herdr/SKILL.md`) — the upstream
   agent contract this plugin operationalizes.
