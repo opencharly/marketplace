@@ -38,6 +38,8 @@ write `record: start`, never `plugin: record`.
 | Stop recording | `record: stop` + `artifact:` (+ optional `record_name:`) | Stop and copy the recording file to the host artifact path |
 | List recordings | `record: list` | Show active recording sessions |
 | Send command | `record: cmd` + `text:` (+ optional `record_name:`) | Send a command line into the recording terminal |
+| Run a scripted flow | `record: run` + `text:` (+ optional `record_name:`/`settle_ms:`) | Send a command and WAIT for its output to settle — one step replaces the cmd+settle dance for scripted flows; the command and its output become part of the recording |
+| Desktop env (VM venues) | `record_env:` map on `record: start` (`record_env: {XDG_RUNTIME_DIR: /run/user/1000, WAYLAND_DISPLAY: wayland-1}`) | Override the container-shaped defaults (/tmp + wayland-0): a VM/desktop venue's compositor session runs as the logged-in user, so wf-recorder needs the real session env to attach |
 
 Every `+ <field>:` entry is a key INSIDE the `record:` map (`record: {method: start, record_name: …}`);
 only `stdout:`/`stderr:`/`exit_status:` and `context:`/`id:`/`timeout:` are siblings.
@@ -102,6 +104,18 @@ only** (they need a running container), so author them with `context: [deploy]`.
 ```
 
 Emits all active recording sessions with name, mode, and file path.
+
+### `record: run` — Run a Command and Wait (scripted flows)
+
+```yaml
+- check: a scripted flow runs inside the recording in one step
+  context: [deploy]
+  record:
+    method: run
+    record_name: demo
+    text: "omarchy-migrate --pending; echo exit=$?"
+    settle_ms: 2000    # default 1500ms; the output becomes part of the .cast
+```
 
 ### `record: cmd` — Send Command to Recording
 
