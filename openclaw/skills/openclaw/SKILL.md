@@ -10,7 +10,7 @@ description: |-
 
 # openclaw
 
-Headless OpenClaw AI gateway — no desktop, no browser, just the gateway service.
+Headless OpenClaw AI gateway (OpenClaw 2.0, npm openclaw@2026.8.x) — no desktop, no browser, just the gateway service.
 
 ## Box Properties
 
@@ -58,7 +58,7 @@ charly start openclaw
 After `charly start`:
 - `charly status openclaw` — container running
 - `charly service status openclaw` — all services RUNNING
-- `curl -s http://localhost:18789` — OpenClaw gateway responds
+- `curl -s http://localhost:18789/healthz` — OpenClaw gateway liveness (2.0 container probe)
 
 ## Port Relay Architecture
 
