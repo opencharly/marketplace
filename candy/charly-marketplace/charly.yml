@@ -20,9 +20,9 @@ charly-marketplace:
             # Phase D (opencharly/charly#451). Before this, their skills reached the corpus
             # only through the --root charly checkout at the CI pin below.
             - '@github.com/opencharly/layer-charly-internals:v2026.245.0848'
-            - '@github.com/opencharly/layer-charly-internals-extra:v2026.243.2143'
+            - '@github.com/opencharly/layer-charly-internals-extra:v2026.246.0516'
             - '@github.com/opencharly/layer-charly-build:v2026.243.2145'
-            - '@github.com/opencharly/layer-charly-check:v2026.245.1444'
+            - '@github.com/opencharly/layer-charly-check:v2026.246.0617'
             - '@github.com/opencharly/plugin-wl/candy/plugin-wl:v2026.244.0851'
             - '@github.com/opencharly/plugin-quickshell/candy/plugin-quickshell:v2026.243.1942'
             - '@github.com/opencharly/layer-charly-kubernetes:v2026.243.2148'
@@ -101,7 +101,7 @@ charly-marketplace:
             - '@github.com/opencharly/layer-charly-tools:v2026.239.1622'
             - '@github.com/opencharly/pod-traefik:v2026.243.0508'
             - '@github.com/opencharly/pod-charly-versa:v2026.239.1624'
-            - '@github.com/opencharly/vm-charly-vm:v2026.243.2152'
+            - '@github.com/opencharly/vm-charly-vm:v2026.246.0514'
             - '@github.com/opencharly/layer-typst:v2026.240.1854'
             - '@github.com/opencharly/layer-mcporter:v2026.243.0409'
             - '@github.com/opencharly/layer-unsloth:v2026.239.1643'
