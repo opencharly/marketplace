@@ -39,6 +39,7 @@ write `record: start`, never `plugin: record`.
 | List recordings | `record: list` | Show active recording sessions |
 | Send command | `record: cmd` + `text:` (+ optional `record_name:`) | Send a command line into the recording terminal |
 | Run a scripted flow | `record: run` + `text:` (+ optional `record_name:`/`settle_ms:`) | Send a command and WAIT for its output to settle — one step replaces the cmd+settle dance for scripted flows; the command and its output become part of the recording |
+| Render a GIF | `record: gif` + `artifact:` (+ optional `record_name:`/`theme:`/`font_size:`/`speed:`/`idle_time_limit:`/`fps_cap:`/`select:`/`cols:`/`rows:`/`no_loop:`/`last_frame_duration:`/`renderer:`) | Render a STOPPED terminal recording (.cast) to an animated GIF with agg and copy it to the host artifact path |
 | Desktop env (VM venues) | `record_env:` map on `record: start` (`record_env: {XDG_RUNTIME_DIR: /run/user/1000, WAYLAND_DISPLAY: wayland-1}`) | Override the container-shaped defaults (/tmp + wayland-0): a VM/desktop venue's compositor session runs as the logged-in user, so wf-recorder needs the real session env to attach |
 
 Every `+ <field>:` entry is a key INSIDE the `record:` map (`record: {method: start, record_name: …}`);
@@ -130,11 +131,43 @@ Emits all active recording sessions with name, mode, and file path.
 
 Sends a command into the recording plugin's private tmux session. For terminal recordings, the command and its output become part of the `.cast` file. This is the typed `record: cmd` operation, not a general terminal-control surface.
 
+### `record: gif` — Render a Recording to an Animated GIF
+
+```yaml
+- check: the recording renders to an animated gif
+  context: [runtime]
+  record:
+    method: gif
+    record_name: demo
+    artifact: /tmp/demo.gif    # the .gif is copied from the container to this host path
+    theme: monokai             # agg color theme; empty uses the recording's embedded theme
+    speed: 2                   # playback speed multiplier (default 1)
+    idle_time_limit: 1         # cap idle periods in seconds (default 5)
+    # font_size: 20            # font size in px (default 16)
+    # fps_cap: 15              # max GIF frame rate (default 30)
+    # select: "5..30"          # frame selection (time range / position / marker)
+    # cols: 100                # terminal size override
+    # rows: 30
+    # no_loop: true            # play once instead of looping
+    # last_frame_duration: 2   # hold the final frame (default 3s)
+    # renderer: resvg           # swash (default) or resvg
+```
+
+Renders a STOPPED terminal recording (`.cast`) to an animated GIF with
+[agg](https://docs.asciinema.org/manual/agg/) (asciinema's gif generator,
+installed by the `asciinema` candy alongside a monospace font) and copies the
+.gif to the host `artifact:` path. The recording must have been started and
+stopped first (`record: start` → `record: stop`); the .cast stays on the venue
+after stop, so `record: gif` with the same `record_name:` finds it. The agg
+options map 1:1 to agg's CLI flags; unset options use agg's defaults. Combine
+with `artifact_min_bytes` to assert the render is real.
+
 ## Recording Tools
 
 | Tool | Layer | Desktop | Protocol |
 |------|-------|---------|----------|
 | asciinema | `asciinema` (or `dev-tools`) | N/A | Terminal capture |
+| agg | `asciinema` (ships the agg binary + a DejaVu Sans Mono font) | N/A | .cast → animated GIF (gifski) |
 | pixelflux-record | `wl-record-pixelflux` | selkies-desktop | selkies WebSocket capture bridge → H.264 → ffmpeg |
 | wf-recorder | `wf-recorder` | sway-desktop | wlr-screencopy |
 
@@ -222,6 +255,7 @@ charly check live selkies-desktop --filter record --filter cdp --filter wl
 ## Prerequisites
 
 - **Terminal recording:** `asciinema` layer (or `dev-tools`)
+- **GIF rendering (`record: gif`):** the `asciinema` layer also ships the agg binary + a DejaVu Sans Mono font (agg needs a monospace font to render)
 - **Desktop recording (selkies):** `wl-record-pixelflux` layer (included in `selkies-desktop` metalayer)
 - **Desktop recording (sway):** `wf-recorder` layer (included in `sway-desktop` metalayer)
 - **All modes:** `tmux` layer must be present (for session management)
@@ -250,8 +284,10 @@ charly check live selkies-desktop --filter record --filter cdp --filter wl
 **MUST be invoked** when the task involves:
 
 - Recording terminal sessions or desktop video
-- the `record:` check verb / `record: start`/`stop`/`list`/`cmd` steps
+- the `record:` check verb / `record: start`/`stop`/`list`/`cmd`/`gif` steps
 - Creating demo videos or walkthroughs
+- Converting a terminal recording to an animated GIF
 - Capturing asciinema sessions
 - "How do I record my desktop?"
 - "How do I make a demo video?"
+- "How do I make a GIF from a terminal recording?"
