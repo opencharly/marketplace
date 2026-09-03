@@ -55,14 +55,14 @@ the candy/box `plan:`. The method name is the scalar value for a bare-method ste
 record-exclusive fields (`record_name:`, `record_mode:`, `record_fps:`,
 `record_audio:`, `text:`, `artifact:` and the artifact validators) — those live INSIDE
 the `record:` map. Only the shared matchers (`stdout:`, `stderr:`, `exit_status:`) and
-`context:`/`id:`/`timeout:` stay siblings. All `record:` steps are **deploy-context
-only** (they need a running container), so author them with `context: [deploy]`.
-
-### `record: start` — Start Recording
+`context:`/`id:`/`timeout:` stay siblings. All `record:` steps need a running
+container, so author them with `context: [runtime]` — the live phase, where the
+plugin resolves. (`context: [deploy]` is skipped in live mode; no context runs them
+in the box phase, where the plugin is unavailable.)
 
 ```yaml
 - check: a terminal recording starts
-  context: [deploy]
+  context: [runtime]
   record:
     method: start
     record_name: demo          # session name (default: default); multiple concurrent recordings supported
@@ -81,7 +81,7 @@ only** (they need a running container), so author them with `context: [deploy]`.
 
 ```yaml
 - check: the terminal recording captured real events
-  context: [deploy]
+  context: [runtime]
   record:
     method: stop
     record_name: demo
@@ -97,7 +97,7 @@ only** (they need a running container), so author them with `context: [deploy]`.
 
 ```yaml
 - check: the recording session is active
-  context: [deploy]
+  context: [runtime]
   record: list
   stdout:
     contains: demo
@@ -109,7 +109,7 @@ Emits all active recording sessions with name, mode, and file path.
 
 ```yaml
 - check: a scripted flow runs inside the recording in one step
-  context: [deploy]
+  context: [runtime]
   record:
     method: run
     record_name: demo
@@ -121,7 +121,7 @@ Emits all active recording sessions with name, mode, and file path.
 
 ```yaml
 - check: a command is sent into the recording
-  context: [deploy]
+  context: [runtime]
   record:
     method: cmd
     record_name: demo
@@ -147,25 +147,25 @@ by `charly check live <image> --filter record`:
 # candy/<name>/charly.yml — ordered record: steps drive the whole demo
 plan:
     - check: the terminal recording starts
-      context: [deploy]
+      context: [runtime]
       record:
         method: start
         record_name: demo
         record_mode: terminal
     - check: echo into the recording
-      context: [deploy]
+      context: [runtime]
       record:
         method: cmd
         record_name: demo
         text: echo 'Hello World'
     - check: ls into the recording
-      context: [deploy]
+      context: [runtime]
       record:
         method: cmd
         record_name: demo
         text: ls -la
     - check: the recording stops and is captured
-      context: [deploy]
+      context: [runtime]
       record:
         method: stop
         record_name: demo
@@ -188,25 +188,25 @@ visible in the captured video:
 
 ```yaml
 - check: a desktop recording starts
-  context: [deploy]
+  context: [runtime]
   record:
     method: start
     record_name: walkthrough
     record_mode: desktop
     record_audio: true
 - check: navigate the browser (visible in the recording)
-  context: [deploy]
+  context: [runtime]
   cdp:
     method: open
     url: https://github.com
 - check: click on the desktop
-  context: [deploy]
+  context: [runtime]
   wl:
     method: click
     x: 640
     y: 360
 - check: the walkthrough video is captured
-  context: [deploy]
+  context: [runtime]
   record:
     method: stop
     record_name: walkthrough

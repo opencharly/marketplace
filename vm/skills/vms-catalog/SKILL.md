@@ -8,7 +8,7 @@ description: |-
 
 # vms
 
-`vm.yml` is the authoring surface for `kind: vm` entities — VM primitives sourced four ways: a remote cloud-image URL (`source.kind: cloud_image`), an in-repo bootc container image (`source.kind: bootc`), a rootfs built from packages by the distro's own bootstrapper (`source.kind: bootstrap`), or the distro's own installer ISO driven unattended by a charly-rendered answers volume (`source.kind: iso`). Loaded through `charly.yml`'s `import:` (or inline under its root). Entries are resolved by `LoadUnified` into `VmSpec` Go types (generated in `spec/spec/`) and consumed by `charly vm build`, `charly vm create`, and `charly fleet add vm:<name>`.
+`vm.yml` is the authoring surface for `kind: vm` entities — VM primitives sourced five ways: a remote cloud-image URL (`source.kind: cloud_image`), an in-repo bootc container image (`source.kind: bootc`), a rootfs built from packages by the distro's own bootstrapper (`source.kind: bootstrap`), the distro's own installer ISO driven unattended by a charly-rendered answers volume (`source.kind: iso`), or ANOTHER VM's snapshot (`source.kind: clone` — the VM-on-VM layering path). Loaded through `charly.yml`'s `import:` (or inline under its root). Entries are resolved by `LoadUnified` into `VmSpec` Go types (generated in `spec/spec/`) and consumed by `charly vm build`, `charly vm create`, and `charly fleet add vm:<name>`.
 
 The VM surface parallels the `candy:` image surface: one YAML entry per entity, kind-keyed, discovered through includes. The Go types that back it live in `/charly-internals:vm-spec`; the rendering paths in `/charly-internals:libvirt-renderer` and `/charly-internals:cloud-init-renderer`.
 
@@ -19,7 +19,7 @@ The VM surface parallels the `candy:` image surface: one YAML entry per entity, 
 <name>:
   vm:
     source:
-      kind: cloud_image | bootc
+      kind: cloud_image | bootc | clone
       # cloud_image branch:
       url: https://…
       checksum: { type: sha256, value?: <hex> }
@@ -49,6 +49,10 @@ The VM surface parallels the `candy:` image surface: one YAML entry per entity, 
       rootfs: ext4 | xfs | btrfs
       root_size: 10G                      # optional cap; rest of disk stays unpartitioned
       kernel_args: "…"
+      # clone branch (VM-on-VM layering):
+      from_vm: <base-entity>              # the base kind:vm entity
+      from_snapshot: <name>               # the EXACT snapshot of the base to use (registry name)
+      cloud_init_clean: true              # regenerate machine-id + SSH host keys on first boot
     # Hardware (both branches):
     disk_size: 20G | "10 GiB" | 1T         # VIRTUAL size; qcow2 is lazily/sparsely allocated (grows on demand)
     ram: 4G | "8192M"
@@ -185,6 +189,82 @@ No bootc VM ships in the repo today; a bootc `vm:` node pairs a `candy:` image c
 2. Add a `vm:` node with `source.kind: bootc` + `source.box: <entry-name>` (the bootc source field is `box:`, not `image:`).
 3. Size disk/ram/cpus for the workload (see the relevant per-pod or `/charly-distros:<name> / /charly-languages:<name> / /charly-infrastructure:<name> / /charly-tools:<name>` skill's VM Configuration section for the authoritative numbers).
 4. Run `charly vm build <vm-name>`. See `/charly-vm:vm` known-caveats section for bootc-specific gotchas (rootful storage split, nested-container `--transport containers-storage`, loopback device mount namespace).
+
+## source.kind: clone — build a VM on top of another VM
+
+Use when the new VM is a LAYER on top of an existing VM: the base is
+another `kind: vm` entity, and the exact base state is pinned by a
+NAMED SNAPSHOT of it. This is the VM-on-VM layering primitive — the VM
+analog of a container image's `FROM <base>` — and it is what makes a
+provisioned VM reusable as a base for many children without re-running
+its install.
+
+```yaml
+base-vm:
+    vm:
+        source:
+            kind: cloud_image
+            distro: arch
+            url: https://fastly.mirror.pkgbuild.com/images/latest/Arch-Linux-x86_64-cloudimg.qcow2
+            base_user: arch
+        disk_size: 20G
+        # Declarative snapshots: captured by `charly vm snapshot capture-declared`
+        # once the base is provisioned (idempotent).
+        snapshot:
+            - name: golden
+              description: provisioned base state for clones
+
+clone-vm:
+    vm:
+        source:
+            kind: clone
+            from_vm: base-vm
+            from_snapshot: golden
+            cloud_init_clean: true
+        disk_size: 20G
+```
+
+### Authoring a new clone VM
+
+1. Provision the base VM and capture a named snapshot of its provisioned
+   state: `charly vm snapshot create-consistent <base> <name>` (guest-
+   consistent) or declare the `snapshot:` block on the base entity and
+   run `charly vm snapshot capture-declared <base>` (idempotent).
+2. Add a `vm:` node with `source.kind: clone` + `source.from_vm:` +
+   `source.from_snapshot:` (both required; the snapshot must exist in
+   the base's registry at `~/.local/share/charly/vm/charly-<base>/snapshots/`).
+3. `cloud_init_clean: true` (the `charly vm clone` default) injects
+   `cloud-init clean --machine-id --logs` so machine-id + SSH host keys
+   regenerate on first boot — two clones never collide.
+4. Run `charly vm build <clone>` — materializes a fresh qcow2 overlay
+   whose backing file is the parent snapshot's frozen external disk (the
+   base bytes are shared, not copied; the parent snapshot's refcount is
+   bumped, and `charly vm snapshot delete` refuses while clones
+   reference it). Then `charly vm create <clone>` + `charly vm ssh`.
+5. The one-command form: `charly vm clone <new> --from <base>[@<snap>]`
+   writes the declaration AND builds the disk.
+
+### Container ↔ VM switching (layered boxes)
+
+A box (a `candy:` image entry) is the single definition for a layered
+system. Deploy it as a container OR as a VM by changing the deploy node
+only — the candies, env, ports, and check plan are identical:
+
+```yaml
+# Same box, two substrates:
+my-system:
+    pod:
+        image: my-box            # container form
+# vs:
+my-system-vm:
+    vm:
+        from: my-box-vm          # VM form — entity with source.kind: bootc, box: my-box
+```
+
+For a VM-on-VM layered system, the base box's VM is cloned
+(`source.kind: clone`) and the child's own candies are applied in-guest
+via `charly fleet add vm:<child>` — the same InstallPlan IR that pod
+deploys render into a Containerfile.
 
 ## Adopt pattern: base_user (cloud_image only)
 

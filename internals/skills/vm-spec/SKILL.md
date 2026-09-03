@@ -23,7 +23,7 @@ Go type reference for the VM surface. `VmSpec` + `VmSource` + `VmChecksum` + `Vm
 
 ```go
 type VmSpec struct {
-    Source VmSource       // discriminated union: kind = cloud_image | bootc
+    Source VmSource       // discriminated union: kind = cloud_image | bootc | clone | imported | bootstrap | iso
     DiskSize string       // "20G", "10 GiB", "1T" — virtual size; the qcow2 is lazily/sparsely allocated
     Ram      string       // "4G", "8192M"
     Cpus     int
@@ -35,6 +35,9 @@ type VmSpec struct {
     SSH      *VmSsh
     CloudInit *VmCloudInit
     Libvirt  *LibvirtDomain
+    Snapshots []VmSnapshot // the entity's declarative snapshot: block (captured by
+                           // `charly vm snapshot capture-declared`; selectable as
+                           // from_snapshot by any clone)
 }
 ```
 
@@ -60,7 +63,7 @@ guest-user idmap"; shared-memory auto-pairing is in the same skill.
 
 ```go
 type VmSource struct {
-    Kind string    // "cloud_image" | "bootc"
+    Kind string    // "cloud_image" | "bootc" | "clone" | "imported" | "bootstrap" | "iso"
 
     // cloud_image branch:
     URL      string
@@ -77,10 +80,22 @@ type VmSource struct {
     Rootfs     string     // ext4 | xfs | btrfs
     RootSize   string     // "10G" — caps root partition, rest unpartitioned
     KernelArgs string
+
+    // clone branch (VM-on-VM layering):
+    FromVm         string // WIRE KEY `from_vm:` — the base kind:vm entity
+    FromSnapshot   string // WIRE KEY `from_snapshot:` — the EXACT snapshot of the base
+    CloudInitClean bool   // inject `cloud-init clean --machine-id --logs` on first boot
 }
 ```
 
-`Kind` is the discriminator. The `#VmSource` CUE disjunction (`schema/vm.cue`) enforces that exactly one branch's required fields are populated and forbids cross-branch fields (each arm pins `kind` and marks the others `_|_`).
+`Kind` is the discriminator. The `#VmSource` CUE disjunction (`schema/vm.cue`)
+enforces that exactly one branch's required fields are populated and forbids
+cross-branch fields (each arm pins `kind` and marks the others `_|_`). The
+`clone` arm requires `from_vm` + `from_snapshot` (both non-empty); the
+build dispatch (`charly vm build`) validates them at resolve time and
+`BuildClone` (`candy/plugin-vm/vm_clone.go`) materializes a fresh qcow2
+overlay on the parent snapshot's frozen external disk, bumps the parent
+snapshot's refcount, and regenerates the seed ISO with a fresh instance-id.
 
 ### Adopt-user decision (BaseUser)
 
