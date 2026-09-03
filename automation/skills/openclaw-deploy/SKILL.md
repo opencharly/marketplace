@@ -146,10 +146,21 @@ supervisorctl restart openclaw
 openclaw health --json                 # Gateway health
 openclaw doctor --fix                  # Diagnose and fix issues
 openclaw status --all --deep           # Full status with channels
-# HTTP endpoints on gateway port:
+# HTTP endpoints on gateway port (OpenClaw 2.0 container probes):
 # GET /healthz  -- liveness
 # GET /readyz   -- readiness
+# GET /startupz -- startup status
 ```
+
+**OpenClaw 2.0 (v2026.8.x) notes:** the gateway startup surface is unchanged
+(`--port`/`--bind`/`--allow-unconfigured`, the `gateway.mode=local` guard, and
+the `~/.openclaw/openclaw.json` JSON5 config all carry over). Breaking changes
+that affect an operator's data volume: the `codex/*` and `openai-codex/*` model
+routes unified under `openai/*`, OpenProse retired (bundled plugin + `/prose`
+command removed), the legacy chrome-extension-relay config (`driver:
+"extension"` / `browser.relayBindHost`) is dead, and `openclaw doctor --fix`
+migrates QMD memory, legacy `execSecurity`/`execAsk`, and `HEARTBEAT.md` — run
+it once after upgrading an existing `~/.openclaw` volume.
 
 ## Model Configuration
 
@@ -160,7 +171,7 @@ openclaw status --all --deep           # Full status with channels
 agents: {
   defaults: {
     model: {
-      primary: "openai-codex/gpt-5.4",
+      primary: "openai/gpt-5.4",
       fallbacks: ["anthropic/claude-sonnet-4-5"]
     }
   }
@@ -174,7 +185,7 @@ agents: {
 ```bash
 RUN=0198f140-6b7a-7b90-8a10-aabbccddee01
 TARGET='{"deployment":"openclaw"}'
-PROFILE='{"name":"openclaw-oauth","entrypoint":["openclaw","models","auth","login","--provider","openai-codex","--set-default"],"cols":120,"rows":40,"persistence":"required","transcript":"both"}'
+PROFILE='{"name":"openclaw-oauth","entrypoint":["openclaw","models","auth","login","--provider","openai","--set-default"],"cols":120,"rows":40,"persistence":"required","transcript":"both"}'
 
 # Start with a real PTY, then read normalized screen/evidence without redirecting the TUI.
 charly agent terminal launch "$PROFILE" --target "$TARGET" --run-id "$RUN"
@@ -191,7 +202,7 @@ charly agent terminal transcript "$RUN"
 
 # 4. Verify completion from a structured snapshot or durable transcript.
 charly agent terminal snapshot "$PROFILE" --target "$TARGET" --run-id "$RUN"
-# Should show: "OpenAI OAuth complete", "Default model set to openai-codex/gpt-5.4"
+# Should show: "OpenAI OAuth complete", "Default model set to openai/gpt-5.4"
 ```
 
 **Prerequisites:** Chrome must have an active Google session. The "Continue with Google" button on OpenAI's auth page uses Chrome's Google cookies — sign Chrome into Google (with sync enabled) via the VNC desktop before starting the OAuth flow.
@@ -202,7 +213,7 @@ charly agent terminal snapshot "$PROFILE" --target "$TARGET" --run-id "$RUN"
 
 Tokens persist in `~/.openclaw/agents/main/agent/auth-profiles.json` in the `data` volume. Survive `charly stop`/`charly start` and image rebuilds. Only destroyed by `charly remove --purge`.
 
-Model name: `openai-codex/gpt-5.4`. The `--set-default` flag sets it as the default model in `openclaw.json`.
+Model name: `openai/gpt-5.4` (OpenClaw 2.0 unified the `codex/*` and `openai-codex/*` routes under `openai/*`). The `--set-default` flag sets it as the default model in `openclaw.json`.
 
 ### Checking Model Status
 
@@ -326,7 +337,7 @@ Placed in the agent workspace, injected on first session turn:
 ```json5
 agents: {
   list: [
-    { id: "main", default: true, name: "Main", model: "openai-codex/gpt-5.4" },
+    { id: "main", default: true, name: "Main", model: "openai/gpt-5.4" },
     { id: "home", name: "Home Assistant", model: "anthropic/claude-sonnet-4-5" }
   ],
   bindings: [

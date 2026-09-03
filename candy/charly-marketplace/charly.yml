@@ -195,7 +195,7 @@ charly-marketplace:
             - '@github.com/opencharly/layer-thunar:v2026.243.0410'
             - '@github.com/opencharly/layer-xfce4-terminal:v2026.243.2104'
             - '@github.com/opencharly/layer-punktfunk:v2026.242.1658'
-            - '@github.com/opencharly/pod-charly-automation:v2026.243.2149'
+            - '@github.com/opencharly/pod-charly-automation:v2026.246.1643'
             - '@github.com/opencharly/plugin-agentteams/candy/plugin-agentteams:v2026.242.0525'
             - '@github.com/opencharly/plugin-ollama/candy/plugin-ollama:v2026.242.0532'
             - '@github.com/opencharly/plugin-dsh/candy/plugin-dsh:v2026.242.0528'
