@@ -9,6 +9,7 @@
     "./coder/skills",
     "./comfyui/skills",
     "./core/skills",
+    "./crabbox/skills",
     "./distros/skills",
     "./filebrowser/skills",
     "./hermes/skills",

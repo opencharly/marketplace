@@ -15,7 +15,7 @@ charly-marketplace:
             # here ('@github.com/opencharly/charly:vTAG') was not a candy node and
             # resolved to unknown candy "github.com/opencharly/charly" - silently in
             # this repo, but as a hard validation error in every consumer of the list.
-            - '@github.com/opencharly/pod-charly-hooks:v2026.241.2134'
+            - '@github.com/opencharly/pod-charly-hooks:v2026.247.1133'
             # The candies extracted out of charly/candy/ by the de-submodule cutover's
             # Phase D (opencharly/charly#451). Before this, their skills reached the corpus
             # only through the --root charly checkout at the CI pin below.
@@ -195,13 +195,17 @@ charly-marketplace:
             - '@github.com/opencharly/layer-thunar:v2026.243.0410'
             - '@github.com/opencharly/layer-xfce4-terminal:v2026.243.2104'
             - '@github.com/opencharly/layer-punktfunk:v2026.242.1658'
-            - '@github.com/opencharly/pod-charly-automation:v2026.246.1643'
+            - '@github.com/opencharly/pod-charly-automation:v2026.247.1126'
             - '@github.com/opencharly/plugin-agentteams/candy/plugin-agentteams:v2026.242.0525'
             - '@github.com/opencharly/plugin-ollama/candy/plugin-ollama:v2026.242.0532'
             - '@github.com/opencharly/plugin-dsh/candy/plugin-dsh:v2026.242.0528'
             - '@github.com/opencharly/plugin-herdr/candy/plugin-herdr:v2026.245.1008'
             - '@github.com/opencharly/pod-herdr:v2026.245.1113'
             - '@github.com/opencharly/plugin-punktfunk/candy/plugin-punktfunk:v2026.243.1139'
+            # Crabbox wave (Phase 4): CLI + coordinator + check-verb skill entities
+            - '@github.com/opencharly/layer-crabbox:v2026.247.0855'
+            - '@github.com/opencharly/pod-crabbox:v2026.247.1016'
+            - '@github.com/opencharly/plugin-crabbox/candy/plugin-crabbox:v2026.247.1021'
         plan:
             - check: the marketplace corpus source resolves via the charly binary
               exit_status: 0

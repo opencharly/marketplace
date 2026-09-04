@@ -1,0 +1,18 @@
+{
+  "name": "charly-crabbox",
+  "description": "Self-contained skills for the crabbox image family: the Crabbox CLI (layer-crabbox), the local Node/PostgreSQL coordinator (pod-crabbox) and the `crabbox:` check verb (plugin-crabbox) — the fully-local remote-execution control plane.",
+  "author": {
+    "name": "opencharly"
+  },
+  "homepage": "https://github.com/opencharly/charly",
+  "repository": "https://github.com/opencharly/marketplace",
+  "license": "MIT",
+  "keywords": [
+    "charly",
+    "crabbox",
+    "cli",
+    "coordinator",
+    "remote",
+    "execution"
+  ]
+}
