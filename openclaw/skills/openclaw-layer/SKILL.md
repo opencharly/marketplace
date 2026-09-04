@@ -1,7 +1,7 @@
 ---
 name: openclaw-layer
 description: |-
-  OpenClaw AI gateway service on port 18789 via npm with persistent data.
+  OpenClaw AI gateway service on port 18789 via npm with persistent data (OpenClaw 2.0, npm openclaw@2026.8.x).
   Use when working with OpenClaw, AI gateway configuration, or model routing.
 ---
 

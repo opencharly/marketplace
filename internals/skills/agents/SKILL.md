@@ -47,13 +47,6 @@ points to it.
 - The project rulebook's "Agents, Workflows & Teams", R10 / "Hard Cutover
   by Default", and AI Attribution sections.
 
-## Subagent model resolution (pi harness)
-
-Two operational rules for pi subagent model resolution (verified 2026-09-03):
-
-- **Explicit `extensions:` in an agent config disables ambient extensions in the child.** pi-subagents launches the child with `--no-extensions` when the agent config carries an explicit `extensions:` list (`disableAmbientExtensions = input.extensions !== undefined` in `pi-args.ts`). That unloads model-provider extensions (e.g. pi-ollama-cloud, which registers the ollama-cloud provider via `pi.extensions`), so a provider-qualified model like `ollama-cloud/deepseek-v4-flash:0731` becomes unresolvable ("Model not found") and the child falls back to a wrong provider. Fix: agent configs should NOT carry explicit `extensions:` (let the ambient extensions from settings load), or the list MUST include the model-provider extension.
-- **Provider-qualified ids pass through a stale registry snapshot.** pi-subagents (opencharly fork, PR #1 / 4abd9597) passes an explicit provider-qualified model id through raw when the session-start `availableModels` snapshot misses it — the snapshot can lag `pi update --models`. Bare unknown ids still hard-fail; scope/allowlist enforcement is unchanged.
-
 ## When to Use This Skill
 
 Invoke before authoring or invoking an charly sub-agent / dynamic workflow /
