@@ -155,7 +155,7 @@ charly-marketplace:
             - '@github.com/opencharly/layer-charly-ollama:v2026.239.1603'
             - '@github.com/opencharly/pod-cloud-init:v2026.243.0410'
             - '@github.com/opencharly/layer-google-cloud-npm:v2026.243.0515'
-            - '@github.com/opencharly/layer-himalaya:v2026.243.0409'
+            - '@github.com/opencharly/layer-himalaya:v2026.246.1950'
             - '@github.com/opencharly/pod-immich:v2026.243.0410'
             - '@github.com/opencharly/pod-jupyter:v2026.243.0410'
             - '@github.com/opencharly/vm-k3s-agent:v2026.243.0508'
