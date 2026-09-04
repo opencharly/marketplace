@@ -13,16 +13,16 @@ description: |-
 
 | Property | Value |
 |----------|-------|
-| Install files | `charly.yml` (packages only) |
+| Install files | `charly.yml` (packages + one binary download) |
 | Depends | none |
 
 ## Packages
 
-RPM: `asciinema`
+RPM: `asciinema` + `dejavu-sans-mono-fonts` · PAC: `asciinema` + `ttf-dejavu` · DEB: `asciinema` + `fonts-dejavu-core`
 
 ## What It Does
 
-Records terminal sessions as `.cast` files (asciicast v2 format). Recordings capture timing, input, and output — can be replayed with `asciinema play`, uploaded to asciinema.org, or converted to GIF/video.
+Records terminal sessions as `.cast` files (asciicast v2 format). Recordings capture timing, input, and output — can be replayed with `asciinema play`, uploaded to asciinema.org, or converted to GIF/video. Also installs the `agg` gif generator (asciinema/agg, pinned v1.9.0, prebuilt binary at /usr/local/bin/agg) plus a DejaVu Sans Mono font so a stopped recording can be rendered to an animated GIF — the engine behind the `record: gif` method.
 
 ## Cross-distro coverage
 
@@ -73,6 +73,30 @@ charly check live <image> --filter record   # runs the steps above
 asciinema play demo.cast                     # play back the copied-out artifact
 ```
 
+## Converting a recording to an animated GIF
+
+The `record: gif` method (served by the same plugin) renders a stopped
+terminal recording to an animated GIF with agg — the binary this candy
+installs. It runs agg in the container and copies the .gif to the host
+artifact path:
+
+```yaml
+plan:
+    - check: the recording is rendered to an animated gif
+      record:
+          method: gif
+          record_name: demo
+          artifact: demo.gif
+          theme: monokai
+          speed: 2
+          idle_time_limit: 1
+      context: [deploy]
+```
+
+agg options (theme, font_size, speed, idle_time_limit, fps_cap, select,
+cols, rows, no_loop, last_frame_duration, renderer) map 1:1 to agg's CLI
+flags; the recording's embedded theme is used when `theme:` is unset.
+
 ## Note
 
 Also available via the `dev-tools` candy (which includes asciinema among many other tools). This standalone candy is for boxes that need terminal recording without the full dev-tools bundle.
@@ -85,17 +109,18 @@ Also available via the `dev-tools` candy (which includes asciinema among many ot
 
 ## Related Commands
 
-- `/charly-check:record` — Terminal recording via asciinema (start, stop, cmd)
+- `/charly-check:record` — Terminal recording via asciinema (start, stop, cmd, gif)
 
 ## Cross-References
 
-- `/charly-check:record` — the `record:` check verb (`record_mode: terminal`) uses asciinema
+- `/charly-check:record` — the `record:` check verb (`record_mode: terminal` records, `record: gif` renders) uses asciinema + agg
 - `/charly-coder:dev-tools` — Also includes asciinema (larger candy)
 
 ## When to Use This Skill
 
 Use when the user asks about:
 - Terminal session recording
+- Converting a terminal recording to an animated GIF
 - asciinema in containers
 - The `asciinema` candy
 
