@@ -89,6 +89,18 @@
       "category": "commands"
     },
     {
+      "name": "charly-crabbox",
+      "source": {
+        "source": "local",
+        "path": "./crabbox"
+      },
+      "policy": {
+        "installation": "INSTALLED_BY_DEFAULT",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "images"
+    },
+    {
       "name": "charly-distros",
       "source": {
         "source": "local",

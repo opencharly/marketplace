@@ -1,0 +1,22 @@
+{
+  "name": "charly-crabbox",
+  "description": "Self-contained skills for the crabbox image family: the Crabbox CLI (layer-crabbox), the local Node/PostgreSQL coordinator (pod-crabbox) and the `crabbox:` check verb (plugin-crabbox) — the fully-local remote-execution control plane.",
+  "author": {
+    "name": "opencharly"
+  },
+  "repository": "https://github.com/opencharly/marketplace",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "OpenCharly Crabbox",
+    "shortDescription": "Self-contained skills for the crabbox image family: the Crabbox CLI (layer-crabbox), the local Node/PostgreSQL coordinator (pod-crabbox) and the `crabbox:` check verb (plugin-crabbox) — the fully-local remote-execution control plane.",
+    "longDescription": "Self-contained skills for the crabbox image family: the Crabbox CLI (layer-crabbox), the local Node/PostgreSQL coordinator (pod-crabbox) and the `crabbox:` check verb (plugin-crabbox) — the fully-local remote-execution control plane.",
+    "developerName": "opencharly",
+    "category": "images",
+    "capabilities": [
+      "Instructions"
+    ],
+    "defaultPrompt": [
+      "Use OpenCharly Crabbox for this OpenCharly task."
+    ]
+  }
+}
