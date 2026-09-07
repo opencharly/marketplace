@@ -1,4 +1,4 @@
-version: 2026.240.1943
+version: 2026.249.2125
 # opencharly/marketplace — the published Claude Code plugin marketplace.
 #
 # This file exists for ONE reason: to make `charly marketplace` resolvable when charly runs
