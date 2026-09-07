@@ -21,12 +21,12 @@ charly-marketplace:
             # only through the --root charly checkout at the CI pin below.
             - '@github.com/opencharly/layer-charly-internals:v2026.245.0848'
             - '@github.com/opencharly/layer-charly-internals-extra:v2026.246.0516'
-            - '@github.com/opencharly/layer-charly-build:v2026.243.2145'
-            - '@github.com/opencharly/layer-charly-check:v2026.246.1622'
+            - '@github.com/opencharly/layer-charly-build:v2026.250.1404'
+            - '@github.com/opencharly/layer-charly-check:v2026.250.1402'
             - '@github.com/opencharly/plugin-wl/candy/plugin-wl:v2026.244.0851'
             - '@github.com/opencharly/plugin-quickshell/candy/plugin-quickshell:v2026.243.1942'
             - '@github.com/opencharly/layer-charly-kubernetes:v2026.243.2148'
-            - '@github.com/opencharly/layer-charly-image:v2026.243.2149'
+            - '@github.com/opencharly/layer-charly-image:v2026.250.1401'0.1402 / layer-charly-image v2026.250.1401 + regenerated: the mcp: verb's VM/host env fallback + the addr HOST_PORT VM vars (charly-mcp-cmd, verb catalog), the serve loopback-default/opt-in bind + the packaged units + /etc/charly config (charly-mcp-cmd), the service overrides -> systemd drop-in + the packaged config (layer))
             - '@github.com/opencharly/layer-charly-immich:v2026.243.2103'
             - '@github.com/opencharly/pod-charly-mcp:v2026.250.0653'
             - '@github.com/opencharly/layer-ripgrep:v2026.235.1653'

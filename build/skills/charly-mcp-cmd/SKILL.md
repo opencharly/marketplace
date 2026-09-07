@@ -21,7 +21,7 @@ Both surfaces are legs of the SAME plugin candy: `candy/plugin-mcp` serves `verb
 
 ## Overview
 
-The `mcp:` check verb connects to Model Context Protocol servers declared by running containers via `mcp_provide`, using [github.com/modelcontextprotocol/go-sdk](https://pkg.go.dev/github.com/modelcontextprotocol/go-sdk) (v1.5.0). The methods cover the full MCP client surface: `ping`, `servers`, `list-tools`, `list-resources`, `list-prompts`, `call`, `read`. No MCP URL argument is ever typed by the user — the out-of-process plugin reads the target image's `ai.opencharly.mcp_provide` OCI label via the generic `cc.ResolveImageLabel` reverse-leg, resolves `{{.ContainerName}}` templates, applies pod-aware `localhost` rewriting, and maps the container-network URL to the published host port via `cc.ResolveEndpoint` (the host owns that machinery behind the class-generic reverse-legs).
+The `mcp:` check verb connects to Model Context Protocol servers declared by running containers via `mcp_provide`, using [github.com/modelcontextprotocol/go-sdk](https://pkg.go.dev/github.com/modelcontextprotocol/go-sdk) (v1.5.0). The methods cover the full MCP client surface: `ping`, `servers`, `list-tools`, `list-resources`, `list-prompts`, `call`, `read`. No MCP URL argument is ever typed by the user — the out-of-process plugin reads the target image's `ai.opencharly.mcp_provide` OCI label via the generic `cc.ResolveImageLabel` reverse-leg (`effectiveMCPProvides` in `resolve.go`). When the label leg fails — a VM/host venue has no podman-inspectable image label (plugin-check declines with `container for <name> is not running`) — the plugin falls back to the `mcp_provide` declarations threaded through the check env (`spec.CheckEnv.MCPProvide`, the P4 substrate-neutral path; a VM's declared forward is threaded host-routable by plugin-check, so the dial reaches the VM's server through the forwarded port). From either source it resolves `{{.ContainerName}}` templates, applies pod-aware `localhost` rewriting, and maps the container-network URL to a host-routable dial address via `cc.ResolveEndpoint` — an env-declared host-local `127.0.0.1` URL (the VM/host server's port already on the check host's loopback) is dialed as-is (the host owns that machinery behind the class-generic reverse-legs).
 
 **Served out-of-process — no host CLI subcommand.** The verb is a DECLARATIVE check verb only; there is no `charly check` subcommand for it (just like `kube:`/`spice:`/`adb:`/`appium:`). The MCP-client implementation (the go-sdk dial + the MCP methods) lives in `candy/plugin-mcp`, an out-of-tree charly plugin that charly's loader go-builds on the host and serves out-of-process over go-plugin gRPC (`LocalTransport`). A `check:` step carrying `mcp:` dispatches through the provider registry exactly like a built-in verb (`ResolveVerb("mcp")` → grpcProvider → `Provider.Invoke` with the full `Op` marshaled + a `CheckEnv` snapshot). Exercise it with `charly check live <image> --filter mcp`.
 
@@ -70,7 +70,7 @@ The host owns all podman / OCI-label / port-mapping machinery behind the class-g
 6. **Transport pick** (plugin): `transport: http` (or empty) → `StreamableClientTransport{Endpoint}`; `transport: sse` → `SSEClientTransport{Endpoint}`; any other string errors at dial time with the declared transport echoed.
 7. **Session** (plugin): `mcp.NewClient(…).Connect(ctx, transport, nil)` runs the MCP `initialize` handshake and returns an opened `ClientSession`; the provider evaluates the step's matchers itself and returns a `{status,message}` verdict to the host. A `defer session.Close()` always fires.
 
-Source: the endpoint resolution lives in `candy/plugin-mcp` (`resolve.go` — the `cc.ResolveImageLabel` + `cc.ResolveEndpoint` reverse-legs), alongside the MCP client (the MCP methods + the dial: `provider.go` dispatch + `methods.go` client layer). See `/charly-internals:plugin` for the out-of-process provider model and `/charly-internals:go` for the host-side map.
+Source: the endpoint resolution lives in `candy/plugin-mcp` (`resolve.go` — the `effectiveMCPProvides` source selector over the `cc.ResolveImageLabel` + `cc.ResolveEndpoint` reverse-legs, plus the dial: the OCI label is authoritative when it carries entries; an absent/empty label or a non-inspectable venue falls back to the check env's `mcp_provide` declarations), alongside the MCP client (the MCP methods + the dial: `provider.go` dispatch + `methods.go` client layer). See `/charly-internals:plugin` for the out-of-process provider model and `/charly-internals:go` for the host-side map.
 
 ## Methods
 
@@ -287,12 +287,21 @@ No other required modifiers — `ping`, `servers`, `list-*` take only the option
 `charly mcp serve` runs the charly CLI *as* an MCP server. Every leaf command in the Kong CLI tree — `box.build`, `status`, `test.mcp.ping`, `config.setup`, `box.new.project`, `candy.add-rpm`, etc. — becomes a callable MCP tool. Tool catalogs are **auto-generated from Kong struct tags** by reflection — host-side, over the hidden `charly __cli-model` seam — with no hand-written schema per command. Result: **one tool per leaf command** covering the entire build + test + deploy surface, including the MCP-first authoring verbs (`image.{new.project, new.image, set, add-layer, rm-layer, fetch, refresh, write, cat}` + `layer.{set, add-rpm, add-deb, add-pac, add-aur}`).
 
 ```bash
-charly mcp serve                                # Streamable HTTP on :18765/mcp
+charly mcp serve                                # Streamable HTTP on 127.0.0.1:18765/mcp (loopback only by default)
+charly mcp serve --listen 0.0.0.0:18765         # Opt-in: bind all interfaces (normal inside a pod/VM)
 charly mcp serve --listen 127.0.0.1:9999        # Custom port
 charly mcp serve --path /api/mcp                # Custom HTTP path prefix (default /mcp)
 charly mcp serve --stdio                        # Stdio transport for editor/LLM integration
 charly mcp serve --read-only                    # Skip registering the destructive tools
 ```
+
+## Listen/bind default (P3) — loopback only
+
+`charly mcp serve` binds **`127.0.0.1:18765` by default** — loopback only; the host system is the security boundary. `--listen 0.0.0.0:18765` is the explicit opt-in for remote/container reachability — **normal inside a pod/VM**, where the container network is the boundary.
+
+The generated packages (`charly generate-packages`, the packaging section) ship **non-autostarting systemd units — system AND user scope** (rendered to `/usr/lib/systemd/{system,user}/` by `sdk/packagekit`; deb/rpm/archlinux only). They are installed but NEVER enabled: the operator starts the server on demand (`systemctl start charly-mcp` / `systemctl --user start charly-mcp`). Both units run `charly mcp serve --listen 127.0.0.1:18765` with `WorkingDirectory=/etc/charly`, resolving the package's **system-wide `/etc/charly/charly.yml`** — the plugin config the server needs, so the server uses a local project instead of falling back to a network fetch of `opencharly/charly`. A user-scope-unit server additionally reads the **invoking user's** `~/.config/charly/charly.yml` on top of the system config — the layered config merge (`/etc/charly` → user config → in-dir project, later files winning; `sdk/loaderkit/config_stack.go`).
+
+Child tool processes inherit the **FULL environment**: `childCharlyEnv` returns `os.Environ()` with no `CHARLY_*` stripping — the environment is authoritative (config precedence env → flag → `--repo` → cwd), so an inherited `CHARLY_PROJECT_DIR`/`CHARLY_PROJECT_REPO` wins over the managed project prefix.
 
 Server and client share one `github.com/modelcontextprotocol/go-sdk` inside the same plugin candy, so the wire format is identical and the `mcp: ping` check verb works against it unchanged.
 
@@ -310,7 +319,7 @@ The server is the `command:mcp` leg of `candy/plugin-mcp` (`serve.go`), fed by O
 
 3. **Tool invocation — fork/exec, no in-process capture** — `makeToolHandler(bin, prefix, leaf)` returns a closure. On call: decode the MCP JSON arguments, reconstruct a `[]string` argv via `argvFromJSON(…)` (booleans → bare flag, slices → repeated `--flag=value`, positionals in model order), then `forkCharly` runs `charly <prefix> <path> <args…>` as a SUBPROCESS and `assembleToolText` returns the captured stdout/stderr as a single `TextContent`. Errors become `IsError: true` tool results, not MCP-protocol errors — the LLM sees the failure text. The fork/exec design REPLACED the former in-process capture model wholesale: there is no `os.Stdout` redirect, no capture mutex, and subprocess output cannot leak past its own tool result.
 
-4. **Project prefix** — every tool call carries the managed prefix from `computeProjectPrefix` (see "Project-dir wiring" below); `childCharlyEnv` strips `CHARLY_PROJECT_DIR`/`CHARLY_PROJECT_REPO` from the child environment so the prefix stays authoritative.
+4. **Project prefix** — every tool call carries the managed prefix from `computeProjectPrefix` (see "Project-dir wiring" below), computed so the ENVIRONMENT stays authoritative: `CHARLY_PROJECT_DIR`/`CHARLY_PROJECT_REPO` set, or a `charly.yml` in the cwd, both suppress the prefix (the child inherits the env and resolves the project itself); `--no-default-repo` with no local project leaves it empty too; only otherwise is a `--repo default` prefix prepended. Children inherit the FULL environment — `childCharlyEnv` returns `os.Environ()` verbatim, no `CHARLY_*` stripping.
 
 5. **Transport** — `mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server { return server }, nil)` wraps the server for HTTP mode; `--stdio` runs the same server over the stdio transport.
 
@@ -357,7 +366,7 @@ charly-mcp-service:
 
 2. **Remote pin** — set `CHARLY_PROJECT_REPO=opencharly/charly@<sha-or-ref>` in the container env (e.g. via `charly config <image> -e CHARLY_PROJECT_REPO=...`). The charly CLI clones (or hits its `~/.cache/charly/repos/` cache) and chdirs into the cache path before Kong dispatch. No bind mount required. Use this for reproducible agent runs against a pinned upstream.
 
-3. **Auto-default** — `charly mcp serve` with no charly.yml reachable at cwd falls back to `github.com/opencharly/charly` by prepending a managed `--repo default` prefix to every project-dependent tool call (`computeProjectPrefix` in `candy/plugin-mcp/serve.go`); the child `charly` resolves + fetches the default-repo cache. The fallback fires regardless of `CHARLY_PROJECT_DIR` being set — the check is whether the cwd actually contains `charly.yml`, not whether the env var is populated (and `childCharlyEnv` strips the env from children so the prefix stays authoritative). This matters because the `charly-mcp` layer permanently sets `CHARLY_PROJECT_DIR=/workspace`: a deployer who forgets the `--bind` still gets a working MCP server backed by the upstream repo. Pass `--no-default-repo` to opt out — the server still runs, and project-dependent tools error at call time (the child reports "no project"). This is the only command surface that auto-fetches; the top-level CLI stays opt-in.
+3. **Auto-default** — `charly mcp serve` with no charly.yml reachable at cwd falls back to `github.com/opencharly/charly` by prepending a managed `--repo default` prefix to every project-dependent tool call (`computeProjectPrefix` in `candy/plugin-mcp/serve.go`); the child `charly` resolves + fetches the default-repo cache. The `--repo default` prefix applies only when nothing else expresses a project: an env-set `CHARLY_PROJECT_DIR`/`CHARLY_PROJECT_REPO` wins by precedence (env → flag → `--repo` → cwd) and suppresses the prefix, and so does a `charly.yml` in the cwd — children inherit the full environment (`childCharlyEnv` returns `os.Environ()` with no `CHARLY_*` stripping), so a set env var is never fought. This matters because the `charly-mcp` layer permanently sets `CHARLY_PROJECT_DIR=/workspace` — the env-driven wiring the P2 rule protects: a deployer who forgets the `--bind` still gets a RUNNING server (the tool-model fetch needs no project), but project-dependent tools (`box.*`) report no project until `/workspace` actually holds a `charly.yml`. Pass `--no-default-repo` to opt out — the server still runs, and project-dependent tools error at call time (the child reports "no project"). This is the only command surface that auto-fetches; the top-level CLI stays opt-in.
 
 See `/charly-image:image` "Project directory resolution" for the flag/env semantics; the implementation is `computeProjectPrefix` + `childCharlyEnv` in `candy/plugin-mcp/serve.go`.
 
@@ -416,7 +425,7 @@ box.inspect       {"image": "hello"}
 
 ## Port choice
 
-Default `:18765` chosen for non-collision with other MCP layers:
+Default listen `127.0.0.1:18765` (loopback only — P3; `0.0.0.0` is the explicit opt-in) chosen for non-collision with other MCP layers:
 - `8888` — jupyter-mcp
 - `9224` — chrome-devtools-mcp (via mcp-proxy)
 - `18789` — openclaw gateway

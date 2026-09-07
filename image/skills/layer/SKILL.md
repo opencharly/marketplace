@@ -719,6 +719,22 @@ postgresql:
           after: [network-online.target]
 ```
 
+**The `overrides:` block → a systemd drop-in.** A `use_packaged:` entry may declare an `overrides:` block — `exec` / `env` / `after` — and the override materializes as a systemd DROP-IN on the packaged unit, never a regenerated unit file. On the deploy path, sdk/deploykit's packaged-service compile (`CompileServiceSteps`) renders the drop-in (`OverridesText` / `OverridesPath` on the compiled pack step, emitted through the same init-provider render seam the custom-exec path uses), and the executor writes it to the packaged unit's drop-in directory and daemon-reloads BEFORE `enable --now`. The service starts with the overridden `ExecStart` / env / ordering while the SHIPPED unit stays untouched — e.g. an `exec` override rebinding a server from the packaged loopback default to all interfaces:
+
+```yaml
+charly-mcp:
+  candy:
+    service:
+      - name: charly-mcp
+        use_packaged: charly-mcp.service   # unit shipped by the charly package
+        enable: true
+        overrides:                          # systemd drop-in on the packaged unit
+          exec: /usr/bin/charly mcp serve --listen 0.0.0.0:18765   # rebind the packaged loopback default
+          env:
+            CHARLY_PROJECT_DIR: /workspace
+          after: [network-online.target]
+```
+
 **Supervisord caveat**: `use_packaged:` is a systemd-only concept. On supervisord-targeted images (containers using the default init), packaged entries render a warning and get skipped; either author a custom entry (form 2) or target a systemd image.
 
 ### Form 2 — custom service
@@ -799,6 +815,10 @@ The actual unit text is rendered by the init-system's `service_schema` block in 
 - **Systemd init (bootc + host deploys)** — `service_template` produces `[Unit]` / `[Service]` / `[Install]` blocks; the rendered file goes to `/etc/systemd/system/charly-<layer>-<name>.service` (or the user-scope path when `scope: user`). For `use_packaged:` entries, `dropin_template` + `dropin_path_template` produce an override file alongside the packaged unit.
 
 See `/charly-infrastructure:supervisord` for the supervisord ServiceSchemaDef template, `/charly-build:build` for the three-phase template model, and `/charly-local:local-deploy` for how the host target consumes `service:` entries.
+
+### Packaged units in the charly packages — installed, never enabled
+
+The generated charly packages (deb / rpm / archlinux — built by `charly generate-packages`, sdk/packagekit) SHIP systemd units but never enable them: non-autostarting `charly-mcp` units in both scopes (`/usr/lib/systemd/system/charly-mcp.service` and the user-scope `/usr/lib/systemd/user/charly-mcp.service`) plus a system-wide project config at `/etc/charly/charly.yml`. Nothing starts at install time — the units are INSTALLED, NEVER `enable`d; the operator starts on demand (`systemctl start charly-mcp` / `systemctl --user start charly-mcp`). The packaged unit binds loopback only (127.0.0.1) — an `overrides.exec` on a `use_packaged:` entry (above) is the explicit rebind to all interfaces. The apk / ipk formats carry no systemd and ship no units.
 
 ### Charly-owned start scripts (never upstream install scripts)
 

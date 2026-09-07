@@ -185,6 +185,22 @@ then rewrites the host portion to `127.0.0.1:<published-host-port>` using
 the same port-mapping data that powers `${HOST_PORT:N}`. No URL argument
 is needed in YAML.
 
+The `mcp` verb is substrate-neutral. A container venue carries its
+`mcp_provide` declaration on the `ai.opencharly.mcp_provide` OCI label,
+and the label leg above resolves it. A VM or host venue has no
+podman-inspectable label — the label leg fails ("container for %s is not
+running") — so the runner falls back to the `mcp_provide` the check env
+threads from the project's template (plugin-mcp `effectiveMCPProvides`,
+the same declarations a container label would carry). For a VM venue the
+threaded declaration is host-routable: the persisted
+`network.port_forwards` auto-forward allocations rewrite a loopback
+`mcp_provide` URL to `127.0.0.1:<forwarded-host-port>`, so the dial
+reaches the guest's MCP server through the forwarded port (plugin-check
+`mergeVmForwardedHostPortVars` + `hostRoutableMcpProvide`). The
+`check-cachyos-mcp-vm` bed is the standing example — its `mcp:` steps
+dial the cachyos-vm's `mcp_provide` (127.0.0.1:18765/mcp) through the
+fixed 18765:18765 forward.
+
 Transport dispatch: `transport: http` (or empty) → Streamable HTTP;
 `transport: sse` → SSE. Anything else is rejected at dial time.
 
