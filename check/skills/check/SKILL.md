@@ -39,6 +39,28 @@ or, when the bed carries an `iterate:` block, drives an AI runner through
 plateau-bounded iterations instead. Mode is explicit in the verb; there is no
 autodetect. Full detail: `references/beds-and-r10.md`.
 
+## MODE DISCIPLINE — `check live` is VERIFY-ONLY, never an R10 gate (R1 2026-09-07)
+
+**`charly check live <name>` runs in verify-only mode: every MUTATING `run:` step
+(install, session-create, launch, delete, config writes) is SKIPPED by design**
+(`verify_checks.go` threads `in.VerifyOnly`; the live path sets it; the log prints
+`skipped — verify-only mode (mutating step)`). A live check proves the CURRENT
+state of a running deployment - it CANNOT create the state its check steps
+depend on. An appium/`vnc:`/`adb:` session instrument whose bracket is a
+`session-create` run step will therefore fail EVERY downstream find/assert step
+with "no Appium session ... author an `appium: session-create` step first".
+
+**The R10 gate is ALWAYS `charly check run <bed>`** (build -> check image -> deploy
+-> check live -> fresh update -> teardown on a `disposable: true` deploy), where
+mutating steps EXECUTE in order. NEVER substitute `charly check live` for the R10
+gate "to save time" against a still-up deployment: verify-only output with skipped
+mutating steps is NOT evidence of the instrument/session path and must never be
+pasted as a gate. If a worker picks a mode other than `check run` for an R10
+proof, that is an R1 violation: STOP, read the mode semantics above, re-run the
+full mode. (Measured: a `check live` substitution produced 26 skipped mutating
+steps + 43 downstream failures where the full `check run` had reached 6/7 steps
+green incl. every mutating install.)
+
 Agent Driven Evaluation (ADE) runs an entity's own baked plan as acceptance
 tests: a `check:` step's inline verb is graded deterministically, while an
 `agent-check:` step (prose only) is graded by an AI agent via `charly box/check

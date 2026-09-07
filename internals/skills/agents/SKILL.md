@@ -53,3 +53,17 @@ Invoke before authoring or invoking an charly sub-agent / dynamic workflow /
 agent team, before wiring agent-lifecycle or commit/push gate hooks, and
 whenever deciding which primitive should drive the `charly check` beds for a
 given verification.
+
+## Every delegated worker MUST read the relevant skill before its first tool call (R1 2026-09-07)
+
+**No sub-agent / dynamic-workflow child may start working without reading the
+SKILL.md(s) the task triggers.** The parent brief must name the skill(s) AND the
+worker must load them (their SKILL.md + the referenced reference docs) BEFORE its
+first tool call - this is a hard precondition, not a suggestion. Measured
+failures this rule exists for: a worker chose `charly check live` (verify-only,
+skips every mutating step) over `charly check run` for an R10 proof because it
+never read the check skill, producing 26 skipped mutating steps + 43 downstream
+failures; a worker pushed four un-gated heads (gofmt-dirty, stale worktree
+replace) because it never loaded the git-workflow skill's gate-before-push rule.
+A parent that fails to name the skill, or a worker that proceeds without loading
+it, commits an R1 violation - STOP and load it before continuing.

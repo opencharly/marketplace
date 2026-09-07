@@ -16,6 +16,14 @@ This skill is the operational reference for R1–R5. Each section below restates
 
 A violation of any R1–R5 rule (or any of R6–R10, or the "Prioritize Clean Architecture Above All Else" section in the project rulebook) FORBIDS commit. There is no "downgrade tier and ship anyway" path. The agent fixes the violation in the same working tree and re-runs all verification, OR escalates to the operator and STOPS. No commit ships at any tier with a known violation. See the project rulebook "AI Attribution" section.
 
+## R0x. Gate-before-push + no re-run against a root-caused defect (R1 2026-09-07)
+
+**Every push to a PR must pass the local gates FIRST** — `gofmt -l` empty, `go build`, `go vet`, and the touched packages' `go test` — verified from the committed tree, not from a dirty state. Pushing a head that was never gated locally and letting CI fail is an R1 violation (measured: four consecutive ci failures — two on a stale local worktree `replace` in go.mod that CI cannot resolve, two on `gofmt -l` flagging an unformatted file). The validator is not a debugging loop: push the head you have already proven green locally.
+
+**Never re-run a bed/command against a defect you have already root-caused** — re-running cannot change a root-caused defect (measured: 11 full android bed runs against an unimplemented candy-dirs wire gap, all red, before the fix was actually implemented). If the RCA names a fix, IMPLEMENT the fix (in-repo PR, unit-tested, gated) and then run once. Re-running the same command expecting a different result, or parking a root-caused blocker in a "named batch" while re-running, is the forbidden circle.
+
+**A required gate (R10 bed proof) is never deferred** — not to a "named thematic batch", not to a "follow-up commit", not "to be proven later". The bed composes the UNRELEASED plugin from the local build (`go.mod replace` / `CHARLY_PLUGIN_DIR` + charly rebuilt at the branch — the proven recipe); if that is mechanically impossible, STOP and escalate. Validator rejection of a deferred gate ("Deferring a required gate is not the same as B6 routing") is a STOP, not a reword prompt.
+
 ## R1. RCA on every failure — no transient-flake classification
 
 **The rule (CLAUDE.md R1).** Any failure, error, anomaly, or warning from any tool triggers `/charly-internals:root-cause-analyzer` immediately, before remediation — from the first occurrence, no second-occurrence threshold.
