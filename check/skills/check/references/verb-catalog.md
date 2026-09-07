@@ -246,6 +246,14 @@ before any check executes. `${NAME:arg}` is parameterized form.
 | `${HOST:member}` | A separate member's container DNS name on the shared `charly` net (`charly-<member>`); no `:<port>` segment → container DNS; cross-member addressing (see `references/cross-deployment-probing.md`) | deploy |
 | `${HOST:member:port}` | A host-reachable `127.0.0.1:NNNN` for a separate member's `port` (published port / VM ssh-forward); the `:<port>` segment selects host-vantage cross-member addressing | deploy |
 
+For VM venues the `${HOST_PORT:<guest>}` grammar is threaded too: the
+VM's declared `network.port_forwards` host ports — the persisted
+auto-forward allocations, read via the reverse channel — resolve as
+`HOST_PORT:<guest>` runtime vars (a fixed forward needs no var: the
+guest port IS the host port). A deploy-scope `addr:`
+`127.0.0.1:${HOST_PORT:<guest>}` therefore reaches the guest service
+through the forwarded port on VM beds just as on pod beds.
+
 Build-context steps may not reference deploy-context variables — the
 validator flags this at `charly box validate` time.
 
