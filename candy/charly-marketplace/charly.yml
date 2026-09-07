@@ -28,7 +28,7 @@ charly-marketplace:
             - '@github.com/opencharly/layer-charly-kubernetes:v2026.243.2148'
             - '@github.com/opencharly/layer-charly-image:v2026.243.2149'
             - '@github.com/opencharly/layer-charly-immich:v2026.243.2103'
-            - '@github.com/opencharly/pod-charly-mcp:v2026.243.0516'
+            - '@github.com/opencharly/pod-charly-mcp:v2026.250.0653'
             - '@github.com/opencharly/layer-ripgrep:v2026.235.1653'
             - '@github.com/opencharly/layer-supervisord:v2026.240.0121'
             - '@github.com/opencharly/layer-nodejs:v2026.239.1624'

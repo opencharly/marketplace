@@ -3,7 +3,7 @@ name: charly-mcp
 description: |-
   MCP server exposing the full charly CLI as tools (Streamable HTTP on port
   18765). Meta-layer composition — layers: [charly, supervisord] — ships only
-  service wiring + `/workspace` bind-mount + CHARLY_PROJECT_DIR env plumbing.
+  service wiring + `/workspace` bind-mount + a `/workspace` service working directory.
   Auto-falls back to the upstream opencharly/charly repo when /workspace
   has no charly.yml. Use when composing an MCP gateway into any box so LLM
   agents can drive charly remotely.
@@ -22,7 +22,7 @@ description: |-
 | Port | 18765 (Streamable HTTP MCP endpoint at `/mcp`) |
 | Service | supervisord-managed `charly-mcp` program |
 | Volumes | `project` → `/workspace` (bind-mount the project root from the host) |
-| Env | `CHARLY_PROJECT_DIR: "/workspace"` |
+| Working dir | `/workspace` (service `working_directory` → supervisord `directory=`) |
 | mcp_provide | `{name: charly, url: http://{{.ContainerName}}:18765/mcp, transport: http}` |
 
 **Volume naming note:** the volume NAME is `project` (deployer-facing
@@ -104,15 +104,14 @@ Opt out with `--no-default-repo` (the server still runs; project-dependent
 tools error at call time instead of falling back).
 The top-level charly CLI never auto-fetches — only `charly mcp serve` does.
 
-**How the fallback fires:** this candy's `env:` block permanently sets
-`CHARLY_PROJECT_DIR=/workspace`, so the host `charly` chdirs there before
-dispatching `mcp serve` to the plugin — but `computeProjectPrefix`
-(`candy/plugin-mcp/serve.go`) checks for an actual `charly.yml` in that cwd,
-not the env var, and falls back to the `--repo default` child prefix if
-missing (`childCharlyEnv` strips the env from children so the prefix stays
-authoritative). That is what makes pattern 3 work by default even though
-`CHARLY_PROJECT_DIR` is always populated. See `/charly-build:charly-mcp-cmd`
-"Project-dir wiring".
+**How the fallback fires:** the service's `working_directory` is
+`/workspace`, so the server's cwd is the project mount — but
+`computeProjectPrefix` (`candy/plugin-mcp/serve.go`) checks for an actual
+`charly.yml` in that cwd, not the working directory, and falls back to the
+`--repo default` child prefix if missing (the child inherits the server's
+cwd; no CHARLY_PROJECT_DIR env var is set, so nothing overrides the
+fallback). That is what makes pattern 3 work by default. See
+`/charly-build:charly-mcp-cmd` "Project-dir wiring".
 
 ## Tests
 
