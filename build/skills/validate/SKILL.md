@@ -54,10 +54,11 @@ A `run:` step carries the deterministic state-change op inline (the same verb
 catalog the legacy `task:` map used). See `/charly-image:layer` for the full
 verb catalog. The validator enforces:
 
-- **Exactly one op verb per `run:` step.** A `run:` step must carry exactly one of `cmd` / `mkdir` / `copy` / `write` / `link` / `download` / `setcap` / `build`. Zero op verbs → the step has no action; more than one → conflicting actions.
+- **Exactly one op verb per `run:` step.** A `run:` step must carry exactly one of `cmd` / `mkdir` / `copy` / `write` / `link` / `download` / `setcap` / `build` / `config`. Zero op verbs → the step has no action; more than one → conflicting actions.
 - **Per-verb required modifiers:**
   - `copy` → `to:` (destination) required; `copy:` value must be relative to the layer directory, no `..` traversal
   - `write` → `content:` required (non-empty)
+  - `config` → `content:` required (non-empty); destination must be absolute/`~/`/`${HOME}`-prefixed; `validate:` (when set) names an egress kind; the config CONTENT is `${VAR}`-substituted at generate time, so an unresolved reference in it is a validate error (write: content stays verbatim — no such rule)
   - `link` → `target:` required (what the symlink points to)
   - `download` → `to:` required unless `extract: sh` (piped install scripts)
   - `setcap` with non-empty `caps:` → caps pattern check (`cap_name=flags[,cap_name=flags]`)
@@ -78,6 +79,7 @@ verb catalog. The validator enforces:
 
 - In non-shell fields (paths, URLs, `to`, `target`, etc.), every `${NAME}` reference must resolve against `var:` ∪ auto-exports. Unresolved references error at validate time.
 - In shell fields (`cmd:` values, `write: content:`), references are passed through verbatim and resolved by bash at build time.
+- **`config:` content is the ONE substituted body:** the config verb renders `content:` at GENERATE time (candy `var:` + auto-exports), so unresolved references in it are a validate-time error naming the field — the same rule the non-shell path fields follow.
 
 ### Image Rules
 
