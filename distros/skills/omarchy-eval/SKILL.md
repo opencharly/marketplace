@@ -75,9 +75,8 @@ path. The four agents are committed at opencharly/opencharly
 
 0. Evaluate from the template: opencharly/eval-omarchy's
    eval/PR-EVAL-TEMPLATE.md — every report and posted comment is
-   rendered from it and carries its EXTERNAL, NON-AUTHORITATIVE
-   (by opencharly.ai) disclaimer verbatim. Pick the CHANNEL base the PR
-   targets: dev = source-checkout lane (PR head in ~/omarchy);
+   rendered from it: what was tested and how it went, plainly. Pick the
+   CHANNEL base the PR targets: dev = source-checkout lane (PR head in ~/omarchy);
    edge/rc/stable = package-level lane; rc = the release-validation
    flow (channel-set + update + migrations).
 1. Load the rubric: omarchy's agents/skills (acceptance-tests,
