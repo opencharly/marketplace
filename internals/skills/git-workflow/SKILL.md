@@ -28,6 +28,28 @@ mandate, `/charly-internals:cutover-policy` the one-phase rule, `/charly-build:m
 the schema-version/tag coupling, and the marketplace's `internals/agents/pr-validator.md` the
 validator's own spec.
 
+## Validator re-trigger + PR-body evidence mechanics (FIXED at the workflow level, #38 wave)
+
+- **An empty commit does NOT re-trigger `pr-validator`.** The pull_request workflow ignores
+  pushes with no diff; the review stays stale. Re-trigger with a REAL commit or
+  `gh workflow run pr-validator.yml -f pr-number=<N>`.
+- **A `workflow_dispatch` without `--ref` runs on the DEFAULT branch** and its check registers
+  there — the reusable workflow now re-dispatches itself on the PR head ref (self-heal),
+  so the green check always lands on the branch head.
+- **The workflow now dedupes + self-heals** (opencharly/.github pr-validator): a per-PR
+  `concurrency` group (`cancel-in-progress: true`) cancels the in-flight run on
+  re-dispatch/push, so duplicate same-name check runs can no longer poison mergeability;
+  a `workflow_dispatch` re-dispatches itself on the PR head ref so the green check lands
+  on the head.
+- **The PR body must match a FROZEN head.** Commit SHAs and diff-stats in the body are
+  mutable until the branch stops moving; a rebase/amend after writing the body guarantees
+  a Rule-4 body-truthfulness BLOCK. Freeze the branch, write the body against the final
+  head (real `git log --oneline origin/main...HEAD` + `git diff --stat` output), push ONCE,
+  and never touch the branch again until merge. Any required fix = ONE atomic batch:
+  commit → compute the new head → rewrite the body → push.
+- **`gh_pr_status` `mode:'watch'` may act as a one-shot** in some environments — use a bounded
+  `check` poll loop as the fallback (terminal verdicts only, never loop on a BLOCK).
+
 ## Non-negotiable invariants
 
 - **No direct push to `main`** (the project rulebook's PR-only landing mandate — see "Post-Execution Policies"). Enforced by a per-repo branch RULESET on `refs/heads/main` — `creation` + `deletion` + `non_fast_forward` + a strict required status check named exactly **`validate / validate`**, with the `charly-auto-merge` GitHub App as the only bypass actor (its scoped bypass is what lets tag-on-merge's CHANGELOG commit land on a protected `main`). The LEGACY branch-protection API is deliberately NOT used: it has no bypass slot for that app, so `branch-protection.sh` deletes it wherever it survives, and `enforce_admins` plays no part. The `pre-push-gate` adds a local backstop in every harness that wires it — Claude Code included, via `.claude/settings.json`'s PreToolUse hooks. Organization-wide apply/verify is owned only by `opencharly/.github/scripts/branch-protection.sh`.
