@@ -16,7 +16,8 @@ description: |-
 
 `plugin-docs` is **not** listed in `charly/charly.yml`'s `compiled_plugins:`. A dev-time
 documentation generator has no business inside every shipped `charly` binary — it is run by
-the opencharly/docs repo's deploy workflow against a pinned charly checkout, and on a
+the opencharly/docs repo's deploy workflow against a charly checkout pinned by a CI-time
+commit in `deploy.yml` (the docs repo carries no charly submodule anymore), and on a
 contributor's machine for local preview, and nowhere else.
 
 charly prescans the declared `docs` word into the Kong grammar before parse and syscall.Exec's
@@ -26,9 +27,14 @@ what makes the out-of-process placement free here — the same property that let
 and `charly migrate` run in either placement.
 
 Because it is not in `compiled_plugins:`, the plugin is **not in `go.work`**. Its Go tests
-and the docs-site R10 bed live in charly; generation, the content-drift gate, the Astro
-build and the publish all live in the opencharly/docs repo's `deploy.yml` workflow, which
-runs this verb against the charly commit its `.gitmodules` pins.
+live in its OWN repo (opencharly/plugin-docs, `candy/plugin-docs/*_test.go`); the docs-site
+R10 bed (`docs-site-app`/`check-docs`) lives in charly. Generation, the content-drift gate,
+the Astro build and the publish all live in the opencharly/docs repo's `deploy.yml`
+workflow, which runs generation DIRECTLY with the plugin-docs CLI binary it builds at the
+pinned tag (`v2026.254.1214` — not via the `charly docs` word) against the charly commit
+the workflow pins (a CI-time commit in `deploy.yml`; the charly submodule was removed when
+it leaked the whole repo into consumer fetch trees, and `.gitmodules` now carries only the
+marketplace).
 
 ## Usage
 
@@ -82,6 +88,70 @@ not the page.**
 Every emitted file carries a `DO-NOT-EDIT` header, and **regeneration on a clean tree is a
 no-op** — the same drift gate SDD applies to generated Go.
 
+## The `docs:` node — ONE generation config
+
+Everything the assembly above needs is declared in ONE `docs:` kind entity in the charly
+repo's TOP-LEVEL `charly.yml` (`<root>/charly.yml` — the project root `generate` is pointed
+at, never a module-level manifest). It is CUE-contract-sourced: the closed `#DocsConfig`
+contract lives in `spec/schema/docs.cue` (the spec module) and the generator decodes the
+node into the GENERATED `spec.DocsConfig` types (`cue:gen`), CUE defaults applied. The node
+is discovered by the same name-first walk as `skill:`/`hook:`/`marketplace:` entities — the
+`docs` kind discriminator nested under any entity name — and the contract is explicit:
+
+- **ONE docs-site generation config per repo.** More than one `docs:` node in the root
+  `charly.yml` is a configuration error; an ABSENT node decodes to the schema defaults,
+  which reproduce the pre-config generator exactly (compiled corpus read from
+  `charly/charly.yml` + `charly/go.mod`, no release/extra repos) — an un-annotated
+  project still generates, identically.
+- The node names `sources.compiled` (the `compiled_plugins_path` manifest and the
+  `go_mod_path` pins), `sources.release_repos` / `sources.extra_repos`, the
+  `marketplace.path`, the `projections` toggles (recipes/cli/providers/candy/box/plugin/
+  landing), the hand-authored `output.hand_authored` tree, the `landing.readme` source and
+  the `gates` (site_links/sidebar_links/prune). No generation knob is hardcoded; the node
+  — or its schema defaults — answers every one.
+
+## Deployment: the drift-proof recipe
+
+Generation, the drift gate, the Astro build and the publish are the SOLE domain of the
+opencharly/docs repo's `deploy.yml` (Cloudflare Pages, project `opencharly-docs`). A local
+regeneration only ever mirrors it; the recipe that keeps the drift gate — a byte-no-op
+regeneration diff on `src/content/docs` — green:
+
+1. **charly is pinned by a CI-time commit in `deploy.yml`** (`d507ca5a…` at the time of
+   writing), never by a submodule — the docs checkout's `.gitmodules` carries ONLY the
+   marketplace.
+2. **The marketplace submodule must sit at the docs-repo-RECORDED gitlink, not at `main`
+   HEAD.** The corpus moves independently of the site; the recorded gitlink is the exact
+   corpus the committed pages were generated against, while `main` HEAD is wherever the
+   corpus PRs happened to land. Checking out `main`'s moving tip and the drift gate
+   disagree by construction.
+3. **The corpus wiring candy is written BEFORE generate.** The deploy runs
+   `python3 .github/docs-corpus/build_wiring.py .github/docs-corpus/pins.tsv` into
+   `candy/docs-corpus/charly.yml` inside the charly checkout (`--root`). The pins file is
+   the release/extra-repo list in tag form (`plugin-name<TAB>v2026.DDD.CCCC`); the wiring
+   candy turns it into the `@github.com/opencharly/<name>/candy/<name>:<tag>` refs the
+   release/extra assembly resolves (`pod-*` repos carry the ref at their repo root). A run
+   that skips this step regenerates a catalog WITHOUT those repos and drifts.
+4. **`--out` sits under the docs checkout with the Astro config present** — the sidebar
+   gate (`verifySidebarLinks`) resolves every sidebar `link:` target against the emitted
+   routes and walks UP from the content root (`src/content/docs`) to find
+   `astro.config.mjs`; an absent config is a HARD error, never a skipped check.
+5. **The refs cache must be fresh/CI-equivalent.** Release/extra repos resolve at go.mod
+   pins or the NEWEST CalVer tag at generation time through `refs.DownloadRepo`, whose
+   fetched trees are cached (`refs.RepoCacheDir`, `CHARLY_REPO_CACHE` override). CI's
+   fresh cache resolves newer tags/content than a stale local one, so a stale local cache
+   regenerates a site that differs from BOTH the committed pages and CI's — the drift gate
+   stays red locally despite a correct `pins.tsv` and correct sources. When the gate is
+   red, regenerate from a warm, CI-equivalent cache and confirm the diff is exactly the
+   intended projection change.
+
+The deploy invokes generation DIRECTLY — `/tmp/plugin-docs-bin generate --root <charly>
+--plugins <marketplace> --out <docs>/src/content/docs` with the CLI binary built at the
+pinned plugin tag — so the drift gate never depends on a local `charly` install or its
+out-of-process word resolution. The docs landing is therefore: bump the charly CI-time
+commit when the pin must advance, carry the regenerated pages, and let the drift gate
+prove the two agree.
+
 ## Editing a source is a docs landing
 
 Everything in that table is a PROJECTION, and every one of its sources is an ordinary
@@ -100,11 +170,16 @@ straight off disk, walking each repo as its own project root. Editing a
 `reference/candy/<name>.md` in the same tree, immediately. The docs PR (regenerating at
 the pinned charly) belongs to the same cutover as the candy edit.
 
-**Skill prose — TWO hops.** `recipes/` is NOT read from `candy/*/charly.yml`. A skill is
-authored as a `skill:` entity in its owning candy; `charly marketplace generate` projects
-that into the opencharly/marketplace repo (`<family>/skills/<name>/SKILL.md`), and
+**Skill prose — TWO hops, with a direct complement.** `recipes/` is NOT read from
+`candy/*/charly.yml` — but the generator DOES project candy `skill:` entities directly
+from its own remote-aware walk (`collectCandySkills`), the complement that keeps a moved
+candy's recipe references resolving on the site even before the marketplace regeneration
+lands (the stale-marketplace gap `/charly-tools:crabbox` measures — see the tests
+section). The long path still holds: a skill is authored as a `skill:` entity in its
+owning candy; `charly marketplace generate` projects that into the
+opencharly/marketplace repo (`<family>/skills/<name>/SKILL.md`), and
 `charly docs generate` reads **that projection** (via `--plugins` — the marketplace
-checkout the docs repo pins as a submodule), never the candy source. Editing a `skill:`
+checkout the docs repo pins as a submodule) first. Editing a `skill:`
 entity therefore changes nothing on the site until `charly marketplace generate` has
 run and the marketplace landing merges; the docs repo pins the marketplace in its own
 `.gitmodules` (branch `main`), so the change reaches readers once the marketplace main
@@ -131,8 +206,28 @@ stylistic preference; the obvious surfaces are actively wrong for the purpose:
 - A plugin absent from `compiled_plugins:` still loads out-of-process when a plan references its
   word, so "in the binary" is not the same set as "exists".
 
-So the generator walks **each repo as its own project root** — the superproject plus every
-`box/<distro>` submodule — and unions the results.
+So discovery is not the walked trees alone: the catalog is ONE assembly (R3/R5,
+`assembleCatalog`) unioning three sets —
+
+1. the **walked closure** — remote-ref-aware (`candywalk.CollectEntitiesRemote`):
+   the superproject plus every `box/<distro>` submodule, resolving any
+   `@github.com/opencharly/…` ref in a walked `require:`/`candy:` list through the
+   standalone fetch (`refs.DownloadRepo`);
+2. the **compiled corpus** — every name in the `docs:` node's `compiled_plugins_path`
+   manifest (`compiled_plugins:` list), each pinned by a require in the `go_mod_path`
+   go.mod (module `github.com/opencharly/<name>/candy/<name>`); the Go tag form
+   `v0.YYYYDDD.C` is mapped onto the repo's CalVer tag `v2026.DDD.CCCC` (the counter
+   re-zero-padded to four — `compiledPluginRef`), the repo fetched at that tag and
+   walked as a remote entity. A compiled-in plugin is therefore documented **by
+   construction**, even when no walked tree declares it — the compiled blind spot is
+   closed;
+3. the **release/extra repos** from the `docs:` config lists — bare names resolved
+   through the same `DownloadRepo` seam, at the go.mod require pin when the compiled
+   corpus go.mod requires the repo, else the repo's NEWEST CalVer tag at generation
+   time (`refs.GitLatestTag`).
+
+Every set is the DEFINED set, never the switched-on set — the two bullets above stay the
+reason the enabled surfaces cannot be trusted.
 
 ## Cross-reference rewriting
 
@@ -149,6 +244,21 @@ resolve, so nothing breaks — but that is why, not because they are published u
 
 An unresolvable reference **in a body** fails generation rather than emitting a dead link; a
 reference in a `description:` is never gated, because it is never published.
+
+### One sanitizer: page path == served URL == link target
+
+Every emitted page path AND every link target run through ONE sanitizer
+(`sanitizeSegment`): lowercase ASCII letters and digits survive, every other byte renders
+as `-`. That is not cosmetic — Astro strips `.` and `:` when it derives a route slug from
+a file name, so a segment built from an entity identity (a repo path, a CalVer tag, a
+namespaced name) would be served only at a mangled URL (`githubcom/…/plugin-checkv20262…`)
+while every generated natural link to it 404s — 851 published URLs, measured on the live
+site. Entity pages are additionally namespaced by DIRECTORY (a slash, not a dot — a
+dotted filename would also be slug-mangled), so `fedora/check-pod` survives where
+`fedora.check-pod` would not. Because the sanitizer is the one transform behind both file
+names and link targets, the page path, the served route and the link target are the same
+string BY CONSTRUCTION — a raw identity can never leak a dot or a colon into a page name
+while its links disagree.
 
 Three guards keep real content from being mangled into links, each earned from an actual corpus
 case:
@@ -192,6 +302,31 @@ The trade-off is stated rather than hidden: command PARENTHOOD is a Go method
 (`CommandParent()`), not a manifest field, so CLI pages name the word and its owning plugin
 without asserting where it nests. The narrative CLI guide covers the nesting and the three
 core-spine words (`box`, `version`, `reap-orphans`) that are not `command:` providers.
+
+## Tests: hermetic by construction
+
+The generator-wiring tests are HERMETIC: they run against self-contained fixtures, never
+against the live corpus or the network. `testdata/project` is a minimal charly project
+whose `docs:` node DISABLES the compiled corpus and declares no release/extra repos — so
+the catalog assembly never fetches — plus the README/VISION/GRIEVANCES/LIBERATION
+narratives the root pages project; `testdata/marketplace` is a one-plugin corpus that is
+internally consistent BY CONSTRUCTION; `testdata/site` seeds the hand-authored pages the
+generated landing links to, and the fixture writes the `astro.config.mjs` the sidebar gate
+reads. The fetch seams — the repoResolver pair, `download` (`refs.DownloadRepo`) and
+`latestTag` (`refs.GitLatestTag`) — are INJECTABLE into `assembleCatalog`, so the
+assembly itself runs on fixtures without any network.
+
+Bare-clone tests need these fixtures because the PUBLISHED marketplace corpus is not
+internally consistent at its current HEAD: its `recipes/automation/crabbox-deploy.md`
+card references the skill `/charly-tools:crabbox`, whose card exists only through the
+candy-skill complement (`collectCandySkills`) projecting the moved candy's `skill:`
+entity — the marketplace regeneration has not landed the card. A test that fetched the
+real corpus would fail every run, so the fixtures replace it. The `CHARLY_DOCS_MARKETPLACE`
+environment override wins over the fixture corpus when set — the seam the RDD bed uses to
+pass a freshly regenerated corpus. The ONE deliberate network test is
+`TestCollectEntitiesRemote_ResolvesMovedCandy`, which fetches the real `layer-ripgrep`
+pilot repo at its newest tag to prove the actual `refs.DownloadRepo` fetch path (the
+Phase-3 R10 gate) — a single test, not the wiring suite.
 
 ## Cross-References
 
