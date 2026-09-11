@@ -15,7 +15,7 @@ charly-marketplace:
             # here ('@github.com/opencharly/charly:vTAG') was not a candy node and
             # resolved to unknown candy "github.com/opencharly/charly" - silently in
             # this repo, but as a hard validation error in every consumer of the list.
-            - '@github.com/opencharly/pod-charly-hooks:v2026.247.1133'
+            - '@github.com/opencharly/pod-charly-hooks:v2026.254.1321'
             # The candies extracted out of charly/candy/ by the de-submodule cutover's
             # Phase D (opencharly/charly#451). Before this, their skills reached the corpus
             # only through the --root charly checkout at the CI pin below.
