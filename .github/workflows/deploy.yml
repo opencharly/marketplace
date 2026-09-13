@@ -47,7 +47,7 @@ jobs:
         # candywalk walks box/<distro> for entities; nothing in the charly tree is an input to
         # generation now, so the submodules are dead weight.
         run: |
-          git clone --depth 1 --branch v2026.241.1243 https://github.com/opencharly/charly.git /tmp/charly
+          git clone --depth 1 --branch v2026.256.1316 https://github.com/opencharly/charly.git /tmp/charly
 
       - uses: actions/setup-go@v5
         with:
