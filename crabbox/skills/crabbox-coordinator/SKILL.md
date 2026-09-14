@@ -20,7 +20,7 @@ description: |-
 | Endpoints | `GET /v1/health`, `GET /v1/ready` |
 | Runtime | Node.js ≥22.12 (layer-nodejs), built from the pinned upstream tag |
 | Backing | opencharly `postgresql` candy (PostgreSQL 13+, pg-boss; schemas auto-created on startup) |
-| Build | clone pinned tag → `npm ci` → `check:node` → `build:node` → `npm prune --omit=dev` (upstream Dockerfile recipe) |
+| Build | fetch pinned tag (annotated → dereferenced to its peeled commit) → `npm ci --include=dev` → `build:node` → `npm prune --omit=dev` (upstream Dockerfile recipe) |
 
 ## Deploy env (operator / bed)
 
