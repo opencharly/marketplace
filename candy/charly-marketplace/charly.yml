@@ -16,7 +16,7 @@ charly-marketplace:
             # resolved to unknown candy "github.com/opencharly/charly" - silently in
             # this repo, but as a hard validation error in every consumer of the list.
             - '@github.com/opencharly/pod-charly-hooks:v2026.254.1321'
-            - '@github.com/opencharly/eval-omarchy:v2026.256.1245'
+            - '@github.com/opencharly/eval-omarchy:v2026.257.0900'
             # The candies extracted out of charly/candy/ by the de-submodule cutover's
             # Phase D (opencharly/charly#451). Before this, their skills reached the corpus
             # only through the --root charly checkout at the CI pin below.
@@ -24,7 +24,7 @@ charly-marketplace:
             - '@github.com/opencharly/layer-charly-internals-extra:v2026.250.2006'
             - '@github.com/opencharly/layer-charly-build:v2026.254.1251'
             - '@github.com/opencharly/layer-charly-check:v2026.250.1955'
-            - '@github.com/opencharly/plugin-wl/candy/plugin-wl:v2026.244.0851'
+            - '@github.com/opencharly/plugin-wl/candy/plugin-wl:v2026.254.0527'
             - '@github.com/opencharly/plugin-quickshell/candy/plugin-quickshell:v2026.243.1942'
             - '@github.com/opencharly/layer-charly-kubernetes:v2026.243.2148'
             - '@github.com/opencharly/layer-charly-image:v2026.250.1401'
@@ -157,7 +157,7 @@ charly-marketplace:
             - '@github.com/opencharly/pod-cloud-init:v2026.243.0410'
             - '@github.com/opencharly/layer-google-cloud-npm:v2026.243.0515'
             - '@github.com/opencharly/layer-himalaya:v2026.246.1950'
-            - '@github.com/opencharly/pod-immich:v2026.243.0410'
+            - '@github.com/opencharly/pod-immich:v2026.251.1422'
             - '@github.com/opencharly/pod-jupyter:v2026.243.0410'
             - '@github.com/opencharly/vm-k3s-agent:v2026.243.0508'
             - '@github.com/opencharly/vm-k3s-server:v2026.243.0508'
@@ -170,13 +170,13 @@ charly-marketplace:
             - '@github.com/opencharly/pod-waybar-labwc:v2026.243.0508'
             - '@github.com/opencharly/layer-charly-filebrowser:v2026.243.2103'
             - '@github.com/opencharly/pod-hermes:v2026.243.2105'
-            - '@github.com/opencharly/pod-immich-ml:v2026.243.0516'
+            - '@github.com/opencharly/pod-immich-ml:v2026.255.1229'
             - '@github.com/opencharly/pod-jupyter-ml:v2026.243.2104'
             - '@github.com/opencharly/layer-notebook-finetuning:v2026.239.1606'
             - '@github.com/opencharly/layer-openclaw-full:v2026.247.0718'
             - '@github.com/opencharly/pod-openwebui:v2026.243.2104'
             - '@github.com/opencharly/layer-selkies-kde-desktop:v2026.247.1643'
-            - '@github.com/opencharly/layer-vectorchord:v2026.243.2104'
+            - '@github.com/opencharly/layer-vectorchord:v2026.251.1508'
             - '@github.com/opencharly/layer-charly-openwebui:v2026.243.2107'
             - '@github.com/opencharly/layer-charly-selkies:v2026.243.2104'
             - '@github.com/opencharly/layer-container-nesting:v2026.247.0157'
@@ -200,13 +200,16 @@ charly-marketplace:
             - '@github.com/opencharly/plugin-agentteams/candy/plugin-agentteams:v2026.242.0525'
             - '@github.com/opencharly/plugin-ollama/candy/plugin-ollama:v2026.242.0532'
             - '@github.com/opencharly/plugin-dsh/candy/plugin-dsh:v2026.242.0528'
-            - '@github.com/opencharly/plugin-herdr/candy/plugin-herdr:v2026.245.1008'
-            - '@github.com/opencharly/pod-herdr:v2026.245.1113'
+            - '@github.com/opencharly/plugin-herdr/candy/plugin-herdr:v2026.251.0850'
+            - '@github.com/opencharly/pod-herdr:v2026.251.0850'
             - '@github.com/opencharly/plugin-punktfunk/candy/plugin-punktfunk:v2026.243.1139'
-            # Crabbox wave (Phase 4): CLI + coordinator + check-verb skill entities
-            - '@github.com/opencharly/layer-crabbox:v2026.247.0855'
-            - '@github.com/opencharly/pod-crabbox:v2026.247.1311'
-            - '@github.com/opencharly/plugin-crabbox/candy/plugin-crabbox:v2026.247.1021'
+            # Crabbox wave (Phase 4): the CLI (layer-crabbox) + coordinator (pod-crabbox)
+            # skill entities. The `crabbox:` CHECK-VERB skill entity was retired by
+            # plugin-crabbox v2026.250.1019 — the verb still ships in the plugin, but no
+            # longer contributes a corpus skill (the projection drops check/skills/crabbox).
+            - '@github.com/opencharly/layer-crabbox:v2026.250.1023'
+            - '@github.com/opencharly/pod-crabbox:v2026.256.0645'
+            - '@github.com/opencharly/plugin-crabbox/candy/plugin-crabbox:v2026.250.1019'
         plan:
             - check: the marketplace corpus source resolves via the charly binary
               exit_status: 0
