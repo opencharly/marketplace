@@ -203,7 +203,10 @@ charly-marketplace:
             - '@github.com/opencharly/plugin-herdr/candy/plugin-herdr:v2026.251.0850'
             - '@github.com/opencharly/pod-herdr:v2026.251.0850'
             - '@github.com/opencharly/plugin-punktfunk/candy/plugin-punktfunk:v2026.243.1139'
-            # Crabbox wave (Phase 4): CLI + coordinator + check-verb skill entities
+            # Crabbox wave (Phase 4): the CLI (layer-crabbox) + coordinator (pod-crabbox)
+            # skill entities. The `crabbox:` CHECK-VERB skill entity was retired by
+            # plugin-crabbox v2026.250.1019 — the verb still ships in the plugin, but no
+            # longer contributes a corpus skill (the projection drops check/skills/crabbox).
             - '@github.com/opencharly/layer-crabbox:v2026.250.1023'
             - '@github.com/opencharly/pod-crabbox:v2026.256.0645'
             - '@github.com/opencharly/plugin-crabbox/candy/plugin-crabbox:v2026.250.1019'
