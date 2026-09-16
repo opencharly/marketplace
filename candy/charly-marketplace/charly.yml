@@ -16,7 +16,7 @@ charly-marketplace:
             # resolved to unknown candy "github.com/opencharly/charly" - silently in
             # this repo, but as a hard validation error in every consumer of the list.
             - '@github.com/opencharly/pod-charly-hooks:v2026.254.1321'
-            - '@github.com/opencharly/eval-omarchy:v2026.257.0900'
+            - '@github.com/opencharly/eval-omarchy:v2026.258.1957'
             # The candies extracted out of charly/candy/ by the de-submodule cutover's
             # Phase D (opencharly/charly#451). Before this, their skills reached the corpus
             # only through the --root charly checkout at the CI pin below.
@@ -24,7 +24,7 @@ charly-marketplace:
             - '@github.com/opencharly/layer-charly-internals-extra:v2026.250.2006'
             - '@github.com/opencharly/layer-charly-build:v2026.254.1251'
             - '@github.com/opencharly/layer-charly-check:v2026.250.1955'
-            - '@github.com/opencharly/plugin-wl/candy/plugin-wl:v2026.254.0527'
+            - '@github.com/opencharly/plugin-wl/candy/plugin-wl:v2026.258.1844'
             - '@github.com/opencharly/plugin-quickshell/candy/plugin-quickshell:v2026.243.1942'
             - '@github.com/opencharly/layer-charly-kubernetes:v2026.243.2148'
             - '@github.com/opencharly/layer-charly-image:v2026.250.1401'
