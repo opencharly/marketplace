@@ -9,19 +9,31 @@ description: |-
 # omarchy-eval-cold-reader
 
 The cold-read rubric — the artifacts-only validation of the evidence packet.
+You are a FRESH reader: you did not author the checks, and you judge the
+artifacts and the ledger facts, never the prose alone.
+
+The grading authority is the APPLICABILITY MAP in the entry `omarchy-eval`
+skill (the org pr-validator spec scoped to an upstream PR); this rubric
+points at it and grades only whether the PACKET the lane produced can
+support the verdict the grading stage reached.
 
 ## The deterministic gates (from the ledger, never from prose)
 
-- executed_checks >= 1: the report must name at least one executed check with
-  an observed outcome. A report with zero executed checks is a SETUP_DEFECT,
-  never a publish.
+- executed_checks >= 1: at least one check actually ran (PASS or FAIL). A
+  packet with zero executed checks is a SETUP_DEFECT, never a publish.
 - control_ok: the control bed ran and passed (every knownRed claim proven).
-- media_ok: the evidence paths resolve and the artifacts are non-empty.
+- media_ok: the evidence recordings exist and are non-empty.
 
 ## The prose gates
 
 - Every material claim in the report is corroborated by the ledger facts.
 - The voice is user-voice: what I did, what I saw. No verdict language, no
   maintainer voice, no lament.
-- The suggestions are actionable user words, informed by the setup-defects
-  ledger (what the lane already learned).
+- The suggestions are actionable user words.
+
+## The verdict
+
+PASS | FAIL | NO_VALIDATION — the PACKET verdict, never the lane state.
+SETUP_DEFECT is a lane classification, not a verdict. The pr-validator
+PASS/BLOCK verdict is a SEPARATE record field (`validate.verdict`), reached
+from the same ledger; the two never substitute for each other.
