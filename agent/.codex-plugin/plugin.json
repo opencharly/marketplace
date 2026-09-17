@@ -1,0 +1,22 @@
+{
+  "name": "charly-agent",
+  "description": "The `charly tui` terminal UI for the agent control plane (candy/plugin-agent).",
+  "author": {
+    "name": "opencharly"
+  },
+  "repository": "https://github.com/opencharly/marketplace",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "OpenCharly Agent",
+    "shortDescription": "The `charly tui` terminal UI for the agent control plane (candy/plugin-agent).",
+    "longDescription": "The `charly tui` terminal UI for the agent control plane (candy/plugin-agent).",
+    "developerName": "opencharly",
+    "category": "commands",
+    "capabilities": [
+      "Instructions"
+    ],
+    "defaultPrompt": [
+      "Use OpenCharly Agent for this OpenCharly task."
+    ]
+  }
+}

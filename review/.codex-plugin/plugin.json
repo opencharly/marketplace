@@ -1,0 +1,22 @@
+{
+  "name": "charly-review",
+  "description": "The `charly review` read-only GitHub PR review engine — verb:pr tools, the chat-completions review loop, verdict emission.",
+  "author": {
+    "name": "opencharly"
+  },
+  "repository": "https://github.com/opencharly/marketplace",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "OpenCharly Review",
+    "shortDescription": "The `charly review` read-only GitHub PR review engine — verb:pr tools, the chat-completions review loop, verdict emission.",
+    "longDescription": "The `charly review` read-only GitHub PR review engine — verb:pr tools, the chat-completions review loop, verdict emission.",
+    "developerName": "opencharly",
+    "category": "commands",
+    "capabilities": [
+      "Instructions"
+    ],
+    "defaultPrompt": [
+      "Use OpenCharly Review for this OpenCharly task."
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "charly-review",
+  "description": "The `charly review` read-only GitHub PR review engine — verb:pr tools, the chat-completions review loop, verdict emission.",
+  "author": {
+    "name": "opencharly"
+  },
+  "homepage": "https://github.com/opencharly/charly",
+  "repository": "https://github.com/opencharly/marketplace",
+  "license": "MIT",
+  "keywords": [
+    "charly",
+    "review",
+    "github",
+    "pr"
+  ]
+}
