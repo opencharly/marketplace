@@ -260,16 +260,19 @@ jobs:
             echo
             echo "- **R0 skills:** the owning skill for generation is \`/charly-internals:marketplace\`; the"
             echo "  refs list is the ONE input and is edited only by the resolver, never by hand."
-            echo "- **R1 RCA + zero warnings:** the refresh script resolves each pin and reports every repo"
-            echo "  it could not resolve. Unresolved-repo lines in this run (none = all resolved):"
+            echo "- **R1 RCA + zero warnings:** the refresh script resolves each pin and reports every"
+            echo "  repo it could not resolve. Its summary line for this run:"
             echo
             echo '```'
-            if [ ! -s /tmp/refresh.log ]; then
-              echo "(ERROR: /tmp/refresh.log is missing or empty — cannot report unresolved repos)"
+            # Derive from the resolver's OWN summary line ('refresh-refs: N pin(s) advanced,
+            # M unresolved'), not a guessed token: fail loud if the line is absent or M > 0.
+            SUMMARY=$(grep -E 'refresh-refs: [0-9]+ pin\(s\) advanced, [0-9]+ unresolved' /tmp/refresh.log | tail -1)
+            if [ -z "$SUMMARY" ]; then
+              echo "(ERROR: no 'refresh-refs: … unresolved' summary line in /tmp/refresh.log)"
             else
-              UNRES=$(grep -c 'UNRESOLVED' /tmp/refresh.log || true)
-              UNRES=${UNRES:-0}
-              if [ "$UNRES" -gt 0 ]; then grep 'UNRESOLVED' /tmp/refresh.log; else echo "(none — every pin resolved)"; fi
+              printf '%s\n' "$SUMMARY"
+              UNRES=$(printf '%s' "$SUMMARY" | grep -oE '[0-9]+ unresolved' | grep -oE '^[0-9]+')
+              [ "${UNRES:-1}" -eq 0 ] || grep 'UNRESOLVED' /tmp/refresh.log
             fi
             echo '```'
             echo "- **R2 no parking:** an edit to the corpus here is overwritten by the next generate, so a"
