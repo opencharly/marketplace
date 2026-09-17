@@ -233,7 +233,16 @@ jobs:
             echo "\`.github/workflows/deploy.yml\` in this repo:"
             echo
             echo '```'
-            sed -n '/# git diff --exit-code alone is NOT fail-closed/,/^          echo "corpus: committed tree/p' .github/workflows/deploy.yml
+            # FAIL LOUD: a `sed -n '/A/,/B/p'` emits NOTHING when the anchors do not match, so a
+            # reworded anchor in deploy.yml would silently emit an EMPTY fence under prose that
+            # still asserts the gate fails closed — evidence loss with no signal. Capture it and
+            # refuse to emit an empty block.
+            GATE_STEP=$(sed -n '/# git diff --exit-code alone is NOT fail-closed/,/^          echo "corpus: committed tree/p' .github/workflows/deploy.yml)
+            if [ -z "$GATE_STEP" ]; then
+              echo "(ERROR: could not extract the drift-gate step from deploy.yml — anchors moved)" >&2
+              GATE_STEP="(extraction failed: the deploy.yml gate anchors moved; fix refresh.yml)"
+            fi
+            printf '%s\n' "$GATE_STEP"
             echo '```'
             echo
             echo "## Attribution tier"
@@ -245,9 +254,13 @@ jobs:
             echo
             echo "- **R0 skills:** the owning skill for generation is \`/charly-internals:marketplace\`; the"
             echo "  refs list is the ONE input and is edited only by the resolver, never by hand."
-            echo "- **R1 RCA + zero warnings:** the refresh script reports unresolved repos explicitly and"
-            echo "  leaves their pins untouched rather than guessing; no warning appears in the pasted"
-            echo "  output."
+            echo "- **R1 RCA + zero warnings:** the refresh script resolves each pin and reports every repo"
+            echo "  it could not resolve. Unresolved-repo lines in this run (none = all resolved):"
+            echo
+            echo '```'
+            UNRES=$(grep -c 'UNRESOLVED' /tmp/refresh.log || true)
+            if [ "${UNRES:-0}" -gt 0 ]; then grep 'UNRESOLVED' /tmp/refresh.log; else echo "(none — every pin resolved)"; fi
+            echo '```'
             echo "- **R2 no parking:** an edit to the corpus here is overwritten by the next generate, so a"
             echo "  content change belongs in the OWNING repo (which gated it via its own pr-validator"
             echo "  before tagging); a defect in THIS workflow is fixed here."
