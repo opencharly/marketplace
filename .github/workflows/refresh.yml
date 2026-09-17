@@ -216,9 +216,15 @@ jobs:
             sed -n '/->/p' /tmp/refresh.log
             echo '```'
             echo
-            echo '*2. Each changed code path executing — the ACTUAL generator output:*'
+            echo '*2. Each changed code path executing — the ACTUAL generator output (full):*'
             echo '```'
-            tail -5 /tmp/generate.log
+            # Paste the WHOLE generator log, not a tail: a warning earlier in the file must be
+            # visible in the body that asserts the tier. Refuse an empty/absent log loudly.
+            if [ ! -s /tmp/generate.log ]; then
+              echo "(ERROR: /tmp/generate.log is missing or empty — the generator capture failed)"
+            else
+              cat /tmp/generate.log
+            fi
             echo "\$ git status --porcelain -uall | wc -l"
             echo "${FILES}"
             echo '```'
@@ -258,8 +264,13 @@ jobs:
             echo "  it could not resolve. Unresolved-repo lines in this run (none = all resolved):"
             echo
             echo '```'
-            UNRES=$(grep -c 'UNRESOLVED' /tmp/refresh.log || true)
-            if [ "${UNRES:-0}" -gt 0 ]; then grep 'UNRESOLVED' /tmp/refresh.log; else echo "(none — every pin resolved)"; fi
+            if [ ! -s /tmp/refresh.log ]; then
+              echo "(ERROR: /tmp/refresh.log is missing or empty — cannot report unresolved repos)"
+            else
+              UNRES=$(grep -c 'UNRESOLVED' /tmp/refresh.log || true)
+              UNRES=${UNRES:-0}
+              if [ "$UNRES" -gt 0 ]; then grep 'UNRESOLVED' /tmp/refresh.log; else echo "(none — every pin resolved)"; fi
+            fi
             echo '```'
             echo "- **R2 no parking:** an edit to the corpus here is overwritten by the next generate, so a"
             echo "  content change belongs in the OWNING repo (which gated it via its own pr-validator"
