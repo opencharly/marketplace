@@ -983,6 +983,13 @@
       "version": "3.1.0"
     },
     {
+      "name": "jetkvm",
+      "files": [
+        "SKILL.md"
+      ],
+      "version": "3.1.0"
+    },
+    {
       "name": "jupyter",
       "files": [
         "SKILL.md"
