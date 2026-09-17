@@ -1,0 +1,16 @@
+{
+  "name": "charly-cache",
+  "description": "The `charly cache` git-ref cache operator surface — status, clear, refresh, bypass.",
+  "author": {
+    "name": "opencharly"
+  },
+  "homepage": "https://github.com/opencharly/charly",
+  "repository": "https://github.com/opencharly/marketplace",
+  "license": "MIT",
+  "keywords": [
+    "charly",
+    "cache",
+    "git-ref",
+    "refs"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "name": "charly-cache",
+  "description": "The `charly cache` git-ref cache operator surface — status, clear, refresh, bypass.",
+  "author": {
+    "name": "opencharly"
+  },
+  "repository": "https://github.com/opencharly/marketplace",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "OpenCharly Cache",
+    "shortDescription": "The `charly cache` git-ref cache operator surface — status, clear, refresh, bypass.",
+    "longDescription": "The `charly cache` git-ref cache operator surface — status, clear, refresh, bypass.",
+    "developerName": "opencharly",
+    "category": "commands",
+    "capabilities": [
+      "Instructions"
+    ],
+    "defaultPrompt": [
+      "Use OpenCharly Cache for this OpenCharly task."
+    ]
+  }
+}

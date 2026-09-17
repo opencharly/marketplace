@@ -7,6 +7,24 @@
   "version": "3.1.0",
   "plugins": [
     {
+      "name": "charly-agent",
+      "source": "./agent",
+      "description": "The `charly tui` terminal UI for the agent control plane (candy/plugin-agent).",
+      "author": {
+        "name": "opencharly"
+      },
+      "homepage": "https://github.com/opencharly/charly",
+      "repository": "https://github.com/opencharly/marketplace",
+      "license": "MIT",
+      "keywords": [
+        "charly",
+        "agent",
+        "tui",
+        "control-plane"
+      ],
+      "category": "commands"
+    },
+    {
       "name": "charly-agentteams",
       "source": "./agentteams",
       "description": "Self-contained skills for the AgentTeams multi-agent stack (CachyOS base): the decomposed agentteams box — minio, matrix/tuwunel, element, higress, controller — on pod and vm substrates, plus the compiled-in `charly agentteams` management CLI.",
@@ -29,6 +47,24 @@
       "category": "images"
     },
     {
+      "name": "charly-authoring",
+      "source": "./authoring",
+      "description": "The `charly box add-candy/cat/fetch/labels/refresh/rm-candy/set/write` authoring verbs served by candy/plugin-authoring.",
+      "author": {
+        "name": "opencharly"
+      },
+      "homepage": "https://github.com/opencharly/charly",
+      "repository": "https://github.com/opencharly/marketplace",
+      "license": "MIT",
+      "keywords": [
+        "charly",
+        "authoring",
+        "box",
+        "candy"
+      ],
+      "category": "commands"
+    },
+    {
       "name": "charly-automation",
       "source": "./automation",
       "description": "Automation/customization knobs — tmux verb, host-side wrappers (alias, udev), topic flags (encryption, sidecars, openclaw deployment).",
@@ -49,6 +85,23 @@
       "category": "commands"
     },
     {
+      "name": "charly-bpf",
+      "source": "./bpf",
+      "description": "The `charly bpf` eBPF program surface served by candy/plugin-bpf.",
+      "author": {
+        "name": "opencharly"
+      },
+      "homepage": "https://github.com/opencharly/charly",
+      "repository": "https://github.com/opencharly/marketplace",
+      "license": "MIT",
+      "keywords": [
+        "charly",
+        "bpf",
+        "ebpf"
+      ],
+      "category": "commands"
+    },
+    {
       "name": "charly-build",
       "source": "./build",
       "description": "Build/authoring CLI verbs — build, generate, list, inspect, merge, new, pull, validate, secrets, settings, migrate, charly-mcp-cmd.",
@@ -63,6 +116,57 @@
         "build",
         "authoring",
         "containerfile"
+      ],
+      "category": "commands"
+    },
+    {
+      "name": "charly-cache",
+      "source": "./cache",
+      "description": "The `charly cache` git-ref cache operator surface — status, clear, refresh, bypass.",
+      "author": {
+        "name": "opencharly"
+      },
+      "homepage": "https://github.com/opencharly/charly",
+      "repository": "https://github.com/opencharly/marketplace",
+      "license": "MIT",
+      "keywords": [
+        "charly",
+        "cache",
+        "git-ref",
+        "refs"
+      ],
+      "category": "commands"
+    },
+    {
+      "name": "charly-candy",
+      "source": "./candy",
+      "description": "The `charly candy` authoring surface served by candy/plugin-candy.",
+      "author": {
+        "name": "opencharly"
+      },
+      "homepage": "https://github.com/opencharly/charly",
+      "repository": "https://github.com/opencharly/marketplace",
+      "license": "MIT",
+      "keywords": [
+        "charly",
+        "candy",
+        "authoring"
+      ],
+      "category": "commands"
+    },
+    {
+      "name": "charly-cardwire",
+      "source": "./cardwire",
+      "description": "The `charly cardwire` surface served by candy/plugin-cardwire.",
+      "author": {
+        "name": "opencharly"
+      },
+      "homepage": "https://github.com/opencharly/charly",
+      "repository": "https://github.com/opencharly/marketplace",
+      "license": "MIT",
+      "keywords": [
+        "charly",
+        "cardwire"
       ],
       "category": "commands"
     },
@@ -182,6 +286,24 @@
         "bootc"
       ],
       "category": "images"
+    },
+    {
+      "name": "charly-feature",
+      "source": "./feature",
+      "description": "The `charly feature` / `charly box feature` Agent Driven Evaluation surface — run a deployment's baked plan as acceptance tests with agent grading.",
+      "author": {
+        "name": "opencharly"
+      },
+      "homepage": "https://github.com/opencharly/charly",
+      "repository": "https://github.com/opencharly/marketplace",
+      "license": "MIT",
+      "keywords": [
+        "charly",
+        "feature",
+        "ade",
+        "acceptance"
+      ],
+      "category": "commands"
     },
     {
       "name": "charly-filebrowser",
@@ -422,6 +544,25 @@
       "category": "images"
     },
     {
+      "name": "charly-pipeline",
+      "source": "./pipeline",
+      "description": "The `charly pipeline` agent/workflow engine — plan agent stage, plan executor, deterministic probe verbs, template/frontmatter rendering.",
+      "author": {
+        "name": "opencharly"
+      },
+      "homepage": "https://github.com/opencharly/charly",
+      "repository": "https://github.com/opencharly/marketplace",
+      "license": "MIT",
+      "keywords": [
+        "charly",
+        "pipeline",
+        "agent",
+        "workflow",
+        "plan"
+      ],
+      "category": "commands"
+    },
+    {
       "name": "charly-pod",
       "source": "./pod",
       "description": "Schema authoring for `kind: pod` and `kind: deploy` — charly.yml shapes, nested deploys, sidecars.",
@@ -437,6 +578,26 @@
         "deploy"
       ],
       "category": "kind"
+    },
+    {
+      "name": "charly-pod-verbs",
+      "source": "./pod-verbs",
+      "description": "Pod-lifecycle CLI verbs served by candy/plugin-pod — cp (host\u003c-\u003econtainer copy), volume (list/reset named volumes), restart.",
+      "author": {
+        "name": "opencharly"
+      },
+      "homepage": "https://github.com/opencharly/charly",
+      "repository": "https://github.com/opencharly/marketplace",
+      "license": "MIT",
+      "keywords": [
+        "charly",
+        "pod",
+        "cp",
+        "volume",
+        "restart",
+        "lifecycle"
+      ],
+      "category": "commands"
     },
     {
       "name": "charly-punktfunk",
@@ -456,6 +617,24 @@
         "sway"
       ],
       "category": "images"
+    },
+    {
+      "name": "charly-review",
+      "source": "./review",
+      "description": "The `charly review` read-only GitHub PR review engine — verb:pr tools, the chat-completions review loop, verdict emission.",
+      "author": {
+        "name": "opencharly"
+      },
+      "homepage": "https://github.com/opencharly/charly",
+      "repository": "https://github.com/opencharly/marketplace",
+      "license": "MIT",
+      "keywords": [
+        "charly",
+        "review",
+        "github",
+        "pr"
+      ],
+      "category": "commands"
     },
     {
       "name": "charly-selkies",

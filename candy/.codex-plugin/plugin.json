@@ -1,0 +1,22 @@
+{
+  "name": "charly-candy",
+  "description": "The `charly candy` authoring surface served by candy/plugin-candy.",
+  "author": {
+    "name": "opencharly"
+  },
+  "repository": "https://github.com/opencharly/marketplace",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "OpenCharly Candy",
+    "shortDescription": "The `charly candy` authoring surface served by candy/plugin-candy.",
+    "longDescription": "The `charly candy` authoring surface served by candy/plugin-candy.",
+    "developerName": "opencharly",
+    "category": "commands",
+    "capabilities": [
+      "Instructions"
+    ],
+    "defaultPrompt": [
+      "Use OpenCharly Candy for this OpenCharly task."
+    ]
+  }
+}
