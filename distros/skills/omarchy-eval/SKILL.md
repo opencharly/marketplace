@@ -71,6 +71,7 @@ PR, and marking them PASS would be a fake:
 | R5 hard cutover / stale references | graded where the PR removes or renames a surface and leaves references behind | the PR diff |
 | R6/R8/R9 git-safety / artifacts / binary | N/A — no opencharly build, OCI artifact, or binary | — |
 | R10 disposable-only fresh-rebuild + coverage | SUBSTITUTED — the lane's live-VM run on the disposable golden IS the R10, and every PR-specific check is known-red (the control proves it) | `@gate.executed_checks`, `@gate.control_ok`, `@gate.media_ok`, `eval_steps` |
+| "the change works as a user would see it" | graded — `screen-vision-judged` asks a vision model whether the captured live-VM screenshot shows a rendered desktop (a panel + wallpaper), not merely that a non-uniform PNG exists; a visual PR cannot pass on a broken render | `@gate.eval_steps` entry `screen-vision-judged` |
 | RDD / ADE / SDD | N/A — opencharly authoring mandates | — |
 | concurrency mandate + anti-cheat | graded — the lane runs `lanes: 16`; a failure answered with "passes on idle" is the cheat | the lane run + the control |
 | hard cutover, one atomic phase | N/A — opencharly landing policy | — |
