@@ -1,0 +1,22 @@
+{
+  "name": "charly-feature",
+  "description": "The `charly feature` / `charly box feature` Agent Driven Evaluation surface — run a deployment's baked plan as acceptance tests with agent grading.",
+  "author": {
+    "name": "opencharly"
+  },
+  "repository": "https://github.com/opencharly/marketplace",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "OpenCharly Feature",
+    "shortDescription": "The `charly feature` / `charly box feature` Agent Driven Evaluation surface — run a deployment's baked plan as acceptance tests with agent grading.",
+    "longDescription": "The `charly feature` / `charly box feature` Agent Driven Evaluation surface — run a deployment's baked plan as acceptance tests with agent grading.",
+    "developerName": "opencharly",
+    "category": "commands",
+    "capabilities": [
+      "Instructions"
+    ],
+    "defaultPrompt": [
+      "Use OpenCharly Feature for this OpenCharly task."
+    ]
+  }
+}

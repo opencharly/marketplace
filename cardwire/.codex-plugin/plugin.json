@@ -1,0 +1,22 @@
+{
+  "name": "charly-cardwire",
+  "description": "The `charly cardwire` surface served by candy/plugin-cardwire.",
+  "author": {
+    "name": "opencharly"
+  },
+  "repository": "https://github.com/opencharly/marketplace",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "OpenCharly Cardwire",
+    "shortDescription": "The `charly cardwire` surface served by candy/plugin-cardwire.",
+    "longDescription": "The `charly cardwire` surface served by candy/plugin-cardwire.",
+    "developerName": "opencharly",
+    "category": "commands",
+    "capabilities": [
+      "Instructions"
+    ],
+    "defaultPrompt": [
+      "Use OpenCharly Cardwire for this OpenCharly task."
+    ]
+  }
+}
