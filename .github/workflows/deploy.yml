@@ -109,10 +109,13 @@ jobs:
           assert k["skills"]
           p = json.load(open("package.json"))
           assert "pi-package" in p["keywords"] and p["pi"]["skills"]
+          o = json.load(open(".well-known/skills/index.json"))
+          assert o["skills"] and all(s["files"] and s["files"][0] == "SKILL.md" for s in o["skills"])
+          assert open("DISPATCHER.md").read().startswith("<!-- BEGIN GENERATED SKILL DISPATCHER -->")
           for f in glob.glob("*/.claude-plugin/plugin.json") + glob.glob("*/.codex-plugin/plugin.json"):
               d = json.load(open(f))
               assert "version" not in d, f
-          print("catalogs OK: %d claude plugins, %d agents plugins, kimi+pi manifests, no version fields" % (len(m["plugins"]), len(a["plugins"])))
+          print("catalogs OK: %d claude plugins, %d agents plugins, kimi+pi+opencode manifests, dispatcher, no version fields" % (len(m["plugins"]), len(a["plugins"])))
           PY
 
       - name: Assemble the static catalog mirror for Pages
@@ -132,8 +135,37 @@ jobs:
           EOF
           printf '%s\n' '<!doctype html><html><head><meta charset="utf-8"><title>OpenCharly Marketplace</title></head>' \
             '<body><h1>OpenCharly Marketplace</h1><p>The <a href="https://github.com/opencharly/marketplace">opencharly/marketplace</a> repo is the catalog; this Pages site mirrors it for URL-based harnesses.</p>' \
-            '<ul><li><a href="claude-marketplace.json">claude-marketplace.json</a></li><li><a href="agents-marketplace.json">agents-marketplace.json</a></li><li><a href="kimi.json">kimi.json</a></li><li><a href="kimi.plugin.json">kimi.plugin.json</a></li></ul></body></html>' > _site/index.html
+            '<ul><li><a href="claude-marketplace.json">claude-marketplace.json</a></li><li><a href="agents-marketplace.json">agents-marketplace.json</a></li><li><a href="kimi.json">kimi.json</a></li><li><a href="kimi.plugin.json">kimi.plugin.json</a></li><li><a href="skills/index.json">skills/index.json</a> (opencode)</li></ul></body></html>' > _site/index.html
           echo "site: $(find _site -type f | wc -l) files"
+
+      - name: Assemble the opencode skills tree
+        # opencode's `skills.urls` fetches `${url}/index.json`, then each skill's listed files
+        # from `${url}/${name}/${file}` — a FLAT per-skill directory. The corpus is
+        # `<family>/skills/<name>/`, so the mirror is assembled from the generated index: copy
+        # each skill's files to `_site/skills/<name>/` and publish the index alongside.
+        run: |
+          python3 - <<'PY'
+          import json, os, pathlib, shutil
+          root = pathlib.Path(".")
+          base = pathlib.Path("_site/skills")
+          index = json.load(open(".well-known/skills/index.json"))
+          assert index["skills"], "opencode index carries no skills"
+          for skill in index["skills"]:
+              name = skill["name"]
+              src = None
+              for family in root.iterdir():
+                  cand = family / "skills" / name
+                  if (cand / "SKILL.md").is_file():
+                      src = cand
+                      break
+              assert src is not None, f"skill {name} not found under any family"
+              dst = base / name
+              for rel in skill["files"]:
+                  (dst / rel).parent.mkdir(parents=True, exist_ok=True)
+                  shutil.copy2(src / rel, dst / rel)
+          shutil.copy2(".well-known/skills/index.json", base / "index.json")
+          print("opencode skills: %d skills, %d files" % (len(index["skills"]), sum(1 for _ in base.rglob("*") if _.is_file())))
+          PY
 
       - uses: actions/upload-pages-artifact@v3
         with:
