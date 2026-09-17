@@ -229,8 +229,12 @@ jobs:
             echo '```'
             echo
             echo "**The drift gate.** This repo's \`marketplace\` workflow (\`deploy.yml\`) regenerates and"
-            echo "FAILS CLOSED — including on untracked regenerated files — if the committed corpus does"
-            echo "not match the refs list. It runs on this PR and is the gate."
+            echo "FAILS CLOSED if the committed corpus does not match the refs list. Its gate step, from"
+            echo "\`.github/workflows/deploy.yml\` in this repo:"
+            echo
+            echo '```'
+            sed -n '/# git diff --exit-code alone is NOT fail-closed/,/^          echo "corpus: committed tree/p' .github/workflows/deploy.yml
+            echo '```'
             echo
             echo "## Attribution tier"
             echo
