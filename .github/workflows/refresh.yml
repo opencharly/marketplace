@@ -83,7 +83,10 @@ jobs:
         # charly clone is purely the BINARY.
         if: steps.bump.outputs.changed == 'true' && steps.skip.outputs.skip == 'false'
         run: |
-          /tmp/charly/bin/charly marketplace generate --root "$GITHUB_WORKSPACE" --out "$GITHUB_WORKSPACE"
+          # Captured so the PR body pastes the ACTUAL generation output, not a claim that
+          # it ran. pipefail so a failing generator is not masked by tee's exit status.
+          set -o pipefail
+          /tmp/charly/bin/charly marketplace generate --root "$GITHUB_WORKSPACE" --out "$GITHUB_WORKSPACE" 2>&1 | tee /tmp/generate.log
 
       # GITHUB_TOKEN cannot open a pull request: "Allow GitHub Actions to create and
       # approve pull requests" is off across this org, deliberately — the same switch also
@@ -208,67 +211,100 @@ jobs:
             echo "- **Did the CHANGED code path execute live?** **Yes** — generation ran at the new pins and"
             echo "  resolved every advanced ref over the network."
             echo
-            echo '*1. Gate output:*'
+            echo '*1. Gate output — the refs resolution this run performed:*'
             echo '```'
-            tail -3 /tmp/refresh.log
+            sed -n '/->/p' /tmp/refresh.log
             echo '```'
             echo
-            echo '*2. Each changed code path executing:*'
+            echo '*2. Each changed code path executing — the ACTUAL generator output (full):*'
             echo '```'
-            echo "\$ bash scripts/refresh-refs.sh      # resolves each repo's newest CalVer tag"
-            echo "\$ charly marketplace generate --root . --out ."
+            # Paste the WHOLE generator log, not a tail: a warning earlier in the file must be
+            # visible in the body that asserts the tier. Refuse an empty/absent log loudly.
+            if [ ! -s /tmp/generate.log ]; then
+              echo "(ERROR: /tmp/generate.log is missing or empty — the generator capture failed)"
+            else
+              cat /tmp/generate.log
+            fi
             echo "\$ git status --porcelain -uall | wc -l"
             echo "${FILES}"
             echo '```'
             echo
             echo '*3. Docs-only evidence:*'
             echo '```'
-            echo "N/A — pins and generated artifacts."
+            echo "N/A — pins plus regenerated artifacts."
+            echo '```'
+            echo
+            echo "**The drift gate.** This repo's \`marketplace\` workflow (\`deploy.yml\`) regenerates and"
+            echo "FAILS CLOSED if the committed corpus does not match the refs list. Its gate step, from"
+            echo "\`.github/workflows/deploy.yml\` in this repo:"
+            echo
+            echo '```'
+            # FAIL LOUD: a `sed -n '/A/,/B/p'` emits NOTHING when the anchors do not match, so a
+            # reworded anchor in deploy.yml would silently emit an EMPTY fence under prose that
+            # still asserts the gate fails closed — evidence loss with no signal. Capture it and
+            # refuse to emit an empty block.
+            GATE_STEP=$(sed -n '/# git diff --exit-code alone is NOT fail-closed/,/^          echo "corpus: committed tree/p' .github/workflows/deploy.yml)
+            if [ -z "$GATE_STEP" ]; then
+              echo "(ERROR: could not extract the drift-gate step from deploy.yml — anchors moved)" >&2
+              GATE_STEP="(extraction failed: the deploy.yml gate anchors moved; fix refresh.yml)"
+            fi
+            printf '%s\n' "$GATE_STEP"
             echo '```'
             echo
             echo "## Attribution tier"
             echo
-            echo "**fully tested and validated** — regeneration ran in CI at the new pins, and the repo's own"
-            echo "fail-closed drift gate re-runs on this PR."
+            echo "**fully tested and validated** — regeneration ran in CI at the new pins (output pasted"
+            echo "above) and the repo's fail-closed drift gate re-runs on this PR."
             echo
             echo "## Harness rulebook compliance"
             echo
-            echo "- **R1 zero warnings:** the refresh script reports unresolved repos explicitly and leaves"
-            echo "  their pins untouched rather than guessing. A defect the generator itself surfaced (the"
-            echo "  collapsed \`?? dir/\` count) was root-caused and fixed in this same PR, not dismissed."
-            echo "- **R2 no parking:** the body-generator defects this refs bump surfaced (collapsed"
-            echo "  untracked-dir count, future-tense/self-contradicting authorship prose, false"
-            echo "  'same skills' claim) are fixed IN THIS TREE — the generator is in this diff."
-            echo "- **R3 no duplication:** one refs list, one owner."
-            echo "- **R4 no workaround:** every new pin is a MERGED CalVer tag on the owning repo — no branch"
-            echo "  refs, no version-less refs. Tags are compared NUMERICALLY, not lexicographically."
+            echo "- **R0 skills:** the owning skill for generation is \`/charly-internals:marketplace\`; the"
+            echo "  refs list is the ONE input and is edited only by the resolver, never by hand."
+            echo "- **R1 RCA + zero warnings:** the refresh script resolves each pin and reports every"
+            echo "  repo it could not resolve. Its summary line for this run:"
+            echo
+            echo '```'
+            # Derive from the resolver's OWN summary line ('refresh-refs: N pin(s) advanced,
+            # M unresolved'), not a guessed token: fail loud if the line is absent or M > 0.
+            SUMMARY=$(grep -E 'refresh-refs: [0-9]+ pin\(s\) advanced, [0-9]+ unresolved' /tmp/refresh.log | tail -1)
+            if [ -z "$SUMMARY" ]; then
+              echo "(ERROR: no 'refresh-refs: … unresolved' summary line in /tmp/refresh.log)"
+            else
+              printf '%s\n' "$SUMMARY"
+              UNRES=$(printf '%s' "$SUMMARY" | grep -oE '[0-9]+ unresolved' | grep -oE '^[0-9]+')
+              [ "${UNRES:-1}" -eq 0 ] || grep 'UNRESOLVED' /tmp/refresh.log
+            fi
+            echo '```'
+            echo "- **R2 no parking:** an edit to the corpus here is overwritten by the next generate, so a"
+            echo "  content change belongs in the OWNING repo (which gated it via its own pr-validator"
+            echo "  before tagging); a defect in THIS workflow is fixed here."
+            echo "- **R3 no duplication:** one refs list, one owner; the generator is the single corpus"
+            echo "  implementation."
+            echo "- **R4 no workaround:** every new pin is a MERGED CalVer tag on the owning repo — no"
+            echo "  branch refs, no version-less refs. Tags are compared NUMERICALLY, not lexicographically."
             echo "- **R5:** the pins are replaced, not appended to."
             echo "- **R6 git safety:** a fresh branch per run; no force-push; no push to \`main\`."
+            echo "- **R7 runtime gate:** \`N/A — a refs-list pin refresh plus its regenerated corpus; the"
+            echo "  gate is the drift gate, not a bed.\`"
             echo "- **R8 artifact invariants:** the corpus is regenerated by the tool, never hand-edited."
+            echo "- **R9 binary == source:** \`N/A — this repo builds no binary\`; the pinned charly binary"
+            echo "  is built from the CI-time tag in this run."
+            echo "- **R10 disposable + coverage:** \`N/A — no deploy/bed\`; this is a refs-list pin refresh"
+            echo "  plus its regenerated corpus, gated by the fail-closed drift gate (deploy.yml)."
+            echo "- **RDD / ADE / SDD:** RDD — the pins are resolved from the owning repos' MERGED tags"
+            echo "  (the resolver reads each repo's newest CalVer), not asserted. ADE — no candy. SDD —"
+            echo "  \`N/A\`, no CUE/schema/generated-code change."
+            echo "- **Hard cutover:** one atomic commit; the refs are replaced, not appended to."
             echo
             echo "---"
             echo
-            echo "## Authorship"
+            echo "## Attribution"
             echo
-            echo "This body is emitted by the deterministic generator"
-            echo "\`.github/workflows/refresh.yml\` — fixed in THIS SAME PR (the body-generator defect"
-            echo "surfaced while this PR is open, so R2 lands it here): the emitting steps are the"
-            echo "\`git status --porcelain -uall\` + \`printf/echo\` block, with NO model in the loop."
-            echo "The harness is the GitHub Actions runner and there is no provider model to name, so"
-            echo "the footer names the real harness with its confidence (AGENTS.md rule 6's form; a"
-            echo "repository name is never dressed as a model — rule A1 correctly refused that)."
-            echo "Because the generator is in this diff, the no-model claim is verifiable, not asserted."
+            echo "This body is emitted by the fixed, model-free \`git status --porcelain -uall\` +"
+            echo "\`printf/echo\` block in \`.github/workflows/refresh.yml\` (visible in this workflow's"
+            echo "committed source). The runtime identity is the GitHub Actions runner itself."
             echo
-            echo "The emitting steps, verbatim from \`.github/workflows/refresh.yml\` in this diff:"
-            echo
-            echo '```bash'
-            echo 'git status --porcelain -uall     # names each ADDED file, never a collapsed ?? dir/'
-            echo '# the printf/echo block then writes /tmp/pr-body.md (this text), deterministically.'
-            echo '```'
-            echo
-            echo "Generated by: \`.github/workflows/refresh.yml\`."
-            echo
-            echo "*Assisted-by: GitHub Actions (fully tested and validated)*"
+            echo "*Assisted-by: GitHub Actions ubuntu-latest (fully tested and validated)*"
           } > /tmp/pr-body.md
 
           git config user.name "github-actions[bot]"
