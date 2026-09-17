@@ -1,0 +1,18 @@
+{
+  "name": "charly-pod-verbs",
+  "description": "Pod-lifecycle CLI verbs served by candy/plugin-pod — cp (host\u003c-\u003econtainer copy), volume (list/reset named volumes), restart.",
+  "author": {
+    "name": "opencharly"
+  },
+  "homepage": "https://github.com/opencharly/charly",
+  "repository": "https://github.com/opencharly/marketplace",
+  "license": "MIT",
+  "keywords": [
+    "charly",
+    "pod",
+    "cp",
+    "volume",
+    "restart",
+    "lifecycle"
+  ]
+}

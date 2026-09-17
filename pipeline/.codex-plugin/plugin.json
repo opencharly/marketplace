@@ -1,0 +1,22 @@
+{
+  "name": "charly-pipeline",
+  "description": "The `charly pipeline` agent/workflow engine — plan agent stage, plan executor, deterministic probe verbs, template/frontmatter rendering.",
+  "author": {
+    "name": "opencharly"
+  },
+  "repository": "https://github.com/opencharly/marketplace",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "OpenCharly Pipeline",
+    "shortDescription": "The `charly pipeline` agent/workflow engine — plan agent stage, plan executor, deterministic probe verbs, template/frontmatter rendering.",
+    "longDescription": "The `charly pipeline` agent/workflow engine — plan agent stage, plan executor, deterministic probe verbs, template/frontmatter rendering.",
+    "developerName": "opencharly",
+    "category": "commands",
+    "capabilities": [
+      "Instructions"
+    ],
+    "defaultPrompt": [
+      "Use OpenCharly Pipeline for this OpenCharly task."
+    ]
+  }
+}

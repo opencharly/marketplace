@@ -5,6 +5,18 @@
   },
   "plugins": [
     {
+      "name": "charly-agent",
+      "source": {
+        "source": "local",
+        "path": "./agent"
+      },
+      "policy": {
+        "installation": "INSTALLED_BY_DEFAULT",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "commands"
+    },
+    {
       "name": "charly-agentteams",
       "source": {
         "source": "local",
@@ -15,6 +27,18 @@
         "authentication": "ON_INSTALL"
       },
       "category": "images"
+    },
+    {
+      "name": "charly-authoring",
+      "source": {
+        "source": "local",
+        "path": "./authoring"
+      },
+      "policy": {
+        "installation": "INSTALLED_BY_DEFAULT",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "commands"
     },
     {
       "name": "charly-automation",
@@ -29,10 +53,58 @@
       "category": "commands"
     },
     {
+      "name": "charly-bpf",
+      "source": {
+        "source": "local",
+        "path": "./bpf"
+      },
+      "policy": {
+        "installation": "INSTALLED_BY_DEFAULT",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "commands"
+    },
+    {
       "name": "charly-build",
       "source": {
         "source": "local",
         "path": "./build"
+      },
+      "policy": {
+        "installation": "INSTALLED_BY_DEFAULT",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "commands"
+    },
+    {
+      "name": "charly-cache",
+      "source": {
+        "source": "local",
+        "path": "./cache"
+      },
+      "policy": {
+        "installation": "INSTALLED_BY_DEFAULT",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "commands"
+    },
+    {
+      "name": "charly-candy-cli",
+      "source": {
+        "source": "local",
+        "path": "./candy-cli"
+      },
+      "policy": {
+        "installation": "INSTALLED_BY_DEFAULT",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "commands"
+    },
+    {
+      "name": "charly-cardwire",
+      "source": {
+        "source": "local",
+        "path": "./cardwire"
       },
       "policy": {
         "installation": "INSTALLED_BY_DEFAULT",
@@ -111,6 +183,18 @@
         "authentication": "ON_INSTALL"
       },
       "category": "images"
+    },
+    {
+      "name": "charly-feature",
+      "source": {
+        "source": "local",
+        "path": "./feature"
+      },
+      "policy": {
+        "installation": "INSTALLED_BY_DEFAULT",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "commands"
     },
     {
       "name": "charly-filebrowser",
@@ -269,6 +353,18 @@
       "category": "images"
     },
     {
+      "name": "charly-pipeline",
+      "source": {
+        "source": "local",
+        "path": "./pipeline"
+      },
+      "policy": {
+        "installation": "INSTALLED_BY_DEFAULT",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "commands"
+    },
+    {
       "name": "charly-pod",
       "source": {
         "source": "local",
@@ -281,6 +377,18 @@
       "category": "kind"
     },
     {
+      "name": "charly-pod-verbs",
+      "source": {
+        "source": "local",
+        "path": "./pod-verbs"
+      },
+      "policy": {
+        "installation": "INSTALLED_BY_DEFAULT",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "commands"
+    },
+    {
       "name": "charly-punktfunk",
       "source": {
         "source": "local",
@@ -291,6 +399,18 @@
         "authentication": "ON_INSTALL"
       },
       "category": "images"
+    },
+    {
+      "name": "charly-review",
+      "source": {
+        "source": "local",
+        "path": "./review"
+      },
+      "policy": {
+        "installation": "INSTALLED_BY_DEFAULT",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "commands"
     },
     {
       "name": "charly-selkies",

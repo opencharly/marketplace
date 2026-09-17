@@ -1,0 +1,15 @@
+{
+  "name": "charly-bpf",
+  "description": "The `charly bpf` eBPF program surface served by candy/plugin-bpf.",
+  "author": {
+    "name": "opencharly"
+  },
+  "homepage": "https://github.com/opencharly/charly",
+  "repository": "https://github.com/opencharly/marketplace",
+  "license": "MIT",
+  "keywords": [
+    "charly",
+    "bpf",
+    "ebpf"
+  ]
+}

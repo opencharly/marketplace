@@ -1,0 +1,22 @@
+{
+  "name": "charly-authoring",
+  "description": "The `charly box add-candy/cat/fetch/labels/refresh/rm-candy/set/write` authoring verbs served by candy/plugin-authoring.",
+  "author": {
+    "name": "opencharly"
+  },
+  "repository": "https://github.com/opencharly/marketplace",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "OpenCharly Authoring",
+    "shortDescription": "The `charly box add-candy/cat/fetch/labels/refresh/rm-candy/set/write` authoring verbs served by candy/plugin-authoring.",
+    "longDescription": "The `charly box add-candy/cat/fetch/labels/refresh/rm-candy/set/write` authoring verbs served by candy/plugin-authoring.",
+    "developerName": "opencharly",
+    "category": "commands",
+    "capabilities": [
+      "Instructions"
+    ],
+    "defaultPrompt": [
+      "Use OpenCharly Authoring for this OpenCharly task."
+    ]
+  }
+}

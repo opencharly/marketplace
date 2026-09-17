@@ -1,0 +1,16 @@
+{
+  "name": "charly-feature",
+  "description": "The `charly feature` / `charly box feature` Agent Driven Evaluation surface — run a deployment's baked plan as acceptance tests with agent grading.",
+  "author": {
+    "name": "opencharly"
+  },
+  "homepage": "https://github.com/opencharly/charly",
+  "repository": "https://github.com/opencharly/marketplace",
+  "license": "MIT",
+  "keywords": [
+    "charly",
+    "feature",
+    "ade",
+    "acceptance"
+  ]
+}

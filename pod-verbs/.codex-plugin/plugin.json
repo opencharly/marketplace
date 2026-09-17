@@ -1,0 +1,22 @@
+{
+  "name": "charly-pod-verbs",
+  "description": "Pod-lifecycle CLI verbs served by candy/plugin-pod — cp (host\u003c-\u003econtainer copy), volume (list/reset named volumes), restart.",
+  "author": {
+    "name": "opencharly"
+  },
+  "repository": "https://github.com/opencharly/marketplace",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "OpenCharly Pod-verbs",
+    "shortDescription": "Pod-lifecycle CLI verbs served by candy/plugin-pod — cp (host\u003c-\u003econtainer copy), volume (list/reset named volumes), restart.",
+    "longDescription": "Pod-lifecycle CLI verbs served by candy/plugin-pod — cp (host\u003c-\u003econtainer copy), volume (list/reset named volumes), restart.",
+    "developerName": "opencharly",
+    "category": "commands",
+    "capabilities": [
+      "Instructions"
+    ],
+    "defaultPrompt": [
+      "Use OpenCharly Pod-verbs for this OpenCharly task."
+    ]
+  }
+}
