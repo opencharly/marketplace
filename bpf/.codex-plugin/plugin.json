@@ -1,0 +1,22 @@
+{
+  "name": "charly-bpf",
+  "description": "The `charly bpf` eBPF program surface served by candy/plugin-bpf.",
+  "author": {
+    "name": "opencharly"
+  },
+  "repository": "https://github.com/opencharly/marketplace",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "OpenCharly Bpf",
+    "shortDescription": "The `charly bpf` eBPF program surface served by candy/plugin-bpf.",
+    "longDescription": "The `charly bpf` eBPF program surface served by candy/plugin-bpf.",
+    "developerName": "opencharly",
+    "category": "commands",
+    "capabilities": [
+      "Instructions"
+    ],
+    "defaultPrompt": [
+      "Use OpenCharly Bpf for this OpenCharly task."
+    ]
+  }
+}

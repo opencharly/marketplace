@@ -1,0 +1,17 @@
+{
+  "name": "charly-pipeline",
+  "description": "The `charly pipeline` agent/workflow engine — plan agent stage, plan executor, deterministic probe verbs, template/frontmatter rendering.",
+  "author": {
+    "name": "opencharly"
+  },
+  "homepage": "https://github.com/opencharly/charly",
+  "repository": "https://github.com/opencharly/marketplace",
+  "license": "MIT",
+  "keywords": [
+    "charly",
+    "pipeline",
+    "agent",
+    "workflow",
+    "plan"
+  ]
+}

@@ -15,7 +15,7 @@ charly-marketplace:
             # here ('@github.com/opencharly/charly:vTAG') was not a candy node and
             # resolved to unknown candy "github.com/opencharly/charly" - silently in
             # this repo, but as a hard validation error in every consumer of the list.
-            - '@github.com/opencharly/pod-charly-hooks:v2026.254.1321'
+            - '@github.com/opencharly/pod-charly-hooks:v2026.260.0919'
             - '@github.com/opencharly/eval-omarchy:v2026.260.0013'
             # The candies extracted out of charly/candy/ by the de-submodule cutover's
             # Phase D (opencharly/charly#451). Before this, their skills reached the corpus
@@ -26,6 +26,15 @@ charly-marketplace:
             - '@github.com/opencharly/layer-charly-check:v2026.250.1955'
             - '@github.com/opencharly/plugin-wl/candy/plugin-wl:v2026.254.0527'
             - '@github.com/opencharly/plugin-quickshell/candy/plugin-quickshell:v2026.243.1942'
+            # Serving-plugin command skills (the 2026-09-17 coverage campaign): each repo
+            # now owns a `skill:` entity for the command its candy serves.
+            - '@github.com/opencharly/plugin-cache/candy/plugin-cache:v2026.260.0836'
+            - '@github.com/opencharly/plugin-pod/candy/plugin-pod:v2026.260.0929'
+            - '@github.com/opencharly/plugin-review/candy/plugin-review:v2026.255.1648'
+            - '@github.com/opencharly/plugin-agent/candy/plugin-agent:v2026.260.0930'
+            - '@github.com/opencharly/plugin-cardwire/candy/plugin-cardwire:v2026.260.0911'
+            - '@github.com/opencharly/plugin-bpf/candy/plugin-bpf:v2026.260.1008'
+            - '@github.com/opencharly/plugin-feature/candy/plugin-feature:v2026.260.0712'
             - '@github.com/opencharly/layer-charly-kubernetes:v2026.243.2148'
             - '@github.com/opencharly/layer-charly-image:v2026.250.1401'
             - '@github.com/opencharly/layer-charly-immich:v2026.243.2103'

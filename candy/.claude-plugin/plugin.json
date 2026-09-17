@@ -1,0 +1,15 @@
+{
+  "name": "charly-candy",
+  "description": "The `charly candy` authoring surface served by candy/plugin-candy.",
+  "author": {
+    "name": "opencharly"
+  },
+  "homepage": "https://github.com/opencharly/charly",
+  "repository": "https://github.com/opencharly/marketplace",
+  "license": "MIT",
+  "keywords": [
+    "charly",
+    "candy",
+    "authoring"
+  ]
+}
