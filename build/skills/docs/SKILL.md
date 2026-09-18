@@ -31,7 +31,7 @@ live in its OWN repo (opencharly/plugin-docs, `candy/plugin-docs/*_test.go`); th
 R10 bed (`docs-site-app`/`check-docs`) lives in charly. Generation, the content-drift gate,
 the Astro build and the publish all live in the opencharly/docs repo's `deploy.yml`
 workflow, which runs generation DIRECTLY with the plugin-docs CLI binary it builds at the
-pinned tag (`v2026.254.1214` — not via the `charly docs` word) against the charly commit
+tag pinned in `deploy.yml`'s build step — not via the `charly docs` word — against the charly commit
 the workflow pins (a CI-time commit in `deploy.yml`; the charly submodule was removed when
 it leaked the whole repo into consumer fetch trees, and `.gitmodules` now carries only the
 marketplace).
@@ -117,8 +117,8 @@ opencharly/docs repo's `deploy.yml` (Cloudflare Pages, project `opencharly-docs`
 regeneration only ever mirrors it; the recipe that keeps the drift gate — a byte-no-op
 regeneration diff on `src/content/docs` — green:
 
-1. **charly is pinned by a CI-time commit in `deploy.yml`** (`d507ca5a…` at the time of
-   writing), never by a submodule — the docs checkout's `.gitmodules` carries ONLY the
+1. **charly is pinned by a CI-time commit in `deploy.yml`** (the `checkout <sha>` in its
+   charly-clone step), never by a submodule — the docs checkout's `.gitmodules` carries ONLY the
    marketplace.
 2. **The marketplace submodule must sit at the docs-repo-RECORDED gitlink, not at `main`
    HEAD.** The corpus moves independently of the site; the recorded gitlink is the exact
