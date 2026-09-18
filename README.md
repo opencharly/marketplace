@@ -8,8 +8,10 @@ catalog per harness. Everything under the corpus trees is **GENERATED** from the
 [opencharly/charly](https://github.com/opencharly/charly) candies by
 `charly marketplace generate` — edit a `skill:`/`hook:`/`marketplace:` entity in charly's
 `candy/`, regenerate, and land the corpus here. Hand-authored files are only
-`README.md`, `CLAUDE.md`, `LICENSE`, `CHANGELOG/`, `scripts/squash_body.py` and
-`kimi-user-config.toml` — everything else carries a DO-NOT-EDIT header.
+`README.md`, `CLAUDE.md`, `LICENSE`, `CHANGELOG/`, `scripts/squash_body.py`,
+`scripts/refresh-refs.sh` and `kimi-user-config.toml` — everything else carries a
+DO-NOT-EDIT header (`DISPATCHER.md` carries the generated-dispatcher markers in place
+of that header).
 
 ## How this marketplace is organized
 
@@ -17,10 +19,10 @@ Plugins are sorted into **four use-case buckets**:
 
 | Bucket | When to install | Plugins |
 |---|---|---|
-| **commands** | "I want to run charly verbs" | `charly-core`, `charly-build`, `charly-check`, `charly-automation` |
+| **commands** | "I want to run charly verbs" | `charly-agent`, `charly-authoring`, `charly-automation`, `charly-bpf`, `charly-build`, `charly-cache`, `charly-candy-cli`, `charly-cardwire`, `charly-check`, `charly-core`, `charly-feature`, `charly-pipeline`, `charly-pod-verbs`, `charly-review` |
 | **kind** | "I want to author the YAML schema for an entity" | `charly-image`, `charly-vm`, `charly-kubernetes`, `charly-local`, `charly-pod` |
 | **development** | "I'm a contributor working on the charly source code itself" | `charly-internals` |
-| **images** | "I want to deploy a specific image" | `charly-distros`, `charly-languages`, `charly-infrastructure`, `charly-tools`, `charly-jupyter`, `charly-coder`, `charly-selkies`, `charly-openclaw`, `charly-punktfunk`, `charly-versa`, `charly-ollama`, `charly-openwebui`, `charly-comfyui`, `charly-immich`, `charly-hermes`, `charly-filebrowser` |
+| **images** | "I want to deploy a specific image" | `charly-agentteams`, `charly-coder`, `charly-comfyui`, `charly-crabbox`, `charly-distros`, `charly-filebrowser`, `charly-hermes`, `charly-immich`, `charly-infrastructure`, `charly-jupyter`, `charly-languages`, `charly-ollama`, `charly-openclaw`, `charly-openwebui`, `charly-punktfunk`, `charly-selkies`, `charly-tools`, `charly-versa` |
 
 The layout is **flat** — every plugin sits at `<family>/` (no `charly-` prefix in directory
 names). The `charly-` prefix lives exclusively in each `plugin.json`'s `name:` field, which
@@ -61,9 +63,19 @@ surface (`.claude/hooks`, a `.claude/settings.json` merge, the R0 dispatcher spl
 | Plugin | MCP server | Purpose |
 |---|---|---|
 | **charly-core** | — | Lifecycle: start, stop, service, charly-status, logs, shell, ssh, deploy, charly-update, remove, charly-config, cmd, charly-version, charly-doctor, clean. |
-| **charly-build** | — | Build/authoring: build, generate, list, inspect, merge, new, pull, validate, secrets, settings, migrate, reconcile, charly-mcp-cmd, docs (the opencharly.ai site generator). |
-| **charly-check** | — | Live-container evaluation: `check` orchestrator + cdp, wl, wl-overlay, dbus, vnc, spice, libvirt, record, adb, appium, punktfunk probes + `android` (the `kind: android` device + `apk:` package format + Android-device deploy) + the `check-sway-browser-vnc-pod` R10 bed. |
-| **charly-automation** | — | tmux verb, agent control plane (agent skill + agent-control-operator agent), host-side wrappers (alias, udev), topic flags (enc, sidecar, openclaw-deploy). |
+| **charly-build** | — | Build/authoring: build, generate, list, inspect, load, merge, new, pull, validate, secrets, settings, migrate, reconcile, charly-mcp-cmd, docs (the opencharly.ai site generator). |
+| **charly-check** | — | Live-container evaluation: `check` orchestrator + cdp, wl, wl-overlay, dbus, vnc, spice, libvirt, record, adb, appium, punktfunk, quickshell, jetkvm probes + `android` (the `kind: android` device + `apk:` package format + Android-device deploy) + the `check-sway-browser-vnc-pod` R10 bed. |
+| **charly-automation** | — | tmux verb, agent control plane (agent skill + agent-control-operator agent), host-side wrappers (alias, udev), crabbox-deploy + herdr (incl. herdr-box), topic flags (enc, sidecar, openclaw-deploy). |
+| **charly-agent** | — | `charly tui` — the terminal UI for the agent control plane: browse and drive agent sessions, runs, and terminal channels interactively. |
+| **charly-authoring** | — | The `charly box` authoring verbs (`set`, `add-candy`, `rm-candy`, `write`, `cat`, `fetch`, `refresh`) — mutate box manifests programmatically, fetch remote refs, refresh a project. |
+| **charly-bpf** | — | The `charly bpf` eBPF kernel-feature readiness surface (status, lsm, config, probe) — read-only host/kernel inspection before BPF-LSM-gated tooling (e.g. cardwire). |
+| **charly-cache** | — | The `charly cache` git-ref cache operator (status, clear, refresh, bypass) — for stale `@github` ref resolution or a pin that will not advance. |
+| **charly-candy-cli** | — | `charly candy set` / `charly candy add-<fmt>` — mutate a candy's `charly.yml` safely instead of hand-editing manifests. |
+| **charly-cardwire** | — | The `charly cardwire` GPU-manager surface (ogc/cardwire: status, list, config, gpu block/unblock, manager) — inspect or drive the eBPF/LSM GPU-blocking daemon. |
+| **charly-feature** | — | `charly feature list\|pending\|validate` — inspect a project's plan-shaped entity descriptions (Agent Driven Evaluation). |
+| **charly-pipeline** | — | The `charly pipeline` agent/workflow engine — run a declared plan, the bare agent runtime, deterministic probes, template rendering (`kind:pipeline` entities). |
+| **charly-pod-verbs** | — | `charly cp` — copy a file between the host and a running container (app or sidecar); the charly-native replacement for ad-hoc `podman cp`. |
+| **charly-review** | — | The `charly review` read-only GitHub PR review engine — the chat-completions review loop, `verb:pr` tools, a deterministic `Verdict: PASS\|BLOCK`. |
 
 ### kind — schema-kind authoring
 
@@ -79,16 +91,18 @@ surface (`.claude/hooks`, a `.claude/settings.json` merge, the R0 dispatcher spl
 
 | Plugin | MCP server | Purpose |
 |---|---|---|
-| **charly-internals** | — | The contributor rulebook skills: git-workflow, root-cause-analyzer, strict-policy, cutover-policy, agents, skills, plugin, disposable, go, egress, generate-source, install-plan, local-infra, vm-deploy-target, vm-spec, ovmf, libvirt-renderer, cloud-init-renderer, capabilities. |
+| **charly-internals** | — | The contributor rulebook skills: git-workflow, root-cause-analyzer, strict-policy, cutover-policy, agents, skills, plugin, disposable, go, go-quality, egress, generate-source, install-plan, local-infra, vm-deploy-target, vm-spec, ovmf, libvirt-renderer, cloud-init-renderer, marketplace, capabilities. |
 
 ### images — the deployable catalog
 
 | Plugin | MCP server | Purpose |
 |---|---|---|
 | **charly-distros** | — | The distro image families (arch/cachyos/debian/fedora/ubuntu + their builders and bootstrap variants). |
+| **charly-agentteams** | — | The AgentTeams multi-agent stack box (CachyOS base): decomposed minio / matrix / element / higress / controller candies + the `charly agentteams` management CLI. |
+| **charly-crabbox** | — | The local Crabbox coordinator — remote software-testing/execution runtime (Node.js/PostgreSQL, supervised service on :8080 with `/v1/health` + `/v1/ready`). |
 | **charly-languages** | — | Language images. |
 | **charly-infrastructure** | — | Infrastructure services. |
-| **charly-tools** | — | The CLI tools catalog (ripgrep, yay, himalaya, dsh, gogcli, mcporter, nano-pdf, ordercli, sag, sherpa-onnx, songsee, summarize, whisper, xurl). |
+| **charly-tools** | — | The CLI tools catalog (blogwatcher, charly, crabbox, cue, docs-site, dsh, dsh-cli, gifgrep, gogcli, goplaces, himalaya, mcporter, nano-pdf, ordercli, ripgrep, sag, sherpa-onnx, songsee, summarize, vscode, whisper, xurl, yay). |
 | **charly-jupyter** | — | JupyterLab + jupyter-mcp. |
 | **charly-coder** | — | Coder dev images. |
 | **charly-selkies** | — | Selkies virtual-desktop streaming. |
