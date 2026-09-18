@@ -316,12 +316,12 @@ reads. The fetch seams — the repoResolver pair, `download` (`refs.DownloadRepo
 `latestTag` (`refs.GitLatestTag`) — are INJECTABLE into `assembleCatalog`, so the
 assembly itself runs on fixtures without any network.
 
-Bare-clone tests need these fixtures because the PUBLISHED marketplace corpus is not
-internally consistent at its current HEAD: its `recipes/automation/crabbox-deploy.md`
-card references the skill `/charly-tools:crabbox`, whose card exists only through the
-candy-skill complement (`collectCandySkills`) projecting the moved candy's `skill:`
-entity — the marketplace regeneration has not landed the card. A test that fetched the
-real corpus would fail every run, so the fixtures replace it. The `CHARLY_DOCS_MARKETPLACE`
+Bare-clone tests use fixtures so they perform zero network fetches: the
+`repoResolver` pair, `download` (`refs.DownloadRepo`) and `latestTag`
+(`refs.GitLatestTag`) are injectable, and the fixture tree carries the minimal
+project, corpus and `astro.config.mjs` the passes read. A test that fetched the
+real corpus would instead depend on whatever the pinned marketplace checkout
+happens to hold, so the fixtures pin the input. The `CHARLY_DOCS_MARKETPLACE`
 environment override wins over the fixture corpus when set — the seam the RDD bed uses to
 pass a freshly regenerated corpus. The ONE deliberate network test is
 `TestCollectEntitiesRemote_ResolvesMovedCandy`, which fetches the real `layer-ripgrep`
