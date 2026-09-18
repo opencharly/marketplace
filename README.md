@@ -61,9 +61,9 @@ surface (`.claude/hooks`, a `.claude/settings.json` merge, the R0 dispatcher spl
 | Plugin | MCP server | Purpose |
 |---|---|---|
 | **charly-core** | — | Lifecycle: start, stop, service, charly-status, logs, shell, ssh, deploy, charly-update, remove, charly-config, cmd, charly-version, charly-doctor, clean. |
-| **charly-build** | — | Build/authoring: build, generate, list, inspect, merge, new, pull, validate, secrets, settings, migrate, reconcile, charly-mcp-cmd, docs (the opencharly.ai site generator). |
-| **charly-check** | — | Live-container evaluation: `check` orchestrator + cdp, wl, wl-overlay, dbus, vnc, spice, libvirt, record, adb, appium, punktfunk probes + `android` (the `kind: android` device + `apk:` package format + Android-device deploy) + the `check-sway-browser-vnc-pod` R10 bed. |
-| **charly-automation** | — | tmux verb, agent control plane (agent skill + agent-control-operator agent), host-side wrappers (alias, udev), topic flags (enc, sidecar, openclaw-deploy). |
+| **charly-build** | — | Build/authoring: build, generate, list, inspect, load, merge, new, pull, validate, secrets, settings, migrate, reconcile, charly-mcp-cmd, docs (the opencharly.ai site generator). |
+| **charly-check** | — | Live-container evaluation: `check` orchestrator + cdp, wl, wl-overlay, dbus, vnc, spice, libvirt, record, adb, appium, punktfunk, quickshell, jetkvm probes + `android` (the `kind: android` device + `apk:` package format + Android-device deploy) + the `check-sway-browser-vnc-pod` R10 bed. |
+| **charly-automation** | — | tmux verb, agent control plane (agent skill + agent-control-operator agent), host-side wrappers (alias, udev), crabbox + herdr (incl. herdr-box), topic flags (enc, sidecar, openclaw-deploy). |
 
 ### kind — schema-kind authoring
 
@@ -79,7 +79,7 @@ surface (`.claude/hooks`, a `.claude/settings.json` merge, the R0 dispatcher spl
 
 | Plugin | MCP server | Purpose |
 |---|---|---|
-| **charly-internals** | — | The contributor rulebook skills: git-workflow, root-cause-analyzer, strict-policy, cutover-policy, agents, skills, plugin, disposable, go, egress, generate-source, install-plan, local-infra, vm-deploy-target, vm-spec, ovmf, libvirt-renderer, cloud-init-renderer, capabilities. |
+| **charly-internals** | — | The contributor rulebook skills: git-workflow, root-cause-analyzer, strict-policy, cutover-policy, agents, skills, plugin, disposable, go, go-quality, egress, generate-source, install-plan, local-infra, vm-deploy-target, vm-spec, ovmf, libvirt-renderer, cloud-init-renderer, marketplace, capabilities. |
 
 ### images — the deployable catalog
 
@@ -88,7 +88,7 @@ surface (`.claude/hooks`, a `.claude/settings.json` merge, the R0 dispatcher spl
 | **charly-distros** | — | The distro image families (arch/cachyos/debian/fedora/ubuntu + their builders and bootstrap variants). |
 | **charly-languages** | — | Language images. |
 | **charly-infrastructure** | — | Infrastructure services. |
-| **charly-tools** | — | The CLI tools catalog (ripgrep, yay, himalaya, dsh, gogcli, mcporter, nano-pdf, ordercli, sag, sherpa-onnx, songsee, summarize, whisper, xurl). |
+| **charly-tools** | — | The CLI tools catalog (blogwatcher, charly, crabbox, cue, docs-site, dsh, dsh-cli, gifgrep, gogcli, goplaces, himalaya, mcporter, nano-pdf, ordercli, ripgrep, sag, sherpa-onnx, songsee, summarize, vscode, whisper, xurl, yay). |
 | **charly-jupyter** | — | JupyterLab + jupyter-mcp. |
 | **charly-coder** | — | Coder dev images. |
 | **charly-selkies** | — | Selkies virtual-desktop streaming. |
