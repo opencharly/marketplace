@@ -493,6 +493,18 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
      so check the footer's presence and FORM explicitly here. A body opening with
      prose like "this PR was authored by an AI agent" instead of ending with the
      `Assisted-by:` line does NOT satisfy it.
+     **A MODEL-FREE bot body uses the `<Harness> <Runtime>` form.** A body emitted
+     by a fixed, model-free generator (a committed CI `printf/echo` block with no
+     LLM in the loop — e.g. the nightly `sync.yml` / `refresh.yml` bots) has no AI
+     provider and no AI model, so the AI form above cannot be truthfully filled;
+     such a body MUST END with `*Assisted-by: <Harness> <Runtime> (<confidence>)*`
+     (e.g. `*Assisted-by: GitHub Actions ubuntu-latest (fully tested and
+     validated)*`), where `<Runtime>` is the runner identity. Do NOT accept a
+     fabricated AI model name in the `<Provider Full Model Name>` slot, and do NOT
+     accept an `N/A` placeholder — either the body is AI-authored (AI form) or
+     model-free (this form), never a hybrid. This form is defined by the A1
+     amendment in `opencharly/action-review:prompt/validator.md`; a 100%
+     human-authored body omits the line (per the template).
 2. **Change class → gate (R10 / R7).** Classify the diff (docs-only vs code/config
    vs hook/workflow) per `/charly-check:check` "R10 gate by change class" and
    confirm the evidence matches that gate — a runtime-class change needs a pasted
