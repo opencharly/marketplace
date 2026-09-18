@@ -107,6 +107,24 @@ bare value defaults to the device's plaintext scheme. Set `insecure: true` to
 accept the self-signed certificate a JetKVM ships by default (needed for an
 `https://` device; also required for the signaling websocket).
 
+**The device address is resolved in order: the authored `host:`, then the
+`JETKVM_HOST` environment variable, then the deploy venue's address.** Author no
+`host:` and set `JETKVM_HOST` to keep a device-specific hostname out of a
+committed plan — the same shape `JETKVM_AUTH_TOKEN` / `JETKVM_PASSWORD` already
+give credentials. No device hostname belongs in a repository.
+
+Input methods: `move`/`mouse` are always a pure position move — an authored
+`button:` is validated but never sent. `click`/`drag` press the button, which
+defaults to `left`. `x`/`y` (and `from_x`/`from_y`) are **absolute HID pointer
+coordinates in `[0,32767]`, not desktop pixels**; map a desktop pixel (`px`,`py`)
+on a `W`×`H` screen with `px*32767/(W-1)`, `py*32767/(H-1)` (centre of 1920×1080
+≈ `16384,16384`). `key` and `key-combo` resolve over the common USB HID
+Keyboard/Keypad usages — letters `a`–`z`, digits `0`–`9`, `F1`–`F12`, the
+navigation/editing keys (`Enter`, `Escape`, `Tab`, arrows, `Home`, `End`,
+`PageUp`, `PageDown`, `Insert`, `Delete`, `Backspace`), punctuation, and
+modifier chords like `Control_L+Alt_L+Delete`; names outside that set fail with
+`unknown key`. Uppercase or shifted symbols (`A`, `!`) imply Shift.
+
 NOTE on video: do not gate a screenshot on the device's `getVideoState.ready`
 field. Measured on firmware 0.5.9, `ready` reports whether the device's native
 capture PIPELINE is currently running — which is started per WebRTC session and
@@ -138,6 +156,17 @@ It downloads the release assets on the HOST (`gh`, TLS-validated) and streams th
 over ssh into `/userdata/charly` — the device's own `wget` does not validate TLS,
 so an on-device download would be MITM-exposed. `verify` asserts `charly version`
 equals the requested CalVer and that a baked command word dispatches project-less.
+
+The same tool derives the `jetkvm:` verb's environment from the ONE ssh
+connection — `charly-jetkvm env --host root@<device> --export` reads the device's
+`local_auth_token` and prints `JETKVM_HOST` + `JETKVM_AUTH_TOKEN`, so a device can
+be driven with no committed hostname and no hand-copied token:
+
+```sh
+eval "$(charly-jetkvm env --host root@jk.example.ts.net --export)"
+charly check run jetkvm-device-readonly      # status + screenshot
+charly check run jetkvm-input-probe          # move/click/drag/key/type + screenshots
+```
 
 **There is deliberately NO `charly mcp serve` on the device.** The appliance has
 ~199 MB RAM and one core; running the MCP server forked a full CLI model and
