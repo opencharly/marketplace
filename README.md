@@ -8,8 +8,10 @@ catalog per harness. Everything under the corpus trees is **GENERATED** from the
 [opencharly/charly](https://github.com/opencharly/charly) candies by
 `charly marketplace generate` — edit a `skill:`/`hook:`/`marketplace:` entity in charly's
 `candy/`, regenerate, and land the corpus here. Hand-authored files are only
-`README.md`, `CLAUDE.md`, `LICENSE`, `CHANGELOG/`, `scripts/squash_body.py` and
-`kimi-user-config.toml` — everything else carries a DO-NOT-EDIT header.
+`README.md`, `CLAUDE.md`, `LICENSE`, `CHANGELOG/`, `scripts/squash_body.py`,
+`scripts/refresh-refs.sh` and `kimi-user-config.toml` — everything else carries a
+DO-NOT-EDIT header (`DISPATCHER.md` carries the generated-dispatcher markers in place
+of that header).
 
 ## How this marketplace is organized
 
