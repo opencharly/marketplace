@@ -63,7 +63,7 @@ surface (`.claude/hooks`, a `.claude/settings.json` merge, the R0 dispatcher spl
 | **charly-core** | — | Lifecycle: start, stop, service, charly-status, logs, shell, ssh, deploy, charly-update, remove, charly-config, cmd, charly-version, charly-doctor, clean. |
 | **charly-build** | — | Build/authoring: build, generate, list, inspect, load, merge, new, pull, validate, secrets, settings, migrate, reconcile, charly-mcp-cmd, docs (the opencharly.ai site generator). |
 | **charly-check** | — | Live-container evaluation: `check` orchestrator + cdp, wl, wl-overlay, dbus, vnc, spice, libvirt, record, adb, appium, punktfunk, quickshell, jetkvm probes + `android` (the `kind: android` device + `apk:` package format + Android-device deploy) + the `check-sway-browser-vnc-pod` R10 bed. |
-| **charly-automation** | — | tmux verb, agent control plane (agent skill + agent-control-operator agent), host-side wrappers (alias, udev), crabbox + herdr (incl. herdr-box), topic flags (enc, sidecar, openclaw-deploy). |
+| **charly-automation** | — | tmux verb, agent control plane (agent skill + agent-control-operator agent), host-side wrappers (alias, udev), crabbox-deploy + herdr (incl. herdr-box), topic flags (enc, sidecar, openclaw-deploy). |
 
 ### kind — schema-kind authoring
 
