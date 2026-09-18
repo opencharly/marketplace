@@ -5,8 +5,16 @@
 | the agentteams box / the AgentTeams multi-agent stack (Manager–Workers, Rooms, the controller + matrix + element + higress + minio candies) on the pod or vm substrate / the `check-agentteams-pod` and `check-agentteams-vm` beds | `/charly-agentteams:agentteams` |
 | `charly agentteams` controller management (workers / teams / humans) / the `verb:agentteams` check verb (`status`, `manager-running`, `worker-running`, `worker-list`) / hydrating a deployment with `charly agentteams apply -f` | `/charly-agentteams:agentteams-cli` |
 | `charly box set` / `charly box add-candy` / `charly box rm-candy` / `charly box write` / `charly box cat` / `charly box fetch` / `charly box refresh` | `/charly-authoring:authoring` |
+| `charly agent` / agent control plane / sessions / runs / terminal channels / `charly tui` / MCP routing / agent target routing | `/charly-automation:agent` |
+| host command alias / `charly alias` / wrapper script in a container | `/charly-automation:alias` |
+| crabbox CLI / local coordinator / remote-execution broker / composing the crabbox candies | `/charly-automation:crabbox-deploy` |
+| `charly config` encrypted volumes / gocryptfs / the `--encrypt` flag / config mount-unmount-status-passwd | `/charly-automation:enc` |
 | ‘charly herdr’ session control (status / workspace / tab / pane / agent helpers) / the `verb:herdr` check verb (`ping`, `workspace-list`, `pane-wait-output`, `agent-wait`, …) / the check-herdr-pod bed / the pod-herdr box | `/charly-automation:herdr` |
 | the herdr box (box/herdr) / the check-herdr-pod bed / composing the herdr + socat candies / the herdr: check verb + charly herdr CLI against a deployed herdr venue | `/charly-automation:herdr-box` |
+| OpenClaw gateway / `openclaw-*` candies / model auth / browser integration / channel setup | `/charly-automation:openclaw-deploy` |
+| sidecars via `charly config` / Tailscale exit nodes / `env_accept` / `env_require` / pod networking | `/charly-automation:sidecar` |
+| `charly tmux` sessions / terminal channels / snapshot / transcript / detached-reattach / gRPC terminal | `/charly-automation:tmux` |
+| `charly udev` / GPU device access rules / container GPU troubleshooting | `/charly-automation:udev` |
 | `charly bpf` / eBPF readiness / BPF-LSM / kernel BPF config | `/charly-bpf:bpf` |
 | `charly box build` / `charly box generate` / Containerfile | `/charly-build:build` |
 | `charly docs` / the opencharly.ai site / the opencharly/docs repo / Starlight/Astro / `candy/plugin-docs` (runtime plugin) or `candy/docs-site` | `/charly-build:docs` |

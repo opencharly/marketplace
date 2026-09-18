@@ -694,6 +694,16 @@ with `FAILED to read`. The first version of this guard tested `[ -n "$hits" ]` a
 printed its clean line for that case, at exit 0 — the same vacuity as guard 1's, in a
 guard whose own comment forbids it.
 
+**A generated evidence fence that emits NOTHING on anchor drift is the same vacuity,
+one layer out.** A workflow that authors a PR body (`sync.yml`, `refresh.yml`)
+splices a foreign file into an evidence fence with `sed -n '/<anchor1>/,/<anchor2>/p'`
+— which prints nothing when either anchor moves, so the fence ships EMPTY beneath prose
+that still asserts the gate. Capture the splice into a variable and refuse an empty
+result with an explicit ERROR marker; likewise derive a zero-warning/`resolved` claim
+from the producing log's own summary line and fail loud when that line is absent,
+rather than defaulting to the optimistic value. Generated-body evidence is a guard
+too, and it must be able to fail.
+
 Most hits are CORRECT and must not be hedged. The discriminator:
 
 | the claim is about… | verdict |
