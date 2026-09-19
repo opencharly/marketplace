@@ -96,7 +96,7 @@ while :; do
             --json state,mergeStateStatus,headRefOid,url 2>/dev/null)" || {
     echo "pr_state_watch: gh pr view failed for $REPO#$PR" >&2; exit 5; }
 
-  state="$(gh --version >/dev/null; printf '%s' "$json" | grep -o '"state":"[^"]*"' | head -1 | cut -d'"' -f4)"
+  state="$(printf '%s' "$json" | grep -o '"state":"[^"]*"' | head -1 | cut -d'"' -f4)"
   head="$(printf '%s' "$json" | grep -o '"headRefOid":"[^"]*"' | head -1 | cut -d'"' -f4)"
   merge_state="$(printf '%s' "$json" | grep -o '"mergeStateStatus":"[^"]*"' | head -1 | cut -d'"' -f4)"
   url="$(printf '%s' "$json" | grep -o '"url":"[^"]*"' | head -1 | cut -d'"' -f4)"
