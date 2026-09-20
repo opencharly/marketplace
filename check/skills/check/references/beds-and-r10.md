@@ -299,6 +299,32 @@ records `cleanup-members`; a failed members-down operation fails the bed rather 
 to inference from a later host inventory. The group fresh-rebuild transition likewise records and
 requires `rebuild-members-down` before bringing the members back up.
 
+### Golden snapshots: stop the keeper after capture
+
+A bed with a `snapshot: {on_finalize: <name>, mode: external}` policy
+(`keep_venue: true`) captures a golden at install finalize and is re-used as
+the shared clone SOURCE by anchored lanes (their `from: <bed>:golden`). The
+capture creates an EXTERNAL snapshot whose disk is the clone backing — and
+**the keeper domain must be STOPPED immediately after the capture**, because
+a running domain holds an exclusive qemu write lock on that file; any clone
+that then opens it as a read-only backing fails:
+
+```
+qemu-system-x86_64: ... Failed to get shared "write" lock
+  Is another process using the image [.../snapshots/golden/disk.qcow2]?
+```
+
+`keep_venue: true` forces `--keep`, which suppresses the teardown's `vm
+destroy`, so the release MUST be an explicit step: the runner emits
+`snapshot-stop-keeper` (`vm stop <entity> --domain <bed-domain>`, idempotent;
+the venue stays KEPT — disk + definition preserved, only the process
+released). The capture and the keeper-stop share ONE predicate
+(`capturesGolden`: VM bed, fresh lane, non-empty `on_finalize`), so they
+cannot diverge. This is a *bed-runner* invariant, not a per-repo one — every
+golden-cloning bed depends on it. Diagnostic when a clone hits the lock:
+`qemu-img info <golden>` reproduces the same `Failed to get shared "write"
+lock` while the keeper runs and succeeds once it is stopped.
+
 ### Prereq for the vm bed
 
 `check-k3s-vm` depends on the **libvirt user-session daemon**. Enable once:

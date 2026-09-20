@@ -296,3 +296,59 @@ A FAIL is a return-to-implementation signal, not a stopping point:
    not just the failing piece — a fix that survives only the targeted re-run is a
    regression in waiting.
 4. The PR merges only when validation passes end-to-end on the final code.
+
+**If the BLOCK is body-only (no code change), the push is an EMPTY commit**
+(`git commit --allow-empty -m "docs: re-freeze the PR body against the final head"`)
+— and it DOES re-trigger the run: the dispatchers declare
+`on: pull_request: types: [opened, synchronize, …]` with no `paths:`/diff guard.
+Proven on opencharly/plugin-pipeline#28 (`be3ab30e6` is tree-identical to its
+parent and fired an `ev=pull_request` run). The body must ALREADY be final
+before that push — see the SKILL's "THE BODY-BEFORE-PUSH RULE".
+
+## The POISON state — a duplicate same-name check-run keeps a PASS PR BLOCKED
+
+**Symptom.** The validator's latest verdict is PASS (and a check-run of the
+required name is SUCCESS), yet the PR reads `mergeStateStatus=BLOCKED` forever
+and `gh pr checks` shows `fail`.
+
+**Mechanism.** GitHub's rollup collapses check-runs sharing the required
+check's name to the WORST conclusion. A body-only fix does not move the head,
+so re-dispatching the validator on the SAME head APPENDS a second check-run of
+the same name beside the earlier one instead of replacing it. The newer
+SUCCESS never cancels the older FAILURE. Measured: opencharly/plugin-vm#39 head
+`c9457a9` carried two `validate / validate` runs — failure (auto `pull_request`
+at 04:40:06) and success (manual `--ref` dispatch at 04:44:11) — and the PR
+stayed BLOCKED with a PASS verdict.
+
+**Distinguish it from a verdict BLOCK.** A verdict BLOCK's NEWEST same-name
+run is the failure; POISON's newest is SUCCESS with an older failure beneath.
+Use `marketplace/scripts/pr_state_watch.sh`, which classifies exactly this and
+names the shape in its output.
+
+**Remedies, in order:**
+
+1. **Push a NEW commit** — a real fix, or the empty re-freeze commit above. A
+   fresh SHA starts a clean check set (this is the reliable path).
+2. **Add the per-repo concurrency dedupe** to that repo's dispatcher, so a
+   re-dispatch/push cancels the in-flight run instead of stacking a second:
+   ```yaml
+   concurrency:
+     group: pr-validator-${{ github.repository }}-${{ inputs.pr-number || github.event.pull_request.number }}
+     cancel-in-progress: true
+   permissions:
+     actions: write   # REQUIRED for cancel-in-progress to work
+   ```
+   This is **per-repo OPT-IN, not org-wide.** Only the umbrella root,
+   `eval-omarchy` and `plugin-pipeline` carried it when measured; of the 420
+   `pr-validator.yml` dispatchers in the umbrella, 417 — including `charly`,
+   `spec`, `plugin-vm`, `plugin-migrate`, `distro-omarchy` — did NOT, and the
+   reusable workflow deliberately has NONE (its header: "NO concurrency here:
+   … The dedupe lives in the per-repo DISPATCHERS").
+3. **Add the dedupe to the org template** (`opencharly/.github`'s canonical
+   dispatcher) so every repo inherits it — the proper fix for the class, and
+   the thing to file when you hit POISON in a repo you are not otherwise
+   changing.
+
+**Never** re-dispatch the same head "to see if it clears" (it cannot), and never
+treat POISON as a verdict BLOCK by rewriting a correct body to appease a check
+that is merely red because of the duplicate.

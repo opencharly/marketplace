@@ -20,16 +20,16 @@ charly-marketplace:
             # The candies extracted out of charly/candy/ by the de-submodule cutover's
             # Phase D (opencharly/charly#451). Before this, their skills reached the corpus
             # only through the --root charly checkout at the CI pin below.
-            - '@github.com/opencharly/layer-charly-internals:v2026.260.2251'
+            - '@github.com/opencharly/layer-charly-internals:v2026.262.1714'
             - '@github.com/opencharly/layer-charly-internals-extra:v2026.260.2239'
             - '@github.com/opencharly/layer-charly-build:v2026.261.2027'
-            - '@github.com/opencharly/layer-charly-check:v2026.261.1228'
+            - '@github.com/opencharly/layer-charly-check:v2026.263.0038'
             - '@github.com/opencharly/plugin-wl/candy/plugin-wl:v2026.258.1844'
             - '@github.com/opencharly/plugin-quickshell/candy/plugin-quickshell:v2026.243.1942'
             # Serving-plugin command skills (2026-09-17 coverage campaign).
             - '@github.com/opencharly/plugin-cache/candy/plugin-cache:v2026.260.0836'
             - '@github.com/opencharly/plugin-pod/candy/plugin-pod:v2026.260.0929'
-            - '@github.com/opencharly/plugin-review/candy/plugin-review:v2026.260.0931'
+            - '@github.com/opencharly/plugin-review/candy/plugin-review:v2026.263.0549'
             - '@github.com/opencharly/plugin-agent/candy/plugin-agent:v2026.260.0930'
             - '@github.com/opencharly/plugin-candy/candy/plugin-candy:v2026.260.1158'
             - '@github.com/opencharly/plugin-cardwire/candy/plugin-cardwire:v2026.260.0911'
