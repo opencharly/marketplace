@@ -762,6 +762,7 @@
         "references/branch-and-pr-loop.md",
         "references/multi-repo-coordination.md",
         "references/validator-and-calver.md",
+        "references/umbrella-mechanics.md",
         "references/evidence-and-freshness.md"
       ],
       "version": "3.1.0"

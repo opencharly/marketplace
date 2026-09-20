@@ -17,9 +17,11 @@ description: |-
 
 - the deterministic `verb:pr` tools — `pr_diff`, `pr_commits`, `pr_thread`, `pr_meta`;
 - `command:review` — the same chat-completions agent loop the retired
-  `pi-review-action` ran: four read-only GitHub tools, a deterministic
-  `Verdict: PASS|BLOCK` line, ONE PR comment, and `$GITHUB_OUTPUT` compatibility
-  (`response`/`success`/`verdict`);
+  `pi-review-action` ran: read-only GitHub tools delivered as SEPARATE messages
+  (meta, body, diff, commits, a comment INDEX, and a per-comment read — so a long
+  thread's newest comments stay reachable and nothing is lost to a message cap), a
+  deterministic `Verdict: PASS|BLOCK` line, ONE PR comment, and `$GITHUB_OUTPUT`
+  compatibility (`response`/`success`/`verdict`);
 - the runtime orchestration executor (`charly review --plan <path>`) that turns a
   declared `review-plan.yml` into a step pipeline, so any runtime plugin can join the
   review workflow purely through config.
