@@ -84,7 +84,7 @@
 | `charly restart` / restart a deployment / cycle a container | `/charly-pod-verbs:restart` |
 | `charly volume` / list a deployment's volumes / reset a volume / wipe sidecar state / podman volume | `/charly-pod-verbs:volume` |
 | punktfunk / game streaming host / Moonlight-compatible host / `punktfunk-host` units | `/charly-punktfunk:punktfunk-host` |
-| `charly review` / review a PR / PR verdict / review plan | `/charly-review:review` |
+| `charly review` / review a PR / PR verdict | `/charly-review:review` |
 | `charly docs` / the opencharly.ai site / the opencharly/docs repo / `candy/docs-site` / the check-docs bed / Starlight/Astro | `/charly-tools:docs-site` |
 | CachyOS images / `cachyos*` / `charly-cachyos` workstation profile / `box/cachyos` submodule | `/charly-vm:cachyos-bootstrap-vm` |
 | Debian images / `debian*` / `box/debian` submodule | `/charly-vm:debian-debootstrap-vm` |
