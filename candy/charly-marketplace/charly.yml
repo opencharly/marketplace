@@ -29,7 +29,7 @@ charly-marketplace:
             # Serving-plugin command skills (2026-09-17 coverage campaign).
             - '@github.com/opencharly/plugin-cache/candy/plugin-cache:v2026.260.0836'
             - '@github.com/opencharly/plugin-pod/candy/plugin-pod:v2026.260.0929'
-            - '@github.com/opencharly/plugin-review/candy/plugin-review:v2026.263.1956'
+            - '@github.com/opencharly/plugin-review/candy/plugin-review:v2026.265.0505'
             - '@github.com/opencharly/plugin-agent/candy/plugin-agent:v2026.260.0930'
             - '@github.com/opencharly/plugin-candy/candy/plugin-candy:v2026.260.1158'
             - '@github.com/opencharly/plugin-cardwire/candy/plugin-cardwire:v2026.260.0911'
