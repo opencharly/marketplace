@@ -21,6 +21,13 @@ charly-marketplace:
             # layer-charly-distros concept aggregator — this pin is the corpus source for
             # them). distro-arch is the first pinned; the rest follow in the same wave.
             - '@github.com/opencharly/distro-arch:v2026.265.1557'
+            # The remaining distro-* image families own their OS/base skills too
+            # (same wave as distro-arch).
+            - '@github.com/opencharly/distro-fedora:v2026.265.1656'
+            - '@github.com/opencharly/distro-cachyos:v2026.265.1729'
+            - '@github.com/opencharly/distro-omarchy:v2026.265.1655'
+            - '@github.com/opencharly/distro-debian:v2026.265.1656'
+            - '@github.com/opencharly/distro-ubuntu:v2026.265.1657'
             # The candies extracted out of charly/candy/ by the de-submodule cutover's
             # Phase D (opencharly/charly#451). Before this, their skills reached the corpus
             # only through the --root charly checkout at the CI pin below.
