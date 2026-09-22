@@ -14,11 +14,15 @@ gated by the ORG-WIDE `charly/pr-validator` GitHub Actions workflow
 OWN native auto-merge (squash) inline — there is no separate `auto-merge`
 workflow; the CalVer tag and the CHANGELOG are written afterwards by the
 independent `tag-on-merge` workflow, triggered by the merge. A **direct
-push to `main` is FORBIDDEN and mechanically disabled** — a per-repo branch
-RULESET blocks it (`creation`/`deletion`/`non_fast_forward` + a required
-`validate / validate` status check); the legacy branch-protection API is NOT used
-and `branch-protection.sh` actively removes it, because it has no bypass slot for
-the app that writes the CHANGELOG. The `pre-push-gate` adds a local backstop in
+push to `main` is FORBIDDEN and mechanically disabled** — ONE organization branch
+RULESET blocks it. On GitHub Team that ONE ruleset carries both the branch rules
+(`creation`/`deletion`/`non_fast_forward` + a strict required `validate / validate`
+status check) and the `workflows` rule ("Require workflows to pass") naming
+`opencharly/.github/.github/workflows/org-wide-pr-validator-required.yml`, so the
+validator is required ONCE org-wide with no per-repo stub to install. The legacy
+branch-protection API is NOT used
+and `org-ruleset.sh` removes it wherever it survives, because it has no bypass slot
+for the app that writes the CHANGELOG. The `pre-push-gate` adds a local backstop in
 every harness that wires it — including Claude Code, via
 `.claude/settings.json`'s PreToolUse hooks. The **R10 pass
 authorizes OPENING the PR, never a self-merge**: the two-step landing separates the
@@ -50,7 +54,7 @@ The order is therefore fixed and non-negotiable:
 
 A body-only fix after a pushed head needs a NEW commit so a fresh validator run is
 keyed to a head whose body is already final. An EMPTY commit IS such a commit and
-DOES re-trigger the run: the dispatchers declare `on: pull_request: types:
+DOES re-trigger the run: the org required workflow declares `on: pull_request: types:
 [opened, synchronize, …]` with NO `paths:`/diff guard, so a no-content push still
 fires it. Proven: opencharly/plugin-pipeline#28 `be3ab30e6` is a genuinely
 EMPTY commit (identical tree to its parent, `git diff --stat` empty) and it fired
@@ -67,8 +71,8 @@ dispatch without `--ref` produced no head check; carrying the branch ref --
 
 **There is NO self-heal.** The reusable workflow sets a `head_ref` output but
 never consumes it (`grep -c 'steps.pr.outputs'` in
-`opencharly/.github/.github/workflows/pr-validator.yml` is 0), and no dispatcher
-contains a re-dispatch step. A `workflow_dispatch` does NOT land its check on the
+`opencharly/.github/.github/workflows/pr-validator.yml` is 0); the org required
+workflow contains no re-dispatch step. A `workflow_dispatch` does NOT land its check on the
 PR head by itself — supply `--ref`.
 
 ### The POISON state — green verdict, still BLOCKED
@@ -77,7 +81,8 @@ GitHub's rollup collapses same-name check-runs to the WORST conclusion, so an
 earlier FAILURE of `validate / validate` keeps a PR `BLOCKED` even after a later
 same-head run is SUCCESS — it reads like a verdict BLOCK but is not. **A same-head
 re-dispatch cannot clear it.** Remedies (in order): push a NEW commit (a fresh SHA
-starts a clean check set), or add the per-repo concurrency dedupe to that repo's
+starts a clean check set). The per-PR concurrency dedupe now lives in the ONE org
+required workflow (`org-wide-pr-validator-required.yml`), not a per-repo
 dispatcher. Full mechanics, the dedupe YAML, and which repos carry it:
 `references/validator-and-calver.md` "The POISON state".
 
@@ -92,9 +97,10 @@ collapsed rollup), and a hand-rolled `while`/`sleep` loop is the R4 band-aid thi
 replaces. On exit 2: read the verdict, fix, re-finalize the body, push a NEW
 commit — never re-dispatch the same head. Detail: the reference + the script header.
 
+
 ## Non-negotiable invariants
 
-- **No direct push to `main`** (the project rulebook's PR-only landing mandate — see "Post-Execution Policies"). Enforced by a per-repo branch RULESET on `refs/heads/main` — `creation` + `deletion` + `non_fast_forward` + a strict required status check named exactly **`validate / validate`**, with the `charly-auto-merge` GitHub App as the only bypass actor (its scoped bypass is what lets tag-on-merge's CHANGELOG commit land on a protected `main`). The LEGACY branch-protection API is deliberately NOT used: it has no bypass slot for that app, so `branch-protection.sh` deletes it wherever it survives, and `enforce_admins` plays no part. The `pre-push-gate` adds a local backstop in every harness that wires it — Claude Code included, via `.claude/settings.json`'s PreToolUse hooks. Organization-wide apply/verify is owned only by `opencharly/.github/scripts/branch-protection.sh`.
+- **No direct push to `main`** (the project rulebook's PR-only landing mandate — see "Post-Execution Policies"). Enforced by ONE organization branch RULESET on `refs/heads/main` (`creation` + `deletion` + `non_fast_forward` + a strict required status check named exactly **`validate / validate`**), with the `charly-auto-merge` GitHub App as the only bypass actor (its scoped bypass is what lets tag-on-merge's CHANGELOG commit land on a protected `main`). On GitHub Team that ONE ruleset also carries the **`workflows`** rule ("Require workflows to pass") naming `opencharly/.github/.github/workflows/org-wide-pr-validator-required.yml`, so the validator is required ONCE org-wide with no per-repo dispatcher to install. The LEGACY branch-protection API is deliberately NOT used: it has no bypass slot for that app, so `org-ruleset.sh` deletes it wherever it survives, and `enforce_admins` plays no part. The `pre-push-gate` adds a local backstop in every harness that wires it — Claude Code included, via `.claude/settings.json`'s PreToolUse hooks. Organization-wide apply/verify is owned only by `opencharly/.github/scripts/org-ruleset.sh`.
 - **Never force-push, on any branch, ever** (mandate, same rulebook section). `main` only fast-forwards via native auto-merge's squash; a `feat/` branch, once pushed, advances only by ADDING commits (the author's change plus any review-round fix commits), and the squash-merge collapses them. A stale `feat/` catches up with `gh pr update-branch` (a merge, NOT a rebase-force); tags are add-only. **Amending a `feat/` branch is a normal authoring action — legal until the first push** (amending a pushed branch would require a force-push, which is forbidden).
 - **R10-gated; the merge requires the `charly/pr-validator` gate's green check run.** R10 PASS authorizes opening the PR (with pasted evidence); a rule violation or R10 FAIL means a red `charly/pr-validator` check and no merge — fix in the same tree, re-run R10, re-push; the check resets and the validator re-runs.
 - **Zero warnings is part of R10** (project rulebook R1). A version-mismatch warning clears with `charly box reconcile`; any other warning gets `/charly-internals:root-cause-analyzer` then a real fix — "warning" is never an accepted end state.
@@ -168,8 +174,8 @@ same head to "see if it clears". Bounded knobs: `--interval`, `--timeout`.
 - the project rulebook "Post-Execution Policies" — the mandate this skill operationalizes.
 - `marketplace/internals/agents/pr-validator.md` — the fresh evaluator's full spec.
 - `marketplace/scripts/pr_state_watch.sh` — the terminal-state PR poll (stop, never loop).
-- `opencharly/.github/scripts/branch-protection.sh` — the sole organization-wide
-  branch-protection apply/verify owner.
+- `opencharly/.github/scripts/org-ruleset.sh` — the sole organization-wide owner
+  of the ONE branch ruleset (required workflow + branch rules) apply/verify.
 - `/charly-internals:cutover-policy` — one-phase, atomic-commit, R10-at-the-end.
 - `/charly-build:migrate` — `version:` ↔ tag coupling, per-merge tags, push order.
 - `/charly-build:reconcile` — cross-repo `@github` pin alignment used by B6.

@@ -27,8 +27,9 @@ not bootstrap, run setup, retry around the boundary, or substitute candidate pol
 - **Write access (the default):** the author opens the PR (B1 step 1); the fresh
   `pr-validator` (new context, not the author's context, not a teammate that
   authored the code) certifies `Verdict: PASS|BLOCK` for the ORG-WIDE
-  `charly/pr-validator` GitHub Actions gate; on PASS the org-wide `auto-merge`
-  workflow enables native auto-merge (squash), and the org-wide `tag-on-merge`
+  `charly/pr-validator` GitHub Actions gate; on PASS that same gate's workflow
+  enables native auto-merge (squash) inline (there is no separate auto-merge
+  workflow), and the org-wide `tag-on-merge`
   workflow then finalizes the merge-time CalVer, writes `CHANGELOG/<CalVer>.md`
   from the merged PR body, and tags the merged HEAD.
   Sequence + guardrails: `marketplace/internals/agents/pr-validator.md`. The gate
@@ -43,7 +44,8 @@ not bootstrap, run setup, retry around the boundary, or substitute candidate pol
 **Why a status, not a review approval — and what it does not buy.** GitHub forbids a
 PR's author from approving their own PR, and a local sub-agent shares the author's
 identity. A commit status carries no such GitHub-side restriction, which is why
-`charly/pr-validator` is the required check. Be precise about what that means:
+the `validate / validate` check run (produced by the org required workflow) is
+the required check. Be precise about what that means:
 the status is **agent-attested validation, not two-party review**. The fresh
 `pr-validator` supplies context independence (a new context re-deriving the verdict
 adversarially, trusting no author claim) — which demonstrably catches real defects —
