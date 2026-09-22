@@ -27,8 +27,9 @@ not bootstrap, run setup, retry around the boundary, or substitute candidate pol
 - **Write access (the default):** the author opens the PR (B1 step 1); the fresh
   `pr-validator` (new context, not the author's context, not a teammate that
   authored the code) certifies `Verdict: PASS|BLOCK` for the ORG-WIDE
-  `charly/pr-validator` GitHub Actions gate; on PASS the org-wide `auto-merge`
-  workflow enables native auto-merge (squash), and the org-wide `tag-on-merge`
+  `charly/pr-validator` GitHub Actions gate; on PASS that same gate's workflow
+  enables native auto-merge (squash) inline (there is no separate auto-merge
+  workflow), and the org-wide `tag-on-merge`
   workflow then finalizes the merge-time CalVer, writes `CHANGELOG/<CalVer>.md`
   from the merged PR body, and tags the merged HEAD.
   Sequence + guardrails: `marketplace/internals/agents/pr-validator.md`. The gate
@@ -43,7 +44,8 @@ not bootstrap, run setup, retry around the boundary, or substitute candidate pol
 **Why a status, not a review approval — and what it does not buy.** GitHub forbids a
 PR's author from approving their own PR, and a local sub-agent shares the author's
 identity. A commit status carries no such GitHub-side restriction, which is why
-`charly/pr-validator` is the required check. Be precise about what that means:
+the `validate / validate` check run (produced by the org required workflow) is
+the required check. Be precise about what that means:
 the status is **agent-attested validation, not two-party review**. The fresh
 `pr-validator` supplies context independence (a new context re-deriving the verdict
 adversarially, trusting no author claim) — which demonstrably catches real defects —
@@ -299,7 +301,7 @@ A FAIL is a return-to-implementation signal, not a stopping point:
 
 **If the BLOCK is body-only (no code change), the push is an EMPTY commit**
 (`git commit --allow-empty -m "docs: re-freeze the PR body against the final head"`)
-— and it DOES re-trigger the run: the dispatchers declare
+— and it DOES re-trigger the run: the org required workflow declares
 `on: pull_request: types: [opened, synchronize, …]` with no `paths:`/diff guard.
 Proven on opencharly/plugin-pipeline#28 (`be3ab30e6` is tree-identical to its
 parent and fired an `ev=pull_request` run). The body must ALREADY be final
@@ -329,25 +331,21 @@ names the shape in its output.
 
 1. **Push a NEW commit** — a real fix, or the empty re-freeze commit above. A
    fresh SHA starts a clean check set (this is the reliable path).
-2. **Add the per-repo concurrency dedupe** to that repo's dispatcher, so a
-   re-dispatch/push cancels the in-flight run instead of stacking a second:
+2. The class is otherwise **already fixed org-wide**: the per-PR concurrency
+   dedupe lives in the ONE org required workflow
+   (`opencharly/.github/.github/workflows/org-wide-pr-validator-required.yml`),
+   so a re-dispatch/push cancels the in-flight run instead of stacking a second
+   check-run:
    ```yaml
    concurrency:
-     group: pr-validator-${{ github.repository }}-${{ inputs.pr-number || github.event.pull_request.number }}
+     group: pr-validator-${{ github.repository }}-${{ github.event.pull_request.number }}
      cancel-in-progress: true
    permissions:
      actions: write   # REQUIRED for cancel-in-progress to work
    ```
-   This is **per-repo OPT-IN, not org-wide.** Only the umbrella root,
-   `eval-omarchy` and `plugin-pipeline` carried it when measured; of the 420
-   `pr-validator.yml` dispatchers in the umbrella, 417 — including `charly`,
-   `spec`, `plugin-vm`, `plugin-migrate`, `distro-omarchy` — did NOT, and the
-   reusable workflow deliberately has NONE (its header: "NO concurrency here:
-   … The dedupe lives in the per-repo DISPATCHERS").
-3. **Add the dedupe to the org template** (`opencharly/.github`'s canonical
-   dispatcher) so every repo inherits it — the proper fix for the class, and
-   the thing to file when you hit POISON in a repo you are not otherwise
-   changing.
+   That workflow is the SOLE producer of the required check (no per-repo
+   dispatcher exists since the org-ruleset cutover), so every repo inherits
+   the dedupe by construction.
 
 **Never** re-dispatch the same head "to see if it clears" (it cannot), and never
 treat POISON as a verdict BLOCK by rewriting a correct body to appease a check
