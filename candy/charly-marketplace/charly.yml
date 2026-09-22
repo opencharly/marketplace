@@ -17,6 +17,10 @@ charly-marketplace:
             # this repo, but as a hard validation error in every consumer of the list.
             - '@github.com/opencharly/pod-charly-hooks:v2026.260.1207'
             - '@github.com/opencharly/eval-omarchy:v2026.263.1432'
+            # The distro-* image families own their OS/base skills (relocated from the
+            # layer-charly-distros concept aggregator — this pin is the corpus source for
+            # them). distro-arch is the first pinned; the rest follow in the same wave.
+            - '@github.com/opencharly/distro-arch:v2026.265.1557'
             # The candies extracted out of charly/candy/ by the de-submodule cutover's
             # Phase D (opencharly/charly#451). Before this, their skills reached the corpus
             # only through the --root charly checkout at the CI pin below.
