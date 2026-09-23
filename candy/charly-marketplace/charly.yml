@@ -232,6 +232,11 @@ charly-marketplace:
             - '@github.com/opencharly/layer-crabbox:v2026.250.1023'
             - '@github.com/opencharly/pod-crabbox:v2026.256.0645'
             - '@github.com/opencharly/plugin-crabbox/candy/plugin-crabbox:v2026.250.1019'
+            # the nerdctl integration (plan/nerdctl-integration.md): the layer that
+            # installs the nerdctl stack + the out-of-tree engine:nerdctl plugin,
+            # each owning its harness skill.
+            - '@github.com/opencharly/layer-nerdctl/candy/layer-nerdctl:v2026.266.1833'
+            - '@github.com/opencharly/plugin-nerdctl/candy/plugin-nerdctl:v2026.266.1833'
         plan:
             - check: the marketplace corpus source resolves via the charly binary
               exit_status: 0
