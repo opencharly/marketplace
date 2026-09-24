@@ -1124,6 +1124,13 @@
       "version": "3.1.0"
     },
     {
+      "name": "layer-nerdctl",
+      "files": [
+        "SKILL.md"
+      ],
+      "version": "3.1.0"
+    },
+    {
       "name": "libnotify",
       "files": [
         "SKILL.md"
@@ -1543,6 +1550,13 @@
         "references/authoring-recipes.md",
         "references/boundary-law.md",
         "references/cue-schema-contract.md"
+      ],
+      "version": "3.1.0"
+    },
+    {
+      "name": "plugin-nerdctl",
+      "files": [
+        "SKILL.md"
       ],
       "version": "3.1.0"
     },

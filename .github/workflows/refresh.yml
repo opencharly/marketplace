@@ -62,7 +62,7 @@ jobs:
       - name: Fetch the pinned charly source (the BINARY and the CLI word)
         if: steps.bump.outputs.changed == 'true' && steps.skip.outputs.skip == 'false'
         run: |
-          git clone --depth 1 --branch v2026.256.1316 https://github.com/opencharly/charly.git /tmp/charly
+          git clone --depth 1 --branch v2026.266.1654 https://github.com/opencharly/charly.git /tmp/charly
 
       - uses: actions/setup-go@v5
         if: steps.bump.outputs.changed == 'true' && steps.skip.outputs.skip == 'false'
