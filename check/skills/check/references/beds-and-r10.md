@@ -165,23 +165,15 @@ bed name against the live tree before launching it.
 | `check-helm-vm` | vm | `from: k3s-vm` | the helm-release install step + `verb:helm` release-status assertion against a real k3s control plane |
 | `check-local-vm` | vm | `from: eval-host-vm` | guest-as-host proof of the `kind: local` layer-application path via ShellExecutor, run INSIDE the disposable eval VM |
 | `check-builder-vm` | vm | `from: eval-vm` | the cross-host builder (npm/cargo/pixi/aur) + machine-venue extract |
-| `check-substrate` | vm | `from: eval-vm` | the externalized substrate structural kinds (pod/vm/kubernetes/local/android) decode + deploy |
 | `check-charly-vm` | vm | `from: charly-vm` | `charly` toolchain binary-install witness (the candy's `copy: bin/charly` run step lands the in-development binary at /usr/bin/charly) on the cloud VM |
-| `check-arch-repo` / `check-fedora-repo` / `check-debian-repo` / `check-ubuntu-repo` | vm | `from: <distro>-repo-vm` | the distro package-repo publish + install end-to-end |
-| `check-alpine-repo` | pod | `image: alpine-repo-box` | the Alpine leg (a raw registry image cannot be a pod's `image:`, so a container is the honest substrate) |
 | `check-sidecar-pod` | pod | `image: check-k8s-deploy-app` | the sidecar de-type (Cutover D) — `charly config` generates the sidecar quadlet end-to-end |
 | `check-pod-overlay` | pod | `image: check-pod-overlay-app` | the pod overlay merge (project ↔ per-machine) |
-| `check-docs` | pod | `image: docs-site-app` | the opencharly.ai documentation site build + steady state |
-| `check-marketplace` | pod | `image: marketplace-app` | the marketplace corpus generation + drift gate |
-| `check-dsh-pod` | pod | `image: dsh-app` | the dsh (distributed shell) pod |
-| `check-agentteams-pod` / `check-agentteams-snapshot` / `check-agentteams-vm` | pod/vm | `image: agentteams` / `from: agentteams-vm` | the AgentTeams multi-agent stack (minio/matrix/element/higress/controller) |
 | `check-boxload-pod` | pod | `image: check-boxload-app` | `charly box load` into a nested rootless podman store |
 | `check-k8s-deploy` | group | `target: kubernetes` | the deploy:kubernetes preresolver → Kustomize tree → apply |
 | `check-group` | group | members | the group de-type (targetless group with members) |
 | `check-preflight-local` | group | members | the check-run image PREFLIGHT arm (iterate path, host target) |
 | `check-structkind` | examplestructkind | nested vm | the external STRUCTURAL plugin kind with authored-member input-threading |
-| `check-exampledeploy` | exampledeploy | host | the external (out-of-process) deploy-target lifecycle over the E3b reverse channel |
-| `check-commands-local` / `check-udev-local` / `check-preempt-local` / `check-migrate-local` / `check-feature-local` / `check-agent-local` / `check-doctor-local` / `check-gpu-local` | local | `host: local` | the externalized CLI command witnesses (clean/settings/candy/box/authoring/status/udev/preempt/migrate/feature/agent/doctor/gpu) — command-only probes, no install content |
+| `check-commands-local` / `check-agent-local` | local | `host: local` | the externalized CLI command witnesses that compose MULTIPLE plugin owners (clean/settings/candy/box/authoring/status) and the agent de-type — no single owning repo |
 | `check-sway-browser-vnc-pod` | pod | `image: sway-browser-vnc` | cdp/wl/vnc/dbus/mcp/record + pod-side file/service/port/process/http |
 | `check-pod` | pod | `image: check-pod` | combined mechanism bed: `candy:` image build + `candy:` layer composition order + `kind: pod` runtime (nc :18794 + supervisord) + every deploy-target rendering path |
 | `check-jupyter-pod` / `check-jupyter-ml-pod` | pod | `image: jupyter` / `image: jupyter-ml` | jupyter-mcp regression coverage; jupyter-ml spacy/quarto + GPU MCP probes |
@@ -197,10 +189,25 @@ bed name against the live tree before launching it.
 | `check-cachyos-jupyter-ml-pod` / `check-cachyos-ollama-pod` / `check-cachyos-ollama-rocm-pod` / `check-cachyos-comfyui-pod` / `check-cachyos-unsloth-studio-pod` / `check-cachyos-immich-ml-pod` / `check-selkies-kde-pod` / `check-selkies-labwc-pod` / `check-charly-selftest-pod` / `check-githubrunner-pod` | pod | — | the cachyos ML/desktop/tooling beds |
 | `check-debian-coder-pod` / `check-ubuntu-coder-pod` | pod | — | the debian/ubuntu coder pods |
 
-Bed homes: the main repo's `charly.yml` owns the 33 beds above (the vm/pod/
-group/local/external mechanism beds); the `box/<distro>` submodules own the
-distro beds (arch 7, cachyos 19, debian 2, fedora 22, ubuntu 2) and run from
-that submodule (e.g. `charly -C box/fedora check run check-pod`).
+Bed homes: a bed lives in the repo that OWNS the artifact it tests — the
+check-bed runner's dev-tree override (`CHARLY_REPO_OVERRIDE`, from
+`SelfSuperprojectOverridePair`) points the bed project's OWN superproject's
+`@github` refs at the local tree, so a candy owned by another repo is only
+exercised as in-development code when the bed lives with its owner. The main
+repo's `charly.yml` owns the core mechanism beds above (loader / InstallPlan /
+IR / deploy-target / plugin-host seams, plus the multi-owner command
+witnesses); the distro submodules own the distro beds (arch, cachyos,
+debian, fedora, ubuntu, omarchy) and run from that submodule (e.g. `charly -C
+distro-fedora check run check-pod` from the umbrella root).
+Relocated to their artifact owners: `check-docs` → `layer-docs-site`;
+`check-marketplace` → `plugin-marketplace`; `check-dsh-pod` → `pod-dsh`;
+`check-agentteams-pod` / `-snapshot` / `-vm` → `layer-agentteams`;
+`check-{arch,fedora,debian,ubuntu,alpine}-repo` → the matching `charly-<distro>`
+packaging repo; and the single-owner command/plugin witnesses
+(`check-udev-local`, `check-preempt-local`, `check-migrate-local`,
+`check-feature-local`, `check-doctor-local`, `check-gpu-local`,
+`check-bpf-local`, `check-cardwire-local`, `check-exampledeploy`,
+`check-substrate`) → their plugin repos. Run each from its owning repo root.
 
 Naming: `check-<descriptor>-<kind>`, dropping a redundant suffix when the
 descriptor already equals the kind AND the short form is free (`check-local`,
@@ -486,6 +493,7 @@ The project rulebook R10 carries the mandate; this matrix is the authoritative d
 | **Hook / workflow scripts** — `.claude/hooks/*.sh`, `.claude/workflows/*.js` | `bash -n` / async-body parse | Execute the changed script live: run the hook directly (paste its output); a workflow whose control flow changed runs against ONE bed matching the change. Prompt-string-only workflow edits: parse + the non-runtime standards | `fully tested and validated` | The full bed fan-out |
 | **Harness project configuration** — `AGENTS.md`, `.codex/**`, repo-native `.agents/**`, or an executable that provisions or validates those surfaces | Parse the changed configuration; run the project profile and static-validator checks; verify exact gitlink and linked-worktree provenance | Run the final-tree repository harness gate: execute each changed validator/provisioner directly, verify only the gitlinks dispatched by the change class at their recorded revisions, and run the committed developer-profile checks. A Git-provisioning change also proves its canonical-object reference and exact-gitlink behavior in a dedicated linked worktree. Record the exact approved commands and active managed sandbox available for this run. This proves repository-controlled behavior; never claim that it proves settings loaded by a newly launched harness process. The fresh validator independently decides whether the final-tree delta additionally requires a Charly R10 bed and runs it when required. | `fully tested and validated` | A forced restart/new session, alternate home/cache/workspace, or unrelated VM/container roster that cannot exercise repository configuration |
 | **`charly` Go code** | `go test ./...` + `go vet` + `task build:binary` (R9 freshness + `charly version` check against `./bin/charly`) | `charly check run <bed>` for EACH bed whose kind matches a touched code path: box/candy/pod/deploy-target mechanism → `check-pod`; `target: local` → `check-local`; VM / kubernetes → `check-k3s-vm`; a feature surface → its feature bed. Cross-cutting loader / resolver / IR / unified-schema changes → fan every matching bed out concurrently, by owner: short beds via `/verify-beds` (one `charly check run <bed>` per agent), every long bed (`vm`/`android`, or last run ≥600s) as a persistent-session `run_in_background` task — in-spec for that class, not a scope override; a `/verify-beds` result with `gateComplete: false` is a partial roster, never a green gate | `fully tested and validated` | Beds whose substrate the change cannot reach |
+| **Contract / library module** — a Go module with NO `charly.yml` project, NO `main`/deployable target and therefore NO `disposable: true` entity (the `github.com/opencharly/spec` + `github.com/opencharly/sdk` contract modules; any standalone library repo) | none beyond the suite | Run the repo's OWN committed module CI (`.github/workflows/ci.yml`: `go build ./...` + `go test ./...` + `gofmt -l .` + `golangci-lint run ./...`) GREEN on the PR head — the module suite IS the gate, because no bed CAN exist (a bed that cannot fail on the change proves nothing). The suite must genuinely EXECUTE the changed paths (a test that would FAIL without the change), not merely compile them. The `no disposable target` premise is a negative claim: prove it with executed output (`git ls-files \| grep -c 'charly.yml'` → 0; `git grep -c 'disposable: true'` → no match). A change whose behaviour is observable only at a CONSUMER's live boundary names the consumer PR running that bed — the bed rides the consumer change (producer→consumer order, B6), never the library PR | `fully tested and validated` | A `charly check run` bed in the module repo — none can exist there; the consumer boundary bed belongs to the consumer PR |
 | **Candy / box / pod / vm / kubernetes / local / android config** | `charly box validate` | Build + run a bed that composes the changed entity (a candy edit → a bed whose image stacks that candy); when no bed composes it, the R7 sequence on a disposable deploy: build → `charly check box` → deploy → `charly check live` → fresh `charly update` | `fully tested and validated` | Beds that do not compose the changed entity |
 | **`iterate:` / ai check config** | `charly box validate` | The affected `iterate:` bed run as specified (see "Flag discipline") | `fully tested and validated` | Unrelated beds |
 
