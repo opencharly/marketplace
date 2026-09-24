@@ -86,6 +86,53 @@ required workflow (`org-wide-pr-validator-required.yml`), not a per-repo
 dispatcher. Full mechanics and the dedupe YAML:
 `references/validator-and-calver.md` "The POISON state".
 
+### The INCONCLUSIVE (verdict-less) class — the gate ran but produced no verdict
+
+A third terminal state sits beside PASS and BLOCK: **`## validator INCONCLUSIVE —
+no review verdict was produced (not a BLOCK; no code finding)`**. The required
+check stays **RED on purpose** (unreviewed code must never merge), but this is
+**NOT a finding about your diff** — it means the review engine produced no
+`Verdict:` line at all. Read the `## validator INCONCLUSIVE` comment's
+`Diagnostics` tail before touching your branch: it is the evidence that names the
+class. Do NOT "fix" your code for an INCONCLUSIVE — there is no code finding to
+fix — and do NOT re-dispatch the same head hoping for a different result; classify
+the cause from the diagnostics, then act on THAT.
+
+The two root causes, and how to tell them apart from the diagnostics tail:
+
+- **`turn 1: N tool call(s)` → `turn 2: final content len=0`** = the STALE-ENGINE
+  class. The gate's review engine is whatever `plugin-review` is **welded into the
+  charly binary** it runs; an engine OLDER than the fix that produced those lines
+  spins a tool loop and emits no verdict. The org pins a current engine via
+  `vars.CHARLY_VERSION`; a self-hosted runner whose IMAGE bakes an older `charly`
+  used to short-circuit that pin (`if command -v charly; then exit 0`) and silently
+  ran the stale welded engine. The pin enforcement that closes this is
+  `opencharly/.github#115` (`ensure-charly` now verifies the on-PATH `charly`
+  against the pin and downloads the pinned release when they differ). If you see
+  this signature, the cause is the RUNNER ENVIRONMENT, not your diff — escalate to
+  the operator (a stale runner image; the pin enforcement makes a stale on-PATH
+  engine harmless once the workflow at `main` is the enforced one).
+- **`inconclusive: … provider did not respond / attempt timed out`** (or an HTTP
+  status / stall marker) = the PROVIDER/ENDPOINT class. The evidence is in the
+  message: the provider returned a status, or the stream stalled / the whole-request
+  deadline elapsed. This is owned by the gate's provider configuration (the org
+  `AI_REVIEW_*` vars: provider/model, `AI_REVIEW_ATTEMPT_TIMEOUT`,
+  `AI_REVIEW_REASONING_EFFORT`, `AI_REVIEW_MAX_TOKENS`) — escalate to the operator,
+  who owns that configuration, rather than re-running blindly. Do not record it as
+  a "flake"; a provider-class INCONCLUSIVE is a real signal that the provider bound
+  or budget needs the operator's attention.
+
+**The distinction that matters:** a real **BLOCK** has a `## Review — BLOCK`
+heading and a `### Blocks` list you MUST fix; an **INCONCLUSIVE** has neither and
+must NOT be treated as a review finding (reporting it as one, or "fixing" code to
+satisfy it, is an R1 misdiagnosis). The gate's own workflow classifies INCONCLUSIVE
+as exit 3 and keeps the check RED; `pr_state_watch.sh` reports it distinctly from a
+verdict BLOCK. **Never merge around the red check** — an INCONCLUSIVE is an
+environment/provider condition to fix or escalate, not a licence to bypass the
+gate. The only merge under a red required check is an explicit, operator-issued
+override decision, taken by the operator on evidence THEY accept — it is never an
+agent's call, and never a documented standing procedure.
+
 ### `pr_state_watch.sh` — STOP on a terminal state, never poll in a loop
 
 `marketplace/scripts/pr_state_watch.sh <owner>/<repo> <pr-number>` watches the
