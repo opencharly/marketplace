@@ -12,7 +12,7 @@ description: |-
 
 A **candy** is a directory under `candy/<name>/` that installs a single concern. Candies are the building blocks of container images in opencharly. Each candy is a **compact name-first node**: the top-level key is the candy NAME, under it a single `candy:` kind key holds the **FULL body** — the scalar fields (`version`, `description`, `status`, …), every collection (`package`, `env`, `service`, `volume`, …) inline, and the operational steps as an ordered list under `plan:` — all in a single `charly.yml` file.
 
-There is **one YAML file per candy** for install logic — no separate Taskfiles. Everything an author needs to install flows through the `run:` steps in the `plan:` list and auto-detected package manifests (`pixi.toml`, `package.json`, `Cargo.toml`).
+There is **one YAML file per candy** for install logic — no separate shell task files. Everything an author needs to install flows through the `run:` steps in the `plan:` list and auto-detected package manifests (`pixi.toml`, `package.json`, `Cargo.toml`).
 
 **Layer vs image — ONE `candy:` kind (MUST).** There is exactly one entity kind,
 `candy:`; there is **no `box:` KIND**. A `candy:` node carrying neither `base:`
@@ -75,7 +75,7 @@ chrome:
 
 The runtime parser accepts only this compact form. `charly migrate` converts any legacy candy file — including the former named data/step child-node shape (`<name>-<key>:` collection nodes and per-step child nodes) — to the canonical shape in a single idempotent pass; a former meaningful step-node name becomes that step's `id:`.
 
-The candy + plan-step schema the parser validates against is **CUE-single-source**: the `@go()`-annotated `spec/schema/*.cue` defs (`#Candy`, `#Op`, …) are the sole source for both the Go param structs (generated into `spec/spec` by `task cue:gen`) and load-time validation, so adding or changing a candy field is a CUE edit → `task cue:gen` → see the `/charly-internals:go` recipe "How to change the charly.yml schema (CUE is the single source of truth)".
+The candy + plan-step schema the parser validates against is **CUE-single-source**: the `@go()`-annotated `spec/schema/*.cue` defs (`#Candy`, `#Op`, …) are the sole source for both the Go param structs (generated into `spec/spec` by `charly task cue-gen`) and load-time validation, so adding or changing a candy field is a CUE edit → `charly task cue-gen` → see the `/charly-internals:go` recipe "How to change the charly.yml schema (CUE is the single source of truth)".
 
 ## Quick Reference
 

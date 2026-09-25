@@ -21,7 +21,7 @@ merges + tags):
    so no schema `version:` bump — but the tag marks the merge, same as every repo);
 3. the superproject — stage the now-MERGED submodule pointers (a touched sdk:
    adopt the tagged sdk release as the new shared pinned require in every
-   module — `task mods:tidy` re-syncs go.sum and the canonical-go.mod gate
+   module — `charly task mods-tidy` re-syncs go.sum and the canonical-go.mod gate
    asserts the ONE shared pin; there is no gitlink and no `replace`) → PR → native
    auto-merge + tag-on-merge tags `main`.
 
@@ -108,7 +108,7 @@ requires):
 log -1 --format=%cd --date='format-local:%Y %j %H %M'` — the `TZ=UTC0` is what makes
 the bare `%cd` UTC; without it `%cd` uses the commit's own TZ offset), so the stamp
 identifies the SOURCE COMMIT, never the build moment — a
-`task build:binary` on a DIRTY working tree reports the IDENTICAL version as the clean
+`scripts/bootstrap-charly.sh` on a DIRTY working tree reports the IDENTICAL version as the clean
 commit under it. So `charly version` matching the expected CalVer does NOT prove your
 uncommitted fix compiled in. Prove fix-presence by a content marker instead: `strings
 bin/charly | grep '<a string unique to the fix>'` (a new error message, flag name, or
@@ -371,15 +371,16 @@ explicit repo root (`git -C /abs/path grep …`, or a `git rev-parse
 --show-toplevel` cross-check first), never a bare relative command trusting
 the shell's current directory. A stronger, WRITE-side form of the same
 footgun: a MUTATING command (anything that writes files or runs `git
-submodule update` as a side effect — `task cue:gen` is the canonical
-offender) run against a stale, ambient cwd doesn't just misreport, it
-MUTATES the wrong tree. Failure mode: a fresh evaluator runs `task cue:gen`
-with a persisted shell cwd that had drifted to the main session worktree —
-the task's own `git submodule update` chain rewound 5 submodule checkouts
-there before the mistake was caught (fully restored,
+submodule update` as a side effect — a codegen task such as
+`charly task cue-gen`, or the old `task cue:gen` it replaced, are canonical
+offenders) run against a stale, ambient cwd doesn't just misreport, it
+MUTATES the wrong tree. Failure mode: a fresh evaluator ran a cue-codegen
+task with a persisted shell cwd that had drifted to the main session
+worktree — the task's own `git submodule update` chain rewound 5 submodule
+checkouts there before the mistake was caught (fully restored,
 disclosed). So every mutating task/command invocation in an isolated-worktree
 workflow (a validator run, a teammate's branch work, a spike) carries an
 explicit `cd <worktree> &&` anchor IN THE SAME compound command — never a
-bare `task cue:gen` (or any command with submodule/file-write side effects)
+bare mutating task (or any command with submodule/file-write side effects)
 trusting a cwd set by an earlier, unrelated step.
 

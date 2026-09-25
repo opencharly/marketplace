@@ -60,7 +60,7 @@ func checkCapabilityLabelCompleteness() error {
 
 This is the enforcement mechanism that keeps the OCI-label contract and the Go struct in sync. **Workflow for adding a capability:**
 
-1. Add the field to `BoxMetadata` in `spec/schema/boxmetadata.cue` (CUE is the single source of truth; `task cue:gen` regenerates `spec/spec/cue_types_gen.go`).
+1. Add the field to `BoxMetadata` in `spec/schema/boxmetadata.cue` (CUE is the single source of truth; `charly task cue-gen` regenerates `spec/spec/cue_types_gen.go`).
 2. Add the label const (`LabelFoo = "ai.opencharly.foo"`) in `spec/spec/label_consts.go`.
 3. Add the `CapabilityLabelMap` entry: `"Foo": LabelFoo`.
 4. Emit + parse the label in `WriteLabels` (deploykit, via `writeJSONLabel`) / `ExtractMetadata`.

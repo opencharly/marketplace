@@ -227,7 +227,7 @@ unparam` a uniform-handler signature) — don't nolint-stack blindly.
 
 ## R10 gate by change class (the commit gate)
 
-`go test ./...` + `golangci-lint run` + `task build:binary` are smoke, not the gate — the gate is `charly check run <bed>` on the bed(s) that exercise the change, disposable-only, fresh-rebuild, zero warnings, pasted proof. The bed-selection matrix (incl. cross-cutting fan-out by owner) is owned by `/charly-check:check` "R10 gate by change class"; see also `/charly-internals:cutover-policy`.
+`go test ./...` + `golangci-lint run` + `scripts/bootstrap-charly.sh` are smoke, not the gate — the gate is `charly check run <bed>` on the bed(s) that exercise the change, disposable-only, fresh-rebuild, zero warnings, pasted proof. The bed-selection matrix (incl. cross-cutting fan-out by owner) is owned by `/charly-check:check` "R10 gate by change class"; see also `/charly-internals:cutover-policy`.
 
 **A mechanical pre-commit backstop exists in SOME harnesses, and is separate from the R10
 gate.** The `pre-commit-gate.sh` hook (`.claude/hooks/`) runs the CONFIGURED `golangci-lint

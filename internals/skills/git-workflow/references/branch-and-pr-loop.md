@@ -230,7 +230,7 @@ the final code is proven — never by shipping anything pre-bed:
   create the rebase-able base. The commit stays LOCAL.
 - **(c) Rebase onto the current mains.** Bring the branch onto the just-advanced
   `origin/main` of every repo, and REGENERATE every generated file from the merged
-  sources (`task cue:gen`, codegen) — never hand-merge a generated artifact
+  sources (`charly task cue-gen`, codegen) — never hand-merge a generated artifact
   (generated-artifact drift is an R1 incident).
 - **(d) Re-run the gates, re-freeze.** `go test` / `golangci-lint` / build /
   `charly box validate` on the rebased tree, then freeze again.

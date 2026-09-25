@@ -176,14 +176,14 @@ commit — never re-dispatch the same head. Detail: the reference + the script h
 Skill Dispatcher routes its pinning/gitlink row to this skill, and the umbrella
 `AGENTS.md` names them as the sanctioned path for that maintenance work
 ("Umbrella-native mechanics are the sanctioned path for umbrella work"). A charly
-end-user never sees `task`; they are the umbrella's own Taskfile targets.
+end-user never sees them; they are the umbrella's own `charly task` entities.
 
 Inside the umbrella checkout the umbrella `AGENTS.md` governs (rule 7: read the
 subrepo's own rulebook before touching it; `charly/AGENTS.md` owns R0–R10 inside
 `charly/`). The umbrella's own commands — never an ad-hoc substitute — are:
-`task sync` (policy-B pin bump), `task verify` (the full pinning gate — there is
-NO CI gate), `task hooks` (install the per-commit gate), `task harness` (config
-parity), `task map`. Hard rules there: **never edit inside a submodule** (change
+`charly task sync` (policy-B pin bump), `charly task verify` (the full pinning gate — there is
+NO CI gate), `charly task hooks` (install the per-commit gate), `charly task harness` (config
+parity), `charly task map`. Hard rules there: **never edit inside a submodule** (change
 lands by PR to the owning repo; the umbrella only records gitlinks), run submodule
 git through `git -C <absolute-path>` from the umbrella root, no worktrees inside
 submodules, pin only MERGED refs, and bound every command's output (SIGPIPE is
@@ -198,7 +198,7 @@ ignored — `grep` floods on `Broken pipe`). Full detail:
 | B2 (multi-repo/multi-worktree coordination, per-module verification), B3 (agent teams in per-teammate worktrees), B6 (cross-repo `@github` landing), and B7 (multi-worktree landing + refresh, the canonical end-to-end) | `references/multi-repo-coordination.md` |
 | B5 (the fresh evaluator + fork/PR path, the two-gate autonomous-landing model), CalVer generation, post-landing cleanliness + report format, and the validation-FAILS recovery sequence | `references/validator-and-calver.md` |
 | Evidence discipline — provenance vs plausibility of a pasted gate, the three freshness surfaces (head / body / pasted output), positive-vs-negative claim decay, sweeping for claims a fix invalidated, the merged-tree gate for a `BEHIND` PR, source-and-regeneration as one cross-repo cutover, submodule pointers reverted by a non-conflicting merge, and why status-absence on a known head proves nothing | `references/evidence-and-freshness.md` |
-| Umbrella mechanics — the ~400-submodule view, policy B, `task sync`/`verify`/`hooks`/`harness`, the no-edit-in-submodule rule, pin discipline | `references/umbrella-mechanics.md` |
+| Umbrella mechanics — the ~400-submodule view, policy B, `charly task sync`/`verify`/`hooks`/`harness`, the no-edit-in-submodule rule, pin discipline | `references/umbrella-mechanics.md` |
 | PR-state observation — the terminal-state poll | `marketplace/scripts/pr_state_watch.sh` (run it; it is the sanctioned poll) |
 
 ## The PR-state watcher (STOP on terminal, never loop)

@@ -61,7 +61,7 @@ charly box build <image>          # Build succeeds
 ```bash
 cd charly && go test ./...               # All tests pass
 cd charly && go vet ./...                # No issues
-task build:binary                        # Binary compiles
+bash scripts/bootstrap-charly.sh          # R9 source build compiles
 bin/charly box validate                # CLI works
 ```
 
