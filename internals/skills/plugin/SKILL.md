@@ -73,7 +73,7 @@ reach a repo it does not have, so its author publishes from the identical surfac
 - `go test ./...` — the registry/transport/schema seams (`TestPluginGRPCRoundTrip`,
   `TestExternalPluginEndToEnd` proves the schema travels over RPC, `TestPluginSchemaSpliceValidation`,
   `TestBuiltinPluginSchemasSplice` is the CI gate that every builtin schema splices).
-- `task cue:gen` — regenerates spec + every plugin's params; reproducible (a second run is a no-op).
+- `charly task cue-gen` — regenerates the spec module's own types in the spec repo; each plugin's `params` package is regenerated in its OWN repo by the same pipeline. Both are reproducible (a second run is a no-op).
 - `charly box validate` — the candy + `plugin:` block (`candy/plugin-box/validate_rules.go`'s
   `IsPlugin` check — an explicit, documented 1:1 port of the former core `validatePluginCandy`, deleted
   as dead code in the dead-code-radical-removal batch once its call site moved here —

@@ -105,20 +105,19 @@ ok: true                     # ← a SKIP, not a pass
 
 So `ok: true` + `total_seconds: 0` + a single `prereq-*-skipped` step IS the skip signature.
 The authoritative discriminator is the **process exit code 3** (charly also prints a
-`SKIPPED — …` line); never count a bed as passed from `summary.yml` alone. `/verify-beds`
+`SKIPPED — …` line); never count a bed as passed from `summary.yml` alone. The roster engine
 keys on the exit code for exactly this reason. And a wrapper script's own exit code is
 not the bed verdict — a script that pipes or post-processes `charly check run` must
 capture `${PIPESTATUS[0]}` (the charly exit) and corroborate the on-disk `summary.yml`;
 a notification-level exit 0 can mask a charly exit 1.
 
 To run a
-whole roster, fan the beds out concurrently, by owner: the short beds via the
-`/verify-beds` workflow (one `charly check run <bed>` process per agent), and every
-long bed — a `vm`/`android` substrate, or one whose last run took ≥600s — as its own
-`run_in_background` task owned by the persistent session, because an ephemeral
-sub-agent cannot own a bed that outlives its turn. `/verify-beds` defers the long beds
-(returning `deferredLongBeds[]`) and refuses host-local ones rather than running them;
-its `gateComplete: false` means the roster is partial. Either way wall-clock collapses
+whole roster, declare a `kind:check-roster` entity (a `check-roster:` node in the
+project `charly.yml`) and run `charly check run <roster>`. The roster engine
+enumerates every disposable bed (namespace-qualified), runs them on a bounded
+`lanes` worker pool, serializes beds that share an `requires_exclusive:`/
+`requires_shared:` token (auto-derived from each bed's own declaration), refuses
+host-local beds by default, and aggregates honest exit codes. Wall-clock collapses
 to ≈ the slowest single bed (see "Approximate wall-clock" below).
 
 ### Flag discipline — the `iterate:`/bed config IS the test specification
@@ -131,12 +130,11 @@ class as dry-run-as-R10 (the project rulebook R10 flag-override clause). The cat
 `--plateau-iteration`, `--max-scenario`, `--tag`, `--skip-rebuild`,
 `--on-pod` / `--on-vm` / `--on-host`, `--keep-repo`, `--dry-run`, and the bed
 flags `--no-rebuild` (skips the R10 fresh-rebuild gate) and `--keep`.
-(Fanning the full roster out concurrently — the short beds via `/verify-beds`,
-one `charly check run <bed>` per agent, and the long beds as persistent-session
-`run_in_background` tasks — is scope-expanding, not shrinking: it is in-spec
-without authorization when "R10 gate by change class" mandates the full
-fan-out for a cross-cutting change, and needs authorization only as a
-substitute for the class-mandated gate.) Internal-voice triggers — "tractable wall-clock", "for the
+(Fanning the full roster out concurrently — `charly check run <roster>` on a
+`kind:check-roster` entity, its `lanes` pool overlapping every bed — is
+scope-expanding, not shrinking: it is in-spec without authorization when "R10
+gate by change class" mandates the full fan-out for a cross-cutting change,
+and needs authorization only as a substitute for the class-mandated gate.) Internal-voice triggers — "tractable wall-clock", "for the
 canary", "to fit session bounds", "shorten this run", "skip the heavy leg",
 "faster iteration cycle" — are confessions, not defences. The `iterate:`
 block's `plateau_iteration` and the AI's `progress_no_improvement_timeout` together
@@ -165,23 +163,15 @@ bed name against the live tree before launching it.
 | `check-helm-vm` | vm | `from: k3s-vm` | the helm-release install step + `verb:helm` release-status assertion against a real k3s control plane |
 | `check-local-vm` | vm | `from: eval-host-vm` | guest-as-host proof of the `kind: local` layer-application path via ShellExecutor, run INSIDE the disposable eval VM |
 | `check-builder-vm` | vm | `from: eval-vm` | the cross-host builder (npm/cargo/pixi/aur) + machine-venue extract |
-| `check-substrate` | vm | `from: eval-vm` | the externalized substrate structural kinds (pod/vm/kubernetes/local/android) decode + deploy |
 | `check-charly-vm` | vm | `from: charly-vm` | `charly` toolchain binary-install witness (the candy's `copy: bin/charly` run step lands the in-development binary at /usr/bin/charly) on the cloud VM |
-| `check-arch-repo` / `check-fedora-repo` / `check-debian-repo` / `check-ubuntu-repo` | vm | `from: <distro>-repo-vm` | the distro package-repo publish + install end-to-end |
-| `check-alpine-repo` | pod | `image: alpine-repo-box` | the Alpine leg (a raw registry image cannot be a pod's `image:`, so a container is the honest substrate) |
 | `check-sidecar-pod` | pod | `image: check-k8s-deploy-app` | the sidecar de-type (Cutover D) — `charly config` generates the sidecar quadlet end-to-end |
 | `check-pod-overlay` | pod | `image: check-pod-overlay-app` | the pod overlay merge (project ↔ per-machine) |
-| `check-docs` | pod | `image: docs-site-app` | the opencharly.ai documentation site build + steady state |
-| `check-marketplace` | pod | `image: marketplace-app` | the marketplace corpus generation + drift gate |
-| `check-dsh-pod` | pod | `image: dsh-app` | the dsh (distributed shell) pod |
-| `check-agentteams-pod` / `check-agentteams-snapshot` / `check-agentteams-vm` | pod/vm | `image: agentteams` / `from: agentteams-vm` | the AgentTeams multi-agent stack (minio/matrix/element/higress/controller) |
 | `check-boxload-pod` | pod | `image: check-boxload-app` | `charly box load` into a nested rootless podman store |
 | `check-k8s-deploy` | group | `target: kubernetes` | the deploy:kubernetes preresolver → Kustomize tree → apply |
 | `check-group` | group | members | the group de-type (targetless group with members) |
 | `check-preflight-local` | group | members | the check-run image PREFLIGHT arm (iterate path, host target) |
 | `check-structkind` | examplestructkind | nested vm | the external STRUCTURAL plugin kind with authored-member input-threading |
-| `check-exampledeploy` | exampledeploy | host | the external (out-of-process) deploy-target lifecycle over the E3b reverse channel |
-| `check-commands-local` / `check-udev-local` / `check-preempt-local` / `check-migrate-local` / `check-feature-local` / `check-agent-local` / `check-doctor-local` / `check-gpu-local` | local | `host: local` | the externalized CLI command witnesses (clean/settings/candy/box/authoring/status/udev/preempt/migrate/feature/agent/doctor/gpu) — command-only probes, no install content |
+| `check-commands-local` / `check-agent-local` | local | `host: local` | the externalized CLI command witnesses that compose MULTIPLE plugin owners (clean/settings/candy/box/authoring/status) and the agent de-type — no single owning repo |
 | `check-sway-browser-vnc-pod` | pod | `image: sway-browser-vnc` | cdp/wl/vnc/dbus/mcp/record + pod-side file/service/port/process/http |
 | `check-pod` | pod | `image: check-pod` | combined mechanism bed: `candy:` image build + `candy:` layer composition order + `kind: pod` runtime (nc :18794 + supervisord) + every deploy-target rendering path |
 | `check-jupyter-pod` / `check-jupyter-ml-pod` | pod | `image: jupyter` / `image: jupyter-ml` | jupyter-mcp regression coverage; jupyter-ml spacy/quarto + GPU MCP probes |
@@ -197,10 +187,25 @@ bed name against the live tree before launching it.
 | `check-cachyos-jupyter-ml-pod` / `check-cachyos-ollama-pod` / `check-cachyos-ollama-rocm-pod` / `check-cachyos-comfyui-pod` / `check-cachyos-unsloth-studio-pod` / `check-cachyos-immich-ml-pod` / `check-selkies-kde-pod` / `check-selkies-labwc-pod` / `check-charly-selftest-pod` / `check-githubrunner-pod` | pod | — | the cachyos ML/desktop/tooling beds |
 | `check-debian-coder-pod` / `check-ubuntu-coder-pod` | pod | — | the debian/ubuntu coder pods |
 
-Bed homes: the main repo's `charly.yml` owns the 33 beds above (the vm/pod/
-group/local/external mechanism beds); the `box/<distro>` submodules own the
-distro beds (arch 7, cachyos 19, debian 2, fedora 22, ubuntu 2) and run from
-that submodule (e.g. `charly -C box/fedora check run check-pod`).
+Bed homes: a bed lives in the repo that OWNS the artifact it tests — the
+check-bed runner's dev-tree override (`CHARLY_REPO_OVERRIDE`, from
+`SelfSuperprojectOverridePair`) points the bed project's OWN superproject's
+`@github` refs at the local tree, so a candy owned by another repo is only
+exercised as in-development code when the bed lives with its owner. The main
+repo's `charly.yml` owns the core mechanism beds above (loader / InstallPlan /
+IR / deploy-target / plugin-host seams, plus the multi-owner command
+witnesses); the distro submodules own the distro beds (arch, cachyos,
+debian, fedora, ubuntu, omarchy) and run from that submodule (e.g. `charly -C
+distro-fedora check run check-pod` from the umbrella root).
+Relocated to their artifact owners: `check-docs` → `layer-docs-site`;
+`check-marketplace` → `plugin-marketplace`; `check-dsh-pod` → `pod-dsh`;
+`check-agentteams-pod` / `-snapshot` / `-vm` → `layer-agentteams`;
+`check-{arch,fedora,debian,ubuntu,alpine}-repo` → the matching `charly-<distro>`
+packaging repo; and the single-owner command/plugin witnesses
+(`check-udev-local`, `check-preempt-local`, `check-migrate-local`,
+`check-feature-local`, `check-doctor-local`, `check-gpu-local`,
+`check-bpf-local`, `check-cardwire-local`, `check-exampledeploy`,
+`check-substrate`) → their plugin repos. Run each from its owning repo root.
 
 Naming: `check-<descriptor>-<kind>`, dropping a redundant suffix when the
 descriptor already equals the kind AND the short form is free (`check-local`,
@@ -249,15 +254,12 @@ deploy → check → fresh-update → teardown cycle covering all four mechanism
 (`check-sway-browser-vnc-pod` ~2477s ≈ 41 min incl. image build) longer.
 
 **These are load-dependent, and the idle figures mislead.** A bed's own newest
-`.check/<bed>/<calver>/summary.yml` `total_seconds:` is the only honest number, and it is
-what `/verify-beds` reads to decide whether a bed is too long for a sub-agent to own
-(≥600s ⇒ deferred to the persistent session). Under a 16-way roster, several pod beds cross
-that line even though they finish in ~2 min idle. `charly check run <bed>` runs exactly ONE bed, so a roster run is N
-of them — and running them sequentially would make wall-clock ≈ the sum. To
-collapse that to ≈ the slowest single bed, fan the beds out concurrently — one
-`charly check run <bed>` process per owner: a per-agent process for the short beds
-(`/verify-beds`, an agent team), and a persistent-session `run_in_background` task for
-each long bed, which no sub-agent can own (see `/charly-internals:agents`
+`.check/<bed>/<calver>/summary.yml` `total_seconds:` is the only honest number for its
+duration. `charly check run <bed>` runs exactly ONE bed, so a roster run is N
+of them — and running them sequentially would make wall-clock ≈ the sum. The
+`kind:check-roster` engine collapses that to ≈ the slowest single bed: it runs the
+selected beds concurrently on its bounded `lanes` pool and serializes only the
+exclusive-token groups (see `/charly-check:check` and `/charly-internals:agents`
 "Speed levers"). The dominant cost is
 the step-1 `charly box build`: a pod bed builds the image once — the "fresh
 `charly update`" R10 step is a `systemctl restart` onto the already-built image, not
@@ -485,7 +487,8 @@ The project rulebook R10 carries the mandate; this matrix is the authoritative d
 | **Documentation-only change class** — `*.md` (`AGENTS.md` / `CLAUDE.md`, the marketplace corpus's `**/SKILL.md`, READMEs, CHANGELOG), comment-only code edits, or a submodule pointer bump to an all-documentation submodule commit; zero behavior change | markdown integrity, link checks | The non-runtime standards: adversarial consistency review, the R5 grep self-test, cross-reference validation, and command-safety gates | `documentation reviewed` | ANY bed run or image build — beds cannot fail on prose |
 | **Hook / workflow scripts** — `.claude/hooks/*.sh`, `.claude/workflows/*.js` | `bash -n` / async-body parse | Execute the changed script live: run the hook directly (paste its output); a workflow whose control flow changed runs against ONE bed matching the change. Prompt-string-only workflow edits: parse + the non-runtime standards | `fully tested and validated` | The full bed fan-out |
 | **Harness project configuration** — `AGENTS.md`, `.codex/**`, repo-native `.agents/**`, or an executable that provisions or validates those surfaces | Parse the changed configuration; run the project profile and static-validator checks; verify exact gitlink and linked-worktree provenance | Run the final-tree repository harness gate: execute each changed validator/provisioner directly, verify only the gitlinks dispatched by the change class at their recorded revisions, and run the committed developer-profile checks. A Git-provisioning change also proves its canonical-object reference and exact-gitlink behavior in a dedicated linked worktree. Record the exact approved commands and active managed sandbox available for this run. This proves repository-controlled behavior; never claim that it proves settings loaded by a newly launched harness process. The fresh validator independently decides whether the final-tree delta additionally requires a Charly R10 bed and runs it when required. | `fully tested and validated` | A forced restart/new session, alternate home/cache/workspace, or unrelated VM/container roster that cannot exercise repository configuration |
-| **`charly` Go code** | `go test ./...` + `go vet` + `task build:binary` (R9 freshness + `charly version` check against `./bin/charly`) | `charly check run <bed>` for EACH bed whose kind matches a touched code path: box/candy/pod/deploy-target mechanism → `check-pod`; `target: local` → `check-local`; VM / kubernetes → `check-k3s-vm`; a feature surface → its feature bed. Cross-cutting loader / resolver / IR / unified-schema changes → fan every matching bed out concurrently, by owner: short beds via `/verify-beds` (one `charly check run <bed>` per agent), every long bed (`vm`/`android`, or last run ≥600s) as a persistent-session `run_in_background` task — in-spec for that class, not a scope override; a `/verify-beds` result with `gateComplete: false` is a partial roster, never a green gate | `fully tested and validated` | Beds whose substrate the change cannot reach |
+| **`charly` Go code** | `go test ./...` + `go vet` + the R9 source build `scripts/bootstrap-charly.sh` (R9 freshness + `charly version` check on the worktree binary) | `charly check run <bed>` for EACH bed whose kind matches a touched code path: box/candy/pod/deploy-target mechanism → `check-pod`; `target: local` → `check-local`; VM / kubernetes → `check-k3s-vm`; a feature surface → its feature bed. Cross-cutting loader / resolver / IR / unified-schema changes → run the matching beds as one `kind:check-roster` roster (`charly check run <roster>`, its `lanes` pool overlapping every bed) — in-spec for that class, not a scope override; a roster run that does not include every matching bed is a partial roster, never a green gate | `fully tested and validated` | Beds whose substrate the change cannot reach |
+| **Contract / library module** — a Go module with NO `charly.yml` project, NO `main`/deployable target and therefore NO `disposable: true` entity (the `github.com/opencharly/spec` + `github.com/opencharly/sdk` contract modules; any standalone library repo) | none beyond the suite | Run the repo's OWN committed module CI (`.github/workflows/ci.yml`: `go build ./...` + `go test ./...` + `gofmt -l .` + `golangci-lint run ./...`) GREEN on the PR head — the module suite IS the gate, because no bed CAN exist (a bed that cannot fail on the change proves nothing). The suite must genuinely EXECUTE the changed paths (a test that would FAIL without the change), not merely compile them. The `no disposable target` premise is a negative claim: prove it with executed output (`git ls-files \| grep -c 'charly.yml'` → 0; `git grep -c 'disposable: true'` → no match). A change whose behaviour is observable only at a CONSUMER's live boundary names the consumer PR running that bed — the bed rides the consumer change (producer→consumer order, B6), never the library PR | `fully tested and validated` | A `charly check run` bed in the module repo — none can exist there; the consumer boundary bed belongs to the consumer PR |
 | **Candy / box / pod / vm / kubernetes / local / android config** | `charly box validate` | Build + run a bed that composes the changed entity (a candy edit → a bed whose image stacks that candy); when no bed composes it, the R7 sequence on a disposable deploy: build → `charly check box` → deploy → `charly check live` → fresh `charly update` | `fully tested and validated` | Beds that do not compose the changed entity |
 | **`iterate:` / ai check config** | `charly box validate` | The affected `iterate:` bed run as specified (see "Flag discipline") | `fully tested and validated` | Unrelated beds |
 
@@ -525,7 +528,7 @@ a bump integrating submodule code is a code class, at a runtime tier.
 `charly check run <bed>` propagates `2` when the bed's **check step** (check-image /
 check-live) fails on checks, but `1` when an **infra step** (build / deploy /
 vm-create) fails — so a broken bed image is distinguishable from a genuine
-test failure. When `/verify-beds` fans a roster out, it aggregates the per-bed
+test failure. The `kind:check-roster` engine aggregates the per-bed
 exit codes — reporting `2` only when *every* failing bed failed on checks, and
 `1` when any bed hit an infra failure. Implementation:
 the sdk owns the error/exit types — `sdk.ExitCodeError` + `sdk.CheckFailExitCode` /

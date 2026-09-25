@@ -360,7 +360,7 @@ Concretely: the cache is keyed by `(parent-image-SHA, instruction-text, COPY-sou
 
 Three kinds of source changes are real cache invalidators — if you see a long rebuild, one of these is the cause:
 
-1. **Layer source file content changed.** Editing a file under `candy/<name>/` — the canonical case is `candy/charly/bin/charly` being rewritten by `task build:binary` after a Go source edit — changes the scratch stage's content hash, which invalidates `COPY --from=<layer>` and everything downstream that depends on it.
+1. **Layer source file content changed.** Editing a file under `candy/<name>/` — the canonical case is a local-source charly artifact being rebuilt by the R9 source build (the worktree-local CalVer-stamped build, see `/charly-internals:go` R9) after a Go source edit — changes the scratch stage's content hash, which invalidates `COPY --from=<layer>` and everything downstream that depends on it.
 2. **Package list / task text changed.** Adding/removing an rpm/deb/pac entry or editing a `command:` body changes the RUN instruction text emitted for that layer, invalidating cache from that RUN onward.
 3. **Upstream image content changed.** If a base image (external like `fedora` or internal like `fedora-supervisord`) has different content from the last cached build, the FROM step resolves to a new SHA and downstream RUN/COPY steps all cache-miss. This cascades through the dependency graph — rebuilding `fedora-supervisord` forces its children to re-run from the `FROM fedora-supervisord` step.
 
@@ -385,7 +385,7 @@ Three kinds of source changes are real cache invalidators — if you see a long 
 | A `copy:` source file's content | Rebuild from that layer's COPY onward + downstream |
 | A `command:` / `download:` run step body | Rebuild from that RUN onward + downstream |
 | A package added/removed in `rpm:`/`deb:`/`pac:` | Rebuild from the install RUN onward + downstream |
-| `task build:binary` → new `candy/charly/bin/charly` | Rebuild the `charly` layer + every image that includes it |
+| a local-source charly artifact rebuilt (R9 source build) | Rebuild the `charly` layer + every image that includes it |
 | An upstream image got content-changed and rebuilt | Rebuild from the FROM step onward in every descendant |
 
 ## Build Flow Details

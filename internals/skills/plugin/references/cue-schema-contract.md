@@ -10,7 +10,7 @@ cross-generator pipeline map + the generation-coverage current state live in `/c
 the load gate waives it (the former requirement forced dozens of near-identical stub files). The schema is
 SELF-CONTAINED (package-less, references no base def) and used two ways — the SAME contract core `spec` uses:
 
-1. **DEV-TIME → Go params.** `cue exp gengotypes` (driven by `task cue:gen`, which wraps the schema with
+1. **DEV-TIME → Go params.** `cue exp gengotypes` (driven by `charly task cue-gen`, which wraps the schema with
    `package params` + `@go(params)`) emits the plugin's `params/cue_types_gen.go`. The provider decodes
    `plugin_input` into that TYPED struct — never a hand-parsed `map[string]any`, never a hand-written struct.
 2. **RUNTIME → schema-over-RPC.** The plugin SERVES its `.cue` source over the Provider **`Describe`**

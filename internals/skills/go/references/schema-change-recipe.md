@@ -24,9 +24,8 @@ source of truth"). The recipe:
    NOTE: def-level `@go(CharlyName)` is BROKEN in cue v0.16.1 (it dangles the
    referencing fields) — expose a charly type NAME via a Go alias in
    `spec/spec/charly_names.go` (`type BoxConfig = Box`) instead.
-3. **Regenerate: `task cue:gen`** (in the spec repo, or via the superproject task
-   which chains the spec generation first, then the per-plugin params loop). It
-   runs `cue exp gengotypes` into `spec/spec/cue_types_gen.go`, the companion
+3. **Regenerate: `charly task cue-gen`** in the spec repo (the base schema's own
+   `kind:task`). It runs `cue exp gengotypes` into `spec/spec/cue_types_gen.go`, the companion
    `spec/internal/schemagen` into `spec/spec/vocab_gen.go` + `spec/spec/version_gen.go`,
    and the principled yaml-tag retag transform (both over the `spec/schemaconcat`
    concatenation). NEVER hand-edit the generated files (they carry the
@@ -51,8 +50,7 @@ source of truth"). The recipe:
    which symbols currently route through which file, grep the actual file
    instead) — either way, a hand-referenced field that no longer has a
    matching spec field (name + wire-key + type) FAILS the build at that surface.
-   (b) `TestGenReproducible` proves the generated files match a fresh `task
-   cue:gen`. (c) The reserved-word bijection gate proves the kind/verb/method
+   (b) `TestGenReproducible` proves the generated files match a fresh `charly task cue-gen`. (c) The reserved-word bijection gate proves the kind/verb/method
    wiring matches CUE. New kind also needs its `spec/schema/<kind>.cue` `#<Kind>` def
    (reusing the shared defs in `_common.cue`) + a one-line `cue_kind_<kind>.go`
    `registerCueKind` registration + a corpus-test entry
@@ -60,12 +58,12 @@ source of truth"). The recipe:
 6. **Schema-version bump ONLY on an authored WIRE-key change.** Only if the
    change alters an authored WIRE key (the YAML users write) is it a FORMAT
    change: then it is CROSS-REPO — bump `#SchemaVersion` in
-   `spec/schema/version.cue`, run `task cue:gen` (which regenerates the
+   `spec/schema/version.cue`, run `charly task cue-gen` (which regenerates the
    `SchemaVersion`/`SchemaFloor` consts in `spec/spec/version_gen.go` that
    `kit.LatestSchemaVersion()` parses), land + tag the spec repo, then in the
    superproject bump the `github.com/opencharly/spec` require version
    (charly/go.mod + every lockstep go.mod — the canonical-go.mod gate asserts
-   one shared pin; `task mods:tidy` re-syncs the go.sum files) and append the
+   one shared pin; `charly task mods-tidy` re-syncs the go.sum files) and append the
    matching entry to the
    declarative migration table (`candy/plugin-migrate/migrations.cue` — the TABLE lives in
    the compiled-in `command:migrate` plugin) per `/charly-build:migrate`. A pure

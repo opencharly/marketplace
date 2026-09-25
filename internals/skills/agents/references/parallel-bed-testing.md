@@ -66,8 +66,7 @@ Every teammate/worktree in a multi-agent run needs its own charly binary —
 conflating the host binary with a worktree's own build is the single most
 common way an in-flight cutover leaks onto shared host state.
 
-- **Two binaries, two roles.** Per-worktree `bin/charly` — built via `task
-  build:binary` (a CalVer-stamped build, gitignored, no install step) — is
+- **Two binaries, two roles.** Per-worktree `bin/charly` — built via `scripts/bootstrap-charly.sh` (a CalVer-stamped build, gitignored, no install step) — is
   the dev binary: every teammate
   uses its own worktree's `./bin/charly` for every charly verb. The
   host-installed `charly` is a distro-native package
@@ -75,14 +74,14 @@ common way an in-flight cutover leaks onto shared host state.
   plugin (nFPM) and published to the per-distro package repos, or
   downloaded as a published release) installed with the distro's own
   package manager
-  — this is the only canonical host-refresh path; no Taskfile target
-  auto-installs system-wide. (`task build:install-portable` — a portable
+  — this is the only canonical host-refresh path; no host-install task
+  auto-installs system-wide. (`scripts/bootstrap-charly.sh --install` — a portable
   `$HOME/.local/bin/charly` copy — remains for solo bootstrap, but it
   writes to a host location exactly like a package install, so the same
   in-flight-work boundary below applies to it too.)
 - **The host-install boundary — no host-writing target runs during
   in-flight multi-teammate work, period.** Neither the package-manager
-  install nor `task build:install-portable` runs while teammates are
+  install nor `scripts/bootstrap-charly.sh --install` runs while teammates are
   mid-cutover: both write to host state (`$PATH` or `$HOME`) every
   concurrent teammate may resolve, and either would publish an unmerged
   branch's binary where a sibling teammate or the operator expects
@@ -101,7 +100,7 @@ common way an in-flight cutover leaks onto shared host state.
   — version/help/status/inspect/list — are exempt). This is entirely
   self-consistent per worktree: a guard trip while running `./bin/charly`
   inside your own worktree means your `bin/charly` is older than your own
-  edits — the fix is `task build:binary`, never a host install. A guard
+  edits — the fix is `scripts/bootstrap-charly.sh`, never a host install. A guard
   trip that resolves to the host-installed `charly` means you are on the
   wrong path (your worktree's `./bin` isn't ahead of it on `$PATH`) or
   running the wrong bed class (next bullet).
@@ -124,9 +123,9 @@ common way an in-flight cutover leaks onto shared host state.
   VM bed stages the worktree `charly` into the guest over
   `kit.EnsureCharlyInGuest`. A guard trip (or any surprising behavior) on a
   host-local bed while doing worktree work means you picked the wrong bed
-  class — never a signal to install anything (consistent with
-  `/verify-beds`'s blanket refusal of host-local beds, motivated there by
-  workstation safety).
+  class — never a signal to install anything (consistent with the
+  native `kind:check-roster` engine's default refusal of host-local beds,
+  motivated there by workstation safety).
 - **Invoking `./bin/charly` directly is not sufficient for beds whose plan
   steps shell out to bare `charly`.** The outer invocation's binary does
   not propagate to an inner bare-`charly` subprocess a bed's own
@@ -140,7 +139,7 @@ common way an in-flight cutover leaks onto shared host state.
 - **Multi-worktree concurrency corollary.** Because each worktree carries
   its own binary and its own freshness-guard scope, teammates working in
   distinct worktrees need no freeze barrier between them — each rebuilds
-  its own `./bin/charly` via `task build:binary` whenever it likes, with
+  its own `./bin/charly` via `scripts/bootstrap-charly.sh` whenever it likes, with
   zero cross-teammate interference. The only freeze that exists is the
   within-worktree self-freeze below: within one worktree, freeze your own
   `charly/*.go` for the duration of your own bed run. There is no
@@ -157,7 +156,7 @@ common way an in-flight cutover leaks onto shared host state.
   same rule: (a) across distinct worktrees, no barrier is needed (each
   worktree's binary is independent); (b) within one worktree, freeze your
   own `charly/*.go` for the duration of your own bed run — queue edits
-  until the verdict lands, then `task build:binary` and re-run. The
+  until the verdict lands, then `scripts/bootstrap-charly.sh` and re-run. The
   failure is self-inflicted, not a product defect: RCA it as "I edited
   mid-run", rebuild, and re-run fresh — never chase the guard as a bug.
   "Your own" is worktree-scoped, not agent-scoped — a spawned sub-agent
@@ -172,8 +171,7 @@ common way an in-flight cutover leaks onto shared host state.
   produced both an orphaned libvirt domain and a stale-binary guard trip
   at the same time — see "Handling a long-running bed" below for the
   launch-mechanism half of the same failure.)
-- **Side-effects (documented elsewhere — pointers, not copies).** `task
-  build:binary` writes ONE path, the repo-root `bin/charly`; the charly-dev
+- **Side-effects (documented elsewhere — pointers, not copies).** `scripts/bootstrap-charly.sh` writes ONE path, the repo-root `bin/charly`; the charly-dev
   candy copies that file directly, so a manual `go build -o bin/charly` is
   equivalent and there is no sync step to forget — see
   `/charly-internals:go` "Quick Reference" + `/charly-tools:charly`. It
@@ -185,9 +183,9 @@ common way an in-flight cutover leaks onto shared host state.
   — install a freshly published release from the per-distro package repos
   (built by the `charly generate-packages` plugin), or build one from the
   main checkout —
-  never via a Taskfile target that installs directly. Each long-lived
+  never via a host-install task that installs directly. Each long-lived
   worktree is then either removed (its cutover is done) or fast-forwarded
-  to the new `main` plus a `task build:binary` re-run before reuse — never
+  to the new `main` plus a `scripts/bootstrap-charly.sh` re-run before reuse — never
   left pointing at a pre-merge binary while its worktree source has moved
   on.
 
@@ -201,7 +199,7 @@ and rebuild. Therefore, for any agent or workflow that runs them:
   deploys.
 - **The commit is gated, not the run.** The git commit happens only after
   a full live test of everything — the final code, on `disposable: true`
-  beds — passes and is pasted. Running `/verify-beds`, `check-bed-runner`,
+  beds — passes and is pasted. Running a roster (`charly check run <roster>`), `check-bed-runner`,
   or any `charly check run` throughout development — in parallel or in the
   background, to validate assumptions before you change and to diagnose
   errors — is encouraged. A run that passes on an intermediate state
@@ -484,7 +482,7 @@ The playbook:
    from a killed claimant is cleared with `charly preempt restore`, not by
    racing it).
 4c. **A parallel long-bed roster is owned by the persistent session as N
-   `run_in_background` tasks — never the sub-agent `/verify-beds` workflow
+   `run_in_background` tasks — never an agent-workflow fan-out
    for beds over 600s.** A sub-agent's internal `charly check run` is one
    foreground call (600s-capped), so a VM/GPU bed that outruns 600s is
    killed mid-run while a sub-agent holds it (a "still running when forced
@@ -522,7 +520,7 @@ The playbook:
    the concurrent-bed proof and the CalVer-stamping detail. The freshness
    guard (`verb:freshness-guard`, `candy/plugin-doctor/freshness.go`) compares
    `os.Executable()` against the
-   cwd-walked source root, so a worktree with its own `task build:binary`
+   cwd-walked source root, so a worktree with its own `scripts/bootstrap-charly.sh`
    output is self-consistent: `PATH=$PWD/bin:$PATH charly check run <bed>`
    runs the full R10 sequence (deploy-add → check-live → fresh update →
    cleanup, external plugins included) on the worktree's binary without
@@ -532,7 +530,7 @@ The playbook:
    sibling's roughly 265s window), with separate per-tree
    `.check/`/`.build/` outputs, zero cross-contamination, zero leftover
    deploys. Requirements: the worktree needs NO sdk/spec checkout
-   (`task build:binary` reads `scripts/calver.sh`; the sdk + spec contract
+   (`scripts/bootstrap-charly.sh` reads `scripts/calver.sh`; the sdk + spec contract
    modules resolve from the module proxy at the pinned require versions) but
    not the `box/<distro>` submodules for the root disposable roster: root
    `charly.yml` imports the distro namespaces (arch/cachyos/fedora) via
@@ -543,14 +541,13 @@ The playbook:
    `box/<distro>`'s own in-submodule beds do need that submodule inited —
    box-specific work, not the cross-cutting root roster.) Never install to
    the host from a worktree — the host-install boundary above is absolute,
-   and no `task` target does it anyway. **The per-worktree binary must be
-   CalVer-stamped** — build it with `task build:binary`, which passes
+   and no maintenance task does it anyway. **The per-worktree binary must be
+   CalVer-stamped** — build it with `scripts/bootstrap-charly.sh`, which passes
    `-ldflags "-X main.BuildCalVer=<calver>"`; a bare `go build -o` yields
    an unstamped binary that reports version `unknown` and fails every bed
    step asserting the CalVer stamp (a `vm:` bed pushes the host binary
    into the guest and asserts `charly version` there, so an unstamped
-   binary fails the guest witness). This trap has recurred — `task
-   build:binary` (never a bare `go build -o`) is the only sanctioned way
+   binary fails the guest witness). This trap has recurred — `scripts/bootstrap-charly.sh` (never a bare `go build -o`) is the only sanctioned way
    to produce a per-worktree binary; a plain `go build` is a silent gate
    defect that surfaces only at the guest stamp assertion, deep into a
    long VM bed. Scheduling rule when overlapping gates: the same bed name
