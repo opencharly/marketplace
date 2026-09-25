@@ -142,25 +142,17 @@ as an agent-team teammate.
 
 ## The shipped workflows (`.claude/workflows/`)
 
-- **`/verify-beds [bed …]`** — the commit-gating fan-out for the beds a
-  sub-agent can own. It runs the **short** beds in parallel via
-  `parallel()`, bounded by the runtime's concurrent-agent ceiling (KVM/
-  libvirt are multi-tenant, podman builds distinct image tags
-  concurrently), and aggregates pass/fail. It **defers** every long bed — a
-  `vm`/`android` substrate, or any bed whose newest
-  `.check/<bed>/<calver>/summary.yml` records `total_seconds >= 600` —
-  returning them in `deferredLongBeds[]` with the exact command, because an
-  `agent()` sub-agent cannot own a bed that outlives its turn; the
-  persistent session runs each as a `run_in_background` task. It
-  **refuses** every host-local bed (a `local:` deploy, or a bed with a
-  nested `local:` member, whose `host:` is `local`) — those apply candies
-  to the operator's workstation and belong in a disposable eval VM.
-  Deferrals, refusals, and missing-host-prereq skips are all logged and
-  returned; `gateComplete: false` means the roster is partial and is not a
-  green R10 gate. An edited `.claude/workflows/*.js` is not what
-  `Workflow({name})` runs — the registry is snapshotted at session start.
-  Drive an edited workflow with `Workflow({scriptPath})`, which takes
-  precedence.
+- **The bed roster is now NATIVE, not a workflow.** A whole-roster run is a
+  `kind:check-roster` entity: `charly check run <roster>`. The plugin engine
+  (candy/plugin-check) enumerates every disposable bed (namespace-qualified),
+  runs them on a bounded `lanes` worker pool, serializes beds sharing an
+  `requires_exclusive:`/`requires_shared:` token, refuses host-local beds by
+  default, and aggregates honest exit codes. The former `/verify-beds` agent
+  workflow is DELETED — the classifier (host-local refusal, token
+  serialization, bounded parallelism) lives in the engine, not a workflow. An
+  edited `.claude/workflows/*.js` is not what `Workflow({name})` runs — the
+  registry is snapshotted at session start; drive an edited workflow with
+  `Workflow({scriptPath})`, which takes precedence.
 - **`/audit-deploy-configs [image|deploy …]`** — validates, runs `charly
   check box` and optionally `charly check live`, and calls `deploy-verifier`
   over a set of deploy configs; aggregates a health report.
@@ -178,8 +170,8 @@ as an agent-team teammate.
   deploy-scope assertion that bed proves; the persistent session owns each
   run as a `run_in_background` task, and the `local` bed runs inside the
   disposable eval VM, never on the host. `gateComplete` is `false` by
-  construction. The bed-safety classifier lives in one place —
-  `/verify-beds` — and is not duplicated here.
+  construction. The bed-safety classifier lives in one place — the native
+  `kind:check-roster` engine — and is not duplicated here.
 
 ## Agent teams (experimental — enabled in committed settings)
 

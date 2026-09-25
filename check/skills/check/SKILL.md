@@ -74,7 +74,7 @@ grader stays opt-in. Full detail: `references/authoring-gotchas.md`.
 |--------|---------|-------------|
 | Pure-box check (disposable, build-context) | `charly check box <image>` | Candy + box sections only, in `podman run --rm` (no host port mappings, no volumes attached) |
 | Live full-stack check (running deployment) | `charly check live <name> [-i instance]` | All three sections run via `podman exec` / SSH / nested chain, with full runtime variable resolution |
-| R10 bed (full sequence) | `charly check run <bed>` | Build → check image → deploy → check live → fresh update → tear down on a `disposable: true` deploy (ONE bed per invocation). Canonical R10 gate; for a whole roster fan the short beds out via `/verify-beds` and own each long bed (`vm`/`android`, or last run ≥600s) as a persistent-session `run_in_background` task |
+| R10 bed (full sequence) | `charly check run <bed>` | Build → check image → deploy → check live → fresh update → tear down on a `disposable: true` deploy (ONE bed per invocation). Canonical R10 gate; for a whole roster declare a `kind:check-roster` entity and run it with `charly check run <roster>` (bounded `lanes`, exclusive-token serial chains, host-local refusal) |
 | AI iteration loop | `charly check run <bed>` | Drives an AI through plateau-bounded iterations against a bed carrying an `iterate:` block |
 | Validate authored tests at config time | `charly box validate` | Schema, context/variable consistency, id uniqueness |
 | Inspect effective spec | `charly box inspect <image>` | JSON includes merged check structure |
@@ -129,8 +129,8 @@ Detail lives in sibling `references/*.md` files, loaded on demand:
 - `/charly-internals:capabilities` — the `ai.opencharly.description` label (`LabelDescriptionSet`) carrying the baked plan is
   part of the same capability contract as `LabelService`.
 - `/charly-internals:agents` — the sub-agents (`check-bed-runner`,
-  `deploy-verifier`) and dynamic workflows (`/verify-beds`,
-  `/audit-deploy-configs`) that drive these beds, and the R10/disposable/
+  `deploy-verifier`) and dynamic workflows (`/audit-deploy-configs`) that
+  drive these beds, and the R10/disposable/
   paste-proof rules that bind any agent or workflow running `charly check run`.
 - `/charly-internals:plugin` — a `check:` step's `<word>: <input>` verb sugar dispatches
   to a plugin-provided verb (built-in or out-of-tree); the desugared internal input is
@@ -145,5 +145,5 @@ run`, `charly check box`, `charly check live`, the plan steps / `description:`
 field in a candy/box `charly.yml`, the disposable test-bed deploys, the
 `ai.opencharly.description` OCI label, `kind: agent` (the agent grader) or a
 `disposable: true` deploy (+ its `iterate:` block),
-`charly check run <bed>` (disposable R10 deploys; roster fan-out via `/verify-beds`), or any check
+`charly check run <bed>` / `charly check run <roster>` (disposable R10 deploys; a whole roster is a `kind:check-roster` entity), or any check
 verb by name (file/port/http/command/package/service/cdp/wl/dbus/vnc/mcp/...).

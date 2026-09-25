@@ -124,9 +124,9 @@ common way an in-flight cutover leaks onto shared host state.
   VM bed stages the worktree `charly` into the guest over
   `kit.EnsureCharlyInGuest`. A guard trip (or any surprising behavior) on a
   host-local bed while doing worktree work means you picked the wrong bed
-  class — never a signal to install anything (consistent with
-  `/verify-beds`'s blanket refusal of host-local beds, motivated there by
-  workstation safety).
+  class — never a signal to install anything (consistent with the
+  native `kind:check-roster` engine's default refusal of host-local beds,
+  motivated there by workstation safety).
 - **Invoking `./bin/charly` directly is not sufficient for beds whose plan
   steps shell out to bare `charly`.** The outer invocation's binary does
   not propagate to an inner bare-`charly` subprocess a bed's own
@@ -201,7 +201,7 @@ and rebuild. Therefore, for any agent or workflow that runs them:
   deploys.
 - **The commit is gated, not the run.** The git commit happens only after
   a full live test of everything — the final code, on `disposable: true`
-  beds — passes and is pasted. Running `/verify-beds`, `check-bed-runner`,
+  beds — passes and is pasted. Running a roster (`charly check run <roster>`), `check-bed-runner`,
   or any `charly check run` throughout development — in parallel or in the
   background, to validate assumptions before you change and to diagnose
   errors — is encouraged. A run that passes on an intermediate state
@@ -484,7 +484,7 @@ The playbook:
    from a killed claimant is cleared with `charly preempt restore`, not by
    racing it).
 4c. **A parallel long-bed roster is owned by the persistent session as N
-   `run_in_background` tasks — never the sub-agent `/verify-beds` workflow
+   `run_in_background` tasks — never an agent-workflow fan-out
    for beds over 600s.** A sub-agent's internal `charly check run` is one
    foreground call (600s-capped), so a VM/GPU bed that outruns 600s is
    killed mid-run while a sub-agent holds it (a "still running when forced
