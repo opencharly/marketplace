@@ -76,6 +76,7 @@
 | VmSpec / libvirt / cloud-init / OVMF internals | `/charly-internals:vm-spec` |
 | the `kube:` check verb / Kubernetes cluster probing from a candy/box plan (out-of-process plugin; nodes, pods, ingress, wait-ready, storageclass, addons, apply/delete, raw resource GETs) | `/charly-kubernetes:check-k8s` |
 | `step:helm-release` / `verb:helm` / installing a Helm chart from a candy plan / the `helm_charts:` deploy field and its kustomize `helmCharts:` emission / the `--enable-helm` apply path | `/charly-kubernetes:helm` |
+| kind (Kubernetes-in-Docker) / kindcluster deploy / local Kubernetes-in-Docker / a kind cluster on docker-podman-nerdctl / KIND_EXPERIMENTAL_PROVIDER / composing the kind candy | `/charly-kubernetes:kind` |
 | CachyOS images / `cachyos*` / `charly-cachyos` workstation profile / `box/cachyos` submodule | `/charly-local:charly-cachyos` |
 | local-target deploy / `target: local` / `host: local` (default) / SSH-host deploys / `user:` / `ssh_arg:` / Managed `~/.config/charly/ssh_config` fragment / `charly vm create` writes Host stanza | `/charly-local:local-deploy` |
 | Editing `local.yml` / authoring `kind: local` templates | `/charly-local:local-spec` |
