@@ -1,21 +1,28 @@
-name: label-probe
+name: rerun-listener
 on:
   pull_request:
     types: [labeled]
 permissions:
   actions: write
-  pull-requests: read
+  pull-requests: write
+  contents: read
 jobs:
-  probe:
+  rerun:
     if: github.event.label.name == 'rerun'
     runs-on: ubuntu-latest
     steps:
-      - env:
+      - name: Rerun the failed validator run for this head (same SHA, same check-run)
+        env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           HEAD: ${{ github.event.pull_request.head.sha }}
+          PR: ${{ github.event.pull_request.number }}
         run: |
-          echo "label=rerun on $REPO head=$HEAD"
-          echo "--- validator runs for this head ---"
-          gh run list --repo "$REPO" --limit 50 --json databaseId,headSha,name,status,conclusion \
-            --jq '.[] | select(.headSha=="'"$HEAD"'") | select(.name=="charly/pr-validator") | "\(.databaseId) \(.status) \(.conclusion)"' | head
+          set -euo pipefail
+          echo "rerun label on $REPO#$PR head=$HEAD"
+          id="$(gh run list --repo "$REPO" --limit 100 --json databaseId,headSha,name,status,conclusion \
+            --jq '.[] | select(.headSha=="'"$HEAD"'") | select(.name=="charly/pr-validator") | select(.conclusion=="failure") | .databaseId' | head -1)"
+          echo "failed validator run id=$id"
+          [ -n "$id" ] || { echo "no failed validator run for this head"; exit 0; }
+          gh api -X POST "repos/$REPO/actions/runs/$id/rerun"
+          echo "rerun triggered on run $id (same SHA -> same check-run, no duplicate)"
