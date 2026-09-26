@@ -31,7 +31,7 @@ charly-marketplace:
             # The candies extracted out of charly/candy/ by the de-submodule cutover's
             # Phase D (opencharly/charly#451). Before this, their skills reached the corpus
             # only through the --root charly checkout at the CI pin below.
-            - '@github.com/opencharly/layer-charly-internals:v2026.268.1524'
+            - '@github.com/opencharly/layer-charly-internals:v2026.269.1726'
             - '@github.com/opencharly/layer-charly-internals-extra:v2026.268.1547'
             - '@github.com/opencharly/layer-charly-build:v2026.268.1449'
             - '@github.com/opencharly/layer-charly-check:v2026.268.1545'

@@ -34,40 +34,55 @@ validator's own spec.
 
 ## THE BODY-BEFORE-PUSH RULE (the one that bites hardest)
 
-**Finish ALL PR-body text BEFORE the push that the validator will review.** The
-validator reads the body at review time and keys its verdict to the head SHA it
-sees; a body edited AFTER the push is reviewed against the OLD text and BLOCKs a
-body that is already correct. Re-editing the body does not re-run it (the head
-did not move). Measured: opencharly/plugin-vm#39's auto run reviewed head
-`c9457a9` while the body was still the round-1 text (the edit landed seconds
-later) → BLOCK; the manual re-dispatch after the edit → PASS on the SAME head.
+**Write the WHOLE PR body BEFORE the push.** The validator validates the PR — its
+diff at the branch head, and its body — each time its run is triggered, and it
+fetches the PR LIVE by number. Getting the body final first is the cheapest order:
+a run that fires before the body is final reviews the old text and costs an extra
+cycle.
 
-The order is therefore fixed and non-negotiable:
+**The org required workflow fires ONLY on the default push-driven types.** MEASURED:
+the REQUIRED workflow (the org ruleset `workflows` rule) acts on `opened` /
+`synchronize` / `reopened` and IGNORES `on.types` for anything else — a body edit did
+NOT fire it even with `edited` listed, and a draft->ready transition did NOT fire it
+even with `ready_for_review` listed. A PLAIN per-repo workflow with the same `types:`
+DOES fire (verified live), which is why the `rerun` channel is a plain per-repo file
+(see below). So do NOT rely on a body edit to re-run the required gate.
 
-1. Commit and push the SOURCE.
-2. Compute the FINAL head + diff-stats from that pushed commit
-   (`git log --oneline origin/main...HEAD`, `git diff --stat origin/main...HEAD`).
-3. Write the WHOLE body (`gh pr edit <n> --body-file …`) — Summary, evidence with
-   the real SHAs/diff-stats, rulebook section, attribution footer LAST.
-4. Only then run/trigger the validator. If you must move the head again (a real
-   fix), the body is now stale again — repeat 2–4 in ONE batch.
+**The head SHA is known BEFORE the push, so this is always possible.** A commit's
+identity is content-addressed: `git rev-parse HEAD` (and `git diff --stat
+origin/main...HEAD`) give the exact SHA and diff-stats the push will publish, with
+nothing pushed yet. The correct order:
 
-A body-only fix after a pushed head needs a NEW commit so a fresh validator run is
-keyed to a head whose body is already final. An EMPTY commit IS such a commit and
-DOES re-trigger the run: the org required workflow declares `on: pull_request: types:
-[opened, synchronize, …]` with NO `paths:`/diff guard, so a no-content push still
-fires it. Proven: opencharly/plugin-pipeline#28 `be3ab30e6` is a genuinely
-EMPTY commit (identical tree to its parent, `git diff --stat` empty) and it fired
-a fresh `ev=pull_request` run keyed to its SHA. Prefer this over a same-head
-re-dispatch (which cannot clear an earlier same-name failure — see the POISON
-state below).
+1. Commit the SOURCE locally (do not push yet).
+2. Compute the head + diff-stats from the committed tree:
+   `git rev-parse HEAD`, `git log --oneline origin/main...HEAD`,
+   `git diff --stat origin/main...HEAD`.
+3. Write the WHOLE body (`--body-file …`) keyed to that real SHA — Summary,
+   evidence with the real SHAs/diff-stats, rulebook section, attribution footer
+   LAST.
+4. Push.
 
-`gh workflow run pr-validator.yml -f pr-number=<N> --ref <branch>` is the
+If you must move the head again (a real fix), the body is stale again — repeat 1–4
+in ONE batch: edit the body, then push.
+
+**A body-only fix after a pushed head: add the `rerun` LABEL — never an empty
+commit.** An empty commit (`git commit --allow-empty -m "docs: re-freeze …"`) is
+never needed. The org ships a plain per-repo `rerun-listener` workflow (distributed
+by `opencharly/.github`'s `distribute-rerun-listener`): adding the `rerun` label to
+the PR re-runs THIS head's failed `charly/pr-validator` run. A re-run reuses the
+SAME `GITHUB_SHA` and updates THAT run's `validate / validate` check run IN PLACE —
+no duplicate same-name check run — so it clears the POISON state (a completed prior
+FAILURE on that head) and re-reads the corrected body. The equivalent manual move is
+`gh run rerun <run-id>` on the failed run.
+
+`gh workflow run pr-validator.yml -f pr-number=<N> --ref <branch>` is the manual
 alternative, and **`--ref` is MANDATORY**: a `workflow_dispatch` with no `--ref`
 runs on the DEFAULT branch, so its check registers on `main` and counts for
 nothing on the PR. Measured on opencharly/plugin-vm#39 (head `c9457a9`): the same
 dispatch without `--ref` produced no head check; carrying the branch ref --
 `--ref feat/deploy-shape-override` -- it registered the green check on the branch head.
+But a `gh workflow run` mints a NEW run (a new same-name check run on the head) and
+can re-poison the rollup; prefer the `rerun` label / `gh run rerun <run-id>`.
 
 **There is NO self-heal.** The reusable workflow sets a `head_ref` output but
 never consumes it (`grep -c 'steps.pr.outputs'` in
@@ -77,13 +92,19 @@ PR head by itself — supply `--ref`.
 
 ### The POISON state — green verdict, still BLOCKED
 
-GitHub's rollup collapses same-name check-runs to the WORST conclusion, so an
-earlier FAILURE of `validate / validate` keeps a PR `BLOCKED` even after a later
-same-head run is SUCCESS — it reads like a verdict BLOCK but is not. **A same-head
-re-dispatch cannot clear it.** Remedies (in order): push a NEW commit (a fresh SHA
-starts a clean check set). The per-PR concurrency dedupe now lives in the ONE org
-required workflow (`org-wide-pr-validator-required.yml`), not a per-repo
-dispatcher. Full mechanics and the dedupe YAML:
+A branch protection rule requires ALL same-name `validate / validate` check runs on
+the head to pass, so a COMPLETED earlier FAILURE keeps the PR `BLOCKED` even after a
+later SUCCESS of the same name — it reads like a verdict BLOCK but is not. Two runs
+on ONE head produce two such check runs; a `gh workflow run` re-dispatch on the same
+head mints another and can keep the PR stuck. **The capability-free remedy is
+`gh run rerun <run-id>` on the failed run**: a workflow re-run reuses the SAME
+`GITHUB_SHA`/`GITHUB_REF` and updates THAT run's check run in place — no duplicate is
+minted (GitHub's own "Re-running workflows and jobs" contract). Find the failed run
+with `gh run list --repo <r> --json databaseId,headSha,conclusion,attempt` and re-run
+the one whose `headSha` is the PR head. This is `actions: write`-free and needs no
+new SHA. The per-PR concurrency dedupe lives in the ONE org required workflow
+(`org-wide-pr-validator-required.yml`), not a per-repo dispatcher. Full mechanics and
+the dedupe YAML:
 `references/validator-and-calver.md` "The POISON state".
 
 ### The INCONCLUSIVE (verdict-less) class — the gate ran but produced no verdict
@@ -153,7 +174,7 @@ commit — never re-dispatch the same head. Detail: the reference + the script h
 - **Zero warnings is part of R10** (project rulebook R1). A version-mismatch warning clears with `charly box reconcile`; any other warning gets `/charly-internals:root-cause-analyzer` then a real fix — "warning" is never an accepted end state.
 - **Atomic on `main`, never on `feat/`.** The org-wide `charly/pr-validator` workflow's PASS enables GitHub native auto-merge (squash), which folds the author's change and any review-round fix commits into one commit on `main`; the `feat/` branch may freely accumulate fix commits across review rounds. The merge-time CalVer tag and the `CHANGELOG/<CalVer>.md` entry (written from the PR body — the PR body IS the changelog) are created after merge by the org-wide `tag-on-merge` workflow (see "CalVer" in `references/validator-and-calver.md`). Two separate cutovers must never share one PR.
 - **Update the PR; never close-and-recreate** (except for work that will not land at all — a disproven premise, an abandoned approach). When a review demands changes, append a commit and push it fast-forward — the check resets and the validator re-runs. This is what makes the no-force-push rule livable: because `main` gets a squash, a branch carrying five fix commits still lands as one.
-- **FINISH THE BODY BEFORE THE PUSH; the validator is per-HEAD.** The org validator reviews the diff at the PR's head SHA and reads the body THEN, keying its verdict to that head. Body text edited AFTER the push is reviewed against the old text and BLOCKs a body that is already correct; editing the body alone does not re-run it (the head did not move). So: push source → compute the final head + diff-stats → write the WHOLE body (footer last) → only then trigger the validator. A body-only fix after a pushed head needs a NEW commit so a run lands on a head whose body is already final — `git commit --allow-empty -m "docs: re-freeze the PR body against the final head"` is the standard append-only move (never force), and it DOES fire a fresh `pull_request` run (no `paths:`/diff guard). A same-head `--ref` re-dispatch cannot clear an earlier same-name failure (the POISON state) — prefer the new commit. Full mechanics: "THE BODY-BEFORE-PUSH RULE" above. Corollary: a PR whose diff is EMPTY because the base already contains the change (you branched from a stale snapshot) is a no-op — close it rather than re-pushing (the validator flags it as body-truthfulness violation: body describes files the diff does not carry). Always `git fetch origin main` + diff against CURRENT main before opening or finalizing a PR.
+- **FINISH THE BODY BEFORE THE PUSH.** The validator validates the PR — the diff at the branch head and the body — each time it runs, and fetches the PR live. The org REQUIRED workflow fires only on the default push-driven types (`opened`/`synchronize`/`reopened`) and IGNORES `on.types` (MEASURED); because the head SHA is content-addressed and therefore known BEFORE the push (`git rev-parse HEAD`), write the body first: commit → compute head/diff-stats → write the WHOLE body (footer last) → push. A body-only fix after the push needs NO empty commit: add the **`rerun` label** (the org's plain per-repo `rerun-listener` re-runs this head's failed `charly/pr-validator` run; a re-run reuses the same `GITHUB_SHA` and updates the SAME check run in place — no duplicate, clears POISON). The manual equivalent is `gh run rerun <run-id>`. Full mechanics: "THE BODY-BEFORE-PUSH RULE" above. Corollary: a PR whose diff is EMPTY because the base already contains the change (you branched from a stale snapshot) is a no-op — close it rather than re-pushing (the validator flags it as body-truthfulness violation: body describes files the diff does not carry). Always `git fetch origin main` + diff against CURRENT main before opening or finalizing a PR.
 - **A dispatched workflow defaults to the DEFAULT BRANCH — `--ref` is MANDATORY.** `gh workflow run <wf> --ref <branch>` is required to dispatch CI on a PR head; a dispatch with no `--ref` runs on `main`, so its check registers there and counts for nothing on the PR's required checks. There is NO self-heal: the reusable workflow's `head_ref` output is never consumed and no dispatcher re-dispatches itself. For run-on-head diagnostics, target the PR's branch explicitly.
 - **Tree-safety before destructive actions (R6).** Check `git status` + `git stash list` before any destructive working-tree action — `git stash` discards in-progress work; `rm` on a tracked file is destructive. When the sandbox blocks an action, find a non-destructive alternative rather than working around it. The stash/pop cycle can itself silently un-stage a `git rm`: a stash taken while a deletion is staged restores the deletion as unstaged on `pop`, so a `git status` right after the cycle that shows the deleted file back as a plain unstaged change (rather than the staged deletion you left) has quietly lost the staging — re-stage it (`git rm <path>` again, or `git add -u`) before committing. A stash/pop round-trip is never a no-op on a mixed add+rm working tree.
 - **Right worktree — pin one absolute path for the whole edit→commit→push sequence.** Before branching, staging, or committing, confirm the worktree you are driving is the same one your edits landed in: `git -C <path> rev-parse --show-toplevel` must equal the path you edited, and `git -C <path> status --short` must list those edits. Under symlinked or near-twin sibling worktrees — a parent dir that is itself a symlink (`~/projects` → `~/Sync/projects`), or look-alike names such as `…/charly` vs `…/<other-worktree>` — `cd`-ing to the wrong sibling makes `git switch -c` + `git commit` run against a clean tree and report "nothing to commit", silently landing nothing (or landing in the wrong repo). Never change the path spelling mid-sequence. An unexpected "nothing to commit" right after editing a file is the signature of this mistake — stop and re-verify `--show-toplevel` before retrying (blind retry is an R1 violation).
