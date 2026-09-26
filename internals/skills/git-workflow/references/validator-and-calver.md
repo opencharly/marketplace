@@ -299,14 +299,14 @@ A FAIL is a return-to-implementation signal, not a stopping point:
    regression in waiting.
 4. The PR merges only when validation passes end-to-end on the final code.
 
-**If the BLOCK is body-only (no code change), just edit the body** —
-`gh pr edit <n> --body-file …` fires the `edited` trigger, which re-runs the
-gate on the SAME head. NO empty commit: the `edited` trigger (opencharly/.github#119)
-is the whole mechanism. If that same head already carries a COMPLETED prior
-FAILURE, the re-run can be POISON-blocked (branch protection requires ALL
-same-name `validate / validate` check runs to pass); remedy it with
-`gh run rerun <run-id>` on the failed run (a re-run reuses the same GITHUB_SHA and
-updates THAT run's check run in place — no duplicate; measured on opencharly/sdk#301).
+**If the BLOCK is body-only (no code change), fix the body then add the `rerun`
+LABEL** — the org ships a plain per-repo `rerun-listener` (distributed by
+`opencharly/.github`'s `distribute-rerun-listener`) that re-runs THIS head's
+failed `charly/pr-validator` run on the same `GITHUB_SHA`, updating the SAME
+`validate / validate` check run IN PLACE (no duplicate, clears POISON) and
+re-reading the corrected body. NO empty commit. The manual equivalent is
+`gh run rerun <run-id>` on the failed run. (A body edit alone does NOT re-run the
+REQUIRED workflow — MEASURED: it ignores `on.types`; do not rely on `edited`.)
 See the SKILL's "THE BODY-BEFORE-PUSH RULE".
 
 ## The POISON state — a duplicate same-name check-run keeps a PASS PR BLOCKED
