@@ -14,6 +14,8 @@ OpenCharly can deploy built images to a Kubernetes cluster by emitting a Kustomi
 
 Every box runtime contract is baked into OCI labels at build time, so **a Kubernetes deploy is possible without access to `charly.yml`** — the `charly fleet from-box` verb reads capabilities from the pushed image alone.
 
+A **local-cluster sibling** reuses this same Kustomize + `kubectl` machinery: `kindcluster` (`kind: kindcluster`) runs kind on the operator's engine and is served by the `deploy:kindcluster` provider beside `deploy:kubernetes` in `candy/plugin-kube`. See `/charly-kubernetes:kind`.
+
 ## Quick reference
 
 | Action | Command | Description |

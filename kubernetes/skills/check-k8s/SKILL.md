@@ -24,6 +24,13 @@ charly/check_cmd.go).
 The cluster-probe verb is spelled `kube`; the deploy KIND is spelled
 `kubernetes` (`kind: kubernetes`, a `kubernetes:` entity or cross-ref).
 
+The **local-cluster sibling** is `kindcluster` (`kind: kindcluster`, a
+`kindcluster:` entity): kind provisions the cluster as node containers on the
+operator's own engine (docker / rootless podman / rootless nerdctl) instead of
+a VM. It is the SAME `kube:` probe surface — a `kindcluster:` deploy writes a
+`kind-<cluster>` kubeconfig context, which a `kube:` step addresses with
+`kube_context:`. See `/charly-kubernetes:kind`.
+
 ## Method surface
 
 Every method below is the `kube:` map's `method:` (or the scalar value for a bare
