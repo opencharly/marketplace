@@ -2,8 +2,20 @@ name: label-probe
 on:
   pull_request:
     types: [labeled]
+permissions:
+  actions: write
+  pull-requests: read
 jobs:
   probe:
+    if: github.event.label.name == 'rerun'
     runs-on: ubuntu-latest
     steps:
-      - run: echo "PLAIN labeled workflow FIRED (action=${{ github.event.action }} label=${{ github.event.label.name }})"
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          echo "label=rerun on $REPO head=$HEAD"
+          echo "--- validator runs for this head ---"
+          gh run list --repo "$REPO" --limit 50 --json databaseId,headSha,name,status,conclusion \
+            --jq '.[] | select(.headSha=="'"$HEAD"'") | select(.name=="charly/pr-validator") | "\(.databaseId) \(.status) \(.conclusion)"' | head
