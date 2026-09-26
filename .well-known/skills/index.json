@@ -1089,6 +1089,13 @@
       "version": "3.1.0"
     },
     {
+      "name": "kind",
+      "files": [
+        "SKILL.md"
+      ],
+      "version": "3.1.0"
+    },
+    {
       "name": "kubernetes",
       "files": [
         "SKILL.md"

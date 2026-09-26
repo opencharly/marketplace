@@ -49,6 +49,7 @@ charly-marketplace:
             - '@github.com/opencharly/plugin-pipeline/candy/plugin-pipeline:v2026.260.1947'
             - '@github.com/opencharly/plugin-authoring/candy/plugin-authoring:v2026.260.1159'
             - '@github.com/opencharly/layer-charly-kubernetes:v2026.243.2148'
+            - '@github.com/opencharly/layer-kind:v2026.269.1131'
             - '@github.com/opencharly/layer-charly-image:v2026.268.1334'
             - '@github.com/opencharly/layer-charly-immich:v2026.243.2103'
             - '@github.com/opencharly/pod-charly-mcp:v2026.250.0653'
