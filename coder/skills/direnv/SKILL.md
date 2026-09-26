@@ -39,13 +39,14 @@ Provides the `direnv` binary AND the per-shell hook installation for automatic e
 ```yaml
 shell:
   init: |
-    eval "$(direnv hook ${SHELL_NAME})"   # bash/zsh/sh — POSIX-style
+    eval "$(direnv hook ${SHELL_NAME})"   # bash/zsh — POSIX-style
   fish:
     init: |
       direnv hook fish | source            # fish — different syntax
+  sh: {}                                   # sh opted OUT — direnv has no sh hook
 ```
 
-Container images get `/etc/profile.d/charly-direnv-<shell>.sh` and `/etc/fish/conf.d/charly-direnv.fish` emitted at `charly box build` time. `target: local` host deploys get a managed-block in `~/.bashrc` / `~/.zshrc` plus `~/.config/fish/conf.d/charly-direnv.fish` at `charly fleet add` time, only for shells the runtime probe finds. The fish hook lands in `~/.config/fish/conf.d/charly-direnv.fish` (its own conf.d drop-in), so it works without editing `~/.config/fish/config.fish`.
+Container images get `/etc/profile.d/charly-direnv-<shell>.sh` (bash/zsh only) and `/etc/fish/conf.d/charly-direnv.fish` emitted at `charly box build` time; each POSIX drop-in is runtime-guarded to its own shell because `/etc/profile` sources every `*.sh` in every POSIX login shell. `target: local` host deploys get a managed-block in `~/.bashrc` / `~/.zshrc` plus `~/.config/fish/conf.d/charly-direnv.fish` at `charly fleet add` time, only for shells the runtime probe finds. The fish hook lands in `~/.config/fish/conf.d/charly-direnv.fish` (its own conf.d drop-in), so it works without editing `~/.config/fish/config.fish`.
 
 The primary use case in OpenCharly is the `.secrets` workflow: `.envrc` calls `eval "$(charly secrets gpg env)"` which decrypts a GPG-encrypted `.secrets` file in memory and exports the variables — no plaintext on disk. No external `direnvrc` dependency needed.
 
