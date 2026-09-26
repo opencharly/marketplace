@@ -1,0 +1,9 @@
+name: edited-probe
+on:
+  pull_request:
+    types: [edited]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "PLAIN edited workflow FIRED (action=${{ github.event.action }})"
