@@ -158,6 +158,13 @@ supersede); they are the durable record the next agent reads. **Replacing a thre
 you replace a PR or an issue with a new one, comment on the OLD one referencing
 the new one (see "Replacing a PR or an ISSUE" in `references/validator-and-calver.md`).
 
+**Close the issue when its PR merges.** A PR that resolves an issue references it
+(`Closes #N` / `relates to #N`), and the author (or an agent) MUST ensure the issue
+is CLOSED once the resolving PR merges — never leave a resolved issue open. If the
+merge did not auto-close it (no `Closes` keyword, a squash that dropped it, or a
+manual merge), close it explicitly and comment the resolving PR/commit. An issue
+with no merged resolving PR is not resolved; do not close it as done.
+
 **Before EVERY push, read the NEW comments on the PR AND on every related
 issue.** The pre-update-push read covers issues too: check the PR's comments +
 checks AND the latest comments/state of each issue the PR closes or relates to,
