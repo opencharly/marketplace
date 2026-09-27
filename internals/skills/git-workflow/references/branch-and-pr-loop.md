@@ -290,3 +290,43 @@ rulebook's "never by hook regexes".
   exact gitlink before use; never compensate with `/tmp`, a user cache, or an
   unrelated recursive submodule checkout.
 
+## B8 — after the PR merges: the close-out checklist (landed repo → umbrella)
+
+A landing is NOT finished at the merge. Close the loop in the landed repo AND
+keep the umbrella consistent. Edge cases live in B4; this is the ordered
+sequence.
+
+**Where the session worktree lives — standalone clone vs umbrella (the ONE
+difference).** In a normal clone of a repo (`charly`, a plugin, `docs`, …) it
+is `.claude/worktrees/<slug>/` (B1 step 0). In the UMBRELLA
+(`opencharly/opencharly`, the ~400-submodule view) it is
+`<umbrella>/.worktrees/<slug>/<repo>/`, and the umbrella's TRACKED submodule
+checkouts stay DETACHED at their recorded gitlinks.
+
+**In the landed repo:**
+1. Confirm merged: `gh pr view <n> --repo <owner>/<repo> --json state,mergedAt`
+   → `MERGED`. Never clean up an unmerged PR.
+2. Remove YOUR worktree (clean status first): `git -C <repo> worktree remove
+   .claude/worktrees/<slug>`. Another session's worktree is theirs — never
+   remove it.
+3. Delete the local branch ONLY if merged: `git branch --merged main` must list
+   it, then `git branch -d feat/<slug>`. NEVER `-D` an unmerged/abandoned
+   branch without operator sign-off — it may hold unlanded work.
+   `delete_branch_on_merge` already deleted the REMOTE branch;
+   `git fetch --prune` drops the stale remote-tracking ref.
+4. Fast-forward the local default branch (`main`) ONLY: `git fetch origin
+   --prune --tags && git switch main && git merge --ff-only origin/main`. If it
+   cannot fast-forward, STOP and RCA (R1) — never force-reset a diverged main.
+
+**In the umbrella:**
+5. Remove your umbrella worktree after its PR merged: `git -C <umbrella>
+   worktree remove .worktrees/<slug>/<repo>`.
+6. Fast-forward the umbrella's own `main` (same ff-only rule).
+7. Advance pins ONLY with `charly task sync`, prove with `charly task verify`,
+   and land the bump as a normal `feat/` PR
+   (`chore(sync): bump submodule pins …`). A submodule pin is a GITLINK: its
+   checkout stays DETACHED at the recorded commit — NEVER `git -C <sub>
+   checkout main` / `git -C <sub> reset --hard origin/main` to "catch up" (that
+   dirties the umbrella and fails `verify`). Setting up a NEW repo is
+   `/charly-internals:repo-setup`.
+

@@ -115,6 +115,47 @@ bin/charly | grep '<a string unique to the fix>'` (a new error message, flag nam
 symbol). The stamp answers "which commit"; the `strings` marker answers "is my change
 actually in this binary".
 
+## B2b — cross-session coordination: the PR comment is the channel
+
+Sessions are independent and OWN their artifacts (umbrella rule 9): a branch,
+worktree, file, or PR you did not create is another session's, and you never
+edit, revert, reformat, stage, or commit it — not even to "clean up" or unblock
+yourself.
+
+**When another session's PR blocks you** (a projection lands before the source
+that pins it; a consumer pin needs the producer merged; a shared file is
+mid-flight on their branch), the ONE sanctioned channel is a **PR comment on the
+PR that owns the blocking file** (or a new issue naming it). The comment must be
+actionable: name your session slug, the exact file/gitlink/pin you need, what
+change unblocks you, and the evidence. Then STOP; if it stays blocked, ask the
+operator. Never work around it (R4), never edit their artifact, never
+force-land, and never `-D`/reset their branch.
+
+**A fresh `pr-validator` runs comment intake**: every comment on the PR is
+investigated independently and weighed in the verdict (see
+`marketplace/internals/agents/pr-validator.md` "Comment intake"). So a
+coordination comment is not noise — it is the durable record the next reviewer
+reads. Reply on the same thread; do not open a duplicate PR for scope already in
+flight (the universal PR-gate audit).
+
+**The commenting session MUST follow up.** A coordination comment is not
+fire-and-forget: after posting it, the blocked session re-checks that PR's thread
+for a reply at every natural step — before its own next push/commit, when it
+resumes, and at a BOUNDED cadence (a bounded poll, never a `sleep` loop — R4). When
+the owning session answers, react accordingly: proceed if unblocked, refine or
+answer if clarification is asked, or escalate to the operator if it stays blocked.
+A one-shot comment with no follow-up leaves the block unresolved and the record
+one-sided.
+
+**The PR-owning session MUST read AND act on every comment/reply before its next
+push.** The pre-update-push read (the "BEFORE ANY UPDATE PUSH" invariant) requires
+reading the thread; it equally requires ACTING on it — each comment, including a
+blocked session's reply, is answered in-thread or addressed in the pushed state.
+Pushing while an unanswered comment stands is a violation: the fresh `pr-validator`
+weighs the whole thread (comment intake), so an unaddressed comment is a real
+finding, not noise. The loop is: blocked session comments → owning session
+answers/acts → blocked session re-checks and reacts.
+
 ## B3 — agent teams in per-teammate worktrees
 
 When an agent team parallelizes work, **each teammate works in its OWN worktree**

@@ -1687,6 +1687,13 @@
       "version": "3.1.0"
     },
     {
+      "name": "repo-setup",
+      "files": [
+        "SKILL.md"
+      ],
+      "version": "3.1.0"
+    },
+    {
       "name": "restart",
       "files": [
         "SKILL.md"
