@@ -2,12 +2,15 @@
 
 ## The per-plugin CUE schema — the single source, two consumers
 
-**Every plugin WITH authored input ships its OWN `.cue` schema, and it is the SINGLE SOURCE for that
+**Every plugin ships its OWN `.cue` schema, and it is the SINGLE SOURCE for that
 plugin's params.** This is the project rulebook "Schema Driven Design (SDD)" pillar (`AGENTS.md` / `CLAUDE.md`) applied per-plugin: the schema
 comes BEFORE the plugin's code, and both consumers below are derived from that one source (the
 cross-generator pipeline map + the generation-coverage current state live in `/charly-internals:go`
-"Schema Driven Design (SDD)"). An INPUT-LESS plugin (no `input_def` on any capability) ships NO schema —
-the load gate waives it (the former requirement forced dozens of near-identical stub files). The schema is
+"Schema Driven Design (SDD)"). There is NO input-less exemption: a plugin whose capability declares no
+structured input (a pass-through command, a substrate kind, a deploy target) still ships its schema — the
+"doc schema" — so every plugin presents the same CUE-validated, code-generated surface, with no
+exceptions. A capability that DOES have a structured input declares its `input_def`, and the host
+validates the authored input against it. The schema is
 SELF-CONTAINED (package-less, references no base def) and used two ways — the SAME contract core `spec` uses:
 
 1. **DEV-TIME → Go params.** `cue exp gengotypes` (driven by `charly task cue-gen`, which wraps the schema with
@@ -61,10 +64,10 @@ schema-handling one.
 ### The load gate + the validator (one each, shared)
 
 - `registerPluginUnitSchema(name, schema)` is THE load gate (`plugin_loader.go`), byte-identical for builtin
-  and external: it rejects a schema that will not **splice** onto the base, a declared `input_def` the
-  schema does not define, and an EMPTY schema from a plugin that DOES declare input defs — all LOUD failures
-  at load. An input-less plugin (no `input_def` on any capability) legitimately serves NO schema and passes
-  the gate. Builtins are gated at process start (`loadBuiltinPluginUnits`, a `sync.Once` pass over every
+  and external: it rejects an EMPTY schema unconditionally, a schema that will not **splice** onto the
+  base, and a declared `input_def` the schema does not define — all LOUD failures
+  at load. There is no schema-less plugin, so NO plugin passes the gate without a non-empty schema.
+  Builtins are gated at process start (`loadBuiltinPluginUnits`, a `sync.Once` pass over every
   registered unit); externals at connect (`loadPluginUnit` → build on host → `LocalTransport.Connect` →
   gate → register).
 - `validateAuthoredPluginInput(class, word, json)` is THE validator: it looks the def up in the process-wide
