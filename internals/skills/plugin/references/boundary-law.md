@@ -56,6 +56,34 @@ fields, a `switch` on a kind word, or a per-kind Go map is BY DEFINITION an R-it
 **incomplete seam: a bug fixed immediately (one R10-gated cutover each), never a kept exception, never
 parked as a "remaining candidate."** Those three tells are what you grep for.
 
+**The per-kind-map tell — spelled out, because it is the one most often self-excused.** A
+`map[string]string` keyed by reserved words (`deploy:<word>` / `verb:<word>` / `<class>:<word>`), or a
+helper returning a hardcoded `github.com/opencharly/*/candy/*` ref, IS that third tell: a hand-written
+word→provider table — clause-D kind-recognition Data encoded as kernel code, an R-item that leaked.
+The exact crutch this doctrine removed: `externalDeploySubstratePlugins` (a substrate-word→candy map)
+and `vmPluginCandyRef` (a single-verb candy-ref literal) both lived in `charly/`, both carried a
+stays-core header claiming they "do NOT need CUE-sourcing" — a CLAIM, overruled (the enforcement
+paragraph below) — and both are DELETED. The structural teeth that keep them from regrowing is
+`charly/no_provider_ref_map_gate_test.go`'s `TestNoProviderRefMapInKernel`: it fails any production
+(non-`_test`) `.go` file carrying a candy-ref literal or a `map[string]string` keyed by a capability
+word, outside the one generated index file. Its exemption list is EXPECTED-EMPTY; an entry is a
+boundary-law decision named with its reason, never a quiet allowlist.
+
+**The generated-index precedent — where a word→provider fact actually lives.** The fact is real, but
+it is clause-D Data OWNED BY THE PLUGIN REPOS, never a kernel table. Each plugin's own manifest
+declares it — `plugin.providers:` (the words it serves) + `plugin.source:` (its canonical candy ref).
+`charly/internal/pluginsgen` enumerates the plugin corpus and projects every manifest into ONE
+generated table, `pluginProviderRefs` (`charly/plugins_refs_generated.go`, marked DO NOT EDIT), keyed
+by the `<class>:<word>[:<parent>]` identity. Core reads that table as Data through the ONE
+class-agnostic lookup — `canonicalProviderRef` (→ `pluginProviderRef`): a `deploy:vm` substrate and a
+`verb:libvirt` verb resolve through the same table, no per-class branch, no special case. Adding a
+word therefore costs a PLUGIN-REPO edit only — declare it in the plugin's own `plugin:` block, the
+regenerated index carries it, and charly core changes ZERO lines. The index is OPEN by construction
+(exactly the words plugins declare), so there is no closed vocabulary to keep in sync: the former
+`checkDeployProviderBijection`, which asserted the reverse direction (vocabulary→ref) and so forced a
+core edit the moment `spec` widened the vocabulary, is DELETED. The generator is the anti-drift
+teeth — a second run is a byte-identical no-op (`charly/internal/pluginsgen/main_test.go`).
+
 **The named trap — "host-boundary object" is never a permanence reason.** Calling a construct a
 "host-boundary object" — it "can't cross the process boundary," "drives podman/ssh/flock/systemd itself,"
 or fits "the P8/P10 pattern" — is NEVER grounds to keep it in core. A plugin runs on the SAME host and
