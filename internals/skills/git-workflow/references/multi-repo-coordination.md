@@ -138,6 +138,33 @@ coordination comment is not noise — it is the durable record the next reviewer
 reads. Reply on the same thread; do not open a duplicate PR for scope already in
 flight (the universal PR-gate audit).
 
+**Search first; file and OWN an issue.** Before starting any non-trivial work
+— and before filing anything — search the whole org for an EXISTING issue or PR
+covering it (`gh search issues <terms>`, `gh search prs <terms>`,
+`gh issue list -S <terms>`) and ADD to that thread (a comment with your
+evidence/plan) rather than creating a duplicate. If none exists, create ONE
+proper issue (a specific title, the problem, the evidence, the intended scope)
+and reference it from every PR (`Closes #N` / `relates to #N`). Never open a
+duplicate issue or PR.
+
+**The issue is the coordination point — claim it before you branch.** To stop
+two sessions working the same issue at once: check the issue for an owner
+(assignee, a claim comment, a status label); CLAIM it by commenting (and
+assigning yourself) BEFORE you create a branch, and state what slice you are
+taking. If another session owns it, coordinate on the thread — offer to take a
+slice, ask for status, or hand off — instead of opening a competing PR. Use
+issue comments for every cross-session move (claim, block, hand-off, duplicate,
+supersede); they are the durable record the next agent reads. **Replacing a thread?** When
+you replace a PR or an issue with a new one, comment on the OLD one referencing
+the new one (see "Replacing a PR or an ISSUE" in `references/validator-and-calver.md`).
+
+**Before EVERY push, read the NEW comments on the PR AND on every related
+issue.** The pre-update-push read covers issues too: check the PR's comments +
+checks AND the latest comments/state of each issue the PR closes or relates to,
+and ACT on each (answer, claim, hand off, or satisfy it in the pushed state).
+An unread issue reply can mean another session has claimed or changed the work
+since you branched.
+
 **The commenting session MUST follow up.** A coordination comment is not
 fire-and-forget: after posting it, the blocked session re-checks that PR's thread
 for a reply at every natural step — before its own next push/commit, when it
