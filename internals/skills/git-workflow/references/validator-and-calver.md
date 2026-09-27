@@ -299,17 +299,19 @@ A FAIL is a return-to-implementation signal, not a stopping point:
    regression in waiting.
 4. The PR merges only when validation passes end-to-end on the final code.
 
-### If the PR is AUTO-CLOSED after too many failed validation rounds
+### Replacing a PR or an ISSUE — always comment on the OLD one
 
-The org's gate auto-closes a PR after N consecutive BLOCK rounds (or the operator
-closes it). If the same work is picked up again, it goes in a NEW PR (a `feat/`
-branch off fresh `origin/main`) — and you MUST post a comment on the OLD (closed) PR
-that **references the new PR** (its number/URL) and states what it supersedes. A
-closed PR is a durable, public record: a reader — or the next `pr-validator` running
-comment intake — arriving at it must be able to follow the thread to where the work
-continued. Never silently abandon a closed PR and open a fresh one; the reference
-comment is mandatory, not optional. (A closed PR whose diff never landed also has no
-tag/CHANGELOG; the new PR is the landing vehicle.)
+Whenever you REPLACE a PR or an issue with a new one — an auto-closed PR picked up
+again (the gate auto-closes after N consecutive BLOCK rounds, or the operator
+closes it), a re-scoped or split issue, a superseded or re-filed issue/PR — you
+MUST post a comment on the OLD one that **references the new one** (its
+number/URL) and states what it supersedes. The old thread is a durable, public
+record: another agent (or the next `pr-validator` running comment intake) arriving
+at it must be able to follow the thread to where the work continued, and issue
+comments are the coordination channel (B2b). Never silently abandon a closed or
+replaced PR/issue; the reference comment is mandatory, not optional. (A closed PR
+whose diff never landed also has no tag/CHANGELOG; the new PR is the landing
+vehicle.)
 
 **If the BLOCK is body-only (no code change), fix the body then PREFER the
 `rerun` LABEL** — the org ships a plain per-repo `rerun-listener` (distributed
