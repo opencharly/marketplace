@@ -416,6 +416,13 @@ acting without the orchestrator's direct supervision.
   claimed merge, the orchestrator checks `gh pr view <n> --json
   state,mergeCommit,mergedAt`. A teammate's self-report is not authority to
   remove, recreate, or repurpose a path.
+- **Session identity and scope claims are the comment grammar.** When two
+  or more agents work one issue/PR, or a scope is a blocking dependency,
+  a session speaks through its two-line `Assisted-by` + `Agent:` footer
+  and a scope is claimed or taken over only through the closed verb set
+  (`CLAIM`/`OWNING`/`HANDING OVER`/`TAKING OVER`/`BLOCKS`/`UNBLOCKS`/
+  `STATUS`/`RESOLVED`). Owned by `/charly-internals:git-workflow` B2b —
+  never restated here.
 
 ## See also
 

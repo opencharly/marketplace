@@ -190,6 +190,100 @@ weighs the whole thread (comment intake), so an unaddressed comment is a real
 finding, not noise. The loop is: blocked session comments → owning session
 answers/acts → blocked session re-checks and reacts.
 
+### B2b.1 — agent identity and the coordination verb grammar
+
+**Identity is in the footers; authority is in the verb.** An agent
+identifies itself with TWO italic lines at the END of a comment or PR
+body — the `Assisted-by` trailer (unchanged) and, AFTER it, a separate
+`Agent:` line naming the WORK and the session. The slug is NEVER appended
+to `Assisted-by`:
+
+```markdown
+*Assisted-by: <Harness> <Provider Model> (<confidence>)*
+*Agent: `<slug>` · session `<ses_…>`*
+```
+
+- **agent slug** — a stable, human-readable, kebab-case name the session
+  chooses for the WORK (`c7-plugin-adoption`), never the harness or the
+  GitHub account. It is the authority key.
+- **session** — the harness session id.
+
+**Optional by default; MANDATORY on the trigger.** Neither the `Agent:`
+line nor the verb grammar is required of a solo agent on an uncontended PR
+— never tax every comment. They become MANDATORY the moment EITHER holds:
+
+1. **two or more agents work the same issue or PR**, or
+2. **the scope is a blocking dependency** (any `BLOCKS` / `UNBLOCKS` is in play).
+
+On a triggered scope, EVERY agent-authored comment and PR body carries the
+two-line footer, and coordination comments open with the verb.
+
+**The first non-blank line of a coordination comment is ONE label from a
+CLOSED set**, uppercase, then sharp prose in proper GitHub Markdown
+(headings, bold, tables, inline code):
+
+| Verb | Means | Required fields |
+|---|---|---|
+| `CLAIM` | taking a scope before branching | scope ref, your slug, the slice |
+| `OWNING` | the standing owner of a live scope | scope ref, your slug |
+| `HANDING OVER` | the owner passes the scope to a named slug | scope ref, from-slug, to-slug, state + next step |
+| `TAKING OVER` | a slug assumes an unowned or window-expired scope | scope ref, your slug, `authority:` |
+| `BLOCKS` | this scope is blocked | blocked ref, blocking ref, what unblocks |
+| `UNBLOCKS` | the block is cleared | blocked ref, who cleared it |
+| `STATUS` | progress, no authority change | scope ref, your slug, state |
+| `RESOLVED` | the scope is done | merged PR ref + `v<CalVer>` tag |
+
+Rendered example — a claim on a PR:
+
+```markdown
+**CLAIM** — `opencharly/layer-charly-internals#41`
+
+Claiming the `git-workflow` B2b identity/grammar slice; will push `feat/agent-coord-grammar`.
+
+*Assisted-by: OpenCode opencode-go/deepseek-v4.1-flash (analysed on a live system)*
+*Agent: `agent-coord-grammar` · session `ses_f1ca67065ffe71KOr87cfv8aNw`*
+```
+
+**Same-account authority — the slug is authoritative, not the GitHub
+author.** Sessions on one host share ONE account, so the comment author
+field cannot tell two agents apart; across accounts it still cannot name
+the work. For a scope, the LATEST `OWNING` (or `TAKING OVER`) comment
+wins. An agent MUST NOT push to a branch/PR another slug has claimed
+unless (a) a `HANDING OVER` addressed it, (b) it posts `TAKING OVER`
+naming its authority, or (c) the operator authorizes it. A coordinator
+relaying another leg's status is NOT a claim — a claim requires the verb.
+
+**Takeover authority and the window.** A `TAKING OVER` comment MUST cite
+`authority: hand-off | operator | window-expired` and MUST be posted
+BEFORE the first push to the taken scope. The window runs on the scope's
+ARTIFACTS — the `charly/pr-validator` run COMPLETING on a new head, a new
+commit, or a new comment — never on session activity: a looping agent
+never falls quiet, and a peer waiting on a RUNNING validator is NOT
+stalled. A scope with none of those for the window (default 30 minutes)
+is `window-expired`.
+
+**Delegation ≠ impersonation.** An agent NEVER impersonates the operator:
+no comment, sign-off, or approval may claim to BE them. But a sign-off
+posted at the operator's EXPLICIT direction — labelled as delegated and
+carrying the agent's OWN two-line identity footer — IS a valid sign-off.
+The validator's rulebook accepts exactly this form (`AI_REVIEW_PROMPT`'s
+"VALID — operator-DELEGATED"); the skill and the validator must agree.
+
+**Grep the grammar** (the label is the first non-blank uppercase line):
+
+```bash
+gh pr view <n> --repo <r> --json comments --jq '.comments[].body' \
+  | grep -E '^(CLAIM|OWNING|HANDING OVER|TAKING OVER|BLOCKS|UNBLOCKS|STATUS|RESOLVED)\b'
+gh pr view <n> --repo <r> --json comments --jq '.comments[].body' \
+  | grep -oE 'Agent: `[^`]+`'         # who has a voice on this PR
+```
+
+**Lifecycle:** search → `CLAIM` (comment + assign where possible) → work →
+`HANDING OVER` → `RESOLVED` (link the merged PR + its CalVer tag, and close
+the resolved issue). The SAME protocol applies across accounts and
+harnesses — the footer carries identity regardless of who owns the GitHub
+account; there is no per-account case.
+
 ## B3 — agent teams in per-teammate worktrees
 
 When an agent team parallelizes work, **each teammate works in its OWN worktree**
