@@ -10,7 +10,8 @@ catalog per harness. Everything under the corpus trees is **GENERATED** from the
 `candy/`, regenerate, and land the corpus here. Hand-authored files are only
 `README.md`, `CLAUDE.md`, `LICENSE`, `CHANGELOG/`, `scripts/squash_body.py`,
 `scripts/refresh-refs.sh`, `scripts/pr_state_watch.sh`, `scripts/pr_watch_many.sh`,
-`scripts/gh_watch.sh`, `scripts/_watch_common.sh` and `kimi-user-config.toml` — everything else carries a
+`scripts/gh_watch.sh`, `scripts/_watch_common.sh`, `scripts/watch_family_test.sh`
+and `kimi-user-config.toml` — everything else carries a
 DO-NOT-EDIT header (`DISPATCHER.md` carries the generated-dispatcher markers in place
 of that header).
 
