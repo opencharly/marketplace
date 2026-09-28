@@ -238,7 +238,7 @@ ignored — `grep` floods on `Broken pipe`). Full detail:
 | B5 (the fresh evaluator + fork/PR path, the two-gate autonomous-landing model), CalVer generation, post-landing cleanliness + report format, and the validation-FAILS recovery sequence | `references/validator-and-calver.md` |
 | Evidence discipline — provenance vs plausibility of a pasted gate, the three freshness surfaces (head / body / pasted output), positive-vs-negative claim decay, sweeping for claims a fix invalidated, the merged-tree gate for a `BEHIND` PR, source-and-regeneration as one cross-repo cutover, submodule pointers reverted by a non-conflicting merge, and why status-absence on a known head proves nothing | `references/evidence-and-freshness.md` |
 | Umbrella mechanics — the ~400-submodule view, policy B, `charly task sync`/`verify`/`hooks`/`harness`, the no-edit-in-submodule rule, pin discipline | `references/umbrella-mechanics.md` |
-| Watch-and-wake — the watcher family, and the arm → wake → re-arm runbook | `marketplace/scripts/pr_state_watch.sh`, `marketplace/scripts/pr_watch_many.sh`, `marketplace/scripts/gh_watch.sh` (run one — never hand-roll a poll) + `references/watch-and-wake.md` |
+| Watch-and-wake — the self-sustaining watcher family (`--auto-rearm`, the single-instance lock, rate-limit backoff) and the arm → wake → act → re-arm runbook | `marketplace/scripts/pr_state_watch.sh`, `marketplace/scripts/pr_watch_many.sh`, `marketplace/scripts/gh_watch.sh` (run one — never hand-roll a poll) + `references/watch-and-wake.md` |
 | The pre-validator self-audit — the five BLOCK classes detectable before the first push, the nine-step preflight that removes them, and the delegating-parent duties | `references/pre-validator-self-audit.md` |
 
 ## The pre-validator self-audit — one pass before the first push
@@ -253,21 +253,42 @@ delegating-parent duties — lives in `references/pre-validator-self-audit.md`.
 A parent that spawns a worker MUST embed it in the brief (see
 `/charly-internals:agents`), and the worker MUST run it before its first push.
 
-## The watcher family — arm, wake, re-arm
+## The watcher family — a self-sustaining loop
 
 Three generic watcher scripts under `scripts/` in the **`opencharly/marketplace`**
 repo (addressed as `marketplace/scripts/<name>` from the umbrella checkout), plus a
-shared helper library `_watch_common.sh` they both source, turn a landing into a
-single background command that EXITS — and, because the harness notifies the owning
-agent when a background command finishes, **exiting IS the notification**. Arm one,
-act on the wake, re-arm. None of them needs a `while`/`sleep` loop of your own (the
-R4 band-aid), and every per-PR terminal decision stays `pr_state_watch.sh`'s.
+shared helper library `_watch_common.sh`, turn a landing into a background command
+that EXITS — and, because the harness notifies the owning agent when a background
+command finishes, **exiting IS the notification**.
+
+**The harness constraint: an agent is woken ONLY when a background command
+COMPLETES.** A watcher (or a `while true` loop) that never exits gives NO wake, and a
+one-shot watcher that exits leaves nothing watching until an agent re-arms — the
+dropped step this family exists to remove. Two patterns:
+
+- **per-event notify** (`--no-rearm`, the default) — one-shot; the agent re-arms on
+  each wake;
+- **durability** (`--auto-rearm`) — on a non-terminal exit the watcher detaches a
+  **lock-guarded successor with the SAME args BEFORE it prints and exits**, so a
+  watch is ALWAYS alive independent of the agent. `--auto-rearm` keeps a WATCH alive;
+  the agent's re-arm keeps NOTIFICATIONS alive. A durable supervisor never exits, so
+  it is NOT the answer.
+
+**THE RE-ARM INVARIANT.** An agent that acts on a wake MUST leave a watcher armed —
+`--auto-rearm` makes that automatic; a per-event agent re-arms in the same turn. An
+agent that fires an event and does not re-arm has silently stopped watching.
+
+**Single instance; rate limits.** A per-args **lockfile** (flock + a holder PID)
+means repeated arms never stack — a foreground arm takes over a live peer cleanly.
+Before each poll the remaining core quota is read from the FREE `/rate_limit`
+endpoint; below `WATCH_RATE_MIN` (default 200) the watcher **backs off** (4x, capped)
+rather than hammering into the observed HTTP-403 wall.
 
 | Arm this | To watch | Wake event |
 |---|---|---|
 | `pr_state_watch.sh <owner>/<repo> <pr>` | ONE PR's terminal state, across ALL same-name check-runs on the head | `0` MERGED · `2` BLOCKED · `3` CLOSED · `4` TIMEOUT · `5` ERROR — and it names **POISON** (a green re-dispatch stuck behind an older same-name FAILURE) distinctly from a verdict BLOCK |
-| `pr_watch_many.sh [--repos R,…] [--interval S] [--stallmin M] [--validator NAME] <owner>/<repo> <pr> …` | a CROSS-REPO **PR batch** | the first of: a PR terminal (above, delegated); a **NEW verdict** — a new `<validator>` run COMPLETING on any watched repo; a **STALL** — no new verdict for the window while scopes stay open+unmerged |
-| `gh_watch.sh [--events L] [--interval S] [--stallmin M] [--workflow NAME] <owner>/<repo>#<num> …` | a per-item list of PRs **and/or issues** | a NEW `comment`; a NEW `verdict`; `merged` (unblocked); `closed` without merge (find the successor); or a `stall` (takeover candidate) |
+| `pr_watch_many.sh [--repos R,…] [--interval S] [--stallmin M] [--validator NAME] [--auto-rearm] <owner>/<repo> <pr> …` | a CROSS-REPO **PR batch** | the first of: a PR terminal (above, delegated); a **NEW verdict** — a new `<validator>` run COMPLETING on any watched repo; a **STALL** — no new verdict for the window while scopes stay open+unmerged |
+| `gh_watch.sh [--events L] [--interval S] [--stallmin M] [--workflow NAME] [--auto-rearm] <owner>/<repo>#<num> …` | a per-item list of PRs **and/or issues** | a NEW `comment`; a NEW `verdict`; `merged` (unblocked); `closed` without merge (find the successor); or a `stall` (takeover candidate) |
 
 Both batch watchers poll every `--interval` and exit when a new `--workflow` run
 (default `charly/pr-validator`) **COMPLETES**; the STALL layer fires only when **no

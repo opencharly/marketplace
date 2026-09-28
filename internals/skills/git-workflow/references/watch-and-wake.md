@@ -5,18 +5,60 @@
 A landing that depends on other sessions' work is a WAIT, and a wait you poll by
 hand is the R4 band-aid. Arm ONE background watcher instead: it exits the instant
 the event you care about fires, and the harness notifies the owning agent when a
-background command finishes — so **exiting IS the notification**. The loop is:
+background command finishes — so **exiting IS the notification**.
 
-1. **Arm** the narrowest watcher that covers the wait (table below).
+**THE HARNESS CONSTRAINT — design to it, do not fight it.** An agent is woken
+ONLY when a background command **COMPLETES**. So a watcher (or a `while true`
+loop) that NEVER exits gives **NO wake**, and a one-shot watcher that exits
+leaves **nothing watching** until an agent re-arms it. Re-arming is therefore
+not optional: the correct architecture is **each wake is produced by a finite
+watcher run, and a successor is already armed before the wake lands**. Two
+supported patterns:
+
+| Pattern | How | Use when |
+|---|---|---|
+| **per-event notify** (default, `--no-rearm`) | a one-shot run: it exits on the event, the harness wakes the agent, and the **AGENT re-arms** | the agent must act on every event |
+| **durability** (`--auto-rearm`) | on a non-terminal exit the watcher **detaches a lock-guarded successor with the SAME args** BEFORE it prints + exits | a STANDING watch that must survive fires independent of the agent |
+
+`--auto-rearm` keeps a **watch** alive; the agent's re-arm keeps **notifications**
+alive. With the single-instance lock, exactly ONE is active at a time. **A durable
+supervisor is NOT the answer** — it never exits, so it never wakes.
+
+**THE RE-ARM INVARIANT (an agent rule, not just a tool flag).** An agent that
+acts on a wake MUST leave a watcher armed. `--auto-rearm` makes that automatic
+(the successor is spawned before the wake); a per-event agent must re-arm itself
+in the same turn it acts. An agent that fires an event and then does not re-arm
+has silently stopped watching — the failure this whole family exists to prevent.
+
+The loop is:
+
+1. **Arm** the narrowest watcher that covers the wait (table below). Pass
+   `--auto-rearm` for a standing watch, or arm one-shot and re-arm on each wake.
 2. **Wake** on its single output line.
 3. **Act** on the wake (read the verdict / claim / unblock / take over).
-4. **Re-arm** — the watcher is one-shot by design; re-arm it for the next wait.
+4. **Re-arm** — automatic with `--auto-rearm`; otherwise re-arm now (the
+   invariant above).
 
 Never poll session activity as a progress signal: a looping agent never falls
 quiet, so activity is a false positive, and a peer waiting on a running
 validator looks quiet but is working. The progress signal is a **COMPLETED
 WORKFLOW RUN** (default `charly/pr-validator`) — the B2b.1 rule, which this
 watcher family merely operationalizes.
+
+### Single instance, and the API budget
+
+Two hazards of a standing watch, both handled by the tools:
+
+- **Stacking.** A per-args **lockfile** (flock on a key hashed from the exact
+  args, plus a holder PID) means repeated arms NEVER stack: a foreground arm
+  **takes over** a live peer (or a detached successor) cleanly, displacing it
+  before it acquires. Exactly one watcher per identical invocation runs.
+- **Rate limits.** The pollers share the account's **5000/hr** core budget.
+  Before each poll the watcher reads the remaining quota from the FREE
+  `/rate_limit` endpoint; below `WATCH_RATE_MIN` (default 200) it **backs off**
+  (4x the interval, capped) and logs `RATE-LIMIT`, instead of hammering into
+  the observed HTTP-403 wall that killed watchers. Never raise the poll rate to
+  "catch up" — back off.
 
 ### Which watcher to arm
 
@@ -36,12 +78,17 @@ pr_state_watch.sh <owner>/<repo> <pr> [--interval SEC] [--timeout SEC]
 
 # cross-repo PR batch — exit on the first terminal / new verdict / stall
 pr_watch_many.sh [--repos owner/repo,…] [--interval SEC] [--stallmin MIN] \
-                 [--validator NAME] [--all] <owner>/<repo> <pr> …
+                 [--validator NAME] [--all] [--auto-rearm|--no-rearm] <owner>/<repo> <pr> …
 
 # per-item PR/issue — exit on any chosen event (default merged,closed,stall)
 gh_watch.sh [--events merged,closed,stall] [--interval SEC] \
-            [--stallmin MIN] [--workflow NAME] <owner>/<repo>#<num> …
+            [--stallmin MIN] [--workflow NAME] [--auto-rearm|--no-rearm] <owner>/<repo>#<num> …
 ```
+
+`--auto-rearm` applies to `pr_watch_many.sh` and `gh_watch.sh` — the family's
+self-sustaining watchers. `pr_state_watch.sh` is the low-level per-PR terminal
+poll that `pr_watch_many.sh` wraps; it stays one-shot (its wrapper owns the
+re-arm), so it takes no re-arm flag.
 
 ### Delivering a wake (the harness binding)
 
