@@ -156,12 +156,12 @@ watch_lock() {
 }
 
 # watch_lock_auto <key> — acquire the lock with the RIGHT policy for this process's
-# role: a detached successor (WATCH_REARMED=1) WAITS for the predecessor to release;
-# a foreground arm TAKES OVER a live peer. ONE implementation (R3) — the two watchers
-# call this and differ only in their error-message prefix.
+# role: a detached successor (WATCH_IS_SUCCESSOR=1) WAITS for the predecessor to
+# release; a foreground arm TAKES OVER a live peer. ONE implementation (R3) — the two
+# watchers call this and differ only in their error-message prefix.
 # Returns 0 on acquire; 1 if not acquired (the caller prints its message + exit 6).
 watch_lock_auto() {
-  if [ "${WATCH_REARMED:-0}" = "1" ]; then
+  if [ "${WATCH_IS_SUCCESSOR:-0}" = "1" ]; then
     watch_lock "$1" --wait 120 || watch_lock "$1" --takeover
   else
     watch_lock "$1" --takeover
@@ -178,9 +178,10 @@ watch_cleanup_lock() {
 }
 
 # watch_rearm <script> <args...> — detach a successor with the SAME args, so the
-# watch survives this process exiting. The successor (env WATCH_REARMED=1) waits for
-# the lock handoff rather than taking over. Prints the successor PID + log path to
-# stderr so the event line on stdout stays clean.
+# watch survives this process exiting. The successor is told it is a successor via
+# WATCH_IS_SUCCESSOR=1 (NOT WATCH_REARMED, which is a run-local latch and would also
+# wrongly suppress the child's OWN future re-arm) so its `watch_lock_auto` WAITS for us
+# to release the lock instead of killing us. Prints the successor PID + log to stderr.
 watch_rearm() {
   local script="$1"; shift
   local key log
@@ -191,9 +192,9 @@ watch_rearm() {
   # hold its own lock and deadlock on its own `watch_lock --wait`. The successor
   # re-acquires the lock fresh AFTER we exit and release it.
   if command -v setsid >/dev/null 2>&1; then
-    WATCH_REARMED=1 setsid nohup "$script" "$@" </dev/null >>"$log" 2>&1 9>&- &
+    WATCH_IS_SUCCESSOR=1 setsid nohup "$script" "$@" </dev/null >>"$log" 2>&1 9>&- &
   else
-    WATCH_REARMED=1 nohup "$script" "$@" </dev/null >>"$log" 2>&1 9>&- &
+    WATCH_IS_SUCCESSOR=1 nohup "$script" "$@" </dev/null >>"$log" 2>&1 9>&- &
   fi
   disown 2>/dev/null || true
   printf 'RE-ARMED  successor pid %s → %s\n' "$!" "$log" >&2
@@ -203,8 +204,13 @@ watch_rearm() {
 WATCH_REARM_FLAG=0        # 1 = --auto-rearm
 WATCH_REARM_SCRIPT=""
 WATCH_REARM_ARGS=()
-WATCH_DONE=0              # 1 = a TERMINAL fire (nothing left to watch → no re-arm)
-WATCH_REARMED=0           # 1 = a successor was already spawned this run
+WATCH_DONE=0              # 1 = a TERMINAL/STATE fire (nothing left to watch → no re-arm)
+WATCH_REARMED=0           # 1 = a successor was ALREADY spawned by THIS run (a latch)
+# WATCH_IS_SUCCESSOR comes from the DETACHED CHILD's environment (set by watch_rearm)
+# and is NOT reset here — it is the child's identity, not a run-local latch. It tells
+# `watch_lock_auto` to WAIT for the predecessor instead of taking over. Resetting it
+# (as a bare `WATCH_IS_SUCCESSOR=0` here would) would clobber the child's env flag.
+: "${WATCH_IS_SUCCESSOR:=0}"
 
 # watch_set_rearm <rearm 0|1> <script> [args...] — record the re-arm policy and the
 # exact command line a successor must re-run. Installs no trap (the script owns it).

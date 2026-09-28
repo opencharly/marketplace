@@ -238,6 +238,30 @@ wait "$TPID" 2>/dev/null; trc=$?
 eq "auto-rearm: a SIGTERM takeover exits 143" "$trc" 143
 eq "auto-rearm: a takeover spawns NO successor (no ping-pong)" "$(rearm_count)" 0
 
+# ── a REAL successor hand-off (no hook): the successor must be told it is a successor ──
+# This drives the ACTUAL `watch_rearm` spawn and asserts the child's environment carries
+# WATCH_IS_SUCCESSOR=1 (so `watch_lock_auto` WAITS for the predecessor instead of taking
+# it over) AND does NOT carry a stale WATCH_REARMED latch (which would suppress the
+# child's own future re-arm). A `WATCH_REARMED=1` used as the signal would clobber here.
+PROBE="$WORK/probe-succ"
+cat > "$PROBE" <<'PS'
+#!/usr/bin/env bash
+printf 'is_successor=%s rearmed=%s\n' "${WATCH_IS_SUCCESSOR:-unset}" "${WATCH_REARMED:-unset}" >> "$PROBE_LOG"
+PS
+chmod +x "$PROBE"
+PROBE_LOG="$WORK/succ.log"; export PROBE_LOG; rm -f "$PROBE_LOG"
+WATCH_REARM_HOOK= bash -c '
+  . "$1/_watch_common.sh"
+  watch_rearm "$2"
+' _ "$HERE" "$PROBE"
+sleep 1
+grep -q 'is_successor=1' "$PROBE_LOG" 2>/dev/null \
+  && ok "auto-rearm: the real successor is spawned with WATCH_IS_SUCCESSOR=1 (waits, no takeover)" \
+  || bad "real successor env" "got: $([ -f "$PROBE_LOG" ] && cat "$PROBE_LOG" || echo '<no log>')"
+grep -q 'rearmed=unset' "$PROBE_LOG" 2>/dev/null \
+  && ok "auto-rearm: the successor does NOT inherit a stale WATCH_REARMED latch" \
+  || bad "successor latch" "WATCH_REARMED leaked into the successor"
+
 # ── the single-instance lock: among two SEPARATE processes, exactly one holds ──
 # A probe sources _watch_common.sh, acquires the lock (taking over any peer), reports
 # the holder, then holds briefly. `sleep N 9>&-` is ESSENTIAL — the sleep child must
