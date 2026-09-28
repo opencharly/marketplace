@@ -238,6 +238,22 @@ wait "$TPID" 2>/dev/null; trc=$?
 eq "auto-rearm: a SIGTERM takeover exits 143" "$trc" 143
 eq "auto-rearm: a takeover spawns NO successor (no ping-pong)" "$(rearm_count)" 0
 
+# ── the SAME takeover guard for pr_watch_many.sh, whose trap needed the $?-capture fix ──
+# gh_watch.sh uses watch_install_trap (no `cleanup`); pr_watch_many.sh's EXIT trap runs
+# `cleanup` FIRST, so a `watch_on_exit_common $?` would read cleanup's status and wrongly
+# re-arm on a takeover. REPO-ONLY mode (no PR pairs) so signal 0 is inactive and only the
+# trap path is exercised (a PR pair would fire signal 0 via the stub and exit 0 first).
+rm -f "$REARM_LOG"
+cp "$HERE/pr_watch_many.sh" "$WORK/pr_watch_many.sh"
+cp "$HERE/_watch_common.sh" "$WORK/_watch_common.sh"
+"$WORK/pr_watch_many.sh" --repos opencharly/x --interval 30 --timeout 60 --auto-rearm >/dev/null 2>&1 &
+MPID=$!
+sleep 1
+kill -TERM "$MPID" 2>/dev/null
+wait "$MPID" 2>/dev/null; mrc=$?
+eq "pr_watch_many: a SIGTERM takeover exits 143" "$mrc" 143
+eq "pr_watch_many: a takeover spawns NO successor (the trap $?-capture)" "$(rearm_count)" 0
+
 # ── a REAL successor hand-off (no hook): the successor must be told it is a successor ──
 # This drives the ACTUAL `watch_rearm` spawn and asserts the child's environment carries
 # WATCH_IS_SUCCESSOR=1 (so `watch_lock_auto` WAITS for the predecessor instead of taking
