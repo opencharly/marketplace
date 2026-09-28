@@ -256,9 +256,11 @@ eq "pr_watch_many: a takeover spawns NO successor (the trap $?-capture)" "$(rear
 
 # ── a REAL successor hand-off (no hook): the successor must be told it is a successor ──
 # This drives the ACTUAL `watch_rearm` spawn and asserts the child's environment carries
-# WATCH_IS_SUCCESSOR=1 (so `watch_lock_auto` WAITS for the predecessor instead of taking
-# it over) AND does NOT carry a stale WATCH_REARMED latch (which would suppress the
-# child's own future re-arm). A `WATCH_REARMED=1` used as the signal would clobber here.
+# WATCH_IS_SUCCESSOR=1 (so `watch_lock_auto` does NOT take the predecessor over) AND does
+# NOT carry a stale WATCH_REARMED latch (which would suppress the child's own future
+# re-arm). A `WATCH_REARMED=1` used as the signal would clobber here.
+# (The ATOMIC HAND-OFF itself — the child inheriting fd 9 and holding the flock — is
+# asserted separately below; see "the successor INHERITS the flock".)
 PROBE="$WORK/probe-succ"
 cat > "$PROBE" <<'PS'
 #!/usr/bin/env bash
@@ -272,7 +274,7 @@ WATCH_REARM_HOOK= bash -c '
 ' _ "$HERE" "$PROBE"
 sleep 1
 grep -q 'is_successor=1' "$PROBE_LOG" 2>/dev/null \
-  && ok "auto-rearm: the real successor is spawned with WATCH_IS_SUCCESSOR=1 (waits, no takeover)" \
+  && ok "auto-rearm: the real successor is spawned with WATCH_IS_SUCCESSOR=1 (inherits, no takeover)" \
   || bad "real successor env" "got: $([ -f "$PROBE_LOG" ] && cat "$PROBE_LOG" || echo '<no log>')"
 grep -q 'rearmed=unset' "$PROBE_LOG" 2>/dev/null \
   && ok "auto-rearm: the successor does NOT inherit a stale WATCH_REARMED latch" \
