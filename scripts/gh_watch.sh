@@ -149,8 +149,10 @@ snapshot() {
 # A "new" event must be genuinely newer than ARM_EPOCH — never merely different from an
 # empty seed, and never a pre-existing comment. An EMPTY seed is UNKNOWN (transient gh
 # failure / no run yet), so an item with no seed adopts its first observation as the
-# baseline WITHOUT firing; a `verdict` additionally requires the run's createdEpoch to be
-# >= ARM_EPOCH. merged/closed are STATE events and intentionally fire from the baseline.
+# baseline WITHOUT firing. A `verdict` fires ONLY on a run that COMPLETED at/after
+# ARM_EPOCH — an id compare alone is not enough (the newest completed run can change to
+# a DIFFERENT but still-old run). merged/closed are STATE events and intentionally fire
+# from the baseline.
 ARM_EPOCH="$(date -u +%s)"
 declare -A SEED
 for tok in "${NORM[@]}"; do
@@ -170,8 +172,8 @@ while :; do
 
     # merged/closed/comment/verdict all key on an exact per-FIELD value, so an UNKNOWN
     # field (empty from a transient failure) never fires: merged/closed need an exact
-    # "true"/"closed"; comment needs both counts known; verdict needs a known prior id OR
-    # a run created at/after arm time. No whole-line "empty" guard is needed (snapshot
+    # "true"/"closed"; comment needs both counts known; verdict needs a run that
+    # COMPLETED at/after arm time. No whole-line "empty" guard is needed (snapshot
     # always prints).
     if has merged && [ "$merged" = "true" ]; then
       printf 'MERGED   %s  (unblocked)\n' "$tok"; exit 0; fi
@@ -180,12 +182,9 @@ while :; do
     if has comment && [ -n "$cc" ] && [ -n "$pcc" ] && [ "$cc" != "$pcc" ]; then
       printf 'COMMENT  %s  new comment (%s -> %s)  %s/%s/%s\n' \
         "$tok" "$pcc" "$cc" "$url" "$([ "$type" = pr ] && echo pull || echo issues)" "$n"; exit 0; fi
-    if has verdict && [ -n "$v" ] && [ "$v" != "$pv" ]; then
-      # A known prior run → any different id is new; an UNKNOWN prior (empty pv) → only a
-      # run created at/after arm time is genuinely new (a stale run must not fire).
-      if [ -n "$pv" ] || { [ -n "$ve" ] && [ "$ve" -ge "$ARM_EPOCH" ]; }; then
-        printf 'VERDICT  %s  new %s run %s  %s/actions/runs/%s\n' "$tok" "$WF" "$v" "$url" "$v"; exit 0; fi
-    fi
+    if has verdict && [ -n "$v" ] && [ "$v" != "$pv" ] \
+       && [ -n "$ve" ] && [ "$ve" -ge "$ARM_EPOCH" ]; then
+      printf 'VERDICT  %s  new %s run %s  %s/actions/runs/%s\n' "$tok" "$WF" "$v" "$url" "$v"; exit 0; fi
     # stall requires an OBSERVED open state — never alarm on an unknown state.
     if has stall && [ "$merged" != "true" ] && [ "$state" != "closed" ] \
        && [ -n "$state" ] && [ "$state" != "unknown" ] \

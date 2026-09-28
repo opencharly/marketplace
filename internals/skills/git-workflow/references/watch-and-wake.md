@@ -84,13 +84,17 @@ A watcher must be armed against a **known baseline**, and a delta event fires
 only on a value NEWER than arm time — never merely *different* from an empty
 seed. An **empty seed is UNKNOWN**, not "no prior run": a transient `gh` failure
 or a not-yet-finished run leaves the seed blank, and a naively-armed watcher
-then treats an OLD completed run as new. Measured: an immediate validator
-watcher re-surfaced a run from ~90 minutes earlier as though it were fresh. The
-guards, all mandatory:
+then treats an OLD completed run as new. Measured (twice): an immediate
+validator watcher re-surfaced a run from ~90 minutes / ~3 hours earlier as
+though it were fresh. The guards, all mandatory:
 
-- On arm, capture the baseline AND the arm wall-clock. A `verdict` fires only
-  when the run's `createdAt` is **at/after arm time** (the helper returns
-  `createdEpoch`) or its id differs from a KNOWN prior — not merely from blank.
+- **The COMPLETION time is the PRIMARY and sufficient gate.** A `verdict` fires
+  only when the run's completion timestamp (`updatedAt`; the helper returns
+  `completedEpoch`) is **at/after arm time**. Comparing run **ids** is NOT a
+  substitute: the "newest completed" run can CHANGE from one old run to a
+  DIFFERENT old run (a seed/poll ordering shift, or a transient seed failure),
+  and an id compare alone then false-fires on a run that completed hours ago.
+  The id compare is a SECONDARY guard against re-reporting the SAME run.
 - **Treat an empty seed as UNKNOWN**: adopt the first observation as the new
   baseline WITHOUT firing. (For `comment`, an empty count from a transient
   failure is likewise UNKNOWN — never treat a real count as a rise from 0.)
@@ -98,7 +102,15 @@ guards, all mandatory:
   state never spuriously fires beyond the deliberate STATE semantics.
 
 A stale fire is noise that trains the operator to ignore the watcher; the
-discipline is the same "watch the outcome, not noise" rule as above.
+discipline is the same "watch the outcome, not noise" rule as above. The
+regression is locked by `scripts/watch_family_test.sh` ("a DIFFERENT but
+still-old run never fires" / "empty seed + a pre-arm run never fires" — both
+negative, with a positive control that a run completing AFTER arm DOES fire).
+
+**`pr_watch_many.sh` is REPO-SCOPED.** It watches `<validator>` runs across the
+repos you pass — it does **not** filter to your PR, so it fires on ANY newer
+run in those repos, including another session's PR. To watch ONE PR (yours, or
+a specific blocker), arm `gh_watch.sh` on `owner/repo#<n>` instead.
 
 A `stall` is the correct STALL/loop detector: **no new verdict within the window
 while the scope is open+unmerged** (B2b.1). A re-arguing agent emits no new

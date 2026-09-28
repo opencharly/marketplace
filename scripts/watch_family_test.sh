@@ -22,7 +22,15 @@ cat > "$WORK/gh" <<'STUB'
 #!/usr/bin/env bash
 d="${WATCH_TEST_DIR:?}"
 case "$1 $2" in
-  "run list"*) cat "$d/runs.json" 2>/dev/null || echo '[]' ;;
+  "run list"*)
+    # Sequence-aware: the FIRST `run list` (the seed read) returns runs.json; later
+    # polls return runs_after.json when present. This lets a test exercise the
+    # seed-vs-poll divergence (an id compare alone would false-fire) deterministically,
+    # with no sleeps.
+    n="$(cat "$d/ncalls" 2>/dev/null || echo 0)"; n=$((n + 1)); printf '%s' "$n" > "$d/ncalls"
+    if [ "$n" -le 1 ]; then cat "$d/runs.json" 2>/dev/null || echo '[]'
+    elif [ -f "$d/runs_after.json" ]; then cat "$d/runs_after.json"
+    else cat "$d/runs.json" 2>/dev/null || echo '[]'; fi ;;
   "api "*)
     case "$*" in
       *"/pulls/"*"--jq .merged"*) cat "$d/merged.txt" 2>/dev/null || echo "" ;;
@@ -105,13 +113,60 @@ printf 5 > "$WORK/cc.txt"
 "$HERE/gh_watch.sh" --events comment --interval 1 --timeout 2 opencharly/x#1 >/dev/null 2>&1
 eq "gh_watch: comment does not fire on a pre-existing count" "$?" 4
 
-# 8 ── STALE-FIRE guard: a known old run must NOT re-fire (empty seed stays silent)
-OLD='2020-01-01T00:00:00Z'
-printf '[{"databaseId":111,"name":"charly/pr-validator","status":"completed","conclusion":"failure","headBranch":"b","updatedAt":"%s","createdAt":"%s"}]' "$OLD" "$OLD" > "$WORK/runs.json"
-"$HERE/gh_watch.sh" --events verdict --interval 1 --timeout 2 opencharly/x#1 >/dev/null 2>&1
-eq "gh_watch: stale run never fires" "$?" 4
-"$HERE/pr_watch_many.sh" --interval 1 --timeout 2 --repos opencharly/x >/dev/null 2>&1
-eq "pr_watch_many: stale run never fires" "$?" 4
+# 8 ── STALE-FIRE guard (the field bug). A "new" run must COMPLETE at/after arm time;
+#      an id compare alone false-fires when the seed-vs-poll run CHANGES to a different
+#      but still-old run. The stub's run-list output can differ between the seed read
+#      (call 1) and later polls (runs_after.json), deterministically and with no sleeps.
+reset_calls() { rm -f "$WORK/ncalls" "$WORK/runs_after.json"; }
+run_old()  { printf '[{"databaseId":%s,"name":"charly/pr-validator","status":"completed","conclusion":"success","headBranch":"x","updatedAt":"%s","createdAt":"%s"}]' "$1" "$2" "$2"; }
+OLD4="$(date -u -d '4 hours ago' +%Y-%m-%dT%H:%M:%SZ)"
+OLD3="$(date -u -d '3 hours ago' +%Y-%m-%dT%H:%M:%SZ)"
+
+# 8a ── old seed AND a DIFFERENT old run on the next poll → MUST NOT fire
+for tool in many item; do
+  reset_calls
+  run_old 111 "$OLD4" > "$WORK/runs.json"
+  run_old 222 "$OLD3" > "$WORK/runs_after.json"
+  if [ "$tool" = many ]; then
+    "$HERE/pr_watch_many.sh" --interval 1 --timeout 2 --repos opencharly/x >/dev/null 2>&1; rc=$?
+    eq "pr_watch_many: a DIFFERENT but still-old run never fires" "$rc" 4
+  else
+    "$HERE/gh_watch.sh" --events verdict --interval 1 --timeout 2 opencharly/x#1 >/dev/null 2>&1; rc=$?
+    eq "gh_watch: a DIFFERENT but still-old run never fires" "$rc" 4
+  fi
+done
+
+# 8b ── EMPTY/UNKNOWN seed, then a run that completed BEFORE arm → MUST NOT fire
+for tool in many item; do
+  reset_calls
+  printf '[]' > "$WORK/runs.json"
+  run_old 222 "$OLD3" > "$WORK/runs_after.json"
+  if [ "$tool" = many ]; then
+    "$HERE/pr_watch_many.sh" --interval 1 --timeout 2 --repos opencharly/x >/dev/null 2>&1; rc=$?
+    eq "pr_watch_many: empty seed + a pre-arm run never fires" "$rc" 4
+  else
+    "$HERE/gh_watch.sh" --events verdict --interval 1 --timeout 2 opencharly/x#1 >/dev/null 2>&1; rc=$?
+    eq "gh_watch: empty seed + a pre-arm run never fires" "$rc" 4
+  fi
+done
+
+# 8c ── POSITIVE control: a run that COMPLETED AFTER arm DOES fire (proves the gate is
+#       a real discriminator, not a blanket suppression). The background writer replaces
+#       runs_after.json with a NOW-dated run after the arm read.
+for tool in many item; do
+  reset_calls
+  printf '[]' > "$WORK/runs.json"
+  printf '[]' > "$WORK/runs_after.json"
+  ( sleep 1; run_old 333 "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$WORK/runs_after.json" ) &
+  if [ "$tool" = many ]; then
+    "$HERE/pr_watch_many.sh" --interval 1 --timeout 8 --repos opencharly/x >/dev/null 2>&1; rc=$?
+    eq "pr_watch_many: a run completed AFTER arm fires" "$rc" 0
+  else
+    "$HERE/gh_watch.sh" --events verdict --interval 1 --timeout 8 opencharly/x#1 >/dev/null 2>&1; rc=$?
+    eq "gh_watch: a run completed AFTER arm fires" "$rc" 0
+  fi
+done
+reset_calls
 
 # 9 ── pr_watch_many: a terminal result is reported (stub pr_state_watch.sh beside a copy)
 cat > "$WORK/pr_state_watch.sh" <<'PSW'

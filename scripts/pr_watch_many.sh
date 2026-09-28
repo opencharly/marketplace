@@ -8,10 +8,14 @@
 #   0  PR TERMINAL  a watched PR reaches MERGED / BLOCKED / CLOSED, delegated to
 #                   the sanctioned pr_state_watch.sh (so the POISON stuck state is
 #                   reported distinctly from a real verdict BLOCK).
-#   1  NEW VERDICT  a new `<validator>` run COMPLETES on any watched repo. This is
-#                   the PROGRESS signal. Session activity is NOT progress: a
-#                   looping agent never goes quiet, and a peer waiting on a
-#                   running validator looks quiet but is working.
+#   1  NEW VERDICT  a new `<validator>` run COMPLETES on any watched repo, and that
+#                   run COMPLETED at/after arm time (a stale run never fires — see
+#                   the arm-time gate below). This is the PROGRESS signal. Session
+#                   activity is NOT progress: a looping agent never goes quiet, and a
+#                   peer waiting on a running validator looks quiet but is working.
+#                   REPO-SCOPED: it fires on ANY newer run in the watched repos,
+#                   including another session's PR. To watch ONE PR, use gh_watch.sh
+#                   on owner/repo#<n>.
 #   2  STALL        no new verdict landed for --stallmin minutes while at least one
 #                   watched PR is still open+unmerged. A re-arguing agent emits no
 #                   new verdicts, so "no new verdict in the window" is the correct
@@ -136,8 +140,9 @@ run_latest() { watch_run_latest "$1" "$VALIDATOR"; }
 
 # --- seed the validator baseline so signal 1 never fires on PRE-EXISTING state -
 # An EMPTY seed means UNKNOWN (no completed run yet, or a transient gh failure),
-# NOT "no prior run": signal 1 additionally requires the run's createdEpoch to be
-# >= the arm time, so a stale run can never masquerade as new.
+# NOT "no prior run". The PRIMARY newness gate is the run's COMPLETION epoch:
+# signal 1 fires only on a run that COMPLETED at or after arm time. (Id compare is
+# a secondary guard against re-reporting the SAME run.)
 declare -A RUN_LAST
 ARM_EPOCH="$(date +%s)"
 for r in "${REPOS[@]}"; do
@@ -185,16 +190,16 @@ while :; do
   for f in "$OUT"/*.done; do [ -e "$f" ] && { report_pr "$f"; exit 0; }; done
 
   # signal 1 — a new validator run COMPLETED on any watched repo.
-  # A "new" run must be GENUINELY newer than arm time, not merely different from an
-  # EMPTY seed: an empty seed is UNKNOWN (transient failure / no run yet), so the first
-  # observation from an unknown seed is only a wake if its createdEpoch >= ARM_EPOCH.
+  # PRIMARY gate: the run must have COMPLETED at/after arm time. An id compare alone
+  # is NOT enough — the "newest completed" run can change to a DIFFERENT but still-old
+  # run (a seed/poll ordering shift or a transient seed failure) and would false-fire.
   for r in "${REPOS[@]}"; do
     cur="$(run_latest "$r")"
     if [ -n "$cur" ]; then
       cid="${cur%%|*}"; cepoch="${cur##*|}"
       prev="${RUN_LAST[$r]:-}"
       if [ "$cid" != "$prev" ]; then
-        if [ -n "$prev" ] || { [ -n "$cepoch" ] && [ "$cepoch" -ge "$ARM_EPOCH" ]; }; then
+        if [ -n "$cepoch" ] && [ "$cepoch" -ge "$ARM_EPOCH" ]; then
           RUN_LAST[$r]="$cid"
           last_verdict="$(date +%s)"
           rest="${cur#*|}"; rest="${rest%|*}"   # conclusion|branch|updatedAt (drop epoch)
@@ -202,7 +207,7 @@ while :; do
             "$r" "$rest" "$r" "$cid"
           exit 0
         fi
-        RUN_LAST[$r]="$cid"   # stale run from an unknown seed → adopt as baseline, no fire
+        RUN_LAST[$r]="$cid"   # stale run (completed before arm) → adopt as baseline, no fire
       fi
     fi
   done
