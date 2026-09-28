@@ -64,7 +64,7 @@ reach a repo it does not have, so its author publishes from the identical surfac
 
 | Topic | File |
 |---|---|
-| The kernel/plugin boundary law (E/M/B/D/R, the decision procedure, the incomplete-seam self-test, the host-boundary-object trap, the resolve-to-envelope canonical shape) — sole owner of this doctrine — plus the v2 target architecture end-state | `references/boundary-law.md` |
+| The kernel/plugin boundary law (E/M/B/D/R, the decision procedure, the incomplete-seam self-test incl. the per-kind-map tell + the generated-index precedent, the host-boundary-object trap, the resolve-to-envelope canonical shape) — sole owner of this doctrine — plus the v2 target architecture end-state | `references/boundary-law.md` |
 | The unified Provider model (transport-invisible dispatch, the `build` class, lifecycle phases, flat vs structural kind decode), placement (builtin/external × in-proc/out-of-process at build and deploy time), and the four authoring recipes (external, compiled-in, host-coupled kit, external command) | `references/authoring-recipes.md` |
 | The per-plugin CUE schema contract (dev-time Go params, runtime schema-over-Describe RPC), the load gate + validator, and why plugin schemas are self-contained | `references/cue-schema-contract.md` |
 

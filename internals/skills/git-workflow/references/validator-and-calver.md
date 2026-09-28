@@ -208,14 +208,14 @@ chronologically under a plain alphanumeric sort.
   bypass actor for the single CHANGELOG path); then tag the merged HEAD —
   `git tag -a v$VER -m "<subject>" <merged-HEAD>` and
   `git push origin refs/tags/v$VER` (every repo;
-  `sdk` substitutes its Go-module `v0.<…>` form). A schema cutover's
+  `sdk`, `spec`, and `plugin-gh` substitute their Go-module `v0.<…>` form). A schema cutover's
   `#SchemaVersion` + `version:` + `migrations.cue` re-stamp stays strictly above
   the current HEAD.
 
 One fresh stamp per merge, immutable (only ever added), independent of `charly.yml`
 `version:` (the schema version, bumped only by a cutover raising `#SchemaVersion`).
 Every repo (superproject, `box/<distro>`, `plugins`, `docs`) mints `v$VER` on its
-merged HEAD; `sdk` alone uses its Go-module `v0.<YYYYDDD>.<HHMM
+merged HEAD; `sdk`, `spec`, and `plugin-gh` (the proxy-consumed root-module repos) use their Go-module `v0.<YYYYDDD>.<HHMM
 leading-zeros-stripped>` scheme (not an exemption — Go modules require semver, which
 forbids a leading-zero segment — `0733`→`733`). A YAML schema/format change does
 both: the schema bump and the tag. See `/charly-build:migrate`.
@@ -299,15 +299,30 @@ A FAIL is a return-to-implementation signal, not a stopping point:
    regression in waiting.
 4. The PR merges only when validation passes end-to-end on the final code.
 
-**If the BLOCK is body-only (no code change), fix the body then add the `rerun`
-LABEL** — the org ships a plain per-repo `rerun-listener` (distributed by
-`opencharly/.github`'s `distribute-rerun-listener`) that re-runs THIS head's
+### Replacing a PR or an ISSUE — always comment on the OLD one
+
+Whenever you REPLACE a PR or an issue with a new one — an auto-closed PR picked up
+again (the gate auto-closes after N consecutive BLOCK rounds, or the operator
+closes it), a re-scoped or split issue, a superseded or re-filed issue/PR — you
+MUST post a comment on the OLD one that **references the new one** (its
+number/URL) and states what it supersedes. The old thread is a durable, public
+record: another agent (or the next `pr-validator` running comment intake) arriving
+at it must be able to follow the thread to where the work continued, and issue
+comments are the coordination channel (B2b). Never silently abandon a closed or
+replaced PR/issue; the reference comment is mandatory, not optional. (A closed PR
+whose diff never landed also has no tag/CHANGELOG; the new PR is the landing
+vehicle.)
+
+**If the BLOCK is body-only (no code change), fix the body then PREFER the
+`rerun` LABEL** — the org ships a plain per-repo `rerun-listener` (distributed
+by `opencharly/.github`'s `distribute-rerun-listener`) that re-runs THIS head's
 failed `charly/pr-validator` run on the same `GITHUB_SHA`, updating the SAME
 `validate / validate` check run IN PLACE (no duplicate, clears POISON) and
-re-reading the corrected body. NO empty commit. The manual equivalent is
-`gh run rerun <run-id>` on the failed run. (A body edit alone does NOT re-run the
-REQUIRED workflow — MEASURED: it ignores `on.types`; do not rely on `edited`.)
-See the SKILL's "THE BODY-BEFORE-PUSH RULE".
+re-reading the corrected body; the manual equivalent is `gh run rerun <run-id>`
+on the failed run. An empty re-freeze commit ALSO re-fires the gate (a
+`synchronize` push) but mints a NEW head SHA. (A body edit alone does NOT re-run
+the REQUIRED workflow — MEASURED: it ignores `on.types`; do not rely on
+`edited`.) See the SKILL's "THE BODY-BEFORE-PUSH RULE".
 
 ## The POISON state — a duplicate same-name check-run keeps a PASS PR BLOCKED
 

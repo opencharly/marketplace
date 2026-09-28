@@ -115,6 +115,175 @@ bin/charly | grep '<a string unique to the fix>'` (a new error message, flag nam
 symbol). The stamp answers "which commit"; the `strings` marker answers "is my change
 actually in this binary".
 
+## B2b — cross-session coordination: the PR comment is the channel
+
+Sessions are independent and OWN their artifacts (umbrella rule 9): a branch,
+worktree, file, or PR you did not create is another session's, and you never
+edit, revert, reformat, stage, or commit it — not even to "clean up" or unblock
+yourself.
+
+**When another session's PR blocks you** (a projection lands before the source
+that pins it; a consumer pin needs the producer merged; a shared file is
+mid-flight on their branch), the ONE sanctioned channel is a **PR comment on the
+PR that owns the blocking file** (or a new issue naming it). The comment must be
+actionable: name your session slug, the exact file/gitlink/pin you need, what
+change unblocks you, and the evidence. Then STOP; if it stays blocked, ask the
+operator. Never work around it (R4), never edit their artifact, never
+force-land, and never `-D`/reset their branch.
+
+**A fresh `pr-validator` runs comment intake**: every comment on the PR is
+investigated independently and weighed in the verdict (see
+`marketplace/internals/agents/pr-validator.md` "Comment intake"). So a
+coordination comment is not noise — it is the durable record the next reviewer
+reads. Reply on the same thread; do not open a duplicate PR for scope already in
+flight (the universal PR-gate audit).
+
+**Search first; file and OWN an issue.** Before starting any non-trivial work
+— and before filing anything — search the whole org for an EXISTING issue or PR
+covering it (`gh search issues <terms>`, `gh search prs <terms>`,
+`gh issue list -S <terms>`) and ADD to that thread (a comment with your
+evidence/plan) rather than creating a duplicate. If none exists, create ONE
+proper issue (a specific title, the problem, the evidence, the intended scope)
+and reference it from every PR (`Closes #N` / `relates to #N`). Never open a
+duplicate issue or PR.
+
+**The issue is the coordination point — claim it before you branch.** To stop
+two sessions working the same issue at once: check the issue for an owner
+(assignee, a claim comment, a status label); CLAIM it by commenting (and
+assigning yourself) BEFORE you create a branch, and state what slice you are
+taking. If another session owns it, coordinate on the thread — offer to take a
+slice, ask for status, or hand off — instead of opening a competing PR. Use
+issue comments for every cross-session move (claim, block, hand-off, duplicate,
+supersede); they are the durable record the next agent reads. **Replacing a thread?** When
+you replace a PR or an issue with a new one, comment on the OLD one referencing
+the new one (see "Replacing a PR or an ISSUE" in `references/validator-and-calver.md`).
+
+**Close the issue when its PR merges.** A PR that resolves an issue references it
+(`Closes #N` / `relates to #N`), and the author (or an agent) MUST ensure the issue
+is CLOSED once the resolving PR merges — never leave a resolved issue open. If the
+merge did not auto-close it (no `Closes` keyword, a squash that dropped it, or a
+manual merge), close it explicitly and comment the resolving PR/commit. An issue
+with no merged resolving PR is not resolved; do not close it as done.
+
+**Before EVERY push, read the NEW comments on the PR AND on every related
+issue.** The pre-update-push read covers issues too: check the PR's comments +
+checks AND the latest comments/state of each issue the PR closes or relates to,
+and ACT on each (answer, claim, hand off, or satisfy it in the pushed state).
+An unread issue reply can mean another session has claimed or changed the work
+since you branched.
+
+**The commenting session MUST follow up.** A coordination comment is not
+fire-and-forget: after posting it, the blocked session re-checks that PR's thread
+for a reply at every natural step — before its own next push/commit, when it
+resumes, and at a BOUNDED cadence (a bounded poll, never a `sleep` loop — R4). When
+the owning session answers, react accordingly: proceed if unblocked, refine or
+answer if clarification is asked, or escalate to the operator if it stays blocked.
+A one-shot comment with no follow-up leaves the block unresolved and the record
+one-sided.
+
+**The PR-owning session MUST read AND act on every comment/reply before its next
+push.** The pre-update-push read (the "BEFORE ANY UPDATE PUSH" invariant) requires
+reading the thread; it equally requires ACTING on it — each comment, including a
+blocked session's reply, is answered in-thread or addressed in the pushed state.
+Pushing while an unanswered comment stands is a violation: the fresh `pr-validator`
+weighs the whole thread (comment intake), so an unaddressed comment is a real
+finding, not noise. The loop is: blocked session comments → owning session
+answers/acts → blocked session re-checks and reacts.
+
+### B2b.1 — agent identity and the coordination verb grammar
+
+**Identity is in the footers; authority is in the verb.** An agent
+identifies itself with TWO italic lines at the END of a comment or PR
+body — the `Assisted-by` trailer (unchanged) and, AFTER it, a separate
+`Agent:` line naming the WORK and the session. The slug is NEVER appended
+to `Assisted-by`:
+
+```markdown
+*Assisted-by: <Harness> <Provider Model> (<confidence>)*
+*Agent: `<slug>` · session `<ses_…>`*
+```
+
+- **agent slug** — a stable, human-readable, kebab-case name the session
+  chooses for the WORK (`c7-plugin-adoption`), never the harness or the
+  GitHub account. It is the authority key.
+- **session** — the harness session id.
+
+**Optional by default; MANDATORY on the trigger.** Neither the `Agent:`
+line nor the verb grammar is required of a solo agent on an uncontended PR
+— never tax every comment. They become MANDATORY the moment EITHER holds:
+
+1. **two or more agents work the same issue or PR**, or
+2. **the scope is a blocking dependency** (any `BLOCKS` / `UNBLOCKS` is in play).
+
+On a triggered scope, EVERY agent-authored comment and PR body carries the
+two-line footer, and coordination comments open with the verb.
+
+**The first non-blank line of a coordination comment is ONE label from a
+CLOSED set**, uppercase, then sharp prose in proper GitHub Markdown
+(headings, bold, tables, inline code):
+
+| Verb | Means | Required fields |
+|---|---|---|
+| `CLAIM` | taking a scope before branching | scope ref, your slug, the slice |
+| `OWNING` | the standing owner of a live scope | scope ref, your slug |
+| `HANDING OVER` | the owner passes the scope to a named slug | scope ref, from-slug, to-slug, state + next step |
+| `TAKING OVER` | a slug assumes an unowned or window-expired scope | scope ref, your slug, `authority:` |
+| `BLOCKS` | this scope is blocked | blocked ref, blocking ref, what unblocks |
+| `UNBLOCKS` | the block is cleared | blocked ref, who cleared it |
+| `STATUS` | progress, no authority change | scope ref, your slug, state |
+| `RESOLVED` | the scope is done | merged PR ref + `v<CalVer>` tag |
+
+Rendered example — a claim on a PR:
+
+```markdown
+**CLAIM** — `opencharly/layer-charly-internals#41`
+
+Claiming the `git-workflow` B2b identity/grammar slice; will push `feat/agent-coord-grammar`.
+
+*Assisted-by: OpenCode opencode-go/deepseek-v4.1-flash (analysed on a live system)*
+*Agent: `agent-coord-grammar` · session `ses_f1ca67065ffe71KOr87cfv8aNw`*
+```
+
+**Same-account authority — the slug is authoritative, not the GitHub
+author.** Sessions on one host share ONE account, so the comment author
+field cannot tell two agents apart; across accounts it still cannot name
+the work. For a scope, the LATEST `OWNING` (or `TAKING OVER`) comment
+wins. An agent MUST NOT push to a branch/PR another slug has claimed
+unless (a) a `HANDING OVER` addressed it, (b) it posts `TAKING OVER`
+naming its authority, or (c) the operator authorizes it. A coordinator
+relaying another leg's status is NOT a claim — a claim requires the verb.
+
+**Takeover authority and the window.** A `TAKING OVER` comment MUST cite
+`authority: hand-off | operator | window-expired` and MUST be posted
+BEFORE the first push to the taken scope. The window runs on the scope's
+ARTIFACTS — the `charly/pr-validator` run COMPLETING on a new head, a new
+commit, or a new comment — never on session activity: a looping agent
+never falls quiet, and a peer waiting on a RUNNING validator is NOT
+stalled. A scope with none of those for the window (default 30 minutes)
+is `window-expired`.
+
+**Delegation ≠ impersonation.** An agent NEVER impersonates the operator:
+no comment, sign-off, or approval may claim to BE them. But a sign-off
+posted at the operator's EXPLICIT direction — labelled as delegated and
+carrying the agent's OWN two-line identity footer — IS a valid sign-off.
+The validator's rulebook accepts exactly this form (`AI_REVIEW_PROMPT`'s
+"VALID — operator-DELEGATED"); the skill and the validator must agree.
+
+**Grep the grammar** (the label is the first non-blank uppercase line):
+
+```bash
+gh pr view <n> --repo <r> --json comments --jq '.comments[].body' \
+  | grep -E '^(CLAIM|OWNING|HANDING OVER|TAKING OVER|BLOCKS|UNBLOCKS|STATUS|RESOLVED)\b'
+gh pr view <n> --repo <r> --json comments --jq '.comments[].body' \
+  | grep -oE 'Agent: `[^`]+`'         # who has a voice on this PR
+```
+
+**Lifecycle:** search → `CLAIM` (comment + assign where possible) → work →
+`HANDING OVER` → `RESOLVED` (link the merged PR + its CalVer tag, and close
+the resolved issue). The SAME protocol applies across accounts and
+harnesses — the footer carries identity regardless of who owns the GitHub
+account; there is no per-account case.
+
 ## B3 — agent teams in per-teammate worktrees
 
 When an agent team parallelizes work, **each teammate works in its OWN worktree**
