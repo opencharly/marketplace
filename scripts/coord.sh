@@ -21,7 +21,7 @@
 # USAGE
 #   coord.sh <VERB> <owner/repo#num> [--body TEXT | --body-file FILE] [OPTIONS]
 #
-#   <VERB>        one of CLAIM OWNING HANDING-OVER TAKING-OVER BLOCKS UNBLOCKS
+#   <VERB>        one of CLAIM OWNING HANDING OVER TAKING OVER BLOCKS UNBLOCKS
 #                 STATUS RESOLVED. Case-insensitive; `-`, `_` and runs of spaces
 #                 all normalise to the canonical spaced upper-case label.
 #   <owner/repo#num>
@@ -64,6 +64,7 @@ TIERS=(
 
 usage() { sed -n '/^# USAGE/,/^# EXIT/p' "$0" | sed 's/^# \{0,1\}//'; }
 die() { printf '%s: %s\n' "$PROG" "$*" >&2; exit 2; }
+miss() { printf '%s: %s\n' "$PROG" "$*" >&2; exit 3; }
 fail() { printf '%s: %s\n' "$PROG" "$*" >&2; exit 5; }
 need() { [ "$#" -ge 2 ] || die "option $1 needs a value"; }
 have() { command -v "$1" >/dev/null 2>&1; }
@@ -73,9 +74,18 @@ verb= target= body= body_file=
 agent=${COORD_AGENT:-} session=${COORD_SESSION:-}
 harness=${COORD_HARNESS:-} model=${COORD_MODEL:-}
 confidence=${COORD_CONFIDENCE:-}
-assign=0 dry=0
+assign=0 dry=0 literal=0
+
+positional() {
+  if [ -z "$verb" ]; then verb=$1
+  elif [ -z "$target" ]; then target=$1
+  else die "unexpected argument: $1"; fi
+}
 
 while [ "$#" -gt 0 ]; do
+  if [ "$literal" = 1 ]; then
+    positional "$1"; shift; continue
+  fi
   case "$1" in
     -h | --help) usage; exit 0 ;;
     --body) need "$@"; body=$2; shift 2 ;;
@@ -87,18 +97,9 @@ while [ "$#" -gt 0 ]; do
     --confidence) need "$@"; confidence=$2; shift 2 ;;
     --assign) assign=1; shift ;;
     --dry-run | --print) dry=1; shift ;;
-    --) shift; break ;;
+    --) literal=1; shift ;;
     -*) die "unknown option: $1 (try --help)" ;;
-    *)
-      if [ -z "$verb" ]; then
-        verb=$1
-      elif [ -z "$target" ]; then
-        target=$1
-      else
-        die "unexpected argument: $1"
-      fi
-      shift
-      ;;
+    *) positional "$1"; shift ;;
   esac
 done
 
@@ -130,7 +131,6 @@ fi
 
 # --- parse the target -------------------------------------------------------
 item=${target#https://github.com/}
-item=${item%.git}
 if [[ $item =~ ^([^/]+)/([^/#]+)#([0-9]+)$ ]]; then
   owner=${BASH_REMATCH[1]} repo=${BASH_REMATCH[2]} num=${BASH_REMATCH[3]}
 elif [[ $item =~ ^([^/]+)/([^/]+)/(pull|issues)/([0-9]+)$ ]]; then
@@ -154,8 +154,8 @@ if [ "$dry" = 1 ]; then
 fi
 
 # --- post ---------------------------------------------------------------
-have gh || fail "gh not found on PATH"
-have jq || fail "jq not found on PATH"
+have gh || miss "gh not found on PATH"
+have jq || miss "jq not found on PATH"
 
 payload=$(mktemp)
 trap 'rm -f "$payload"' EXIT

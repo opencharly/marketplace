@@ -71,12 +71,30 @@ export PATH="$WORK/bin:$PATH" CALLS
 
 common=(--agent slug-x --session ses_test --harness OpenCode --model "DeepSeek V4.1 Flash" --confidence "documentation reviewed")
 
-# 1. --help exits 0 and names every verb.
+# 1. --help exits 0 and names every verb (the EXACT canonical spaced labels).
 "$COORD" --help > "$WORK/help.txt" 2>&1
 eq "$?" 0 "coord.sh --help exits 0"
-for v in CLAIM OWNING HANDING OVER TAKING OVER BLOCKS UNBLOCKS STATUS RESOLVED; do
-  grep -q "$v" "$WORK/help.txt" && ok "help lists verb $v" || bad "help lists verb $v"
+for v in CLAIM OWNING "HANDING OVER" "TAKING OVER" BLOCKS UNBLOCKS STATUS RESOLVED; do
+  grep -qF "$v" "$WORK/help.txt" && ok "help lists the canonical label $v" || bad "help lists the canonical label $v"
 done
+
+# 2. unknown option → exit 2.
+"$COORD" STATUS acme/widget#1 "${common[@]}" --bogus --dry-run >/dev/null 2>&1
+eq "$?" 2 "unknown option exits 2"
+
+# 2b. `--` ends option parsing (flags first, then `--`, then the positionals).
+out=$("$COORD" --agent slug-x --session ses_test --harness OpenCode --model M \
+  --confidence "documentation reviewed" --dry-run -- STATUS acme/widget#1 2>/dev/null)
+eq "$(printf '%s\n' "$out" | head -1)" "STATUS" "-- ends option parsing; the verb parses positionally after it"
+
+# 2c. missing gh on PATH → exit 3.
+BASH_BIN=$(command -v bash)
+mkdir -p "$WORK/min"
+for t in sed tr cat mktemp dirname; do
+  src=$(command -v "$t" 2>/dev/null) && ln -sf "$src" "$WORK/min/$t"
+done
+PATH="$WORK/min" "$BASH_BIN" "$COORD" STATUS acme/widget#1 "${common[@]}" >/dev/null 2>&1
+eq "$?" 3 "a missing gh on PATH exits 3 (the missing-tool class)"
 
 # 2. invalid verb → exit 2.
 "$COORD" NONSENSE acme/widget#1 "${common[@]}" --dry-run >/dev/null 2>&1
