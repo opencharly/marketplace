@@ -3,28 +3,9 @@
 # chosen EVENT fires. The harness notifies the caller when this background command
 # finishes, so exiting IS the notification.
 #
-# THE HARNESS CONSTRAINT (why --auto-rearm exists)
-#   An agent is woken ONLY when a background command COMPLETES. A watcher that never
-#   exits therefore gives NO wake, and a one-shot watcher that exits leaves NOTHING
-#   watching until an agent re-arms it — a step that gets dropped (field evidence:
-#   multiple times nothing was watching; duplicate watchers stacked; the API budget
-#   was exhausted). Two supported patterns:
-#     * PER-EVENT notify — a one-shot run (default `--no-rearm`): it exits on the
-#       event, the harness wakes the agent, and the AGENT re-arms. Best when the agent
-#       must act on every event.
-#     * DURABILITY — `--auto-rearm`: on exit the watcher DETACHES a successor with the
-#       SAME args, lock-guarded so EXACTLY ONE stays active, so a watch is ALWAYS
-#       alive independent of the agent. Best for a standing watch.
-#   `--auto-rearm` keeps a WATCH alive; the AGENT's re-arm keeps NOTIFICATIONS alive.
-#   A durable supervisor never exits ⇒ never wakes, so it is NOT the answer.
-#
-# SINGLE INSTANCE: a per-args lockfile (flock) means repeated arms NEVER stack. A
-# foreground arm TAKES OVER a live peer watcher (or a detached successor) cleanly.
-#
-# RATE LIMITS: pollers share the account's 5000/hr core budget. Before polling, and
-# during the loop, the remaining quota is read from the FREE `/rate_limit` endpoint;
-# below $WATCH_RATE_MIN (default 200) the watcher BACKS OFF (a longer sleep) instead of
-# hammering — the observed HTTP-403 watcher-death.
+# SELF-SUSTAINING LOOP — see the ONE canonical statement in `_watch_common.sh`
+#   ("THE HARNESS CONSTRAINT", `--auto-rearm`, the single-instance lock, the rate-limit
+#   discipline). This script carries only a pointer so the explanation lives ONCE.
 #
 # Fully generic: no org, repo, session, or date is baked in — everything is env/args.
 # Use it for anything you are waiting on: a PR that BLOCKS you (wake when it merges),
@@ -134,10 +115,8 @@ command -v flock >/dev/null 2>&1 || { echo "gh_watch: flock not found (util-linu
 
 # --- single-instance lock (one watcher per identical invocation) ----------------
 # A successor (WATCH_IS_SUCCESSOR=1) WAITS for the predecessor; a foreground arm TAKES
-# OVER a live peer. This is ONE shared policy (`watch_lock_auto`), not a copy per script.
-WATCH_KEY="$(watch_key "$ARGV0" "${ORIG_ARGS[@]}")"
-watch_lock_auto "$WATCH_KEY" || {
-  echo "gh_watch: could not acquire the watch lock for key $WATCH_KEY" >&2; exit 6; }
+# OVER a live peer. The policy lives ONCE in `watch_lock_or_exit`.
+watch_lock_or_exit "$ARGV0" "gh_watch" "${ORIG_ARGS[@]}"
 watch_install_trap "$AUTO_REARM" "$ARGV0" "${ORIG_ARGS[@]}"
 
 # Normalize ONE item to "owner/repo#num"; return 1 on anything malformed.

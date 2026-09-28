@@ -262,6 +262,28 @@ grep -q 'rearmed=unset' "$PROBE_LOG" 2>/dev/null \
   && ok "auto-rearm: the successor does NOT inherit a stale WATCH_REARMED latch" \
   || bad "successor latch" "WATCH_REARMED leaked into the successor"
 
+# ── the lock-fd liveness: a hung POLL CHILD must not hold the lock after the parent exits ──
+# A child that inherited fd 9 would keep the flock alive after the main script died, so a
+# bounded `flock -w 5 9` takeover would time out. This drives the REAL poll helpers
+# (`watch_rate_remaining` / `watch_run_latest`) against a hung `gh` and asserts a takeover
+# still succeeds. Fails without the `exec 9>&-` in those helpers.
+HUNGBIN="$WORK/hungbin"; mkdir -p "$HUNGBIN"
+printf '#!/usr/bin/env bash\nsleep 20\n' > "$HUNGBIN/gh"; chmod +x "$HUNGBIN/gh"
+HUNG_KEY="$(watch_key hung-lock-test)"
+(
+  PATH="$HUNGBIN:$PATH" bash -c '
+    . "$1/_watch_common.sh"
+    watch_lock "$2" --takeover || exit 1
+    watch_rate_remaining >/dev/null 2>&1 &   # spawns the hung `gh` child
+    watch_run_latest owner/repo WF >/dev/null 2>&1 &
+    command sleep 0.5
+  ' _ "$HERE" "$HUNG_KEY" )   # parent exits here; the hung children linger
+sleep 1
+( . "$HERE/_watch_common.sh"; watch_lock "$HUNG_KEY" --takeover ) \
+  && ok "lock-fd: a hung poll child does not hold the lock after the parent exits" \
+  || bad "lock-fd liveness" "a hung gh child kept the flock (fd 9 leaked)"
+pkill -f "$HUNGBIN/gh" 2>/dev/null
+
 # ── the single-instance lock: among two SEPARATE processes, exactly one holds ──
 # A probe sources _watch_common.sh, acquires the lock (taking over any peer), reports
 # the holder, then holds briefly. `sleep N 9>&-` is ESSENTIAL — the sleep child must

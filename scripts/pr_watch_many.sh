@@ -4,23 +4,9 @@
 # validator workflow name are all configurable; no org, repo, session, or date is
 # baked in.
 #
-# THE HARNESS CONSTRAINT (why --auto-rearm exists)
-#   An agent is woken ONLY when a background command COMPLETES. A watcher that never
-#   exits therefore gives NO wake, and a one-shot watcher that exits leaves NOTHING
-#   watching until an agent re-arms it — a step that gets dropped (field evidence:
-#   multiple times nothing was watching; duplicate watchers stacked; the API budget
-#   was exhausted). Two supported patterns:
-#     * PER-EVENT notify — a one-shot run (default `--no-rearm`): it exits on the
-#       event, the harness wakes the agent, and the AGENT re-arms.
-#     * DURABILITY — `--auto-rearm`: on exit the watcher DETACHES a successor with the
-#       SAME args, lock-guarded so EXACTLY ONE stays active, so a watch is ALWAYS
-#       alive independent of the agent.
-#   `--auto-rearm` keeps a WATCH alive; the AGENT's re-arm keeps NOTIFICATIONS alive.
-#   A durable supervisor never exits ⇒ never wakes, so it is NOT the answer.
-#
-# SINGLE INSTANCE: a per-args lockfile (flock) means repeated arms NEVER stack.
-# RATE LIMITS: the remaining core quota is read from the FREE `/rate_limit` endpoint;
-# below $WATCH_RATE_MIN (default 200) the watcher BACKS OFF instead of hammering.
+# SELF-SUSTAINING LOOP — see the ONE canonical statement in `_watch_common.sh`
+#   ("THE HARNESS CONSTRAINT", `--auto-rearm`, the single-instance lock, the rate-limit
+#   discipline). This script carries only a pointer so the explanation lives ONCE.
 #
 # SIGNALS
 #   0  PR TERMINAL  a watched PR reaches MERGED / BLOCKED / CLOSED, delegated to
@@ -157,10 +143,8 @@ cleanup() {
 
 # --- single-instance lock (one watcher per identical invocation) ----------------
 # A successor (WATCH_IS_SUCCESSOR=1) WAITS for the predecessor; a foreground arm TAKES
-# OVER a live peer. This is ONE shared policy (`watch_lock_auto`), not a copy per script.
-WATCH_KEY="$(watch_key "$ARGV0" "${ORIG_ARGS[@]}")"
-watch_lock_auto "$WATCH_KEY" || {
-  echo "pr_watch_many: could not acquire the watch lock for key $WATCH_KEY" >&2; exit 6; }
+# OVER a live peer. The policy lives ONCE in `watch_lock_or_exit`.
+watch_lock_or_exit "$ARGV0" "pr_watch_many" "${ORIG_ARGS[@]}"
 watch_set_rearm "$AUTO_REARM" "$ARGV0" "${ORIG_ARGS[@]}"
 # Capture $? FIRST: in `trap 'a; b $?'` the `$?` expands AFTER `a` runs, so it would be
 # cleanup's status, never the script's real exit code — the guard for 5/6/143 would then

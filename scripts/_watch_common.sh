@@ -8,14 +8,6 @@
 #
 # Requires at call time (verified by the sourcing script): bash, gh, jq, flock.
 #
-# THE HARNESS CONSTRAINT THIS FILE EXISTS FOR
-#   An agent is woken ONLY when a background command COMPLETES. So a watcher that never
-#   exits produces NO wake, and a one-shot watcher that exits leaves NOTHING watching
-#   until an agent re-arms it — a step that gets dropped. The resolution: keep a watch
-#   ALIVE with `--auto-rearm` (each run, on exit, detaches a successor with the SAME
-#   args, lock-guarded so exactly ONE is ever active) while the AGENT's re-arm keeps
-#   NOTIFICATIONS alive. See `watch_install_trap` / `watch_rearm`.
-#
 # DETERMINISTIC TEST SEAMS (env overrides; all unset in production):
 #   WATCH_SLEEP_HOOK <secs>              called INSTEAD of sleeping (assert backoff)
 #   WATCH_REARM_HOOK <script> <args...>  called INSTEAD of the detached successor spawn
@@ -23,6 +15,28 @@
 #   WATCH_RUNTIME_DIR                    where lock/holder/log files live
 #   WATCH_RATE_MIN                       back off below this core quota (default 200)
 #   WATCH_RATE_MAX_SLEEP                 backoff ceiling, seconds (default 600)
+#
+# ── THE HARNESS CONSTRAINT (why --auto-rearm exists) ── ONE canonical statement here ──
+#   An agent is woken ONLY when a background command COMPLETES. A watcher that never
+#   exits therefore gives NO wake, and a one-shot watcher that exits leaves NOTHING
+#   watching until an agent re-arms it — a step that gets dropped (field evidence:
+#   nothing was watching; duplicate watchers stacked; the API budget was exhausted).
+#   Two supported patterns:
+#     * PER-EVENT notify — a one-shot run (default `--no-rearm`): it exits on the event,
+#       the harness wakes the agent, and the AGENT re-arms.
+#     * DURABILITY — `--auto-rearm`: on a non-terminal exit the watcher DETACHES a
+#       successor with the SAME args, lock-guarded so EXACTLY ONE stays active, so a
+#       watch is ALWAYS alive independent of the agent.
+#   `--auto-rearm` keeps a WATCH alive; the AGENT's re-arm keeps NOTIFICATIONS alive (a
+#   detached successor's event line goes to its log, so the agent is woken only by the
+#   watcher the AGENT armed). A durable supervisor never exits ⇒ never wakes, so it is
+#   NOT the answer.
+#   SINGLE INSTANCE: a per-args lockfile (flock) — repeated arms NEVER stack; a
+#   foreground arm TAKES OVER a live peer cleanly.
+#   RATE LIMITS: pollers share the account's 5000/hr core budget; the remaining quota is
+#   read from the FREE `/rate_limit` endpoint and the watcher BACKS OFF below
+#   $WATCH_RATE_MIN instead of hammering into the observed HTTP-403 wall.
+# ── The two watcher scripts carry only a one-line pointer to this block. ──
 
 # watch_usage <script-path> — print a script's leading comment block (shebang
 # excluded) as its usage text, so `--help` is derived from the file itself and can
@@ -164,14 +178,26 @@ watch_lock() {
 
 # watch_lock_auto <key> — acquire the lock with the RIGHT policy for this process's
 # role: a detached successor (WATCH_IS_SUCCESSOR=1) WAITS for the predecessor to
-# release; a foreground arm TAKES OVER a live peer. ONE implementation (R3) — the two
-# watchers call this and differ only in their error-message prefix.
-# Returns 0 on acquire; 1 if not acquired (the caller prints its message + exit 6).
+# release; a foreground arm TAKES OVER a live peer. ONE implementation (R3).
+# Returns 0 on acquire; 1 if not acquired.
 watch_lock_auto() {
   if [ "${WATCH_IS_SUCCESSOR:-0}" = "1" ]; then
     watch_lock "$1" --wait 120 || watch_lock "$1" --takeover
   else
     watch_lock "$1" --takeover
+  fi
+}
+
+# watch_lock_or_exit <argv0> <name> [args...] — compute the per-args key, acquire the
+# lock with the role-appropriate policy, and on failure print `<name>: …` and exit 6.
+# ONE shared implementation (R3) — the two watchers differ only in the <name> prefix.
+watch_lock_or_exit() {
+  local argv0="$1" name="$2"; shift 2
+  local key
+  key="$(watch_key "$argv0" "$@")"
+  if ! watch_lock_auto "$key"; then
+    echo "$name: could not acquire the watch lock for key $key" >&2
+    exit 6
   fi
 }
 
