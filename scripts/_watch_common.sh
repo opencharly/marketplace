@@ -177,14 +177,31 @@ watch_lock() {
 }
 
 # watch_lock_auto <key> — acquire the lock with the RIGHT policy for this process's
-# role: a detached successor (WATCH_IS_SUCCESSOR=1) WAITS for the predecessor to
-# release; a foreground arm TAKES OVER a live peer. ONE implementation (R3).
+# role. THREE cases, and the FIRST is why exactly ONE watcher is ever live:
+#
+#   1. WATCH_INHERITED_LOCK=1 — a DETACHED SUCCESSOR, which INHERITED fd 9 (the flock)
+#      from the process that spawned it. It ALREADY holds the lock (the flock lives on
+#      the open file description the parent and child share) — so it does NOT acquire,
+#      does NOT wait, and does NOT close the fd. The lock is therefore held CONTINUOUSLY
+#      across the hand-off: no gap (a new arm can never slip in) and no WAITER (so no
+#      second live process). It only refreshes the holder PID so a later takeover
+#      targets it. THIS is what makes `--auto-rearm` "exactly ONE live watcher".
+#   2. WATCH_IS_SUCCESSOR=1 (spawned WITHOUT fd inheritance — the fallback path) — it
+#      waits briefly for the predecessor to release, then takes over.
+#   3. otherwise (a foreground arm) — it TAKES OVER a live peer cleanly.
+#
 # Returns 0 on acquire; 1 if not acquired.
 watch_lock_auto() {
+  local key="$1"
+  if [ "${WATCH_INHERITED_LOCK:-0}" = "1" ]; then
+    WATCH_LOCK_KEY="$key"
+    printf '%s' "$$" > "$(watch_holder_file "$key")" 2>/dev/null || true
+    return 0
+  fi
   if [ "${WATCH_IS_SUCCESSOR:-0}" = "1" ]; then
-    watch_lock "$1" --wait 120 || watch_lock "$1" --takeover
+    watch_lock "$key" --wait 5 || watch_lock "$key" --takeover
   else
-    watch_lock "$1" --takeover
+    watch_lock "$key" --takeover
   fi
 }
 
@@ -199,6 +216,26 @@ watch_lock_or_exit() {
     echo "$name: could not acquire the watch lock for key $key" >&2
     exit 6
   fi
+  watch_wait_predecessor
+}
+
+# watch_wait_predecessor — a successor holds the lock (inherited), but its PREDECESSOR
+# may still be in its exit path. Wait (bounded) for the predecessor PID to vanish so
+# that AT MOST ONE process is ever in the poll loop — the invariant that makes
+# `--auto-rearm` "exactly ONE live watcher". The lock is already held, so this wait
+# introduces NO gap and is NOT a lock contention (no other process can slip in). A
+# no-op for a foreground arm (no WATCH_PREDECESSOR_PID). Bound: WATCH_PREDECESSOR_WAIT
+# (default 15s).
+watch_wait_predecessor() {
+  local pp="${WATCH_PREDECESSOR_PID:-}"
+  [ -n "$pp" ] || return 0
+  [ "$pp" = "$$" ] && return 0
+  local tries=0 max=$(( ${WATCH_PREDECESSOR_WAIT:-15} * 50 ))
+  while [ "$tries" -lt "$max" ] && kill -0 "$pp" 2>/dev/null; do
+    command sleep 0.02
+    tries=$((tries + 1))
+  done
+  return 0
 }
 
 # watch_cleanup_lock — remove the holder file IFF it is still ours (so a takeover's
@@ -211,23 +248,28 @@ watch_cleanup_lock() {
 }
 
 # watch_rearm <script> <args...> — detach a successor with the SAME args, so the
-# watch survives this process exiting. The successor is told it is a successor via
-# WATCH_IS_SUCCESSOR=1 (NOT WATCH_REARMED, which is a run-local latch and would also
-# wrongly suppress the child's OWN future re-arm) so its `watch_lock_auto` WAITS for us
-# to release the lock instead of killing us. Prints the successor PID + log to stderr.
+# watch survives this process exiting. ATOMIC LOCK HAND-OFF: the successor INHERITS our
+# flock fd (fd 9, NOT closed) and is told so via WATCH_INHERITED_LOCK=1, so it already
+# holds the lock — the lock is held CONTINUOUSLY across the swap, with NO waiter and NO
+# gap (a new arm can never slip in, and there is never a second live watcher). It also
+# gets WATCH_IS_SUCCESSOR=1 (for the fallback path where fd inheritance is unavailable).
+# Prints the successor PID + log to stderr so the event line on stdout stays clean.
 watch_rearm() {
   local script="$1"; shift
   local key log
   key="$(watch_key "$script" "$@")"
   log="$(watch_log_file "$key")"
   if [ -n "${WATCH_REARM_HOOK:-}" ]; then "$WATCH_REARM_HOOK" "$script" "$@"; return 0; fi
-  # 9>&- is ESSENTIAL: the successor must NOT inherit our flock fd (fd 9), or it would
-  # hold its own lock and deadlock on its own `watch_lock --wait`. The successor
-  # re-acquires the lock fresh AFTER we exit and release it.
+  # NOTE: fd 9 is deliberately INHERITED (no `9>&-`): the child shares the open file
+  # description, so the flock is held across the hand-off with no gap and no waiter.
+  # WATCH_PREDECESSOR_PID lets the successor wait for US to exit before it polls, so at
+  # most ONE process is ever in the poll loop.
   if command -v setsid >/dev/null 2>&1; then
-    WATCH_IS_SUCCESSOR=1 setsid nohup "$script" "$@" </dev/null >>"$log" 2>&1 9>&- &
+    WATCH_INHERITED_LOCK=1 WATCH_IS_SUCCESSOR=1 WATCH_PREDECESSOR_PID="$$" \
+      setsid nohup "$script" "$@" </dev/null >>"$log" 2>&1 &
   else
-    WATCH_IS_SUCCESSOR=1 nohup "$script" "$@" </dev/null >>"$log" 2>&1 9>&- &
+    WATCH_INHERITED_LOCK=1 WATCH_IS_SUCCESSOR=1 WATCH_PREDECESSOR_PID="$$" \
+      nohup "$script" "$@" </dev/null >>"$log" 2>&1 &
   fi
   disown 2>/dev/null || true
   printf 'RE-ARMED  successor pid %s → %s\n' "$!" "$log" >&2
@@ -244,6 +286,10 @@ WATCH_REARMED=0           # 1 = a successor was ALREADY spawned by THIS run (a l
 # `watch_lock_auto` to WAIT for the predecessor instead of taking over. Resetting it
 # (as a bare `WATCH_IS_SUCCESSOR=0` here would) would clobber the child's env flag.
 : "${WATCH_IS_SUCCESSOR:=0}"
+# WATCH_INHERITED_LOCK=1 marks a successor that INHERITED fd 9 (the flock) and already
+# holds the lock — the atomic hand-off that makes `--auto-rearm` "exactly ONE live
+# watcher". Never reset (a bare `WATCH_INHERITED_LOCK=0` would clobber the child's env).
+: "${WATCH_INHERITED_LOCK:=0}"
 
 # watch_set_rearm <rearm 0|1> <script> [args...] — record the re-arm policy and the
 # exact command line a successor must re-run. Installs no trap (the script owns it).

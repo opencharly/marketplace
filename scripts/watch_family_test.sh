@@ -300,6 +300,39 @@ sleep 1
   || bad "lock-fd liveness" "a hung gh child kept the flock (fd 9 leaked)"
 pkill -f "$HUNGBIN/gh" 2>/dev/null
 
+# ── the AUTO-REARM hand-off is ATOMIC: the successor INHERITS the flock (fd 9). ──
+# RCA for the field report (three identical-arg watchers live at once): the successor
+# used to be spawned with fd 9 CLOSED and WAITED for the lock, so a holder + waiter
+# coexisted and a `--takeover` raced the waiter. The fix INHERITS fd 9 (the same open
+# file description → the flock is held ACROSS the hand-off with no gap and no waiter)
+# and marks the child WATCH_INHERITED_LOCK=1 + WATCH_PREDECESSOR_PID. This drives the
+# REAL watch_rearm and asserts, from the probe child, that it (a) is marked INHERITED,
+# (b) ALREADY HOLDS the flock (fd 9 is open and `flock -n 9` succeeds), and (c) carries
+# the predecessor PID (so it will not poll until the predecessor exits) — the three
+# properties whose absence reproduced the stacking.
+PROBE2="$WORK/probe-inherit"
+cat > "$PROBE2" <<'PI'
+#!/usr/bin/env bash
+inherited="${WATCH_INHERITED_LOCK:-unset}"
+pred="${WATCH_PREDECESSOR_PID:-unset}"
+holds=no; flock -n 9 2>/dev/null && holds=yes     # fd 9 inherited + already locked
+printf 'inherited=%s holds_fd9=%s pred_set=%s\n' "$inherited" "$holds" \
+  "$([ "$pred" != unset ] && echo yes || echo no)" >> "$PROBE2_LOG"
+PI
+chmod +x "$PROBE2"
+PROBE2_LOG="$WORK/inherit.log"; export PROBE2_LOG; rm -f "$PROBE2_LOG"
+bash -c '
+  . "$1/_watch_common.sh"
+  K="$(watch_key inherit-test)"
+  watch_lock "$K" --takeover || exit 1
+  WATCH_REARM_HOOK= watch_rearm "$2"
+  command sleep 0.5
+' _ "$HERE" "$PROBE2"
+sleep 1
+grep -q 'inherited=1 holds_fd9=yes pred_set=yes' "$PROBE2_LOG" 2>/dev/null \
+  && ok "auto-rearm: the successor INHERITS the flock (fd 9 held across the hand-off, no gap, no waiter)" \
+  || bad "atomic hand-off" "got: $([ -f "$PROBE2_LOG" ] && cat "$PROBE2_LOG" || echo '<no log>')"
+
 # ── the single-instance lock: among two SEPARATE processes, exactly one holds ──
 # A probe sources _watch_common.sh, acquires the lock (taking over any peer), reports
 # the holder, then holds briefly. `sleep N 9>&-` is ESSENTIAL — the sleep child must
