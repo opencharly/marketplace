@@ -61,6 +61,49 @@ full mode. (Measured: a `check live` substitution produced 26 skipped mutating
 steps + 43 downstream failures where the full `check run` had reached 6/7 steps
 green incl. every mutating install.)
 
+### Host orchestration in a bed — author it in the bed's own `check:` step
+
+A bed sometimes has to mutate the HOST (build a VM, bake a disk, push an image).
+Author that in the bed's OWN `check:` step with `context: [runtime]`:
+
+- **A bed's own `run:` step is verify-only (skipped)** — so the mutation cannot
+  live in the bed's `plan:` as a `run:`.
+- **The bed's `check:` step IS where the active binary is available.** The runner
+  executes a bed's `check:` step on the VENUE (a `host: local` bed → the host),
+  and the RUNTIME check-var resolver stamps `${CHARLY_BIN}` with the active binary
+  (the check-var-resolver contract — `sdk/kit` `NewRuntimeCheckVarResolver` /
+  `StampCharlyBin`, whose own doc names the check runtime AND the local deploy's
+  `--verify` plan run). So `${CHARLY_BIN}` drives the binary under test, not a
+  stale PATH selection. This is the ONE place to author host orchestration.
+
+  ```yaml
+  # a host: local bed whose check: step drives the host through the active binary
+  my-produce-bed:
+    local: { from: my-app, host: local, disposable: true }
+    plan:
+      - check: build + bake a VM and push its containerDisk
+        id: produce
+        context: [runtime]
+        timeout: 3600s   # REQUIRED for a long step (see below)
+        command:
+          command: |
+            set -eu
+            ${CHARLY_BIN} vm create my-base-vm --domain my-produce
+            ${CHARLY_BIN} vm bake my-base-vm --from-snapshot golden --domain my-produce --container-disk --push localhost:5099/img:1
+          in_container: false
+  ```
+
+- **`timeout:` is MANDATORY for any step longer than the never-hang ceiling
+  (~120s).** A host-orchestration step (a VM build/bake) far exceeds it; without
+  an explicit `timeout:` the probe is killed mid-run (`probe killed by never-hang
+  ceiling`) and the bed fails. Set it generously (e.g. `3600s`).
+- **The step runs at BOTH `deploy-add` AND `check-live`, so it MUST be
+  idempotent** (reuse a running registry, capture a golden only once, tolerate a
+  pre-existing domain). Guard each sub-action on its own precondition.
+- **Destroy only a `disposable: true` DEPLOY's domain.** Key the created/destroyed
+  VMs to a per-run `vm:` deploy (`--domain my-produce`) declared `disposable:
+  true` — never the shared `kind: vm` entity. See `/charly-vm:vm` "Disposability".
+
 Agent Driven Evaluation (ADE) runs an entity's own baked plan as acceptance
 tests: a `check:` step's inline verb is graded deterministically, while an
 `agent-check:` step (prose only) is graded by an AI agent via `charly box/check
