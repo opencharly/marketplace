@@ -24,17 +24,18 @@ watch_has() { case ",$2," in *",$1,"*) return 0 ;; *) return 1 ;; esac; }
 
 # watch_run_latest <owner/repo> <workflow-name> — the newest COMPLETED run of
 # <workflow-name> on <owner/repo>, as
-#   "id|conclusion|branch|updatedAt|createdEpoch"
-# or "" when there is none. The progress signal is a COMPLETED run, never session
-# activity. `createdEpoch` (Unix seconds) lets a caller reject a STALE run — one
-# created BEFORE the watcher armed — which is otherwise indistinguishable from a
-# new one when the seed lookup transiently failed. gh's own --jq takes no --arg,
-# so pipe to jq.
+#   "id|conclusion|branch|updatedAt|completedEpoch"
+# or "" when there is none. `completedEpoch` is the run's COMPLETION time in Unix
+# seconds and is the ONLY reliable newness gate: a run that completed at or before
+# the watcher armed can never be a new event, however its id compares. An id
+# compare ALONE false-fires when the "newest completed" run CHANGES to a different
+# but still-old run (a seed/poll ordering shift, or a transient seed failure).
+# gh's own --jq takes no --arg, so pipe to jq.
 watch_run_latest() {
   gh run list -R "$1" --limit 30 \
-    --json databaseId,name,status,conclusion,headBranch,updatedAt,createdAt 2>/dev/null \
+    --json databaseId,name,status,conclusion,headBranch,updatedAt 2>/dev/null \
     | jq -r --arg n "$2" '
         [.[] | select(.name==$n and .status=="completed")][0]
         | if .==null then ""
-          else "\(.databaseId)|\(.conclusion)|\(.headBranch)|\(.updatedAt)|\(.createdAt | fromdateiso8601)" end' 2>/dev/null
+          else "\(.databaseId)|\(.conclusion)|\(.headBranch)|\(.updatedAt)|\(.updatedAt | fromdateiso8601)" end' 2>/dev/null
 }
