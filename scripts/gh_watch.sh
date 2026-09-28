@@ -95,6 +95,7 @@ numeric "$STALL_MIN" || { echo "gh_watch: --stallmin must be an integer >= 0, go
 numeric "$TIMEOUT" || { echo "gh_watch: --timeout must be an integer >= 0, got '$TIMEOUT'" >&2; exit 5; }
 [ "${#ITEMS[@]}" -gt 0 ] || { echo "gh_watch: no items — pass one or more owner/repo#num (or --help)" >&2; exit 5; }
 command -v gh >/dev/null 2>&1 || { echo "gh_watch: gh not found" >&2; exit 5; }
+command -v jq >/dev/null 2>&1 || { echo "gh_watch: jq not found" >&2; exit 5; }
 
 # Normalize ONE item to "owner/repo#num"; return 1 on anything malformed.
 parse_item() {
@@ -163,13 +164,15 @@ while :; do
   for tok in "${NORM[@]}"; do
     o="${tok%%/*}"; rest="${tok#*/}"; r="${rest%%#*}"; n="${tok##*#}"
     cur="$(snapshot "$o" "$r" "$n")"
-    if [ -z "$cur" ]; then continue; fi
-    # Unknown baseline (empty seed, or the seed poll failed): adopt, do not fire.
-    if [ -z "${SEED[$tok]:-}" ]; then SEED[$tok]="$cur"; continue; fi
     IFS='|' read -r type state merged cc v up ve <<<"$cur"
     IFS='|' read -r _ _ _ pcc pv _ pve <<<"${SEED[$tok]}"
     url="https://github.com/$o/$r"
 
+    # merged/closed/comment/verdict all key on an exact per-FIELD value, so an UNKNOWN
+    # field (empty from a transient failure) never fires: merged/closed need an exact
+    # "true"/"closed"; comment needs both counts known; verdict needs a known prior id OR
+    # a run created at/after arm time. No whole-line "empty" guard is needed (snapshot
+    # always prints).
     if has merged && [ "$merged" = "true" ]; then
       printf 'MERGED   %s  (unblocked)\n' "$tok"; exit 0; fi
     if has closed && [ "$state" = "closed" ] && [ "$merged" != "true" ]; then
@@ -183,7 +186,9 @@ while :; do
       if [ -n "$pv" ] || { [ -n "$ve" ] && [ "$ve" -ge "$ARM_EPOCH" ]; }; then
         printf 'VERDICT  %s  new %s run %s  %s/actions/runs/%s\n' "$tok" "$WF" "$v" "$url" "$v"; exit 0; fi
     fi
+    # stall requires an OBSERVED open state — never alarm on an unknown state.
     if has stall && [ "$merged" != "true" ] && [ "$state" != "closed" ] \
+       && [ -n "$state" ] && [ "$state" != "unknown" ] \
        && [ $(( (now - up) / 60 )) -ge "$STALL_MIN" ]; then
       printf 'STALL    %s  no progress for %sm (open, unmerged) — takeover candidate\n' "$tok" "$STALL_MIN"; exit 0; fi
 
