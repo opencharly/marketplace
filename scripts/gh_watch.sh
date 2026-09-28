@@ -1,7 +1,30 @@
 #!/usr/bin/env bash
 # gh_watch.sh — watch a list of GitHub PRs and/or issues and wake ONCE, the moment a
 # chosen EVENT fires. The harness notifies the caller when this background command
-# finishes, so exiting IS the notification. Re-arm after each wake.
+# finishes, so exiting IS the notification.
+#
+# THE HARNESS CONSTRAINT (why --auto-rearm exists)
+#   An agent is woken ONLY when a background command COMPLETES. A watcher that never
+#   exits therefore gives NO wake, and a one-shot watcher that exits leaves NOTHING
+#   watching until an agent re-arms it — a step that gets dropped (field evidence:
+#   multiple times nothing was watching; duplicate watchers stacked; the API budget
+#   was exhausted). Two supported patterns:
+#     * PER-EVENT notify — a one-shot run (default `--no-rearm`): it exits on the
+#       event, the harness wakes the agent, and the AGENT re-arms. Best when the agent
+#       must act on every event.
+#     * DURABILITY — `--auto-rearm`: on exit the watcher DETACHES a successor with the
+#       SAME args, lock-guarded so EXACTLY ONE stays active, so a watch is ALWAYS
+#       alive independent of the agent. Best for a standing watch.
+#   `--auto-rearm` keeps a WATCH alive; the AGENT's re-arm keeps NOTIFICATIONS alive.
+#   A durable supervisor never exits ⇒ never wakes, so it is NOT the answer.
+#
+# SINGLE INSTANCE: a per-args lockfile (flock) means repeated arms NEVER stack. A
+# foreground arm TAKES OVER a live peer watcher (or a detached successor) cleanly.
+#
+# RATE LIMITS: pollers share the account's 5000/hr core budget. Before polling, and
+# during the loop, the remaining quota is read from the FREE `/rate_limit` endpoint;
+# below $WATCH_RATE_MIN (default 200) the watcher BACKS OFF (a longer sleep) instead of
+# hammering — the observed HTTP-403 watcher-death.
 #
 # Fully generic: no org, repo, session, or date is baked in — everything is env/args.
 # Use it for anything you are waiting on: a PR that BLOCKS you (wake when it merges),
@@ -31,6 +54,7 @@
 #      new commit, a new comment, a completed run, a merged tag — never by a session
 #      heartbeat or "still investigating". The stall alarm keys on the item's
 #      updated_at, so its silence is measured against artifacts, not activity.
+#   4. A WATCH MUST NEVER BE DROPPED. `--auto-rearm` keeps one alive across fires.
 #
 # comment/verdict are DELTA events: the seed records the current count/run id at start, so
 # a pre-existing comment or verdict never causes a false wake. merged/closed/stall are
@@ -48,6 +72,9 @@
 #   --stallmin MIN    stall window, minutes           (env STALL_MIN, default 60; >= 0)
 #   --workflow NAME   validator run name              (env WF,       default charly/pr-validator)
 #   --timeout SEC     overall deadline; 0 = none      (env TIMEOUT,  default 0)
+#   --auto-rearm      keep the watch ALIVE: on exit, detach a lock-guarded successor
+#                     with the SAME args (env AUTO_REARM=1)
+#   --no-rearm        one-shot: exit on the event, the agent re-arms (env AUTO_REARM=0)
 #   -h, --help        print this help and exit 0
 #
 # OUTPUT (stdout; the line's first token is the event)
@@ -58,7 +85,7 @@
 #   STALL    <item>  no progress for <MIN>m (open, unmerged) — takeover candidate
 #   TIMEOUT  no event within <SEC>s                      (only with --timeout > 0)
 #
-# EXIT  0 on an event; 4 on timeout; 5 on usage/argument/gh error.
+# EXIT  0 on an event; 4 on timeout; 5 on usage/argument/gh error; 6 on lock error.
 # A watcher must never die silently: like pr_watch_many.sh, poll WITHOUT `-e` (a
 # transient `gh` failure must skip this poll, not kill the watch) and keep `-uo pipefail`.
 set -uo pipefail
@@ -67,25 +94,31 @@ SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/_watch_common.sh
 . "$SELF_DIR/_watch_common.sh"
 
+ORIG_ARGS=("$@")
+ARGV0="$SELF_DIR/$(basename "${BASH_SOURCE[0]}")"
+
 INTERVAL="${INTERVAL:-30}"
 STALL_MIN="${STALL_MIN:-60}"
 EVENTS="${EVENTS:-merged,closed,stall}"
 WF="${WF:-charly/pr-validator}"
 TIMEOUT="${TIMEOUT:-0}"
+AUTO_REARM="${AUTO_REARM:-0}"
 ITEMS=()
 
 usage() { watch_usage "${BASH_SOURCE[0]}"; }
 
 while [ $# -gt 0 ]; do
   case "$1" in
-    --events)   EVENTS="${2:?--events needs a value}"; shift 2 ;;
-    --interval) INTERVAL="${2:?--interval needs a value}"; shift 2 ;;
-    --stallmin) STALL_MIN="${2:?--stallmin needs a value}"; shift 2 ;;
-    --workflow) WF="${2:?--workflow needs a value}"; shift 2 ;;
-    --timeout)  TIMEOUT="${2:?--timeout needs a value}"; shift 2 ;;
-    -h|--help)  usage; exit 0 ;;
-    -*)         echo "gh_watch: unknown flag $1" >&2; usage >&2; exit 5 ;;
-    *)          ITEMS+=("$1"); shift ;;
+    --events)     EVENTS="${2:?--events needs a value}"; shift 2 ;;
+    --interval)   INTERVAL="${2:?--interval needs a value}"; shift 2 ;;
+    --stallmin)   STALL_MIN="${2:?--stallmin needs a value}"; shift 2 ;;
+    --workflow)   WF="${2:?--workflow needs a value}"; shift 2 ;;
+    --timeout)    TIMEOUT="${2:?--timeout needs a value}"; shift 2 ;;
+    --auto-rearm) AUTO_REARM=1; shift ;;
+    --no-rearm)   AUTO_REARM=0; shift ;;
+    -h|--help)    usage; exit 0 ;;
+    -*)           echo "gh_watch: unknown flag $1" >&2; usage >&2; exit 5 ;;
+    *)            ITEMS+=("$1"); shift ;;
   esac
 done
 
@@ -93,9 +126,24 @@ numeric() { watch_is_uint "$1"; }
 numeric "$INTERVAL" && [ "$INTERVAL" -ge 1 ] || { echo "gh_watch: --interval must be an integer >= 1, got '$INTERVAL'" >&2; exit 5; }
 numeric "$STALL_MIN" || { echo "gh_watch: --stallmin must be an integer >= 0, got '$STALL_MIN'" >&2; exit 5; }
 numeric "$TIMEOUT" || { echo "gh_watch: --timeout must be an integer >= 0, got '$TIMEOUT'" >&2; exit 5; }
+case "$AUTO_REARM" in 0|1) ;; *) echo "gh_watch: AUTO_REARM must be 0 or 1, got '$AUTO_REARM'" >&2; exit 5 ;; esac
 [ "${#ITEMS[@]}" -gt 0 ] || { echo "gh_watch: no items — pass one or more owner/repo#num (or --help)" >&2; exit 5; }
 command -v gh >/dev/null 2>&1 || { echo "gh_watch: gh not found" >&2; exit 5; }
 command -v jq >/dev/null 2>&1 || { echo "gh_watch: jq not found" >&2; exit 5; }
+command -v flock >/dev/null 2>&1 || { echo "gh_watch: flock not found (util-linux) — required for the single-instance lock" >&2; exit 6; }
+
+# --- single-instance lock (one watcher per identical invocation) ----------------
+WATCH_KEY="$(watch_key "$ARGV0" "${ORIG_ARGS[@]}")"
+if [ "${WATCH_REARMED:-0}" = "1" ]; then
+  # a detached successor: wait for the predecessor to release, then take over if needed
+  watch_lock "$WATCH_KEY" --wait 120 || watch_lock "$WATCH_KEY" --takeover || {
+    echo "gh_watch: could not acquire the watch lock for key $WATCH_KEY" >&2; exit 6; }
+else
+  # a foreground arm: take over a live peer/successor cleanly, never stack
+  watch_lock "$WATCH_KEY" --takeover || {
+    echo "gh_watch: could not acquire the watch lock for key $WATCH_KEY" >&2; exit 6; }
+fi
+watch_install_trap "$AUTO_REARM" "$ARGV0" "${ORIG_ARGS[@]}"
 
 # Normalize ONE item to "owner/repo#num"; return 1 on anything malformed.
 parse_item() {
@@ -162,6 +210,14 @@ done
 
 start="$(date -u +%s)"
 while :; do
+  # OVERALL DEADLINE FIRST — checked before the rate gate so a rate-limit backoff can
+  # never starve the timeout (a `continue` past a bottom-of-loop check would).
+  if [ "$TIMEOUT" -gt 0 ] && [ $(( $(date -u +%s) - start )) -ge "$TIMEOUT" ]; then
+    printf 'TIMEOUT  no event within %ss\n' "$TIMEOUT"; exit 4
+  fi
+  # RATE-LIMIT DISCIPLINE: never poll when the core quota is nearly exhausted.
+  watch_rate_gate "$INTERVAL" || continue
+
   now="$(date -u +%s)"
   for tok in "${NORM[@]}"; do
     o="${tok%%/*}"; rest="${tok#*/}"; r="${rest%%#*}"; n="${tok##*#}"
@@ -175,27 +231,35 @@ while :; do
     # "true"/"closed"; comment needs both counts known; verdict needs a run that
     # COMPLETED at/after arm time. No whole-line "empty" guard is needed (snapshot
     # always prints).
+    #
+    # A STATE fire (merged/closed/stall) sets WATCH_DONE=1 and does NOT re-arm: the
+    # successor would IMMEDIATELY re-fire it (a merged PR stays merged; a stalled item
+    # stays stalled), which would livelock and burn the API budget. A DELTA fire
+    # (comment/verdict) calls watch_rearm_now — the successor is ALIVE before we print
+    # and exit, so the agent is woken AND a watch keeps running.
     if has merged && [ "$merged" = "true" ]; then
+      WATCH_DONE=1
       printf 'MERGED   %s  (unblocked)\n' "$tok"; exit 0; fi
     if has closed && [ "$state" = "closed" ] && [ "$merged" != "true" ]; then
+      WATCH_DONE=1
       printf 'CLOSED   %s  closed without merging — find its successor\n' "$tok"; exit 0; fi
     if has comment && [ -n "$cc" ] && [ -n "$pcc" ] && [ "$cc" != "$pcc" ]; then
+      watch_rearm_now
       printf 'COMMENT  %s  new comment (%s -> %s)  %s/%s/%s\n' \
         "$tok" "$pcc" "$cc" "$url" "$([ "$type" = pr ] && echo pull || echo issues)" "$n"; exit 0; fi
     if has verdict && [ -n "$v" ] && [ "$v" != "$pv" ] \
        && [ -n "$ve" ] && [ "$ve" -ge "$ARM_EPOCH" ]; then
+      watch_rearm_now
       printf 'VERDICT  %s  new %s run %s  %s/actions/runs/%s\n' "$tok" "$WF" "$v" "$url" "$v"; exit 0; fi
     # stall requires an OBSERVED open state — never alarm on an unknown state.
     if has stall && [ "$merged" != "true" ] && [ "$state" != "closed" ] \
        && [ -n "$state" ] && [ "$state" != "unknown" ] \
        && [ $(( (now - up) / 60 )) -ge "$STALL_MIN" ]; then
+      WATCH_DONE=1
       printf 'STALL    %s  no progress for %sm (open, unmerged) — takeover candidate\n' "$tok" "$STALL_MIN"; exit 0; fi
 
     SEED[$tok]="$cur"
   done
 
-  if [ "$TIMEOUT" -gt 0 ] && [ $(( now - start )) -ge "$TIMEOUT" ]; then
-    printf 'TIMEOUT  no event within %ss\n' "$TIMEOUT"; exit 4
-  fi
-  command sleep "$INTERVAL"
+  watch_sleep "$INTERVAL"
 done

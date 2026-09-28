@@ -4,6 +4,24 @@
 # validator workflow name are all configurable; no org, repo, session, or date is
 # baked in.
 #
+# THE HARNESS CONSTRAINT (why --auto-rearm exists)
+#   An agent is woken ONLY when a background command COMPLETES. A watcher that never
+#   exits therefore gives NO wake, and a one-shot watcher that exits leaves NOTHING
+#   watching until an agent re-arms it — a step that gets dropped (field evidence:
+#   multiple times nothing was watching; duplicate watchers stacked; the API budget
+#   was exhausted). Two supported patterns:
+#     * PER-EVENT notify — a one-shot run (default `--no-rearm`): it exits on the
+#       event, the harness wakes the agent, and the AGENT re-arms.
+#     * DURABILITY — `--auto-rearm`: on exit the watcher DETACHES a successor with the
+#       SAME args, lock-guarded so EXACTLY ONE stays active, so a watch is ALWAYS
+#       alive independent of the agent.
+#   `--auto-rearm` keeps a WATCH alive; the AGENT's re-arm keeps NOTIFICATIONS alive.
+#   A durable supervisor never exits ⇒ never wakes, so it is NOT the answer.
+#
+# SINGLE INSTANCE: a per-args lockfile (flock) means repeated arms NEVER stack.
+# RATE LIMITS: the remaining core quota is read from the FREE `/rate_limit` endpoint;
+# below $WATCH_RATE_MIN (default 200) the watcher BACKS OFF instead of hammering.
+#
 # SIGNALS
 #   0  PR TERMINAL  a watched PR reaches MERGED / BLOCKED / CLOSED, delegated to
 #                   the sanctioned pr_state_watch.sh (so the POISON stuck state is
@@ -35,6 +53,9 @@
 #   --validator NAME  validator workflow name (default charly/pr-validator).
 #   --all             wait for EVERY PR to reach a terminal state, then report
 #                     them together (signals 1-2 inactive in this mode).
+#   --auto-rearm      keep the watch ALIVE: on a non-terminal fire, detach a
+#                     lock-guarded successor with the SAME args (env AUTO_REARM=1).
+#   --no-rearm        one-shot: exit on the fire, the agent re-arms (env AUTO_REARM=0).
 #   -h, --help        print this help and exit 0.
 #
 # OUTPUT (stdout, one line per wake — the harness notifies on the script exiting)
@@ -45,8 +66,8 @@
 #   WAKE TIMEOUT  no signal within <SEC>s
 #
 # EXIT  0 once a wake was reported (the scope's own status is in the output line);
-#       4 on timeout; 5 on usage/error. Every per-PR terminal decision is
-#       pr_state_watch.sh's (which defines 0 MERGED / 2 BLOCKED / 3 CLOSED /
+#       4 on timeout; 5 on usage/error; 6 on lock error. Every per-PR terminal decision
+#       is pr_state_watch.sh's (which defines 0 MERGED / 2 BLOCKED / 3 CLOSED /
 #       4 TIMEOUT / 5 ERROR and distinguishes POISON).
 #
 # WHY NOT `gh pr checks --watch` / a hand-rolled loop: the sanctioned per-PR poll is
@@ -60,11 +81,15 @@ WATCH="$SELF_DIR/pr_state_watch.sh"
 # shellcheck source=scripts/_watch_common.sh
 . "$SELF_DIR/_watch_common.sh"
 
+ORIG_ARGS=("$@")
+ARGV0="$SELF_DIR/$(basename "${BASH_SOURCE[0]}")"
+
 INTERVAL=20
 TIMEOUT=7200
 STALLMIN=0
 VALIDATOR="${PR_WATCH_VALIDATOR:-charly/pr-validator}"
 WAIT_ALL=0
+AUTO_REARM="${AUTO_REARM:-0}"
 REPOS_ARG=""
 PAIRS=()
 
@@ -74,15 +99,17 @@ usage() { watch_usage "${BASH_SOURCE[0]}"; }
 
 while [ $# -gt 0 ]; do
   case "$1" in
-    --repos)     REPOS_ARG="${2:?--repos needs a comma-separated value}"; shift 2 ;;
-    --interval)  INTERVAL="${2:?--interval needs a value}"; shift 2 ;;
-    --timeout)   TIMEOUT="${2:?--timeout needs a value}"; shift 2 ;;
-    --stallmin)  STALLMIN="${2:?--stallmin needs a value}"; shift 2 ;;
-    --validator) VALIDATOR="${2:?--validator needs a value}"; shift 2 ;;
-    --all)       WAIT_ALL=1; shift ;;
-    -h|--help)   usage; exit 0 ;;
-    -*)          echo "pr_watch_many: unknown flag $1" >&2; usage >&2; exit 5 ;;
-    *)           PAIRS+=("$1"); shift ;;
+    --repos)      REPOS_ARG="${2:?--repos needs a comma-separated value}"; shift 2 ;;
+    --interval)   INTERVAL="${2:?--interval needs a value}"; shift 2 ;;
+    --timeout)    TIMEOUT="${2:?--timeout needs a value}"; shift 2 ;;
+    --stallmin)   STALLMIN="${2:?--stallmin needs a value}"; shift 2 ;;
+    --validator)  VALIDATOR="${2:?--validator needs a value}"; shift 2 ;;
+    --all)        WAIT_ALL=1; shift ;;
+    --auto-rearm) AUTO_REARM=1; shift ;;
+    --no-rearm)   AUTO_REARM=0; shift ;;
+    -h|--help)    usage; exit 0 ;;
+    -*)           echo "pr_watch_many: unknown flag $1" >&2; usage >&2; exit 5 ;;
+    *)            PAIRS+=("$1"); shift ;;
   esac
 done
 
@@ -90,6 +117,7 @@ done
 watch_is_uint "$INTERVAL" && [ "$INTERVAL" -ge 1 ] || { echo "pr_watch_many: --interval must be an integer >= 1, got '$INTERVAL'" >&2; exit 5; }
 watch_is_uint "$TIMEOUT"  || { echo "pr_watch_many: --timeout must be an integer >= 0, got '$TIMEOUT'" >&2; exit 5; }
 watch_is_uint "$STALLMIN" || { echo "pr_watch_many: --stallmin must be an integer >= 0, got '$STALLMIN'" >&2; exit 5; }
+case "$AUTO_REARM" in 0|1) ;; *) echo "pr_watch_many: AUTO_REARM must be 0 or 1, got '$AUTO_REARM'" >&2; exit 5 ;; esac
 [ $(( ${#PAIRS[@]} % 2 )) -eq 0 ] || { echo "pr_watch_many: PR arguments must be <owner/repo> <pr> pairs" >&2; exit 5; }
 
 # --- resolve the watched repo set (explicit --repos, else derived from pairs) ---
@@ -117,6 +145,7 @@ if [ "${#PAIRS[@]}" -gt 0 ] && [ ! -x "$WATCH" ]; then
 fi
 command -v gh >/dev/null 2>&1 || { echo "pr_watch_many: gh not found" >&2; exit 5; }
 command -v jq >/dev/null 2>&1 || { echo "pr_watch_many: jq not found" >&2; exit 5; }
+command -v flock >/dev/null 2>&1 || { echo "pr_watch_many: flock not found (util-linux) — required for the single-instance lock" >&2; exit 6; }
 
 OUT="$(mktemp -d)"
 PIDS=()
@@ -125,7 +154,21 @@ cleanup() {
   local p
   for p in "${PIDS[@]}"; do kill "$p" 2>/dev/null; done
 }
-trap cleanup EXIT
+
+# --- single-instance lock (one watcher per identical invocation) ----------------
+WATCH_KEY="$(watch_key "$ARGV0" "${ORIG_ARGS[@]}")"
+if [ "${WATCH_REARMED:-0}" = "1" ]; then
+  # a detached successor: wait for the predecessor to release, then take over if needed
+  watch_lock "$WATCH_KEY" --wait 120 || watch_lock "$WATCH_KEY" --takeover || {
+    echo "pr_watch_many: could not acquire the watch lock for key $WATCH_KEY" >&2; exit 6; }
+else
+  # a foreground arm: take over a live peer/successor cleanly, never stack
+  watch_lock "$WATCH_KEY" --takeover || {
+    echo "pr_watch_many: could not acquire the watch lock for key $WATCH_KEY" >&2; exit 6; }
+fi
+watch_set_rearm "$AUTO_REARM" "$ARGV0" "${ORIG_ARGS[@]}"
+trap 'cleanup; watch_on_exit_common $?' EXIT
+trap 'exit 143' TERM INT
 
 pr_key() { printf '%s_%s' "$1" "$2" | tr -c 'A-Za-z0-9_' '_'; }
 label_for() { case "$1" in 0) echo MERGED ;; 2) echo BLOCKED ;; 3) echo CLOSED ;; 4) echo TIMEOUT ;; *) echo ERROR ;; esac; }
@@ -161,10 +204,12 @@ if [ "${#PAIRS[@]}" -gt 0 ]; then
   while [ "$i" -lt "${#PAIRS[@]}" ]; do
     repo="${PAIRS[$i]}"; pr="${PAIRS[$((i+1))]}"; i=$((i+2))
     rp="$(result_path "$repo" "$pr")"
+    # 9>&- is ESSENTIAL: the per-PR watcher is LONG-LIVED — if it inherited our flock fd
+    # (fd 9) it would hold the lock after we exit, blocking our successor.
     ( "$WATCH" "$repo" "$pr" --interval "$INTERVAL" --timeout "$TIMEOUT" >/dev/null 2>&1
       code=$?
       printf '%s|%s|%s\n' "$code" "$repo" "$pr" > "$rp.tmp"
-      mv "$rp.tmp" "$rp" ) &
+      mv "$rp.tmp" "$rp" ) 9>&- &
     PIDS+=($!)
   done
 fi
@@ -186,13 +231,23 @@ any_pr_alive() {
 start="$(date +%s)"
 last_verdict="$start"
 while :; do
-  # signal 0 — a PR reached a terminal state (atomic "<key>.done" file present)
-  for f in "$OUT"/*.done; do [ -e "$f" ] && { report_pr "$f"; exit 0; }; done
+  # OVERALL DEADLINE FIRST — checked before the rate gate so a rate-limit backoff can
+  # never starve the timeout (a `continue` past a bottom-of-loop check would).
+  if [ "$TIMEOUT" -gt 0 ] && [ $(( $(date +%s) - start )) -ge "$TIMEOUT" ]; then
+    printf 'WAKE TIMEOUT  no signal within %ss\n' "$TIMEOUT"; exit 4
+  fi
+  # RATE-LIMIT DISCIPLINE: never poll when the core quota is nearly exhausted.
+  watch_rate_gate "$INTERVAL" || continue
+
+  # signal 0 — a PR reached a terminal state (atomic "<key>.done" file present).
+  # TERMINAL: nothing is left to watch, so set WATCH_DONE (no successor is spawned).
+  for f in "$OUT"/*.done; do [ -e "$f" ] && { WATCH_DONE=1; report_pr "$f"; exit 0; }; done
 
   # signal 1 — a new validator run COMPLETED on any watched repo.
   # PRIMARY gate: the run must have COMPLETED at/after arm time. An id compare alone
   # is NOT enough — the "newest completed" run can change to a DIFFERENT but still-old
   # run (a seed/poll ordering shift or a transient seed failure) and would false-fire.
+  # DELTA fire: re-arm a successor BEFORE printing+exiting, so a watch stays alive.
   for r in "${REPOS[@]}"; do
     cur="$(run_latest "$r")"
     if [ -n "$cur" ]; then
@@ -203,6 +258,7 @@ while :; do
           RUN_LAST[$r]="$cid"
           last_verdict="$(date +%s)"
           rest="${cur#*|}"; rest="${rest%|*}"   # conclusion|branch|updatedAt (drop epoch)
+          watch_rearm_now
           printf 'WAKE VERDICT  %s  %s  https://github.com/%s/actions/runs/%s\n' \
             "$r" "$rest" "$r" "$cid"
           exit 0
@@ -214,9 +270,12 @@ while :; do
 
   now="$(date +%s)"
 
-  # signal 2 — no new verdict within the window while scopes remain open+unmerged
+  # signal 2 — no new verdict within the window while scopes remain open+unmerged.
+  # STATE fire: the item is still stalled, so a successor would immediately re-fire it
+  # → WATCH_DONE=1 (no re-arm; the agent acts and re-arms with a fresh window).
   if [ "$STALLMIN" -gt 0 ] && [ "${#PAIRS[@]}" -gt 0 ] && any_pr_alive; then
     if [ $(( (now - last_verdict) / 60 )) -ge "$STALLMIN" ]; then
+      WATCH_DONE=1
       printf 'WAKE STALL  no new %s verdict for >=%sm while PR scopes remain open+unmerged:\n' \
         "$VALIDATOR" "$STALLMIN"
       j=0
@@ -228,11 +287,5 @@ while :; do
     fi
   fi
 
-  # overall deadline
-  if [ "$TIMEOUT" -gt 0 ] && [ $(( now - start )) -ge "$TIMEOUT" ]; then
-    printf 'WAKE TIMEOUT  no signal within %ss\n' "$TIMEOUT"
-    exit 4
-  fi
-
-  sleep "$INTERVAL"
+  watch_sleep "$INTERVAL"
 done
