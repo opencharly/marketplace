@@ -770,7 +770,8 @@
         "references/multi-repo-coordination.md",
         "references/validator-and-calver.md",
         "references/umbrella-mechanics.md",
-        "references/evidence-and-freshness.md"
+        "references/evidence-and-freshness.md",
+        "references/watch-and-wake.md"
       ],
       "version": "3.1.0"
     },

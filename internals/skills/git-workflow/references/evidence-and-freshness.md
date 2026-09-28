@@ -729,3 +729,4 @@ whatsoever. Zero-on-both-sides can also be a true answer to a badly chosen quest
 (the phrase genuinely was never there), so it does not prove the instrument broke —
 it proves the check never DISCRIMINATED, which is sufficient grounds to refuse the
 result either way.
+
