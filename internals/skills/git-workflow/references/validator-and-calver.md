@@ -311,11 +311,13 @@ at it must be able to follow the thread to where the work continued, and issue
 comments are the coordination channel (B2b). Never silently abandon a closed or
 replaced PR/issue; the reference comment is mandatory, not optional. (A closed PR
 whose diff never landed also has no tag/CHANGELOG; the new PR is the landing
-vehicle.)
+vehicle.) The canonical, four-surface form of this rule lives in B2b
+("PR closed, work continues → the successor protocol"); this section states the
+rule for a hand-off, B2b owns the detail.
 
 **If the BLOCK is body-only (no code change), fix the body then PREFER the
-`rerun` LABEL** — the org ships a plain per-repo `rerun-listener` (distributed
-by `opencharly/.github`'s `distribute-rerun-listener`) that re-runs THIS head's
+`rerun` LABEL** — the org-wide `rerun.yml` sweep + `scripts/sweep-rerun.sh`
+(ONE org-wide channel; no per-repo listener file, per PR #122) re-runs THIS head's
 failed `charly/pr-validator` run on the same `GITHUB_SHA`, updating the SAME
 `validate / validate` check run IN PLACE (no duplicate, clears POISON) and
 re-reading the corrected body; the manual equivalent is `gh run rerun <run-id>`
