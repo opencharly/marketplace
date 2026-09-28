@@ -194,13 +194,15 @@ answers/acts → blocked session re-checks and reacts.
 
 **Identity is in the footers; authority is in the verb.** An agent
 identifies itself with TWO italic lines at the END of a comment or PR
-body — the `Assisted-by` trailer (unchanged) and, AFTER it, a separate
-`Agent:` line naming the WORK and the session. The slug is NEVER appended
-to `Assisted-by`:
+body — the `Agent:` line naming the WORK and the session, then the
+`Assisted-by` trailer. **One canonical order on BOTH surfaces: `Agent:`
+FIRST, `Assisted-by:` LAST** (in a PR body this also satisfies the
+validator, which requires the `Assisted-by` trailer to be the FINAL line).
+The slug is NEVER appended to `Assisted-by`:
 
 ```markdown
-*Assisted-by: <Harness> <Provider Model> (<confidence>)*
 *Agent: `<slug>` · session `<ses_…>`*
+*Assisted-by: <Harness> <Provider Model> (<confidence>)*
 ```
 
 - **agent slug** — a stable, human-readable, kebab-case name the session
@@ -240,8 +242,8 @@ Rendered example — a claim on a PR:
 
 Claiming the `git-workflow` B2b identity/grammar slice; will push `feat/agent-coord-grammar`.
 
-*Assisted-by: OpenCode opencode-go/deepseek-v4.1-flash (analysed on a live system)*
 *Agent: `agent-coord-grammar` · session `ses_f1ca67065ffe71KOr87cfv8aNw`*
+*Assisted-by: OpenCode opencode-go/deepseek-v4.1-flash (analysed on a live system)*
 ```
 
 **Same-account authority — the slug is authoritative, not the GitHub
@@ -253,20 +255,85 @@ unless (a) a `HANDING OVER` addressed it, (b) it posts `TAKING OVER`
 naming its authority, or (c) the operator authorizes it. A coordinator
 relaying another leg's status is NOT a claim — a claim requires the verb.
 
-**Takeover authority and the window.** A `TAKING OVER` comment MUST cite
-`authority: hand-off | operator | window-expired` and MUST be posted
-BEFORE the first push to the taken scope. The window runs on the scope's
-ARTIFACTS — the `charly/pr-validator` run COMPLETING on a new head, a new
-commit, or a new comment — never on session activity: a looping agent
-never falls quiet, and a peer waiting on a RUNNING validator is NOT
-stalled. A scope with none of those for the window (default 30 minutes)
-is `window-expired`.
+**The progress signal is a COMPLETED VALIDATOR RUN — never session
+activity.** Coordination progress on a scope is a `charly/pr-validator`
+run **COMPLETING** on a new head (a new commit or a new comment also
+count). A looping agent never falls quiet, so activity is a false
+positive; and a peer **waiting on a RUNNING validator looks quiet — it is
+working, not stalled.** Detect a stall/loop ONLY as **no new completed
+verdict within the window while the scope is open and unmerged** — never
+by silence. A monitor/coordinator MUST watch the scopes actually in
+flight: the repo set changes as work moves, and a **stale watch list
+produces false stalls** (a real failure today).
+
+**Window-based takeover — comment-FIRST.** A `TAKING OVER` comment MUST
+cite `authority: hand-off | operator | window-expired` and MUST be posted
+BEFORE the first push to the taken scope. A takeover may proceed ONLY
+after ALL of:
+
+1. **A coordination comment posted on the scope FIRST** — an ownership
+   board, or a `BLOCKS`/`STATUS` addressed to the owner, asking them to
+   reply `OWNING — ETA` or `HANDING OVER — <reason>`. **No comment, no
+   takeover, ever.**
+2. **The window elapsing** with **no answer from the original session AND
+   no progress** (the progress signal above). **The window is 60 minutes**
+   — a FLOOR, measured from the timestamp of that comment: it may be
+   EXTENDED, never shortened without operator sign-off, and **any answer
+   from the owner RESETS it.** A scope with no progress for the window
+   while open+unmerged is `window-expired`.
+3. **`TAKING OVER — authority: window-expired` posted BEFORE any push.**
+   The takeover is WITHDRAWABLE if the owner replies.
+
+**Auto-close carry-forward — continue on a CLEAN thread, cross-referenced
+on FOUR surfaces.** The validator auto-closes a PR after its BLOCK
+threshold (`AI_REVIEW_AUTO_CLOSE_AFTER`, default 5). When a PR closes
+(auto-close, superseded, or withdrawn) and the work continues in a NEW PR
+for the same issue/scope, ALL FOUR are mandatory:
+
+1. On the CLOSED PR: `RESOLVED — superseded by #<n>`, naming the
+   successor, the closure reason, and that the closed thread is no longer
+   acted on.
+2. On the SUCCESSOR PR: its body names the predecessor (`Supersedes #<n>`
+   + closure reason), and the diff/body shows the predecessor's findings
+   were all fixed in ONE commit (not re-argued).
+3. On the ISSUE the work closes/relates to: a `STATUS` naming the
+   successor, so anyone following the issue lands on the live PR.
+4. Ownership transfer: a slug that claimed the predecessor but not the
+   successor must `HANDING OVER` (or be named in the successor's body); a
+   silent drop is not allowed.
+
+**Never push to a PR at the block limit** — a push that yields another
+verdict at the limit auto-closes it. Land **ALL** findings in **ONE**
+commit; never re-argue on a closed thread.
+
+**Sign-off authority lives in the BODY, in the DELEGATED form.** A
+maintainer/operator sign-off MUST be **cited in the PR body with pasted,
+executed evidence**; the accepted delegated form is an explicit line —
+**`Maintainer sign-off — posted at the operator's direction`** — carrying
+the agent's own two-line identity footer. 
+
+**No R10 class exemption (current project state).** A plugin-library or
+schema change runs the **full assembled `disposable: true` bed** — there
+is no "library module" waiver and no routing the bed to a consumer leg. A
+delegated "bed-exemption" sign-off is NOT an accepted route. See the R10
+change-class matrix (`/charly-check:check`).
+
+**Amend an agent's own PR by CONTINUING ITS SESSION — one editor per
+change.** Continue that agent's session **by ID** (a subagent
+conversation can be continued once idle); do NOT spawn a second editor on
+the same files.
+
+**State the dependency chain and the unblock order on the thread.** When
+a scope is gated by another leg, name the exact chain (producer legs →
+consumer leg → corpus) and the unblock order, and comment the new tag on
+the waiting issue the moment it lands. No "a sibling session" /
+"deferred" framing.
 
 **Delegation ≠ impersonation.** An agent NEVER impersonates the operator:
-no comment, sign-off, or approval may claim to BE them. But a sign-off
-posted at the operator's EXPLICIT direction — labelled as delegated and
-carrying the agent's OWN two-line identity footer — IS a valid sign-off.
-The validator's rulebook accepts exactly this form (`AI_REVIEW_PROMPT`'s
+no comment, sign-off, or approval may claim to BE them. But an agent MAY
+sign off at the operator's explicit direction — the delegated form
+described above, carrying the agent's OWN two-line identity footer. The
+validator's rulebook accepts exactly this form (`AI_REVIEW_PROMPT`'s
 "VALID — operator-DELEGATED"); the skill and the validator must agree.
 
 **Grep the grammar** (the label is the first non-blank uppercase line):
