@@ -35,8 +35,9 @@
 #
 # OUTPUT (stdout, one line per wake — the harness notifies on the script exiting)
 #   TERMINAL <STATE> (exit <N>) <owner/repo>#<pr>   STATE in MERGED BLOCKED CLOSED
-#   WAKE VERDICT  <repo>  <conclusion>  <branch>  <updatedAt>  <run-url>
-#   WAKE STALL    no new verdict for >=<MIN>m while PR scopes remain open+unmerged
+#   WAKE VERDICT  <repo>  <conclusion>|<branch>|<updatedAt>  https://github.com/<repo>/actions/runs/<id>
+#   WAKE STALL  no new <validator> verdict for >=<MIN>m while PR scopes remain open+unmerged:
+#     open: <owner/repo>#<pr>                        (one line per still-open scope)
 #   WAKE TIMEOUT  no signal within <SEC>s
 #
 # EXIT  0 once a wake was reported (the scope's own status is in the output line);
@@ -52,6 +53,8 @@ set -uo pipefail
 
 SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WATCH="$SELF_DIR/pr_state_watch.sh"
+# shellcheck source=scripts/_watch_common.sh
+. "$SELF_DIR/_watch_common.sh"
 
 INTERVAL=20
 TIMEOUT=7200
@@ -61,12 +64,9 @@ WAIT_ALL=0
 REPOS_ARG=""
 PAIRS=()
 
-# Print the leading comment block (shebang excluded) as the usage text. Derived
-# from the file itself, so it can never drift out of range the way a hardcoded
-# `sed -n 'a,bp'` does.
-usage() {
-  awk 'NR==1 { next } /^#/ { sub(/^# ?/, ""); print; next } { exit }' "${BASH_SOURCE[0]}"
-}
+# Print the leading comment block (shebang excluded) as the usage text — via the
+# shared helper, so it can never drift out of range.
+usage() { watch_usage "${BASH_SOURCE[0]}"; }
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -83,10 +83,9 @@ while [ $# -gt 0 ]; do
 done
 
 # --- validation (fail loud, never a silent default) ------------------------
-numeric() { case "$1" in ''|*[!0-9]*) return 1 ;; *) return 0 ;; esac; }
-numeric "$INTERVAL" && [ "$INTERVAL" -ge 1 ] || { echo "pr_watch_many: --interval must be an integer >= 1, got '$INTERVAL'" >&2; exit 5; }
-numeric "$TIMEOUT"  || { echo "pr_watch_many: --timeout must be an integer >= 0, got '$TIMEOUT'" >&2; exit 5; }
-numeric "$STALLMIN" || { echo "pr_watch_many: --stallmin must be an integer >= 0, got '$STALLMIN'" >&2; exit 5; }
+watch_is_uint "$INTERVAL" && [ "$INTERVAL" -ge 1 ] || { echo "pr_watch_many: --interval must be an integer >= 1, got '$INTERVAL'" >&2; exit 5; }
+watch_is_uint "$TIMEOUT"  || { echo "pr_watch_many: --timeout must be an integer >= 0, got '$TIMEOUT'" >&2; exit 5; }
+watch_is_uint "$STALLMIN" || { echo "pr_watch_many: --stallmin must be an integer >= 0, got '$STALLMIN'" >&2; exit 5; }
 [ $(( ${#PAIRS[@]} % 2 )) -eq 0 ] || { echo "pr_watch_many: PR arguments must be <owner/repo> <pr> pairs" >&2; exit 5; }
 
 # --- resolve the watched repo set (explicit --repos, else derived from pairs) ---
@@ -132,15 +131,8 @@ report_pr() { # report_pr <result-file>
   printf 'TERMINAL %s (exit %s) %s#%s\n' "$(label_for "$code")" "$code" "$repo" "$pr"
 }
 
-# Newest COMPLETED <validator> run on a repo, as "id|conclusion|branch|updatedAt"
-# or "" when there is none. gh's own --jq takes no --arg, so pipe to jq.
-run_latest() {
-  gh run list -R "$1" --limit 30 \
-    --json databaseId,name,status,conclusion,headBranch,updatedAt 2>/dev/null \
-    | jq -r --arg n "$VALIDATOR" '
-        [.[] | select(.name==$n and .status=="completed")][0]
-        | if .==null then "" else "\(.databaseId)|\(.conclusion)|\(.headBranch)|\(.updatedAt)" end' 2>/dev/null
-}
+# Newest COMPLETED <validator> run on a repo (shared helper; see _watch_common.sh).
+run_latest() { watch_run_latest "$1" "$VALIDATOR"; }
 
 # --- seed the validator baseline so signal 1 never fires on PRE-EXISTING state -
 declare -A RUN_LAST

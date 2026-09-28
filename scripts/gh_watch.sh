@@ -8,20 +8,34 @@
 # a PR you might take over (wake on a stall), or an issue you commented on (wake when
 # anyone replies).
 #
-# EVENTS (=comma list, default "comment,verdict,merged,closed,stall"):
-#   comment  a NEW comment/review appeared on the item        [delta — seeded]
-#   verdict  a NEW $WF workflow run COMPLETED in its repo     [delta — seeded]
+# EVENTS (=comma list, default "merged,closed,stall"):
 #   merged   a PR is MERGED  → you are UNBLOCKED              [state — fires if already so]
 #   closed   an item is CLOSED without merging → find its successor
-#   stall    NO progress for $STALL_MIN minutes while the item is still open
-#            → a TAKEOVER candidate (comment FIRST, wait the window,
-#              then TAKING OVER — authority: window-expired, BEFORE any push)
+#   stall    SILENCE ALARM: NO progress for $STALL_MIN minutes while the item is still
+#            open+unmerged → a TAKEOVER candidate (comment FIRST, wait the window,
+#            then TAKING OVER — authority: window-expired, BEFORE any push)
+#   verdict  a NEW $WF workflow run COMPLETED in its repo     [delta — seeded; opt-in]
+#   comment  a NEW comment/review appeared on the item        [delta — seeded; opt-in]
 #
-# Progress = a new comment, a new verdict, or a state change — NEVER session activity.
-# comment/verdict are DELTA events: the seed records the current count/run id at start,
-# so a pre-existing comment or verdict never causes a false wake. merged/closed/stall are
-# STATE events: they fire while the item IS in that state, including at arm time — that
-# is why arming EVENTS=merged on an already-merged PR wakes immediately.
+# DESIGN REQUIREMENTS (not options):
+#   1. SILENCE IS AN ALARM. A blocked item emits NO events, so an event-only watcher is
+#      blind to the worst case. `stall` is therefore ON BY DEFAULT and every item gets
+#      it. The events tell you when something HAPPENED; the stall alarm tells you when
+#      something SHOULD have and did not.
+#   2. WATCH THE OUTCOME, NOT EVERY EVENT. Waking on every comment of an actively
+#      iterating owner is noise, so the DEFAULT set is the terminal outcomes
+#      (merged,closed) plus the stall alarm. Add `comment`/`verdict` ONLY for a wait
+#      that genuinely needs them — e.g. EVENTS=comment on an issue you asked a question
+#      on and want the moment anyone replies.
+#   3. LIVENESS IS NOT PROGRESS. Progress is judged by ARTIFACTS — a pushed branch, a
+#      new commit, a new comment, a completed run, a merged tag — never by a session
+#      heartbeat or "still investigating". The stall alarm keys on the item's
+#      updated_at, so its silence is measured against artifacts, not activity.
+#
+# comment/verdict are DELTA events: the seed records the current count/run id at start, so
+# a pre-existing comment or verdict never causes a false wake. merged/closed/stall are
+# STATE events: they fire while the item IS in that state, including at arm time — that is
+# why arming EVENTS=merged on an already-merged PR wakes immediately.
 #
 # USAGE
 #   gh_watch.sh [OPTIONS] <item> [<item> ...]
@@ -29,7 +43,7 @@
 # or a full `https://github.com/owner/repo/(pull|issues)/num` URL.
 #
 # OPTIONS / ENV
-#   --events LIST     comma list from the set above   (env EVENTS,   default all five)
+#   --events LIST     comma list from the set above   (env EVENTS,   default merged,closed,stall)
 #   --interval SEC    poll cadence, seconds           (env INTERVAL, default 30; >= 1)
 #   --stallmin MIN    stall window, minutes           (env STALL_MIN, default 60; >= 0)
 #   --workflow NAME   validator run name              (env WF,       default charly/pr-validator)
@@ -47,16 +61,18 @@
 # EXIT  0 on an event; 4 on timeout; 5 on usage/argument/gh error.
 set -euo pipefail
 
+SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/_watch_common.sh
+. "$SELF_DIR/_watch_common.sh"
+
 INTERVAL="${INTERVAL:-30}"
 STALL_MIN="${STALL_MIN:-60}"
-EVENTS="${EVENTS:-comment,verdict,merged,closed,stall}"
+EVENTS="${EVENTS:-merged,closed,stall}"
 WF="${WF:-charly/pr-validator}"
 TIMEOUT="${TIMEOUT:-0}"
 ITEMS=()
 
-usage() {
-  awk 'NR==1 { next } /^#/ { sub(/^# ?/, ""); print; next } { exit }' "${BASH_SOURCE[0]}"
-}
+usage() { watch_usage "${BASH_SOURCE[0]}"; }
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -71,7 +87,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-numeric() { case "$1" in ''|*[!0-9]*) return 1 ;; *) return 0 ;; esac; }
+numeric() { watch_is_uint "$1"; }
 numeric "$INTERVAL" && [ "$INTERVAL" -ge 1 ] || { echo "gh_watch: --interval must be an integer >= 1, got '$INTERVAL'" >&2; exit 5; }
 numeric "$STALL_MIN" || { echo "gh_watch: --stallmin must be an integer >= 0, got '$STALL_MIN'" >&2; exit 5; }
 numeric "$TIMEOUT" || { echo "gh_watch: --timeout must be an integer >= 0, got '$TIMEOUT'" >&2; exit 5; }
@@ -108,7 +124,7 @@ for raw in "${ITEMS[@]}"; do
   NORM+=("$norm")
 done
 
-has() { case ",$EVENTS," in *",$1,"*) return 0 ;; *) return 1 ;; esac; }
+has() { watch_has "$1" "$EVENTS"; }
 
 # snapshot <owner> <repo> <num> -> "type|state|merged|comments|verdict|updated_epoch"
 snapshot() {
@@ -117,8 +133,7 @@ snapshot() {
   state="$(gh api "/repos/$o/$r/issues/$n" --jq '.state' 2>/dev/null || echo unknown)"
   merged="$(gh api "/repos/$o/$r/pulls/$n" --jq '.merged' 2>/dev/null || echo "")"
   cc="$(gh api "/repos/$o/$r/issues/$n/comments" --paginate --jq 'length' 2>/dev/null || echo 0)"
-  v="$(gh run list -R "$o/$r" --limit 30 --json name,status,databaseId \
-        --jq "[.[]|select(.name==\"$WF\" and .status==\"completed\")][0].databaseId // \"\"" 2>/dev/null || echo "")"
+  v="$(watch_run_latest "$o/$r" "$WF")"; v="${v%%|*}"
   up="$(gh api "/repos/$o/$r/issues/$n" --jq '.updated_at' 2>/dev/null || echo "")"
   if [ -n "$up" ]; then e="$(date -u -d "$up" +%s 2>/dev/null || date -u +%s)"; else e="$(date -u +%s)"; fi
   printf '%s|%s|%s|%s|%s|%s' "$type" "$state" "$merged" "$cc" "$v" "$e"
@@ -150,7 +165,8 @@ while :; do
         "$tok" "$pcc" "$cc" "$url" "$([ "$type" = pr ] && echo pull || echo issues)" "$n"; exit 0; fi
     if has verdict && [ -n "$v" ] && [ "$v" != "$pv" ]; then
       printf 'VERDICT  %s  new %s run %s  %s/actions/runs/%s\n' "$tok" "$WF" "$v" "$url" "$v"; exit 0; fi
-    if has stall && [ $(( (now - up) / 60 )) -ge "$STALL_MIN" ]; then
+    if has stall && [ "$merged" != "true" ] && [ "$state" != "closed" ] \
+       && [ $(( (now - up) / 60 )) -ge "$STALL_MIN" ]; then
       printf 'STALL    %s  no progress for %sm (open, unmerged) — takeover candidate\n' "$tok" "$STALL_MIN"; exit 0; fi
 
     SEED[$tok]="$cur"
