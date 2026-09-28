@@ -127,7 +127,7 @@ WATCH_LOCK_KEY=""
 # On success fd 9 holds the flock for the process lifetime and the holder PID is
 # recorded. Returns 0 on acquire, 1 if not acquired.
 watch_lock() {
-  local key="$1" mode="${2:-}" secs="${3:-0}" holder tries pid
+  local key="$1" mode="${2:-}" secs="${3:-0}" holder pid
   WATCH_LOCK_KEY="$key"
   exec 9>"$(watch_lock_file "$key")" || return 1
   if flock -n 9 2>/dev/null; then printf '%s' "$$" > "$(watch_holder_file "$key")"; return 0; fi
@@ -140,19 +140,32 @@ watch_lock() {
       if [ -n "$holder" ] && kill -0 "$holder" 2>/dev/null; then
         pid="$holder"
         # Displace ONLY a live PEER (same family) — never an unrelated recycled PID.
-        # A peer's cmdline names the watcher script (`…/gh_watch.sh …`), or the lock key
-        # itself; anything else is left alone.
+        # A peer's cmdline names the watcher script (`…/gh_watch.sh …`), or the lock key.
         if [ -r "/proc/$pid/cmdline" ] \
            && tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null | grep -q "watch\|$key"; then
           kill -TERM "$pid" 2>/dev/null || true
-          tries=0
-          while [ "$tries" -lt 50 ] && kill -0 "$pid" 2>/dev/null; do command sleep 0.1; tries=$((tries+1)); done
         fi
       fi
-      if flock -n 9 2>/dev/null; then printf '%s' "$$" > "$(watch_holder_file "$key")"; return 0; fi
+      # Wait for the LOCK to free (a peer's TERM → `exit 143` → EXIT trap releases fd 9)
+      # via the flock PRIMITIVE itself — `flock -w` blocks up to the bound; there is no
+      # hand-rolled sleep-poll of the peer's PID (R4).
+      if flock -w 5 9 2>/dev/null; then printf '%s' "$$" > "$(watch_holder_file "$key")"; return 0; fi
       return 1 ;;
     *) return 1 ;;
   esac
+}
+
+# watch_lock_auto <key> — acquire the lock with the RIGHT policy for this process's
+# role: a detached successor (WATCH_REARMED=1) WAITS for the predecessor to release;
+# a foreground arm TAKES OVER a live peer. ONE implementation (R3) — the two watchers
+# call this and differ only in their error-message prefix.
+# Returns 0 on acquire; 1 if not acquired (the caller prints its message + exit 6).
+watch_lock_auto() {
+  if [ "${WATCH_REARMED:-0}" = "1" ]; then
+    watch_lock "$1" --wait 120 || watch_lock "$1" --takeover
+  else
+    watch_lock "$1" --takeover
+  fi
 }
 
 # watch_cleanup_lock — remove the holder file IFF it is still ours (so a takeover's

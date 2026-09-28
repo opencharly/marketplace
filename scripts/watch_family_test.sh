@@ -224,6 +224,20 @@ eq "auto-rearm: a STATE (merged) fire exits 0" "$?" 0
 eq "auto-rearm: a STATE fire spawns NO successor (no livelock)" "$(rearm_count)" 0
 printf false > "$WORK/merged.txt"
 
+# A TAKEOVER (SIGTERM → exit 143) must NOT re-arm: a successor would immediately take
+# the lock back from the displacing arm → perpetual ping-pong. This exercises the
+# trap's exit-code capture (a `trap 'cleanup; watch_on_exit_common $?'` would lose 143).
+# Arm a long-running --auto-rearm watcher in the BACKGROUND, TERM it, and assert the
+# re-arm hook never fired.
+rm -f "$REARM_LOG"
+"$HERE/gh_watch.sh" --events verdict --interval 30 --timeout 60 --auto-rearm opencharly/x#1 >/dev/null 2>&1 &
+TPID=$!
+sleep 1
+kill -TERM "$TPID" 2>/dev/null
+wait "$TPID" 2>/dev/null; trc=$?
+eq "auto-rearm: a SIGTERM takeover exits 143" "$trc" 143
+eq "auto-rearm: a takeover spawns NO successor (no ping-pong)" "$(rearm_count)" 0
+
 # ── the single-instance lock: among two SEPARATE processes, exactly one holds ──
 # A probe sources _watch_common.sh, acquires the lock (taking over any peer), reports
 # the holder, then holds briefly. `sleep N 9>&-` is ESSENTIAL — the sleep child must

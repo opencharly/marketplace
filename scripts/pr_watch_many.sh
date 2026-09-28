@@ -156,18 +156,16 @@ cleanup() {
 }
 
 # --- single-instance lock (one watcher per identical invocation) ----------------
+# A successor (WATCH_REARMED=1) WAITS for the predecessor; a foreground arm TAKES OVER
+# a live peer. This is ONE shared policy (`watch_lock_auto`), not a copy per script.
 WATCH_KEY="$(watch_key "$ARGV0" "${ORIG_ARGS[@]}")"
-if [ "${WATCH_REARMED:-0}" = "1" ]; then
-  # a detached successor: wait for the predecessor to release, then take over if needed
-  watch_lock "$WATCH_KEY" --wait 120 || watch_lock "$WATCH_KEY" --takeover || {
-    echo "pr_watch_many: could not acquire the watch lock for key $WATCH_KEY" >&2; exit 6; }
-else
-  # a foreground arm: take over a live peer/successor cleanly, never stack
-  watch_lock "$WATCH_KEY" --takeover || {
-    echo "pr_watch_many: could not acquire the watch lock for key $WATCH_KEY" >&2; exit 6; }
-fi
+watch_lock_auto "$WATCH_KEY" || {
+  echo "pr_watch_many: could not acquire the watch lock for key $WATCH_KEY" >&2; exit 6; }
 watch_set_rearm "$AUTO_REARM" "$ARGV0" "${ORIG_ARGS[@]}"
-trap 'cleanup; watch_on_exit_common $?' EXIT
+# Capture $? FIRST: in `trap 'a; b $?'` the `$?` expands AFTER `a` runs, so it would be
+# cleanup's status, never the script's real exit code — the guard for 5/6/143 would then
+# never fire and a takeover (143) would wrongly re-arm.
+trap 'rc=$?; cleanup; watch_on_exit_common "$rc"' EXIT
 trap 'exit 143' TERM INT
 
 pr_key() { printf '%s_%s' "$1" "$2" | tr -c 'A-Za-z0-9_' '_'; }

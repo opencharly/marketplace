@@ -133,16 +133,11 @@ command -v jq >/dev/null 2>&1 || { echo "gh_watch: jq not found" >&2; exit 5; }
 command -v flock >/dev/null 2>&1 || { echo "gh_watch: flock not found (util-linux) — required for the single-instance lock" >&2; exit 6; }
 
 # --- single-instance lock (one watcher per identical invocation) ----------------
+# A successor (WATCH_REARMED=1) WAITS for the predecessor; a foreground arm TAKES OVER
+# a live peer. This is ONE shared policy (`watch_lock_auto`), not a copy per script.
 WATCH_KEY="$(watch_key "$ARGV0" "${ORIG_ARGS[@]}")"
-if [ "${WATCH_REARMED:-0}" = "1" ]; then
-  # a detached successor: wait for the predecessor to release, then take over if needed
-  watch_lock "$WATCH_KEY" --wait 120 || watch_lock "$WATCH_KEY" --takeover || {
-    echo "gh_watch: could not acquire the watch lock for key $WATCH_KEY" >&2; exit 6; }
-else
-  # a foreground arm: take over a live peer/successor cleanly, never stack
-  watch_lock "$WATCH_KEY" --takeover || {
-    echo "gh_watch: could not acquire the watch lock for key $WATCH_KEY" >&2; exit 6; }
-fi
+watch_lock_auto "$WATCH_KEY" || {
+  echo "gh_watch: could not acquire the watch lock for key $WATCH_KEY" >&2; exit 6; }
 watch_install_trap "$AUTO_REARM" "$ARGV0" "${ORIG_ARGS[@]}"
 
 # Normalize ONE item to "owner/repo#num"; return 1 on anything malformed.
