@@ -1,6 +1,5 @@
 charly-marketplace:
     candy:
-        version: 2026.239.1634
         description: |-
             The marketplace corpus SOURCE — the candy-dir charly.yml that makes
             `charly marketplace generate --root <this repo>` work post-cutover. It
