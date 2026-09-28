@@ -135,8 +135,15 @@ report_pr() { # report_pr <result-file>
 run_latest() { watch_run_latest "$1" "$VALIDATOR"; }
 
 # --- seed the validator baseline so signal 1 never fires on PRE-EXISTING state -
+# An EMPTY seed means UNKNOWN (no completed run yet, or a transient gh failure),
+# NOT "no prior run": signal 1 additionally requires the run's createdEpoch to be
+# >= the arm time, so a stale run can never masquerade as new.
 declare -A RUN_LAST
-for r in "${REPOS[@]}"; do RUN_LAST[$r]="$(run_latest "$r")"; done
+ARM_EPOCH="$(date +%s)"
+for r in "${REPOS[@]}"; do
+  seed="$(run_latest "$r")"
+  RUN_LAST[$r]="${seed%%|*}"        # run id only; "" means UNKNOWN, not "none yet"
+done
 
 # --- spawn one sanctioned per-PR terminal watcher (signal 0) -------------------
 # Each watcher writes its outcome to a hidden tmp file and RENAMES it to "<key>.done",
@@ -177,15 +184,26 @@ while :; do
   # signal 0 — a PR reached a terminal state (atomic "<key>.done" file present)
   for f in "$OUT"/*.done; do [ -e "$f" ] && { report_pr "$f"; exit 0; }; done
 
-  # signal 1 — a new validator run COMPLETED on any watched repo
+  # signal 1 — a new validator run COMPLETED on any watched repo.
+  # A "new" run must be GENUINELY newer than arm time, not merely different from an
+  # EMPTY seed: an empty seed is UNKNOWN (transient failure / no run yet), so the first
+  # observation from an unknown seed is only a wake if its createdEpoch >= ARM_EPOCH.
   for r in "${REPOS[@]}"; do
     cur="$(run_latest "$r")"
-    if [ -n "$cur" ] && [ "$cur" != "${RUN_LAST[$r]:-}" ]; then
-      RUN_LAST[$r]="$cur"
-      last_verdict="$(date +%s)"
-      printf 'WAKE VERDICT  %s  %s  https://github.com/%s/actions/runs/%s\n' \
-        "$r" "${cur#*|}" "$r" "${cur%%|*}"
-      exit 0
+    if [ -n "$cur" ]; then
+      cid="${cur%%|*}"; cepoch="${cur##*|}"
+      prev="${RUN_LAST[$r]:-}"
+      if [ "$cid" != "$prev" ]; then
+        if [ -n "$prev" ] || { [ -n "$cepoch" ] && [ "$cepoch" -ge "$ARM_EPOCH" ]; }; then
+          RUN_LAST[$r]="$cid"
+          last_verdict="$(date +%s)"
+          rest="${cur#*|}"; rest="${rest%|*}"   # conclusion|branch|updatedAt (drop epoch)
+          printf 'WAKE VERDICT  %s  %s  https://github.com/%s/actions/runs/%s\n' \
+            "$r" "$rest" "$r" "$cid"
+          exit 0
+        fi
+        RUN_LAST[$r]="$cid"   # stale run from an unknown seed → adopt as baseline, no fire
+      fi
     fi
   done
 

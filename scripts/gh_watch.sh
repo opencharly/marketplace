@@ -59,7 +59,9 @@
 #   TIMEOUT  no event within <SEC>s                      (only with --timeout > 0)
 #
 # EXIT  0 on an event; 4 on timeout; 5 on usage/argument/gh error.
-set -euo pipefail
+# A watcher must never die silently: like pr_watch_many.sh, poll WITHOUT `-e` (a
+# transient `gh` failure must skip this poll, not kill the watch) and keep `-uo pipefail`.
+set -uo pipefail
 
 SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/_watch_common.sh
@@ -126,19 +128,29 @@ done
 
 has() { watch_has "$1" "$EVENTS"; }
 
-# snapshot <owner> <repo> <num> -> "type|state|merged|comments|verdict|updated_epoch"
+# snapshot <owner> <repo> <num> -> "type|state|merged|comments|verdictId|updEpoch|verdictEpoch"
+# Every gh call is guarded (|| echo …) AND the script polls without `-e`, so a transient
+# failure skips a poll instead of killing the watcher.
 snapshot() {
-  local o="$1" r="$2" n="$3" type state merged cc v up e
+  local o="$1" r="$2" n="$3" type state merged cc run v ve up e
   if gh api "/repos/$o/$r/pulls/$n" >/dev/null 2>&1; then type=pr; else type=issue; fi
   state="$(gh api "/repos/$o/$r/issues/$n" --jq '.state' 2>/dev/null || echo unknown)"
   merged="$(gh api "/repos/$o/$r/pulls/$n" --jq '.merged' 2>/dev/null || echo "")"
-  cc="$(gh api "/repos/$o/$r/issues/$n/comments" --paginate --jq 'length' 2>/dev/null || echo 0)"
-  v="$(watch_run_latest "$o/$r" "$WF")"; v="${v%%|*}"
+  cc="$(gh api "/repos/$o/$r/issues/$n/comments" --paginate --jq 'length' 2>/dev/null || echo "")"
+  run="$(watch_run_latest "$o/$r" "$WF" || echo "")"
+  v="${run%%|*}"; ve="${run##*|}"
+  [ "$run" = "$v" ] && ve=""          # no run at all (run was empty)
   up="$(gh api "/repos/$o/$r/issues/$n" --jq '.updated_at' 2>/dev/null || echo "")"
   if [ -n "$up" ]; then e="$(date -u -d "$up" +%s 2>/dev/null || date -u +%s)"; else e="$(date -u +%s)"; fi
-  printf '%s|%s|%s|%s|%s|%s' "$type" "$state" "$merged" "$cc" "$v" "$e"
+  printf '%s|%s|%s|%s|%s|%s|%s' "$type" "$state" "$merged" "$cc" "$v" "$e" "$ve"
 }
 
+# A "new" event must be genuinely newer than ARM_EPOCH — never merely different from an
+# empty seed, and never a pre-existing comment. An EMPTY seed is UNKNOWN (transient gh
+# failure / no run yet), so an item with no seed adopts its first observation as the
+# baseline WITHOUT firing; a `verdict` additionally requires the run's createdEpoch to be
+# >= ARM_EPOCH. merged/closed are STATE events and intentionally fire from the baseline.
+ARM_EPOCH="$(date -u +%s)"
 declare -A SEED
 for tok in "${NORM[@]}"; do
   o="${tok%%/*}"; rest="${tok#*/}"; r="${rest%%#*}"; n="${tok##*#}"
@@ -152,19 +164,25 @@ while :; do
     o="${tok%%/*}"; rest="${tok#*/}"; r="${rest%%#*}"; n="${tok##*#}"
     cur="$(snapshot "$o" "$r" "$n")"
     if [ -z "$cur" ]; then continue; fi
-    IFS='|' read -r type state merged cc v up <<<"$cur"
-    IFS='|' read -r ptype pstate pmerged pcc pv pup <<<"${SEED[$tok]}"
-    base="$o/$r"; url="https://github.com/$o/$r"
+    # Unknown baseline (empty seed, or the seed poll failed): adopt, do not fire.
+    if [ -z "${SEED[$tok]:-}" ]; then SEED[$tok]="$cur"; continue; fi
+    IFS='|' read -r type state merged cc v up ve <<<"$cur"
+    IFS='|' read -r _ _ _ pcc pv _ pve <<<"${SEED[$tok]}"
+    url="https://github.com/$o/$r"
 
     if has merged && [ "$merged" = "true" ]; then
       printf 'MERGED   %s  (unblocked)\n' "$tok"; exit 0; fi
     if has closed && [ "$state" = "closed" ] && [ "$merged" != "true" ]; then
       printf 'CLOSED   %s  closed without merging — find its successor\n' "$tok"; exit 0; fi
-    if has comment && [ "$cc" != "$pcc" ]; then
+    if has comment && [ -n "$cc" ] && [ -n "$pcc" ] && [ "$cc" != "$pcc" ]; then
       printf 'COMMENT  %s  new comment (%s -> %s)  %s/%s/%s\n' \
         "$tok" "$pcc" "$cc" "$url" "$([ "$type" = pr ] && echo pull || echo issues)" "$n"; exit 0; fi
     if has verdict && [ -n "$v" ] && [ "$v" != "$pv" ]; then
-      printf 'VERDICT  %s  new %s run %s  %s/actions/runs/%s\n' "$tok" "$WF" "$v" "$url" "$v"; exit 0; fi
+      # A known prior run → any different id is new; an UNKNOWN prior (empty pv) → only a
+      # run created at/after arm time is genuinely new (a stale run must not fire).
+      if [ -n "$pv" ] || { [ -n "$ve" ] && [ "$ve" -ge "$ARM_EPOCH" ]; }; then
+        printf 'VERDICT  %s  new %s run %s  %s/actions/runs/%s\n' "$tok" "$WF" "$v" "$url" "$v"; exit 0; fi
+    fi
     if has stall && [ "$merged" != "true" ] && [ "$state" != "closed" ] \
        && [ $(( (now - up) / 60 )) -ge "$STALL_MIN" ]; then
       printf 'STALL    %s  no progress for %sm (open, unmerged) — takeover candidate\n' "$tok" "$STALL_MIN"; exit 0; fi
