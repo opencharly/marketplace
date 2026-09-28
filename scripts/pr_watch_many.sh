@@ -142,8 +142,9 @@ cleanup() {
 }
 
 # --- single-instance lock (one watcher per identical invocation) ----------------
-# A successor (WATCH_IS_SUCCESSOR=1) WAITS for the predecessor; a foreground arm TAKES
-# OVER a live peer. The policy lives ONCE in `watch_lock_or_exit`.
+# A successor (WATCH_IS_SUCCESSOR=1) INHERITS the predecessor's flock (atomic hand-off,
+# it already holds the lock and never waits); a foreground arm TAKES OVER a live peer.
+# The policy lives ONCE in `watch_lock_or_exit`.
 watch_lock_or_exit "$ARGV0" "pr_watch_many" "${ORIG_ARGS[@]}"
 watch_set_rearm "$AUTO_REARM" "$ARGV0" "${ORIG_ARGS[@]}"
 # Capture $? FIRST: in `trap 'a; b $?'` the `$?` expands AFTER `a` runs, so it would be

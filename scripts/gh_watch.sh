@@ -114,8 +114,9 @@ command -v jq >/dev/null 2>&1 || { echo "gh_watch: jq not found" >&2; exit 5; }
 command -v flock >/dev/null 2>&1 || { echo "gh_watch: flock not found (util-linux) — required for the single-instance lock" >&2; exit 6; }
 
 # --- single-instance lock (one watcher per identical invocation) ----------------
-# A successor (WATCH_IS_SUCCESSOR=1) WAITS for the predecessor; a foreground arm TAKES
-# OVER a live peer. The policy lives ONCE in `watch_lock_or_exit`.
+# A successor (WATCH_IS_SUCCESSOR=1) INHERITS the predecessor's flock (atomic hand-off,
+# it already holds the lock and never waits); a foreground arm TAKES OVER a live peer.
+# The policy lives ONCE in `watch_lock_or_exit`.
 watch_lock_or_exit "$ARGV0" "gh_watch" "${ORIG_ARGS[@]}"
 watch_install_trap "$AUTO_REARM" "$ARGV0" "${ORIG_ARGS[@]}"
 
