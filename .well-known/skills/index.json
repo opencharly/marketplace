@@ -431,6 +431,13 @@
       "version": "3.1.0"
     },
     {
+      "name": "console-automation",
+      "files": [
+        "SKILL.md"
+      ],
+      "version": "3.1.0"
+    },
+    {
       "name": "container-nesting",
       "files": [
         "SKILL.md"
