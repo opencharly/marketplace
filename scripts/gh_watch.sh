@@ -165,7 +165,7 @@ while :; do
     o="${tok%%/*}"; rest="${tok#*/}"; r="${rest%%#*}"; n="${tok##*#}"
     cur="$(snapshot "$o" "$r" "$n")"
     IFS='|' read -r type state merged cc v up ve <<<"$cur"
-    IFS='|' read -r _ _ _ pcc pv _ pve <<<"${SEED[$tok]}"
+    IFS='|' read -r _ _ _ pcc pv _ _ <<<"${SEED[$tok]}"
     url="https://github.com/$o/$r"
 
     # merged/closed/comment/verdict all key on an exact per-FIELD value, so an UNKNOWN
