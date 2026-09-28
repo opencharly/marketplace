@@ -424,6 +424,29 @@ acting without the orchestrator's direct supervision.
   `STATUS`/`RESOLVED`). Owned by `/charly-internals:git-workflow` B2b —
   never restated here.
 
+## Todo ledger & interruption safety
+
+The structured todo list is the session's DURABLE ledger, and an
+interruption must never drop in-flight work. An interruption is any new
+instruction that starts a fresh turn — a new user message, an automated
+watcher alert (a background job completing, an `opencode run --session`
+push), a delegated report, or a compaction. The rule:
+
+- **Reconcile, never reset.** On ANY new/interrupting instruction, FIRST
+  re-write the todo list so it carries every still-open in-flight item PLUS
+  the new one, THEN act. A list written from scratch on interruption is the
+  failure mode this rule exists for — the earlier items vanish.
+- **One list, whole-picture.** The ledger is a single session-wide list; read
+  it before acting and update it in place (the todo tool REPLACES the list,
+  so re-state the items you are not changing).
+- **Long operations are ledger-first.** Before a long-running step, ensure
+  the list names it, so a later interruption resumes from state, not memory.
+- **A watcher alert is an ADDITION.** An automated push adds an item; it
+  never implies the current item is done. Bind the generic watcher
+  (`marketplace/scripts/gh_watch.sh` — harness-independent) to a durable
+  inbox and drain it at the start of every turn; the harness binding lives in
+  the active harness's config (opencode: `.opencode/instructions.md`).
+
 ## See also
 
 - Entry: `../SKILL.md`

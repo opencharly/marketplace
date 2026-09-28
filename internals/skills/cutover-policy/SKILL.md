@@ -10,7 +10,7 @@ description: |-
 
 Every schema change, API rename, or deprecation in OpenCharly ships as a **single hard-cutover PR** — for BOTH code (Go types, exported functions, CLI flags, OCI labels) and config (charly.yml, vm.yml field names and shapes). A cutover is never phased, at plan authoring or execution, regardless of estimated time, scope, or context; the full no-exception statement and stop conditions are in "No exception clause" below.
 
-This skill is the source of truth for the policy. The project rulebook (`AGENTS.md` / `CLAUDE.md`) links here rather than re-stating the full policy inline.
+This skill is the source of truth for the policy. The project rulebook (`AGENTS.md`) links here rather than re-stating the full policy inline.
 
 ## One phase, many tasks, one cutover — the workflow
 
@@ -130,7 +130,7 @@ One PR, one commit, with these deliverables:
 - **Replacement surface** — the new types / schema / deploy target that supersede the deleted ones.
 - **Migration** — one idempotent migration-table entry (`candy/plugin-migrate/migrations.cue`) that harvests legacy fields into the new shape, preserves pre-existing user keys, and never clobbers customizations.
 - **Load-time error** — old projects loading under the new code get a hard error naming the legacy field and pointing at `charly migrate`.
-- **Documentation refresh** — every referring skill revised in the same sweep; no stale references to any deleted identifier in the marketplace corpus, `README.md`, or `AGENTS.md` / `CLAUDE.md` (R5 grep self-test).
+- **Documentation refresh** — every referring skill revised in the same sweep; no stale references to any deleted identifier in the marketplace corpus, `README.md`, or `AGENTS.md` (R5 grep self-test).
 - **Test deletions** — fixtures and assertions exercising the legacy surface removed; new fixtures exercise the replacement.
 - **CHANGELOG entry at merge** — the merged PR's title + body are written by the
   tag-on-merge workflow to the repo's per-CalVer file `CHANGELOG/<YYYY.DDD.HHMM>.md`

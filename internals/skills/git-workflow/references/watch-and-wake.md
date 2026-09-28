@@ -43,6 +43,26 @@ gh_watch.sh [--events merged,closed,stall] [--interval SEC] \
             [--stallmin MIN] [--workflow NAME] <owner>/<repo>#<num> …
 ```
 
+### Delivering a wake (the harness binding)
+
+The generic scripts are **harness-independent**: each emits one line and
+exits, and re-arming is the caller's loop. How a wake REACHES the agent is
+the harness's job, never the script's:
+
+- **opencode** — no background-completion notification by default (`task` is
+  synchronous, `bash` blocks; `OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS`
+  opts into async tasks) and config loads once (no hot reload); the
+  documented push is `opencode run --session <ses_…> "<alert>"`, plus a
+  durable inbox drained each turn. Binding: `.opencode/instructions.md`.
+- **Claude Code** — a `run_in_background` Bash child's completion notifies the
+  spawning session; re-arm after each wake.
+- **Any other harness** — bind the script's exit / `--notify-cmd` to whatever
+  surfaces a message to the agent, and keep the durable inbox fallback.
+
+A wake that starts a new turn can interrupt in-flight work, so an alert is an
+ADDITION to the todo ledger, never a reset (`references/hooks-and-lifecycle.md`
+"Todo ledger & interruption safety").
+
 ### Delta vs STATE events (`gh_watch.sh`)
 
 `comment` and `verdict` are DELTA — arming seeds the current comment-count /

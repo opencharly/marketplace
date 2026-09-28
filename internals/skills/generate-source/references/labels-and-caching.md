@@ -123,20 +123,20 @@ Security configuration (`security:` in charly.yml) and environment variable inje
 | `deb.packages` | `/var/cache/apt` + `/var/lib/apt` | `sharing=locked` |
 | `pac.packages` + `aur` | `/var/cache/pacman/pkg` | `sharing=locked` |
 | `command:` as root | Distro-format caches (above) + `/ctx` bind to layer stage + any `cache:` (shared) | — |
-| `command:` as non-root | `/tmp/npm-cache` (UID-scoped) + `/ctx` bind to layer stage + any `cache:` (owned) | `uid=<UID>,gid=<GID>` |
-| `download:` | `/tmp/downloads` (shared) — **content-addressed**: file fetched once, reused across builds + any `cache:` | — |
+| `command:` as non-root | `/var/cache/charly/npm-cache` (UID-scoped) + `/ctx` bind to layer stage + any `cache:` (owned) | `uid=<UID>,gid=<GID>` |
+| `download:` | `/var/cache/charly/downloads` (shared) — **content-addressed**: file fetched once, reused across builds + any `cache:` | — |
 | `task: cache:` | each declared path; ownership from the task `run_as:` (root → shared/locked, else uid/gid-owned) | per-user |
 | AUR builder stage | `/var/cache/pacman/pkg` (shared) + `/tmp/aur-srcdest` + `/tmp/aur-xdg-cache` (owned: makepkg SRCDEST + yay clones) | mixed |
 | pixi builder stage | `/tmp/pixi-cache` + `/tmp/rattler-cache` | `uid=<UID>,gid=<GID>` |
-| npm builder stage | `/tmp/npm-cache` | `uid=<UID>,gid=<GID>` |
+| npm builder stage | `/var/cache/charly/npm-cache` | `uid=<UID>,gid=<GID>` |
 | cargo inline | `/tmp/cargo-cache` | `uid=<UID>,gid=<GID>` |
 
-UID/GID in cache mounts are dynamic (from resolved image config). All non-root cache mounts use flat `/tmp/<tool>-cache` paths to avoid buildah permission issues with nested paths.
+UID/GID in cache mounts are dynamic (from resolved image config). Ownership is what avoids the buildah permission problem: a non-root cache mount is uid/gid-OWNED (`OwnedCacheMount`, a per-uid id namespace) rather than shared root-owned. The vocabulary stage caches (`EmitCmd`/builder stages — pixi/rattler/aur/cargo) keep their flat `/tmp/<tool>-cache` roots, while the two emitter-level caches moved to the nested `/var/cache/charly/{downloads,npm-cache}` (sdk#279) — both owned for a non-root stage (`buildkit.OwnedCacheMount`), a shared/locked mount only for a root stage. `deploykit/tasks_emit.go`: `buildCacheRoot = "/var/cache/charly"` + `downloadsCacheDir`/`npmCacheDir` under it.
 
 ### Download caching + the generic `cache:` modifier (`EmitDownload` / `TaskCacheMounts`)
 
 `EmitDownload` (`sdk/deploykit/tasks_emit.go`) writes every `download:` to a **content-addressed**
-file in the `/tmp/downloads` cache mount: `__c=/tmp/downloads/$(printf %s "$url"
+file in the `/var/cache/charly/downloads` cache mount: `__c=/var/cache/charly/downloads/$(printf %s "$url"
 | sha256sum | cut -c1-64)`, fetched only when absent (`[ -s "$__c" ] ||`), via
 `curl -o "$__c.part" && mv -f "$__c.part" "$__c"` (atomic rename — a
 partial/corrupt download is never reused), then the extractor reads `"$__c"`.
