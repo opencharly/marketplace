@@ -418,7 +418,7 @@ acting without the orchestrator's direct supervision.
   remove, recreate, or repurpose a path.
 - **Session identity and scope claims are the comment grammar.** When two
   or more agents work one issue/PR, or a scope is a blocking dependency,
-  a session speaks through its two-line `Assisted-by` + `Agent:` footer
+  a session speaks through its two-line `Agent:` + `Assisted-by` footer
   and a scope is claimed or taken over only through the closed verb set
   (`CLAIM`/`OWNING`/`HANDING OVER`/`TAKING OVER`/`BLOCKS`/`UNBLOCKS`/
   `STATUS`/`RESOLVED`). Owned by `/charly-internals:git-workflow` B2b —
