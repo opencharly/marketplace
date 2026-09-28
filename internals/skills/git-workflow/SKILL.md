@@ -235,28 +235,79 @@ ignored — `grep` floods on `Broken pipe`). Full detail:
 | B5 (the fresh evaluator + fork/PR path, the two-gate autonomous-landing model), CalVer generation, post-landing cleanliness + report format, and the validation-FAILS recovery sequence | `references/validator-and-calver.md` |
 | Evidence discipline — provenance vs plausibility of a pasted gate, the three freshness surfaces (head / body / pasted output), positive-vs-negative claim decay, sweeping for claims a fix invalidated, the merged-tree gate for a `BEHIND` PR, source-and-regeneration as one cross-repo cutover, submodule pointers reverted by a non-conflicting merge, and why status-absence on a known head proves nothing | `references/evidence-and-freshness.md` |
 | Umbrella mechanics — the ~400-submodule view, policy B, `charly task sync`/`verify`/`hooks`/`harness`, the no-edit-in-submodule rule, pin discipline | `references/umbrella-mechanics.md` |
-| PR-state observation — the terminal-state poll | `marketplace/scripts/pr_state_watch.sh` (run it; it is the sanctioned poll) |
+| Watch-and-wake — the watcher family, and the arm → wake → re-arm runbook | `marketplace/scripts/pr_state_watch.sh`, `marketplace/scripts/pr_watch_many.sh`, `marketplace/scripts/gh_watch.sh` (run one — never hand-roll a poll) + `references/watch-and-wake.md` |
 
-## The PR-state watcher (STOP on terminal, never loop)
+## The watcher family — arm, wake, re-arm
 
-The one sanctioned way to observe a landing is the script
-`scripts/pr_state_watch.sh` in the **`opencharly/marketplace`** repo — addressed
-as `marketplace/scripts/pr_state_watch.sh` from the umbrella checkout (its home
-on that repo's `origin/main`, landed via the companion
-`opencharly/marketplace#318`). It polls the required check across ALL its
-same-name runs on the head and **exits immediately** on any terminal state —
-`0` MERGED · `2` BLOCKED (a real verdict BLOCK, or the POISON stuck state, named
-in the output) · `3` CLOSED · `4` TIMEOUT · `5` ERROR. It is preferred over
-`gh pr checks --watch` (which reads the collapsed rollup and cannot see POISON)
-and over any hand-rolled `while`/`sleep` loop (the R4 band-aid). On exit 2, read
-the verdict, fix, re-finalize the body, push a NEW commit — never re-dispatch the
-same head to "see if it clears". Bounded knobs: `--interval`, `--timeout`.
+Three generic watcher scripts under `scripts/` in the **`opencharly/marketplace`**
+repo (addressed as `marketplace/scripts/<name>` from the umbrella checkout), plus a
+shared helper library `_watch_common.sh` they both source, turn a landing into a
+single background command that EXITS — and, because the harness notifies the owning
+agent when a background command finishes, **exiting IS the notification**. Arm one,
+act on the wake, re-arm. None of them needs a `while`/`sleep` loop of your own (the
+R4 band-aid), and every per-PR terminal decision stays `pr_state_watch.sh`'s.
+
+| Arm this | To watch | Wake event |
+|---|---|---|
+| `pr_state_watch.sh <owner>/<repo> <pr>` | ONE PR's terminal state, across ALL same-name check-runs on the head | `0` MERGED · `2` BLOCKED · `3` CLOSED · `4` TIMEOUT · `5` ERROR — and it names **POISON** (a green re-dispatch stuck behind an older same-name FAILURE) distinctly from a verdict BLOCK |
+| `pr_watch_many.sh [--repos R,…] [--interval S] [--stallmin M] [--validator NAME] <owner>/<repo> <pr> …` | a CROSS-REPO **PR batch** | the first of: a PR terminal (above, delegated); a **NEW verdict** — a new `<validator>` run COMPLETING on any watched repo; a **STALL** — no new verdict for the window while scopes stay open+unmerged |
+| `gh_watch.sh [--events L] [--interval S] [--stallmin M] [--workflow NAME] <owner>/<repo>#<num> …` | a per-item list of PRs **and/or issues** | a NEW `comment`; a NEW `verdict`; `merged` (unblocked); `closed` without merge (find the successor); or a `stall` (takeover candidate) |
+
+Both batch watchers poll every `--interval` and exit when a new `--workflow` run
+(default `charly/pr-validator`) **COMPLETES**; the STALL layer fires only when **no
+new verdict lands within the window** while the scope is still open+unmerged. That
+is the B2b.1 progress-signal rule applied to a monitor — progress is a completed
+validator run, never session activity (a looping agent never falls quiet; a peer
+WAITING on a running validator looks quiet but is working). Watch the scopes
+actually in flight — a stale watch list produces false stalls.
+
+**`gh_watch.sh` events are DELTA or STATE.** `comment` and `verdict` are DELTA:
+arming seeds the current comment-count / newest run id, so a pre-existing comment
+or verdict never wakes you. `merged`, `closed`, and `stall` are STATE: they fire
+while the item IS in that state — arming `merged` on an already-merged PR wakes
+immediately (exactly how "has my blocker landed?" reads). STATE `stall` additionally
+requires the item to be **open+unmerged**, so a closed/merged item never emits a
+false `(open, unmerged)` alarm.
+
+**Three field-learned watcher requirements — mandatory, not tips:**
+
+- **Silence is an ALARM.** A blocked item with no pushes emits **no validator runs and
+  no events**, so an event-only watcher is blind to the worst case. Every watcher MUST
+  carry a per-item **stall/silence alarm** — no progress (no new commit, comment, or
+  completed `charly/pr-validator` run; i.e. `updated_at` unchanged) for the window
+  while the item is open+unmerged. `gh_watch.sh`'s `stall` is therefore **ON BY
+  DEFAULT**. The events tell you when something HAPPENED; the stall alarm tells you
+  when something SHOULD have and did not. (Measured: a PR sat silently unchanged for
+  ~2 hours with NO alert; the instant `stall` was armed it fired.)
+- **Watch the OUTCOME, not every event.** Waking on every comment of an actively
+  iterating owner is noise. The DEFAULT event set is the terminal outcomes
+  (`merged`,`closed`) **plus the `stall` alarm**; add `comment`/`verdict` ONLY for a
+  wait that genuinely needs them (`EVENTS=comment` on an issue you asked a question
+  on and want the moment anyone replies).
+- **Liveness ≠ progress.** Judge progress by **artifacts** — a pushed branch, a new
+  commit, an opened PR, a merged tag — never by a session heartbeat or "still
+  investigating". The stall alarm is the mechanism: it keys on the item's
+  `updated_at`, so its silence is measured against artifacts, not activity.
+
+**On exit 2 of `pr_state_watch.sh`, read the verdict, fix, re-finalize the body,
+push a NEW commit — never re-dispatch the same head** to "see if it clears". It is
+preferred over `gh pr checks --watch` (which reads the collapsed rollup and cannot
+see POISON) and over any hand-rolled loop.
+
+The wake feeds the coordination protocol (B2b.1): a `stall` wake makes the scope a
+**TAKEOVER candidate** — post a coordination comment FIRST, wait the window, then
+`TAKING OVER — authority: window-expired` **BEFORE** any push. A `merged` wake is
+the **UNBLOCK** signal. The full arm → wake → act → re-arm loop, the event
+catalog, and the takeover it feeds: `references/watch-and-wake.md`.
 
 ## Cross-References
 
 - the project rulebook "Post-Execution Policies" — the mandate this skill operationalizes.
 - `marketplace/internals/agents/pr-validator.md` — the fresh evaluator's full spec.
-- `marketplace/scripts/pr_state_watch.sh` — the terminal-state PR poll (stop, never loop).
+- `marketplace/scripts/pr_state_watch.sh` — the per-PR terminal-state poll (stop, never loop).
+- `marketplace/scripts/pr_watch_many.sh` — the cross-repo PR-batch watcher (terminal / new verdict / stall).
+- `marketplace/scripts/gh_watch.sh` — the per-item PR/issue event watcher (comment / verdict / merged / closed / stall).
+- `references/watch-and-wake.md` — when to arm which watcher, the event semantics, and the re-arm-after-wake loop.
 - `opencharly/.github/scripts/org-ruleset.sh` — the sole organization-wide owner
   of the ONE branch ruleset (required workflow + branch rules) apply/verify.
 - `/charly-internals:repo-setup` — the org/dotgithub configuration, the landing
