@@ -180,6 +180,151 @@ cp "$HERE/_watch_common.sh" "$WORK/_watch_common.sh"
 grep -q '^TERMINAL BLOCKED (exit 2) opencharly/x#1' "$WORK/out.txt" \
   && ok "pr_watch_many: reports a terminal BLOCKED" || bad "pr_watch_many terminal" "$(cat "$WORK/out.txt")"
 
+# ── 10..13: the AUTO-REARM loop, the single-instance lock, the rate-limit guard ──
+# Every auto-rearm assertion uses WATCH_REARM_HOOK so NO real successor is ever spawned
+# (a real one would detach a stray watcher). The hook logs one line per call; the count
+# IS the assertion (exactly one successor, never a stack).
+REARM_LOG="$WORK/rearm.log"
+printf '#!/usr/bin/env bash\necho "REARM $*" >> %s\n' "$REARM_LOG" > "$WORK/rearm-hook.sh"
+chmod +x "$WORK/rearm-hook.sh"
+export WATCH_REARM_HOOK="$WORK/rearm-hook.sh"
+export WATCH_RUNTIME_DIR="$WORK/rt"; mkdir -p "$WATCH_RUNTIME_DIR"
+rearm_count() { grep -c '^REARM ' "$REARM_LOG" 2>/dev/null || echo 0; }
+rm -f "$REARM_LOG"
+
+# A stub that fires a DELTA `verdict` (a NOW-dated run after an empty seed) — the case
+# that MUST re-arm so a watch stays alive.
+reset_calls; printf '[]' > "$WORK/runs.json"
+( sleep 1; run_old 444 "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$WORK/runs_after.json" ) &
+"$HERE/gh_watch.sh" --events verdict --interval 1 --timeout 6 --auto-rearm opencharly/x#1 >/dev/null 2>&1
+rc=$?
+eq "auto-rearm: a DELTA fire exits 0" "$rc" 0
+eq "auto-rearm: a DELTA fire spawns EXACTLY ONE successor" "$(rearm_count)" 1
+reset_calls
+
+# A TIMEOUT (no event) MUST also keep a watch alive → exactly one successor.
+rm -f "$REARM_LOG"; printf '[]' > "$WORK/runs.json"; printf '[]' > "$WORK/runs_after.json"
+"$HERE/gh_watch.sh" --events verdict --interval 1 --timeout 2 --auto-rearm opencharly/x#1 >/dev/null 2>&1
+eq "auto-rearm: a TIMEOUT re-arms (exit 4)" "$?" 4
+eq "auto-rearm: a TIMEOUT spawns EXACTLY ONE successor" "$(rearm_count)" 1
+
+# --no-rearm (the default) spawns NO successor — per-event notify is one-shot.
+rm -f "$REARM_LOG"; reset_calls; printf '[]' > "$WORK/runs.json"
+( sleep 1; run_old 555 "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$WORK/runs_after.json" ) &
+"$HERE/gh_watch.sh" --events verdict --interval 1 --timeout 6 --no-rearm opencharly/x#1 >/dev/null 2>&1
+eq "--no-rearm: a DELTA fire still exits 0" "$?" 0
+eq "--no-rearm: spawns NO successor" "$(rearm_count)" 0
+reset_calls
+
+# A STATE fire (merged) must NOT re-arm — a successor would IMMEDIATELY re-fire it
+# (livelock). This is the guard that keeps --auto-rearm from burning the API budget.
+rm -f "$REARM_LOG"; printf true > "$WORK/merged.txt"
+"$HERE/gh_watch.sh" --events merged --interval 1 --timeout 3 --auto-rearm opencharly/x#1 >/dev/null 2>&1
+eq "auto-rearm: a STATE (merged) fire exits 0" "$?" 0
+eq "auto-rearm: a STATE fire spawns NO successor (no livelock)" "$(rearm_count)" 0
+printf false > "$WORK/merged.txt"
+
+# A TAKEOVER (SIGTERM → exit 143) must NOT re-arm: a successor would immediately take
+# the lock back from the displacing arm → perpetual ping-pong. This exercises the
+# trap's exit-code capture (a `trap 'cleanup; watch_on_exit_common $?'` would lose 143).
+# Arm a long-running --auto-rearm watcher in the BACKGROUND, TERM it, and assert the
+# re-arm hook never fired.
+rm -f "$REARM_LOG"
+"$HERE/gh_watch.sh" --events verdict --interval 30 --timeout 60 --auto-rearm opencharly/x#1 >/dev/null 2>&1 &
+TPID=$!
+sleep 1
+kill -TERM "$TPID" 2>/dev/null
+wait "$TPID" 2>/dev/null; trc=$?
+eq "auto-rearm: a SIGTERM takeover exits 143" "$trc" 143
+eq "auto-rearm: a takeover spawns NO successor (no ping-pong)" "$(rearm_count)" 0
+
+# ── a REAL successor hand-off (no hook): the successor must be told it is a successor ──
+# This drives the ACTUAL `watch_rearm` spawn and asserts the child's environment carries
+# WATCH_IS_SUCCESSOR=1 (so `watch_lock_auto` WAITS for the predecessor instead of taking
+# it over) AND does NOT carry a stale WATCH_REARMED latch (which would suppress the
+# child's own future re-arm). A `WATCH_REARMED=1` used as the signal would clobber here.
+PROBE="$WORK/probe-succ"
+cat > "$PROBE" <<'PS'
+#!/usr/bin/env bash
+printf 'is_successor=%s rearmed=%s\n' "${WATCH_IS_SUCCESSOR:-unset}" "${WATCH_REARMED:-unset}" >> "$PROBE_LOG"
+PS
+chmod +x "$PROBE"
+PROBE_LOG="$WORK/succ.log"; export PROBE_LOG; rm -f "$PROBE_LOG"
+WATCH_REARM_HOOK= bash -c '
+  . "$1/_watch_common.sh"
+  watch_rearm "$2"
+' _ "$HERE" "$PROBE"
+sleep 1
+grep -q 'is_successor=1' "$PROBE_LOG" 2>/dev/null \
+  && ok "auto-rearm: the real successor is spawned with WATCH_IS_SUCCESSOR=1 (waits, no takeover)" \
+  || bad "real successor env" "got: $([ -f "$PROBE_LOG" ] && cat "$PROBE_LOG" || echo '<no log>')"
+grep -q 'rearmed=unset' "$PROBE_LOG" 2>/dev/null \
+  && ok "auto-rearm: the successor does NOT inherit a stale WATCH_REARMED latch" \
+  || bad "successor latch" "WATCH_REARMED leaked into the successor"
+
+# ── the single-instance lock: among two SEPARATE processes, exactly one holds ──
+# A probe sources _watch_common.sh, acquires the lock (taking over any peer), reports
+# the holder, then holds briefly. `sleep N 9>&-` is ESSENTIAL — the sleep child must
+# not inherit the lock fd, or the probe would never release the lock (the same
+# fd-inheritance class the scripts guard against).
+cat > "$WORK/lock-probe.sh" <<'LP'
+#!/usr/bin/env bash
+# shellcheck source=/dev/null
+. "$1"; shift
+key="$1"
+watch_lock "$key" --takeover || { echo "REFUSED"; exit 1; }
+echo "HOLDER $$"
+sleep "${LOCK_HOLD:-3}" 9>&-
+LP
+chmod +x "$WORK/lock-probe.sh"
+LOCK_KEY="$(watch_key lock-probe-test)"
+LOCK_HOLD=4 "$WORK/lock-probe.sh" "$HERE/_watch_common.sh" "$LOCK_KEY" > "$WORK/lp1.out" 2>&1 &
+LP1=$!
+sleep 1
+H1="$(cat "$(watch_holder_file "$LOCK_KEY")" 2>/dev/null)"
+LOCK_HOLD=4 "$WORK/lock-probe.sh" "$HERE/_watch_common.sh" "$LOCK_KEY" > "$WORK/lp2.out" 2>&1 &
+LP2=$!
+# The takeover is multi-step (kill the peer → wait for it to die → acquire): poll for
+# the handoff rather than sampling once, which would race the displacement.
+H2=""
+i=0
+while [ "$i" -lt 40 ]; do
+  H2="$(cat "$(watch_holder_file "$LOCK_KEY")" 2>/dev/null)"
+  [ -n "$H2" ] && [ "$H2" != "$H1" ] && break
+  command sleep 0.1; i=$((i+1))
+done
+[ -n "$H1" ] && [ -n "$H2" ] && [ "$H1" != "$H2" ] \
+  && ok "lock: the second arm displaces the first (holder $H1 → $H2)" \
+  || bad "lock takeover" "holders were [$H1] then [$H2]"
+kill -0 "$LP1" 2>/dev/null && bad "lock: first probe still alive" "not displaced" || ok "lock: the first holder was displaced"
+kill "$LP1" "$LP2" 2>/dev/null; wait "$LP1" "$LP2" 2>/dev/null
+
+# ── the rate-limit guard: below threshold, BACK OFF and do not poll/fire ──
+printf '#!/usr/bin/env bash\necho 5\n' > "$WORK/rate-low.sh"; chmod +x "$WORK/rate-low.sh"
+printf '#!/usr/bin/env bash\necho 99999\n' > "$WORK/rate-ok.sh"; chmod +x "$WORK/rate-ok.sh"
+SLEEP_LOG="$WORK/sleep.log"
+# the sleep hook records the requested seconds but sleeps only a hair, so the test is fast
+printf '#!/usr/bin/env bash\necho "SLEEP $1" >> %s\ncommand sleep 0.05\n' "$SLEEP_LOG" > "$WORK/sleep-hook.sh"
+chmod +x "$WORK/sleep-hook.sh"
+export WATCH_SLEEP_HOOK="$WORK/sleep-hook.sh"
+export WATCH_RATE_MIN=200
+
+rm -f "$SLEEP_LOG"; export WATCH_RATE_HOOK="$WORK/rate-low.sh"
+"$HERE/gh_watch.sh" --events verdict --interval 5 --timeout 1 opencharly/x#1 >/dev/null 2>&1
+rc=$?
+eq "rate-limit: below threshold TIMES OUT without firing" "$rc" 4
+grep -q '^SLEEP 20$' "$SLEEP_LOG" 2>/dev/null \
+  && ok "rate-limit: backs off 4x the interval (5 → 20s)" \
+  || bad "rate-limit backoff" "no 4x backoff seen; log: $(cat "$SLEEP_LOG" 2>/dev/null)"
+
+rm -f "$SLEEP_LOG"; export WATCH_RATE_HOOK="$WORK/rate-ok.sh"; reset_calls
+printf '[]' > "$WORK/runs.json"
+( sleep 1; run_old 666 "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$WORK/runs_after.json" ) &
+"$HERE/gh_watch.sh" --events verdict --interval 1 --timeout 6 opencharly/x#1 >/dev/null 2>&1
+eq "rate-limit: healthy quota polls and fires normally" "$?" 0
+reset_calls
+unset WATCH_SLEEP_HOOK WATCH_RATE_HOOK WATCH_RATE_MIN
+
 echo
 if [ "$FAILS" -eq 0 ]; then
   echo "PASS — all watcher-family assertions passed"
