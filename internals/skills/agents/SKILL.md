@@ -70,13 +70,13 @@ it, commits an R1 violation - STOP and load it before continuing.
 
 **And every worker MUST run the pre-validator self-audit before its FIRST push.**
 The parent brief MUST embed the pre-validator self-audit checklist from
-`/charly-internals:git-workflow` (`references/pre-validator-self-audit.md`), and
-the worker MUST run that preflight against its own head before pushing. It
+the `/charly-internals:git-workflow` skill's pre-validator self-audit reference,
+and the worker MUST run that preflight against its own head before pushing. It
 classifies the change from the diff (never from intent), pastes only commands
 actually executed on this head, accounts for every applicable rule, and refuses to
 surface a failure it cannot own - the pass that turns a BLOCK→BLOCK→PASS cycle
 into a first-try PASS (umbrella #286). Full checklist:
-`/charly-internals:git-workflow` `references/pre-validator-self-audit.md`.
+the `/charly-internals:git-workflow` skill's pre-validator self-audit reference.
 
 ## The harness-adapter CONFIG mechanism (layer-charly-internals#49)
 
