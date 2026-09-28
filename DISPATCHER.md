@@ -67,7 +67,7 @@
 | `charly box build` / `charly box generate` / Containerfile | `/charly-internals:generate-source` |
 | Git/`gh` workflow — `feat/` branch, commit, PR-only landing (NO direct push to main), branch protection, the `pr-validator` fresh-evaluator gate, native auto-merge + tag-on-merge CalVer-at-merge, worktree, sync-to-upstream, branch/worktree prune, cross-repo R10 landing | `/charly-internals:git-workflow` |
 | Go source work (adding/modifying `charly` commands) / Editing `sdk/schema/*.cue` / `charly task cue-gen` / `cue exp gengotypes` / generated `cue_types_gen.go` / Schema Driven Design (SDD) / a schema spike | `/charly-internals:go` |
-| Go code-quality / CLAUDE.md-compliance audit / `golangci-lint` / `dupl` / duplication or dead-code check / `.golangci.yml` | `/charly-internals:go-quality` |
+| Go code-quality / AGENTS.md-compliance audit / `golangci-lint` / `dupl` / duplication or dead-code check / `.golangci.yml` | `/charly-internals:go-quality` |
 | IR / InstallPlan / EmitTarget / OCITarget | `/charly-internals:install-plan` |
 | local-target deploy / `target: local` / `host: local` (default) / SSH-host deploys / `user:` / `ssh_arg:` | `/charly-internals:local-infra` |
 | Marketplace / skill-corpus generation — `charly marketplace generate`, the refs list (candy/charly-marketplace/charly.yml), the drift gate, the daily refresh PRs, per-harness vendoring, or 'my skill is stale' | `/charly-internals:marketplace` |

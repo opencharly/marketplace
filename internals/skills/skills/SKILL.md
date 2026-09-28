@@ -17,11 +17,9 @@ how to update them.
 
 ## Skill Dispatchers
 
-The repository has two complete root dispatchers: `CLAUDE.md` is the
-harness-specific adapter and `AGENTS.md` is the harness-neutral rulebook for
-compatible readers. Keep their trigger → skill mappings and overall policy
-equivalent while confining harness-specific mechanics to the adapter and
-skills. When multiple triggers apply, load all matching skills before acting.
+`AGENTS.md` is the single, complete, harness-neutral rulebook: every
+harness reads it directly, and the trigger → skill dispatcher lives there.
+When multiple triggers apply, load all matching skills before acting.
 Full index: `marketplace/README.md`.
 
 ## The corpus must actually LOAD — audit delivery, not just content
@@ -90,7 +88,7 @@ and fails outright on a project-scoped plugin.
 |---------|--------|
 | Deployment step fails or needs undocumented workaround | Update the relevant `/charly-core:*`, `/charly-build:*`, `/charly-check:*`, `/charly-automation:*`, kind plugin (`/charly-image:*`, `/charly-vm:*`, `/charly-kubernetes:*`, `/charly-local:*`, `/charly-pod:*`), per-pod plugin (`/charly-jupyter:*`, `/charly-coder:*`, …), or split-foundation plugin (`/charly-distros:*`, `/charly-languages:*`, `/charly-infrastructure:*`, `/charly-tools:*`) |
 | Verification check missing from image skill | Add to the image skill's Verification section |
-| Skill's recommended defaults are wrong | Fix in the skill, not the project rulebook (`AGENTS.md` / `CLAUDE.md`) |
+| Skill's recommended defaults are wrong | Fix in the skill, not the project rulebook (`AGENTS.md`) |
 | New feature added to charly CLI | Update `/charly-core:<cmd>` or `/charly-build:<cmd>` skill + `/charly-internals:go` source map |
 | New candy or box added | Create skill via `charly box new candy` scaffold or manual SKILL.md |
 | Bug fix changes behavior | Document the fix in affected skills |
@@ -146,7 +144,7 @@ build together catch a stale cross-reference that a `git grep` sweep missed.
    -l 'DO[- ]NOT[- ]EDIT'` tells you which files are generated — but triage the hits
    rather than trusting them, since a file may MENTION the banner without carrying one
    (agent definitions under `marketplace/<family>/agents/` are hand-authored).
-2. If the insight affects cross-skill behavior, update the project rulebook (`AGENTS.md` / `CLAUDE.md`) too
+2. If the insight affects cross-skill behavior, update the project rulebook (`AGENTS.md`) too
 3. After any non-trivial deployment session, ask: "Did we learn anything that future sessions should know?"
 
 ### Regenerate ONLY the projections of the sources you edited
@@ -250,7 +248,7 @@ A skill is either a single `SKILL.md`, or an entry `SKILL.md` plus sibling `refe
 
 | Content type | Where it belongs |
 |-------------|-----------------|
-| Project philosophy, architecture, key rules | harness root rulebook (`CLAUDE.md` or `AGENTS.md`) |
+| Project philosophy, architecture, key rules | harness root rulebook (`AGENTS.md`) |
 | Command usage, flags, examples | `/charly-core:<cmd>` or `/charly-build:<cmd>` skill |
 | Layer properties, packages, ports | per-pod plugin (`/charly-jupyter:<name>`, `/charly-coder:<name>`, …) or split-foundation plugin (`/charly-distros:*`, `/charly-languages:*`, `/charly-infrastructure:*`, `/charly-tools:*`) for base layers |
 | Image composition, deployment, verification | per-pod plugin or `/charly-distros:<name>` / `/charly-infrastructure:<name>` for base images |
@@ -286,7 +284,7 @@ their policy equivalent while preserving harness-specific tool language.
 | Landing mechanics (branch loop, the two-step PR + `pr-validator` merge/tag, CalVer-generated-at-merge, branch protection, multi-repo order) | `/charly-internals:git-workflow` |
 | Agent/workflow/team primitives, hooks doctrine | `/charly-internals:agents` |
 | Kernel/plugin doctrine (core = kernel; every capability a plugin candy), the two authoring shapes, placement, the three-lane transport doctrine, the seams catalog, **the kernel/plugin boundary law** (E/M/B/D/R) + the incomplete-seam mandate | `/charly-internals:plugin` |
-| Skill Dispatcher, RDD/ADE/SDD mandates, acceptance checklist, attribution tiers, Documentation-only change class anchor, Key Rules index | harness root rulebooks (`CLAUDE.md` and `AGENTS.md`) |
+| Skill Dispatcher, RDD/ADE/SDD mandates, acceptance checklist, attribution tiers, Documentation-only change class anchor, Key Rules index | harness root rulebook (`AGENTS.md`) |
 
 A registry owner may hold its canonical text in a `references/<file>.md` split file rather than the top-level `SKILL.md` body (see "Progressive disclosure" above) — the row still names the SKILL as sole owner regardless of which file inside it carries the detail.
 
@@ -301,7 +299,7 @@ swept in the same commit as any rename or removal (R5):
 - the 2 hooks in `.claude/hooks/` (`pre-commit-gate.sh`, `pre-push-gate.sh` — deterministic
   command-mechanics gates only; there is no reminder-hook layer),
 - the agents in `marketplace/internals/agents/*.md`,
-- the 9 per-directory signpost `CLAUDE.md` files (`charly/`, `candy/`,
+- the 9 per-directory signpost `AGENTS.md` files (`charly/`, `candy/`,
   `marketplace/`, `docs/`, each `box/<distro>`),
 - the workflows in `.claude/workflows/*.js`,
 - every SKILL.md that quotes a section name (grep before assuming).
@@ -352,19 +350,17 @@ layer-validator, testing-validator — gate claims) and **executors**
 proof). Full story: `/charly-internals:agents`. Dynamic workflows are NOT plugin
 content — they live in the superproject's `.claude/workflows/*.js`.
 
-### Per-directory CLAUDE.md signposts (hybrid)
+### Per-directory AGENTS.md signposts
 
-The repo-root `CLAUDE.md` is the complete R0–R10 harness adapter.
-Per-directory `CLAUDE.md` files (`charly/`, `candy/`, `marketplace/`, `docs/`, and each
+The repo-root `AGENTS.md` is the single, complete, harness-neutral rulebook.
+Per-directory `AGENTS.md` files (`charly/`, `candy/`, `marketplace/`, `docs/`, and each
 `box/<distro>` submodule) are THIN signposts only: they name the skills to
 load for that area and point back to root. They MUST NOT restate any rule body —
 duplication drifts (an earlier layer-validator and the reminder hooks both drifted
 exactly this way; the reminder hooks now name rules as pointers/triggers, never
-restating their bodies). Subagents and teammates load the full `CLAUDE.md`
+restating their bodies). Subagents and teammates load the full `AGENTS.md`
 hierarchy from their working directory, so a signpost reaches a worker scoped
-to that subtree without bloating root. Compatible harnesses that read
-`AGENTS.md` use its independent, harness-neutral dispatcher and do not depend
-on these signposts.
+to that subtree without bloating root.
 
 ## Two-Layer Sync Architecture
 
@@ -373,7 +369,7 @@ boundary:
 
 | What | Synced by | Visibility |
 |------|-----------|------------|
-| Code, `AGENTS.md` / `CLAUDE.md`, skills, layers, images | Git | Public (committed) |
+| Code, `AGENTS.md`, skills, layers, images | Git | Public (committed) |
 | `.claude/memory/` (auto-memory) | Syncthing | Private (gitignored) |
 | `.claude/settings.local.json` (personal overrides) | Syncthing | Private (gitignored) |
 | `.claude/settings.json` (project policy) | Git | Public (committed) |
@@ -384,7 +380,7 @@ propagate via Syncthing so your working state follows you across machines
 without polluting the public repo.
 
 Rule of thumb: **if it's useful to every contributor, it lives in git**
-(skills, `AGENTS.md` / `CLAUDE.md`, code). **If it's useful only to you, it lives in the
+(skills, `AGENTS.md`, code). **If it's useful only to you, it lives in the
 Syncthing-synced half** (memory, personal settings).
 
 **A generalizable PROVEN insight saved only to memory is a knowledge LEAK — every
