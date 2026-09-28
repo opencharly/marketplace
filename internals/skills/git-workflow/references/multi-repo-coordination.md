@@ -392,6 +392,33 @@ the resolved issue). The SAME protocol applies across accounts and
 harnesses — the footer carries identity regardless of who owns the GitHub
 account; there is no per-account case.
 
+### B2c — the PR backlog sweep (org-wide triage)
+
+When the ask is to clear the backlog — "check all open PRs, close the superseded,
+take over the stalled" — triage from LIVE state, never from a thread's claim: a
+"blocked" PR's blocker may already have landed, and a "superseded" PR may never
+have been closed.
+
+1. **Enumerate authoritatively.** `gh search prs --owner <org> --state open --limit
+   200` is the snapshot, but search is index-backed; reconcile its total against
+   per-repo `gh pr list --state open` before declaring the set complete.
+2. **Classify each PR by its artifacts** (`gh pr view <n> --json
+   state,comments,statusCheckRollup,commits,mergeable`, or arm the watcher):
+   - **superseded** — a successor carries the same work (successor MERGED, or an
+     existing `Superseded by #<n>` comment). Close it with the carry-forward
+     comment if the thread lacks one — see `references/validator-and-calver.md`
+     "Replacing a PR".
+   - **actively worked** — a commit, comment, or completed `charly/pr-validator`
+     run on the current head within the working window. Leave it.
+   - **stalled** — none of the above. Start the formal takeover (B2b).
+3. **Act, then arm — never hand-poll.** Close the superseded. For each stalled PR
+   post the ownership-board comment (`OWNING — ETA <when>` / `HANDING OVER —
+   <reason>`) and arm `gh_watch.sh --events comment,stall <item>` so the reply OR
+   the window's end wakes you (`references/watch-and-wake.md`); after the window
+   with no reply, `TAKING OVER — authority: window-expired` (B2b). Treat a
+   cross-leg block as a dependency to verify, not a verdict to accept: name the
+   chain and the unblock order on the thread.
+
 ## B3 — agent teams in per-teammate worktrees
 
 When an agent team parallelizes work, **each teammate works in its OWN worktree**

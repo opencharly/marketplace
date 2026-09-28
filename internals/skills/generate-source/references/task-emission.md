@@ -19,7 +19,7 @@ All install-task logic lives in `sdk/deploykit` (`tasks_emit.go` + `tasks_render
        case "copy":     EmitCopy        (COPY --from=<layer> --chmod= --chown=)
        case "write":    StageInlineContent + EmitWrite (COPY from .build _inline)
        case "link":     EmitLinkBatch   (coalesces adjacent same-user)
-       case "download": EmitDownload    (RUN curl + extractor + /tmp/downloads cache)
+       case "download": EmitDownload    (RUN curl + extractor + /var/cache/charly/downloads cache)
        case "setcap":   EmitSetcapBatch (coalesces; strip on empty caps)
        case "command":  EmitCmd         (RUN <shell-probe> <<'OVCMD' … OVCMD + /ctx bind)
        case "build":    WriteCandySteps (deploykit) handles builder placement
@@ -50,7 +50,7 @@ The `Layer` struct that feeds emission carries its `require:` / `candy:` refs as
 | `EmitCopy(b, Op, layerStage, img)` | `COPY --from=<layerStage> --chmod= [--chown=] <src> <to>` |
 | `EmitWrite(b, Op, srcPath, img)` | `COPY --chmod=<mode> [--chown=<uid>:<gid>] <srcPath> <path>` — `--chmod=` first, and **no `--from=`** (the source is a build-context path) where `srcPath` is the staged inline-content file |
 | `EmitLinkBatch(b, []Op, img)` | One `RUN ln -sf t1 l1 && ln -sf t2 l2 …` |
-| `EmitDownload(b, Op, img)` | `RUN --mount=type=cache,dst=/tmp/downloads [+ task cache:] <shell-probe> '… curl -o "$__c.part" && mv → /tmp/downloads/<sha256>; <extractor> "$__c"'` — content-addressed, fetch-once, integrity-safe |
+| `EmitDownload(b, Op, img)` | `RUN --mount=type=cache,dst=/var/cache/charly/downloads [+ task cache:] <shell-probe> '… curl -o "$__c.part" && mv → /var/cache/charly/downloads/<sha256>; <extractor> "$__c"'` — content-addressed, fetch-once, integrity-safe |
 | `EmitSetcapBatch(b, []Op, img)` | `RUN setcap -r … && setcap caps path …` |
 | `EmitCmd(b, Op, layerStage, img, userIsRoot)` | `RUN --mount=type=bind,from=<layerStage>,source=/,target=/ctx [--mount=type=cache,…] sh -c 'SH=/bin/sh; [ -x /bin/bash ] && SH=/bin/bash; exec "$SH"' sh <<'OVCMD'` followed by the BUILD_ARCH/ARCH exports, `set -e`, the command, and a closing `OVCMD` (single-quoted heredoc — see below) |
 

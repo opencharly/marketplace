@@ -16,7 +16,7 @@ later wins when both set it).
 
 ## Why this exists
 
-Live-deploy verification (the project rulebook R1, R10, and Risk Driven Development (`AGENTS.md` / `CLAUDE.md`)) is
+Live-deploy verification (the project rulebook R1, R10, and Risk Driven Development (`AGENTS.md`)) is
 mandatory — and it's much easier to carry out aggressively when you can freely `destroy →
 rebuild → retest` a target without asking the user for permission
 every time. But autonomous destroy is only safe on resources whose

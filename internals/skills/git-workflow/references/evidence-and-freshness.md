@@ -16,7 +16,7 @@ it.
 **Terms.** *The gate* — whichever check a claim rests on; usually `charly box validate`,
 `charly marketplace drift`, or `charly docs generate`. *`marketplace drift`* compares every
 generated artifact — the `marketplace/` corpus AND the harness surface it also emits
-(`CLAUDE.md`, `AGENTS.md`, `.claude/settings.json`, `.claude/hooks/*`) — against what the
+(`AGENTS.md`, `.claude/settings.json`, `.claude/hooks/*`) — against what the
 candy `skill:` / `hook:` / `marketplace:` sources currently project — a *candy* being an entity defined in `candy/<name>/charly.yml` —
 exiting 1 when any differs. `charly marketplace generate` re-emits them. *Superproject* — the `opencharly/charly`
 repo, which contains the others as submodules. *Gitlink* — the single commit sha a

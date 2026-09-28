@@ -27,7 +27,7 @@ every harness that wires it — including Claude Code, via
 `.claude/settings.json`'s PreToolUse hooks. The **R10 pass
 authorizes OPENING the PR, never a self-merge**: the two-step landing separates the
 author (who opens the PR) from the fresh validator (a check run on the same PR).
-This skill is the mechanics; the project rulebook "Post-Execution Policies" (`AGENTS.md` / `CLAUDE.md`) carries the
+This skill is the mechanics; the project rulebook "Post-Execution Policies" (`AGENTS.md`) carries the
 mandate, `/charly-internals:cutover-policy` the one-phase rule, `/charly-build:migrate`
 the schema-version/tag coupling, and the marketplace's `internals/agents/pr-validator.md` the
 validator's own spec.
@@ -45,8 +45,8 @@ the REQUIRED workflow (the org ruleset `workflows` rule) acts on `opened` /
 `synchronize` / `reopened` and IGNORES `on.types` for anything else — a body edit did
 NOT fire it even with `edited` listed, and a draft->ready transition did NOT fire it
 even with `ready_for_review` listed. A PLAIN per-repo workflow with the same `types:`
-DOES fire (verified live), which is why the `rerun` channel is a plain per-repo file
-(see below). So do NOT rely on a body edit to re-run the required gate.
+DOES fire (verified live), but the org no longer ships one. So do NOT rely on a body
+edit to re-run the required gate.
 
 **The head SHA is known BEFORE the push, so this is always possible.** A commit's
 identity is content-addressed: `git rev-parse HEAD` (and `git diff --stat
@@ -65,19 +65,22 @@ nothing pushed yet. The correct order:
 If you must move the head again (a real fix), the body is stale again — repeat 1–4
 in ONE batch: edit the body, then push.
 
-**A body-only fix after a pushed head: PREFER the `rerun` LABEL; an empty re-freeze
-commit is an equally valid alternative.** Both re-fire the required gate — they
-differ only in the head they leave behind. The org ships the `rerun` LABEL channel as
-ONE org-wide sweep — `opencharly/.github`'s `rerun.yml` workflow +
-`scripts/sweep-rerun.sh` (there is NO per-repo listener file; an earlier per-repo
-listener design was replaced by the capability-free sweep, PR #122): adding the
-`rerun` label to the PR re-runs THIS
-head's failed `charly/pr-validator` run. A re-run reuses the SAME `GITHUB_SHA` and
-updates THAT run's `validate / validate` check run IN PLACE — no duplicate
-same-name check run — so it clears the POISON state (a completed prior FAILURE on
-that head) and re-reads the corrected body; the equivalent manual move is
-`gh run rerun <run-id>` on the failed run. Because it preserves the head SHA it is
-the cheaper choice. An empty re-freeze commit (`git commit --allow-empty -m "docs:
+**A body-only fix after a pushed head: re-run the gate MANUALLY with `gh run rerun
+<run-id>`; an empty re-freeze commit is the alternative.** A body edit does NOT
+re-run the required workflow (the ruleset `workflows` rule fires only on `opened`/
+`synchronize`/`reopened` and ignores `types` — MEASURED and confirmed by the GitHub
+docs, "Troubleshooting rules"), so the fix is applied by explicitly re-running the
+failed run: `gh run rerun <run-id>` (find it with `gh run list --repo <r> --json
+databaseId,headSha,conclusion`). A re-run reuses the SAME `GITHUB_SHA` and updates
+THAT run's `validate / validate` check run IN PLACE — no duplicate same-name check
+run — so it clears the POISON state (a completed prior FAILURE on that head) and
+re-reads the corrected body. Because it preserves the head SHA it is the cheaper
+choice.
+
+**There is no automatic `rerun`-label channel any more.** The org-wide `rerun` label
+plus scheduled sweep was RETIRED: a label can be added for ANY reason — including a
+comment — and the sweep re-ran the gate without a body change. `gh run rerun
+<run-id>` is the ONE body-fix path now. An empty re-freeze commit (`git commit --allow-empty -m "docs:
 re-freeze …"`) ALSO re-fires the required gate: the ruleset `workflows` rule acts on
 the push-driven `synchronize` type, so the push mints a NEW head SHA and a fresh
 `validate / validate` run on it (the old head's checks no longer apply). It is
@@ -92,7 +95,7 @@ nothing on the PR. Measured on opencharly/plugin-vm#39 (head `c9457a9`): the sam
 dispatch without `--ref` produced no head check; carrying the branch ref --
 `--ref feat/deploy-shape-override` -- it registered the green check on the branch head.
 But a `gh workflow run` mints a NEW run (a new same-name check run on the head) and
-can re-poison the rollup; prefer the `rerun` label / `gh run rerun <run-id>`.
+can re-poison the rollup; prefer `gh run rerun <run-id>`.
 
 **There is NO self-heal.** The reusable workflow sets a `head_ref` output but
 never consumes it (`grep -c 'steps.pr.outputs'` in
@@ -186,7 +189,7 @@ commit — never re-dispatch the same head. Detail: the reference + the script h
 - **Zero warnings is part of R10** (project rulebook R1). A version-mismatch warning clears with `charly box reconcile`; any other warning gets `/charly-internals:root-cause-analyzer` then a real fix — "warning" is never an accepted end state.
 - **Atomic on `main`, never on `feat/`.** The org-wide `charly/pr-validator` workflow's PASS enables GitHub native auto-merge (squash), which folds the author's change and any review-round fix commits into one commit on `main`; the `feat/` branch may freely accumulate fix commits across review rounds. The merge-time CalVer tag and the `CHANGELOG/<CalVer>.md` entry (written from the PR body — the PR body IS the changelog) are created after merge by the org-wide `tag-on-merge` workflow (see "CalVer" in `references/validator-and-calver.md`). Two separate cutovers must never share one PR.
 - **Update the PR; never close-and-recreate** (except for work that will not land at all — a disproven premise, an abandoned approach). When a review demands changes, append a commit and push it fast-forward — the check resets and the validator re-runs. This is what makes the no-force-push rule livable: because `main` gets a squash, a branch carrying five fix commits still lands as one. **If the PR is AUTO-CLOSED after too many failed validation rounds (or the operator closes it) and the work is carried forward in a NEW PR, you MUST post a comment on the OLD (closed) PR that references the new one (its number/URL) and states what it supersedes** — a closed PR is a durable public record that must point to where the work continued.
-- **FINISH THE BODY BEFORE THE PUSH.** The validator validates the PR — the diff at the branch head and the body — each time it runs, and fetches the PR live. The org REQUIRED workflow fires only on the default push-driven types (`opened`/`synchronize`/`reopened`) and IGNORES `on.types` (MEASURED); because the head SHA is content-addressed and therefore known BEFORE the push (`git rev-parse HEAD`), write the body first: commit → compute head/diff-stats → write the WHOLE body (footer last) → push. A body-only fix after the push needs no empty commit — PREFER the **`rerun` label** (the org-wide `rerun.yml` sweep + `scripts/sweep-rerun.sh` re-runs this head's failed `charly/pr-validator` run; no per-repo listener file, per PR #122; a re-run reuses the same `GITHUB_SHA` and updates the SAME check run in place — no duplicate, clears POISON; the manual equivalent is `gh run rerun <run-id>`). An empty re-freeze commit ALSO re-fires the gate (the ruleset `workflows` rule acts on the push-driven `synchronize` type) but mints a NEW head SHA — equally valid, just re-key the body to it. Full mechanics: "THE BODY-BEFORE-PUSH RULE" above. Corollary: a PR whose diff is EMPTY because the base already contains the change (you branched from a stale snapshot) is a no-op — close it rather than re-pushing (the validator flags it as body-truthfulness violation: body describes files the diff does not carry). Always `git fetch origin main` + diff against CURRENT main before opening or finalizing a PR.
+- **FINISH THE BODY BEFORE THE PUSH.** The validator validates the PR — the diff at the branch head and the body — each time it runs, and fetches the PR live. The org REQUIRED workflow fires only on the default push-driven types (`opened`/`synchronize`/`reopened`) and IGNORES `on.types` (MEASURED); because the head SHA is content-addressed and therefore known BEFORE the push (`git rev-parse HEAD`), write the body first: commit → compute head/diff-stats → write the WHOLE body (footer last) → push. A body-only fix after the push needs no empty commit — re-run the gate MANUALLY with **`gh run rerun <run-id>`** on the failed run (find it with `gh run list --repo <r> --json databaseId,headSha,conclusion`; a re-run reuses the same `GITHUB_SHA` and updates the SAME check run in place — no duplicate, clears POISON). An empty re-freeze commit ALSO re-fires the gate (the ruleset `workflows` rule acts on the push-driven `synchronize` type) but mints a NEW head SHA — equally valid, just re-key the body to it. Full mechanics: "THE BODY-BEFORE-PUSH RULE" above. Corollary: a PR whose diff is EMPTY because the base already contains the change (you branched from a stale snapshot) is a no-op — close it rather than re-pushing (the validator flags it as body-truthfulness violation: body describes files the diff does not carry). Always `git fetch origin main` + diff against CURRENT main before opening or finalizing a PR.
 - **BEFORE ANY UPDATE PUSH: ALWAYS read the PR's current comments + validation AND ALWAYS write/update the PR body.** Before ANY push that updates an existing PR — a fix commit, a body edit, or `gh pr update-branch` — do BOTH, in THIS order: (a) read the PR's LIVE state — `gh pr view <n> --repo <r> --json comments,reviews` + `gh pr checks <n> --repo <r>` (or the sanctioned `marketplace/scripts/pr_state_watch.sh`: the latest `charly/pr-validator` verdict/validation result and EVERY new comment/review) AND the latest comments/state of every ISSUE this PR closes or relates to (`gh issue view <N> --comments`) — and ACT on each one: answer it in-thread, claim/hand-off on the issue, or change the pushed state to satisfy it); then (b) write the WHOLE updated body for the head you are about to publish (footer last). The validator re-reviews the diff + body + the FULL live thread on every run, so pushing with a stale read OR a stale body re-reviews the wrong state and can re-ship a defect an existing comment already named. A hook/classifier block is never reshaped-and-retried (B5).
 - **Search existing issues/PRs before starting; file ONE proper issue if none; claim it before branching.** Before any non-trivial work — and before filing anything — search the whole org (`gh search issues <terms>` / `gh search prs <terms>` / `gh issue list -S <terms>`) and ADD to the existing issue/PR thread rather than creating a duplicate. If none exists, file ONE proper issue (specific title, the problem, the evidence, the intended scope) and reference it from the PR (`Closes #N` / `relates to #N`). The issue is the coordination point: check its owner (assignee / claim comment / status label) and CLAIM it (comment + assign) BEFORE you create a branch; if another session already owns it, coordinate on the thread instead of opening a competing PR. **Every issue resolved by a PR MUST be closed by an agent once that PR merges** (with a comment linking the merge); never leave a resolved issue open. Full protocol: B2b.
 - **Identity is in the footers; authority is in the comment verb.** On a triggered scope — two or more agents on one issue/PR, OR a blocking dependency (any `BLOCKS`/`UNBLOCKS` in play) — EVERY agent-authored comment and PR body carries the two-line footer in ONE canonical order, **`Agent:` FIRST and `Assisted-by:` LAST** (a PR body thereby also satisfies the validator's "`Assisted-by` FINAL line" requirement), and a coordination comment OPENS with a label from the CLOSED set — `CLAIM` · `OWNING` · `HANDING OVER` · `TAKING OVER` · `BLOCKS` · `UNBLOCKS` · `STATUS` · `RESOLVED`. Both are optional for a solo agent on an uncontended PR; the slug is NEVER appended to `Assisted-by`. Because same-account sessions are indistinguishable by comment author, the SLUG is authoritative for COORDINATION IDENTITY (who is doing the work), not the GitHub author: the LATEST `OWNING` (or `TAKING OVER`) for a scope wins, and you MUST NOT push to another slug's claimed branch/PR without a `HANDING OVER` addressed to you, a `TAKING OVER` naming your `authority:`, or operator sign-off. **The sign-off authority is a SEPARATE axis and is ACCOUNT-gated** — a maintainer sign-off is valid ONLY when the comment is posted by a maintainer-set account (`atrawog`/`aitrawog`), verified by the author label (`by @<login>`), never the prose; the two rules do not conflict (the slug governs WHO, the account governs the sign-off's VALIDITY). **Progress is a COMPLETED `charly/pr-validator` run, never session activity; takeover is comment-FIRST over a 60-minute FLOOR window; the auto-close carry-forward touches FOUR surfaces (closed PR, successor body, the issue, ownership transfer); and there is no R10 class exemption for a library/schema change.** An agent NEVER impersonates the operator. Full mechanics + rendered examples: B2b "agent identity and the coordination verb grammar".
