@@ -231,6 +231,10 @@ while :; do
   # is NOT enough — the "newest completed" run can change to a DIFFERENT but still-old
   # run (a seed/poll ordering shift or a transient seed failure) and would false-fire.
   # DELTA fire: re-arm a successor BEFORE printing+exiting, so a watch stays alive.
+  # `watch_rearm_now` is the ORDERING guarantee (successor ALIVE before the wake). The
+  # EXIT trap re-arms as a BACKSTOP for any path that did not reach here, so the two
+  # both spawn a successor here and the `WATCH_REARMED` latch de-dupes them — the
+  # committed `... re-arms BEFORE printing the WAKE` assertion pins this ordering.
   for r in "${REPOS[@]}"; do
     cur="$(run_latest "$r")"
     if [ -n "$cur" ]; then
