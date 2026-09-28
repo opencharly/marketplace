@@ -31,7 +31,7 @@ only points to it.
 | The default multi-agent execution model: orchestrator/teammate model-tier split, maximum parallelization, the slot budget, concurrent landing, the orchestrator's bidirectional verification duty, architectural-integrity ownership, the responsibility matrix and tie-breakers | `references/orchestration-model.md` |
 | Program-wide alignment: the north-star protocol, the IOU register, per-merge measurement, migration-ledger discipline, crossed-ruling reconciliation, brief verification and stop-and-respawn, whack-a-mole escalation | `references/program-discipline.md` |
 | Bed-scoped parallel real-deployment testing: the concurrency ceilings (store lock, exclusive-resource tokens, long-bed ownership, in-tree build artifacts, per-worktree binaries) and their fixes; the charly binary in a multi-worktree setup; the binding rule for running a bed; implementation-workflow shape; speed levers | `references/parallel-bed-testing.md` |
-| Delegation as fresh context; teammate context lifecycle; the nine sub-agent operational invariants; the hooks doctrine (current hook inventory); agent lifecycle hygiene; the universal PR-gate audit; worktree/validator lifecycle | `references/hooks-and-lifecycle.md` |
+| Delegation as fresh context; teammate context lifecycle; the nine sub-agent operational invariants; the hooks doctrine (current hook inventory); agent lifecycle hygiene; the todo ledger & interruption safety; the universal PR-gate audit; worktree/validator lifecycle | `references/hooks-and-lifecycle.md` |
 
 ## Cross-References
 
@@ -87,3 +87,28 @@ installed with `charly task hooks`. The two halves coexist by classification - e
 surface is identical-by-design, umbrella-only, or deliberately-forked - so a shared
 file is never copied into a fork and a fork is never silently re-synced. This skill
 documents the mechanism; the rulebooks stay harness-neutral.
+
+## Todo ledger & interruption safety
+
+Durable in-flight state lives in the session's **structured todo ledger** — the
+harness's todo primitive. It is the ONE session-scoped record of what is in
+flight, and it preserves work across an interruption only when it is treated
+as durable. Full procedure and the harness-binding detail:
+`references/hooks-and-lifecycle.md` ("Todo ledger & interruption safety").
+
+- **The ledger IS the todo primitive.** Maintain it as the durable,
+  session-scoped ledger of in-flight work, not a scratch list rewritten each
+  turn.
+- **Reconcile FIRST, then act.** On ANY interrupting input — a fresh user
+  message, an automated watcher alert, a delegated/subagent report, or a
+  compaction — FIRST reconcile the ledger (keep every in-flight item; ADD the
+  new one; never drop), THEN act. An interruption is an **ADDITION, not a
+  reset**; never start a new list from scratch.
+- **Long operations are ledger-first.** Before starting any long-running
+  operation, ensure the ledger reflects it, so a later interruption resumes
+  from STATE, not memory.
+
+The umbrella rulebook states this as rule 11 (`AGENTS.md`, "Todo ledger &
+interruption safety") and points here for the detail. Where this guidance
+itself belongs is owned by the sibling `/charly-internals:skills` ("Where
+guidance belongs"): mandate in `AGENTS.md`, detail in the skill.
