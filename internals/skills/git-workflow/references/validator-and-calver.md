@@ -82,12 +82,12 @@ status exists — never `gh pr merge --admin`, never a force-push, never editing
 2. **The auto-mode classifier — the semantic layer that fires on top.** `permissions.allow`
    clears the *prompt* for `gh pr merge`, but the classifier's **Merge Without Review**
    soft-block fires anyway and is **not cleared by `permissions.allow`**. With
-   the merge rule present, superproject-rooted, and a CLAUDE.md landing statement live,
-   `gh pr merge --squash` was denied for both a sub-agent and the main session — verbatim:
-   *"the merge instruction came from a coordinator agent (not the user), the CLAUDE.md
-   pre-authorization is manufactured classifier-steering intent … Run this outside auto
-   mode so the user can review."* The merge gate is real, separate, and stricter than the
-   status gate.
+   the merge rule present, superproject-rooted, and an AGENTS.md landing statement live,
+   `gh pr merge --squash` was denied for both a sub-agent and the main session: the
+   classifier held that the instruction came from a coordinator agent rather than the
+   user, and that the rulebook pre-authorization was manufactured classifier-steering
+   intent, directing the merge to run outside auto mode so the user could review. The
+   merge gate is real, separate, and stricter than the status gate.
 
 **What clears the Merge-Without-Review gate — these, in descending durability:**
 
@@ -102,8 +102,8 @@ status exists — never `gh pr merge --admin`, never a force-push, never editing
   consent lives in the transcript, and once the transcript is summarized the classifier
   stops seeing it — a merge that worked earlier in a session was denied after the
   session resumed from a compaction summary.
-- **Not CLAUDE.md prose.** The classifier explicitly rejects a CLAUDE.md authorization as
-  "manufactured classifier-steering intent." CLAUDE.md records
+- **Not AGENTS.md prose.** The classifier explicitly rejects an AGENTS.md authorization as
+  "manufactured classifier-steering intent." AGENTS.md records
   the policy; it does not function as classifier consent.
 
 **An agent cannot apply the `autoMode.allow` grant itself.** Writing one's own
@@ -172,7 +172,7 @@ of the status-post denial (the merge is the separate Merge-Without-Review gate a
 user/managed-level grant covers the action — user-level settings (e.g. the operator's
 `autoMode.allow` rule) apply independently of project root, and a submodule-rooted
 validator under that rule posted `success` and merged with zero denials. Superproject
-rooting remains the rule (project-level rules, the CLAUDE.md hierarchy, and transcript
+rooting remains the rule (project-level rules, the AGENTS.md hierarchy, and transcript
 determinism are root-dependent); diagnose a denial by checking both settings layers. Do
 not "fix" a denial by editing the rule until you have confirmed the agent's project root. See `/charly-internals:agents` "Sub-agent operational invariants"
 for the durable-verdict-first protocol every validator must follow (a permission denial
@@ -315,16 +315,16 @@ vehicle.) The canonical, four-surface form of this rule lives in B2b
 ("PR closed, work continues → the successor protocol"); this section states the
 rule for a hand-off, B2b owns the detail.
 
-**If the BLOCK is body-only (no code change), fix the body then PREFER the
-`rerun` LABEL** — the org-wide `rerun.yml` sweep + `scripts/sweep-rerun.sh`
-(ONE org-wide channel; no per-repo listener file, per PR #122) re-runs THIS head's
-failed `charly/pr-validator` run on the same `GITHUB_SHA`, updating the SAME
-`validate / validate` check run IN PLACE (no duplicate, clears POISON) and
-re-reading the corrected body; the manual equivalent is `gh run rerun <run-id>`
-on the failed run. An empty re-freeze commit ALSO re-fires the gate (a
-`synchronize` push) but mints a NEW head SHA. (A body edit alone does NOT re-run
-the REQUIRED workflow — MEASURED: it ignores `on.types`; do not rely on
-`edited`.) See the SKILL's "THE BODY-BEFORE-PUSH RULE".
+**If the BLOCK is body-only (no code change), fix the body then re-run the
+gate MANUALLY with `gh run rerun <run-id>`** on the failed `charly/pr-validator`
+run (find it with `gh run list --repo <r> --json databaseId,headSha,conclusion`).
+A re-run reuses the SAME `GITHUB_SHA` and updates the SAME `validate / validate`
+check run IN PLACE (no duplicate, clears POISON) and re-reads the corrected body.
+An empty re-freeze commit ALSO re-fires the gate (a `synchronize` push) but mints
+a NEW head SHA. (A body edit alone does NOT re-run the REQUIRED workflow —
+MEASURED and confirmed by the GitHub docs: it ignores `on.types`; do not rely on
+`edited`.) The org-wide `rerun` label + sweep was RETIRED — it could fire without
+a body change. See the SKILL's "THE BODY-BEFORE-PUSH RULE".
 
 ## The POISON state — a duplicate same-name check-run keeps a PASS PR BLOCKED
 

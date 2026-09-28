@@ -251,7 +251,7 @@ environmental, not code defects. On such a host:
 
 ## R9 — deployed binary matches source; runtime deps live in the PKGBUILD
 
-See the project rulebook's R9 mandate (`CLAUDE.md`/`AGENTS.md`). Applied to the `charly` toolchain:
+See the project rulebook's R9 mandate (`AGENTS.md`). Applied to the `charly` toolchain:
 
 - **Syncing source does not rebuild the binary.** Syncthing / git / rsync move
   *source* between hosts. After pushing code, rebuild on the target — `scripts/bootstrap-charly.sh` in that checkout — and verify `./bin/charly version` matches what

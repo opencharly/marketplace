@@ -54,8 +54,9 @@ NEW repository.
    from the merged PR body (the body IS the changelog). Proxy-consumed root
    modules (`sdk`, `spec`, `plugin-gh`) get the Go-module `v0.<YYYYDDD>.<HHMM>`
    form instead.
-4. A body-only fix after the head was pushed needs NO empty commit: add the
-   `rerun` label; the org `rerun.yml` sweep re-runs the failed run in place.
+4. A body-only fix after the head was pushed needs NO empty commit: re-run the
+   failed run MANUALLY with `gh run rerun <run-id>` (a re-run updates the same check
+   run in place). The org-wide `rerun` label sweep was RETIRED.
 
 ## Setting up a NEW repository (checklist)
 
@@ -90,7 +91,7 @@ archived `pi-review-action`.
 - `opencharly/.github` — `scripts/org-ruleset.sh`, `scripts/lib-org.sh`,
   `scripts/retire-per-repo-dispatchers.sh`, and the workflows
   `org-wide-pr-validator-required.yml`, `pr-validator.yml`, `tag-on-merge.yml`,
-  `tag-on-merge-dispatcher.yml`, `rerun.yml`, `bootstrap-repo-main.yml`.
+  `tag-on-merge-dispatcher.yml`, `bootstrap-repo-main.yml`.
 
 ## When to Use This Skill
 

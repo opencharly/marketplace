@@ -12,7 +12,7 @@ Projections to today's concrete types: `ProjectConfig()` → `*Config`, `Project
 
 ### Schema Driven Design (SDD)
 
-The operationalization of the project rulebook "Schema Driven Design (SDD)" pillar (`AGENTS.md` / `CLAUDE.md`) — the mandate lives there, the how lives here: the configuration schema comes BEFORE the code, and as much code as possible is GENERATED from the schema. The full pipeline map, source → generator → artifact:
+The operationalization of the project rulebook "Schema Driven Design (SDD)" pillar (`AGENTS.md`) — the mandate lives there, the how lives here: the configuration schema comes BEFORE the code, and as much code as possible is GENERATED from the schema. The full pipeline map, source → generator → artifact:
 
 | Source (authored) | Generator | Generated artifact |
 |---|---|---|

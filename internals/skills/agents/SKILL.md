@@ -19,9 +19,9 @@ the hooks/lifecycle rules that hold an autonomous run together.
 The one rule that binds every reference below: **a bed run is R10-class —
 the commit is gated on a full final-code bed test (pasted), but beds run
 freely throughout to verify** (see `references/parallel-bed-testing.md`
-"The binding rule"). The project rulebook is `CLAUDE.md` / `AGENTS.md`,
-which carry equivalent R0–R10 policy; this skill never restates it, only
-points to it.
+"The binding rule"). The project rulebook is `AGENTS.md`, the single
+harness-neutral rulebook carrying R0–R10; this skill never restates it,
+only points to it.
 
 ## Index
 
@@ -67,3 +67,23 @@ failures; a worker pushed four un-gated heads (gofmt-dirty, stale worktree
 replace) because it never loaded the git-workflow skill's gate-before-push rule.
 A parent that fails to name the skill, or a worker that proceeds without loading
 it, commits an R1 violation - STOP and load it before continuing.
+
+**And every worker MUST run the pre-validator self-audit before its FIRST push.**
+The parent brief MUST embed the pre-validator self-audit checklist from
+`/charly-internals:git-workflow` (`references/pre-validator-self-audit.md`), and
+the worker MUST run that preflight against its own head before pushing. It
+classifies the change from the diff (never from intent), pastes only commands
+actually executed on this head, accounts for every applicable rule, and refuses to
+surface a failure it cannot own - the pass that turns a BLOCK→BLOCK→PASS cycle
+into a first-try PASS (umbrella #286). Full checklist:
+`/charly-internals:git-workflow` `references/pre-validator-self-audit.md`.
+
+## The harness-adapter CONFIG mechanism (layer-charly-internals#49)
+
+Harness adaptation lives in the **per-harness config at the repo root**, never in
+the rulebook: a shared, byte-identical core of gate scripts (drift-checked by
+`charly task harness`) plus deliberate per-harness forks and a clone-level git hook
+installed with `charly task hooks`. The two halves coexist by classification - each
+surface is identical-by-design, umbrella-only, or deliberately-forked - so a shared
+file is never copied into a fork and a fork is never silently re-synced. This skill
+documents the mechanism; the rulebooks stay harness-neutral.
