@@ -107,8 +107,8 @@ the harness's job, never the script's:
   surfaces a message to the agent, and keep the durable inbox fallback.
 
 A wake that starts a new turn can interrupt in-flight work, so an alert is an
-ADDITION to the todo ledger, never a reset (`references/hooks-and-lifecycle.md`
-"Todo ledger & interruption safety").
+ADDITION to the todo ledger, never a reset (see the `/charly-internals:agents`
+skill, "Todo ledger & interruption safety").
 
 ### Delta vs STATE events (`gh_watch.sh`)
 
