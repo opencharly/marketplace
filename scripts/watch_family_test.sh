@@ -1,58 +1,78 @@
 #!/usr/bin/env bash
 # watch_family_test.sh — self-contained coverage for the watcher family
-# (pr_watch_many.sh, gh_watch.sh, _watch_common.sh). It installs a deterministic
-# stub `gh` on PATH so every asserted branch is exercised WITHOUT network, then
-# asserts on outcomes. Exit 0 iff every assertion passed; non-zero otherwise.
+# (pr_watch_many.sh, gh_watch.sh, _watch_common.sh, pr_state_watch.sh). It installs a
+# deterministic stub `gh` on PATH so every asserted branch is exercised WITHOUT
+# network, then asserts on outcomes. Exit 0 iff every assertion passed.
 #
 # Run: ./scripts/watch_family_test.sh
+#
+# Tests that must poll fast opt in explicitly with ALLOW_FAST_POLL=1 (the committed
+# defaults are 60s and the floor refuses sub-60s without this escape hatch).
 set -uo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
+# Fast polling is a TEST-ONLY explicit opt-in (the committed default is 60s). Set it
+# for the WHOLE suite; the floor's own refusal is asserted in a SUBSHELL with it unset.
+export ALLOW_FAST_POLL=1
+
 FAILS=0
 ok()  { printf 'ok   - %s\n' "$1"; }
 bad() { printf 'FAIL - %s\n       %s\n' "$1" "$2"; FAILS=$((FAILS + 1)); }
 eq()  { if [ "$2" = "$3" ]; then ok "$1"; else bad "$1" "expected [$3] got [$2]"; fi; }
 
-# --- stub gh: reads fixtures from $WATCH_TEST_DIR (only the calls the family makes)
+# --- stub gh ---------------------------------------------------------------
+# The watcher family now uses: `api graphql` (the ONE batched poll), `run view` (the
+# item-scoped verdict probe), `run list` (pr_watch_many's repo-scoped verdict), and
+# `api rate_limit`. The stub reads fixtures from $WATCH_TEST_DIR.
 export WATCH_TEST_DIR="$WORK"
 cat > "$WORK/gh" <<'STUB'
 #!/usr/bin/env bash
 d="${WATCH_TEST_DIR:?}"
 case "$1 $2" in
+  "api rate_limit"*)
+    # WATCH_RATE_HOOK-independent rate fixture: remaining.txt then reset.txt.
+    case "$*" in
+      *"reset"*) cat "$d/reset.txt" 2>/dev/null || echo "$(date +%s)" ;;
+      *) cat "$d/remaining.txt" 2>/dev/null || echo 9999 ;;
+    esac ;;
+  "api graphql"*)
+    # The batched poll. The counter increments on EVERY call (including an erroring
+    # one) so a "no retry" assertion can count attempts. If gqlerr.txt exists, emit it
+    # (to exercise RATE_LIMIT detection) with gh's exit ${GQLERR_RC:-0}; else gql.json
+    # on the first call and gql_after.json on later polls when present.
+    n="$(cat "$d/gqlcalls" 2>/dev/null || echo 0)"; n=$((n + 1)); printf '%s' "$n" > "$d/gqlcalls"
+    if [ -f "$d/gqlerr.txt" ]; then cat "$d/gqlerr.txt"; exit "${GQLERR_RC:-0}"; fi
+    if [ "$n" -le 1 ]; then cat "$d/gql.json" 2>/dev/null || echo '{"data":{}}'
+    elif [ -f "$d/gql_after.json" ]; then cat "$d/gql_after.json"
+    else cat "$d/gql.json" 2>/dev/null || echo '{"data":{}}'; fi ;;
+  "run view"*)
+    cat "$d/run_view.json" 2>/dev/null || echo '{"databaseId":null}' ;;
+  "pr view"*)
+    # pr_state_watch's single snapshot. If prerr.txt exists, emit it and exit non-zero
+    # (to exercise the rate-limit abort); else a benign non-terminal PR.
+    if [ -f "$d/prerr.txt" ]; then cat "$d/prerr.txt"; exit 1; fi
+    printf '{"state":"OPEN","mergeStateStatus":"BLOCKED","headRefOid":"abcdef1234567890","url":"https://github.com/%s/pull/%s"}' "$3" "$4" ;;
   "run list"*)
     # Sequence-aware: the FIRST `run list` (the seed read) returns runs.json; later
-    # polls return runs_after.json when present. This lets a test exercise the
-    # seed-vs-poll divergence (an id compare alone would false-fire) deterministically,
-    # with no sleeps.
+    # polls return runs_after.json when present.
     n="$(cat "$d/ncalls" 2>/dev/null || echo 0)"; n=$((n + 1)); printf '%s' "$n" > "$d/ncalls"
     if [ "$n" -le 1 ]; then cat "$d/runs.json" 2>/dev/null || echo '[]'
     elif [ -f "$d/runs_after.json" ]; then cat "$d/runs_after.json"
     else cat "$d/runs.json" 2>/dev/null || echo '[]'; fi ;;
-  "api "*)
-    case "$*" in
-      *"/pulls/"*"--jq .merged"*) cat "$d/merged.txt" 2>/dev/null || echo "" ;;
-      *"/pulls/"*) [ "$(cat "$d/type.txt" 2>/dev/null)" = pr ] && exit 0 || exit 1 ;;
-      *"/issues/"*"/comments"*) cat "$d/cc.txt" 2>/dev/null || echo "" ;;
-      *"/issues/"*"--jq .state"*) cat "$d/state.txt" 2>/dev/null || echo open ;;
-      *"/issues/"*"--jq .updated_at"*) date -u +%Y-%m-%dT%H:%M:%SZ ;;
-      *"/issues/"*) exit 0 ;;
-    esac ;;
 esac
 exit 0
 STUB
 chmod +x "$WORK/gh"
 export PATH="$WORK:$PATH"
-printf pr      > "$WORK/type.txt"
-printf false   > "$WORK/merged.txt"
-printf open    > "$WORK/state.txt"
-printf 5       > "$WORK/cc.txt"
 printf '[]'    > "$WORK/runs.json"
+printf '{"data":{}}' > "$WORK/gql.json"
+
 
 # 1 ── syntax of every family file
-for s in _watch_common.sh pr_watch_many.sh gh_watch.sh; do
+for s in _watch_common.sh pr_watch_many.sh gh_watch.sh pr_state_watch.sh; do
   if bash -n "$HERE/$s" 2>/dev/null; then ok "bash -n $s"; else bad "bash -n $s" "syntax error"; fi
 done
 
@@ -70,6 +90,34 @@ watch_has x 'a,b'   && bad "watch_has rejects x in a,b"   "false positive" || ok
 watch_usage "$HERE/pr_watch_many.sh" | head -1 | grep -q '^pr_watch_many.sh' \
   && ok "watch_usage emits the header" || bad "watch_usage" "no header line"
 
+# 2b ── the poll floor: sub-60 is refused unless ALLOW_FAST_POLL=1 (tests only)
+eq "POLL_FLOOR is 60" "$POLL_FLOOR" 60
+( unset ALLOW_FAST_POLL; watch_interval x 5 "--interval" >/dev/null 2>&1 ) \
+  && bad "watch_interval refuses sub-floor without ALLOW_FAST_POLL" "accepted 5" \
+  || ok "watch_interval refuses sub-floor without ALLOW_FAST_POLL"
+eq "watch_interval accepts the floor (60)" "$(watch_interval x 60 "--interval")" 60
+eq "watch_interval accepts ALLOW_FAST_POLL sub-floor" "$(watch_interval x 5 "--interval")" 5
+( unset ALLOW_FAST_POLL; watch_interval x abc "--interval" >/dev/null 2>&1 ) \
+  && bad "watch_interval rejects a non-integer" "accepted abc" \
+  || ok "watch_interval rejects a non-integer"
+
+# 2c ── committed defaults are 60s (no test leak into the shipped default) and the
+#       floor is enforced end to end (a sub-60 --interval exits 5 without the hatch).
+eq "gh_watch default interval is 60"      "$(grep -m1 '^INTERVAL="' "$HERE/gh_watch.sh" | grep -o ':-[0-9]*' | tr -d ':-')" 60
+eq "pr_watch_many default interval is 60" "$(grep -m1 '^INTERVAL='  "$HERE/pr_watch_many.sh" | grep -o '[0-9]*')" 60
+eq "pr_state_watch default interval is 60" "$(grep -m1 '^INTERVAL="' "$HERE/pr_state_watch.sh" | grep -o ':-[0-9]*' | tr -d ':-')" 60
+( unset ALLOW_FAST_POLL; "$HERE/gh_watch.sh" --events merged --interval 5 --timeout 1 opencharly/x#1 >/dev/null 2>&1 )
+eq "gh_watch: sub-60 --interval refused (exit 5) without ALLOW_FAST_POLL" "$?" 5
+
+# 2d ── the rate-limit HARD ABORT: a RATE_LIMIT body exits 7, never a retry. MEASURED
+#       trap the predicate covers: `gh api graphql` exits 0 while the body carries it.
+eq "watch_is_rate_limited detects a GraphQL RATE_LIMIT body" \
+   "$(watch_is_rate_limited '{"errors":[{"type":"RATE_LIMIT","message":"API rate limit already exceeded"}]}' && echo yes || echo no)" yes
+eq "watch_is_rate_limited detects an HTTP 403 message" \
+   "$(watch_is_rate_limited 'gh: HTTP 403: rate limit exceeded' && echo yes || echo no)" yes
+eq "watch_is_rate_limited ignores ordinary output" \
+   "$(watch_is_rate_limited '{"data":{"r_x_1":{"issueOrPullRequest":null}}}' && echo yes || echo no)" no
+
 # 3 ── watch_run_latest parses id|conclusion|branch|updatedAt|createdEpoch
 printf '[{"databaseId":7,"name":"charly/pr-validator","status":"completed","conclusion":"success","headBranch":"b","updatedAt":"2026-01-01T00:00:00Z","createdAt":"2026-01-01T00:00:00Z"}]' > "$WORK/runs.json"
 eq "watch_run_latest parses a completed run" "$(watch_run_latest owner/repo charly/pr-validator)" \
@@ -84,49 +132,86 @@ eq "watch_run_latest is empty when none" "$(watch_run_latest owner/repo charly/p
 "$HERE/gh_watch.sh" >/dev/null 2>&1;                    eq "gh_watch: no items exit 5" "$?" 5
 "$HERE/gh_watch.sh" owner/repo >/dev/null 2>&1;         eq "gh_watch: malformed item exit 5" "$?" 5
 
+# ── GraphQL fixture helpers. The batched poll parses ONE JSON document, so the tests
+#    build it from per-item field files. `gql_item <owner> <repo> <num> <type> <state>
+#    <merged> <comments> <head> <updatedAt> [runId] [runConclusion] [runUpdatedAt]`.
+NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"; NOW_ISO="$NOW"
+OLD="$(date -u -d '3 hours ago' +%Y-%m-%dT%H:%M:%SZ)"
+gql_item() {
+  local o="$1" r="$2" n="$3" ty="$4" st="$5" mg="$6" cc="$7" hd="$8" up="$9"
+  local rid="${10:-}" rc="${11:-}" ru="${12:-}"
+  if [ "$ty" = pr ]; then
+    printf '{"__typename":"PullRequest","state":"%s","merged":%s,"updatedAt":"%s","comments":{"totalCount":%s},"headRefOid":"%s","commits":{"nodes":[{"commit":{"checkSuites":{"nodes":[%s]}}}]}}' \
+      "$(printf '%s' "$st" | tr '[:lower:]' '[:upper:]')" "$mg" "$up" "$cc" "$hd" \
+      "$( [ -n "$rid" ] && printf '{"conclusion":"%s","updatedAt":"%s","workflowRun":{"databaseId":%s,"workflow":{"name":"charly/pr-validator"}}}' "$rc" "$ru" "$rid" || echo "" )"
+  else
+    printf '{"__typename":"Issue","state":"%s","updatedAt":"%s","comments":{"totalCount":%s}}' \
+      "$(printf '%s' "$st" | tr '[:lower:]' '[:upper:]')" "$up" "$cc"
+  fi
+}
+# gql_doc <item-token> <item-json> [<item-token> <item-json> ...] → a full
+# {"data":{...}} document. The alias is derived with the SAME `gql_alias` the watcher
+# uses, so fixture and script can never disagree on the key.
+gql_doc() { local s="" ; while [ "$#" -ge 2 ]; do s+="\"$(gql_alias "$1")\":{\"issueOrPullRequest\":$2},"; shift 2; done; printf '{"data":{%s}}' "${s%,}"; }
+run_view_of() { printf '{"databaseId":%s,"conclusion":"%s","updatedAt":"%s"}' "$1" "$2" "$3"; }
+run_old() { printf '[{"databaseId":%s,"name":"charly/pr-validator","status":"completed","conclusion":"success","headBranch":"x","updatedAt":"%s","createdAt":"%s"}]' "$1" "$2" "$2"; }
+# seed_no_run — a benign, run-less PR seed (nothing new yet).
+seed_no_run() { gql_doc opencharly/x#1 "$(gql_item opencharly x 1 pr open false 0 h1 "$NOW")" > "$WORK/gql.json"; }
+# fire_after_arm <runid> — a background writer that, AFTER the arm read, swaps in a
+# freshly NOW-timestamped completed run (the DELTA `verdict` fire). It writes ALL the
+# fixtures both tools read: gql_after.json (gh_watch) and runs_after.json +
+# run_view.json (pr_watch_many / the probe). The timestamp is computed INSIDE the
+# subshell, so it is strictly after ARM_EPOCH (a pre-captured NOW would be stale).
+fire_after_arm() {
+  ( sleep 1
+    t="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    run_old "$1" "$t" > "$WORK/runs_after.json"
+    run_view_of "$1" success "$t" > "$WORK/run_view.json"
+    gql_doc opencharly/x#1 "$(gql_item opencharly x 1 pr open false 0 h2 "$t" "$1" success "$t")" > "$WORK/gql_after.json" ) &
+}
+
 # 5 ── gh_watch: STATE events fire from the baseline (deterministic, bounded)
-printf true > "$WORK/merged.txt"
+gql_doc opencharly/x#1 "$(gql_item opencharly x 1 pr open true 0 h1 "$NOW")" > "$WORK/gql.json"
 "$HERE/gh_watch.sh" --events merged --interval 1 --timeout 3 opencharly/x#1 >/dev/null 2>&1
 eq "gh_watch: merged fires on a pre-merged PR" "$?" 0
-printf false > "$WORK/merged.txt"
+gql_doc opencharly/x#1 "$(gql_item opencharly x 1 pr open false 0 h1 "$NOW")" > "$WORK/gql.json"
 "$HERE/gh_watch.sh" --events merged --interval 1 --timeout 2 opencharly/x#1 >/dev/null 2>&1
 eq "gh_watch: merged suppressed when not merged" "$?" 4
-printf closed > "$WORK/state.txt"
+gql_doc opencharly/x#1 "$(gql_item opencharly x 1 pr closed false 0 h1 "$NOW")" > "$WORK/gql.json"
 "$HERE/gh_watch.sh" --events closed --interval 1 --timeout 3 opencharly/x#1 >/dev/null 2>&1
 eq "gh_watch: closed fires" "$?" 0
-printf open > "$WORK/state.txt"
 
 # 6 ── gh_watch: stall gate — fires on OPEN, suppressed on CLOSED/MERGED
+gql_doc opencharly/x#1 "$(gql_item opencharly x 1 pr open false 0 h1 "$NOW")" > "$WORK/gql.json"
 "$HERE/gh_watch.sh" --events stall --stallmin 0 --interval 1 --timeout 3 opencharly/x#1 >/dev/null 2>&1
 eq "gh_watch: stall fires on open" "$?" 0
-printf closed > "$WORK/state.txt"
+gql_doc opencharly/x#1 "$(gql_item opencharly x 1 pr closed false 0 h1 "$NOW")" > "$WORK/gql.json"
 "$HERE/gh_watch.sh" --events stall --stallmin 0 --interval 1 --timeout 2 opencharly/x#1 >/dev/null 2>&1
 eq "gh_watch: stall suppressed on closed" "$?" 4
-printf open > "$WORK/state.txt"
-printf true > "$WORK/merged.txt"
+gql_doc opencharly/x#1 "$(gql_item opencharly x 1 pr open true 0 h1 "$NOW")" > "$WORK/gql.json"
 "$HERE/gh_watch.sh" --events stall --stallmin 0 --interval 1 --timeout 2 opencharly/x#1 >/dev/null 2>&1
 eq "gh_watch: stall suppressed on merged" "$?" 4
-printf false > "$WORK/merged.txt"
 
 # 7 ── gh_watch: SEEDED, no false fire on a pre-existing comment
-printf 5 > "$WORK/cc.txt"
+printf '[]' > "$WORK/gql_after.json"
+gql_doc opencharly/x#1 "$(gql_item opencharly x 1 pr open false 5 h1 "$NOW")" > "$WORK/gql.json"
 "$HERE/gh_watch.sh" --events comment --interval 1 --timeout 2 opencharly/x#1 >/dev/null 2>&1
 eq "gh_watch: comment does not fire on a pre-existing count" "$?" 4
 
-# 8 ── STALE-FIRE guard (the field bug). A "new" run must COMPLETE at/after arm time;
-#      an id compare alone false-fires when the seed-vs-poll run CHANGES to a different
-#      but still-old run. The stub's run-list output can differ between the seed read
-#      (call 1) and later polls (runs_after.json), deterministically and with no sleeps.
-reset_calls() { rm -f "$WORK/ncalls" "$WORK/runs_after.json"; }
-run_old()  { printf '[{"databaseId":%s,"name":"charly/pr-validator","status":"completed","conclusion":"success","headBranch":"x","updatedAt":"%s","createdAt":"%s"}]' "$1" "$2" "$2"; }
-OLD4="$(date -u -d '4 hours ago' +%Y-%m-%dT%H:%M:%SZ)"
-OLD3="$(date -u -d '3 hours ago' +%Y-%m-%dT%H:%M:%SZ)"
+# 8 ── STALE-FIRE guard (the field bug). A "new" verdict must COMPLETE at/after arm
+#      time; an id compare alone false-fires when the seed-vs-poll run CHANGES to a
+#      different but still-old run. The stub's graphql output can differ between the
+#      seed call (call 1) and later polls (gql_after.json), deterministically, no sleeps.
+reset_calls() { rm -f "$WORK/gqlcalls" "$WORK/ncalls" "$WORK/gql_after.json" "$WORK/runs_after.json" "$WORK/gqlerr.txt" "$WORK/run_view.json"; }
 
 # 8a ── old seed AND a DIFFERENT old run on the next poll → MUST NOT fire
 for tool in many item; do
   reset_calls
-  run_old 111 "$OLD4" > "$WORK/runs.json"
-  run_old 222 "$OLD3" > "$WORK/runs_after.json"
+  run_old 111 "$OLD" > "$WORK/runs.json"
+  run_old 222 "$(date -u -d '2 hours ago' +%Y-%m-%dT%H:%M:%SZ)" > "$WORK/runs_after.json"
+  run_view_of 222 success "$OLD" > "$WORK/run_view.json"
+  gql_doc opencharly/x#1 "$(gql_item opencharly x 1 pr open false 0 h1 "$NOW" 111 success "$OLD")" > "$WORK/gql.json"
+  gql_doc opencharly/x#1 "$(gql_item opencharly x 1 pr open false 0 h2 "$NOW" 222 success "$(date -u -d '2 hours ago' +%Y-%m-%dT%H:%M:%SZ)")" > "$WORK/gql_after.json"
   if [ "$tool" = many ]; then
     "$HERE/pr_watch_many.sh" --interval 1 --timeout 2 --repos opencharly/x >/dev/null 2>&1; rc=$?
     eq "pr_watch_many: a DIFFERENT but still-old run never fires" "$rc" 4
@@ -136,11 +221,14 @@ for tool in many item; do
   fi
 done
 
-# 8b ── EMPTY/UNKNOWN seed, then a run that completed BEFORE arm → MUST NOT fire
+# 8b ── EMPTY/UNKNOWN candidate, then a run that completed BEFORE arm → MUST NOT fire
 for tool in many item; do
   reset_calls
   printf '[]' > "$WORK/runs.json"
-  run_old 222 "$OLD3" > "$WORK/runs_after.json"
+  run_old 222 "$OLD" > "$WORK/runs_after.json"
+  run_view_of 222 success "$OLD" > "$WORK/run_view.json"
+  gql_doc opencharly/x#1 "$(gql_item opencharly x 1 pr open false 0 h1 "$NOW")" > "$WORK/gql.json"
+  gql_doc opencharly/x#1 "$(gql_item opencharly x 1 pr open false 0 h2 "$NOW" 222 success "$OLD")" > "$WORK/gql_after.json"
   if [ "$tool" = many ]; then
     "$HERE/pr_watch_many.sh" --interval 1 --timeout 2 --repos opencharly/x >/dev/null 2>&1; rc=$?
     eq "pr_watch_many: empty seed + a pre-arm run never fires" "$rc" 4
@@ -151,13 +239,12 @@ for tool in many item; do
 done
 
 # 8c ── POSITIVE control: a run that COMPLETED AFTER arm DOES fire (proves the gate is
-#       a real discriminator, not a blanket suppression). The background writer replaces
-#       runs_after.json with a NOW-dated run after the arm read.
+#       a real discriminator, not a blanket suppression). fire_after_arm writes all
+#       fixtures with a timestamp strictly AFTER arm time.
 for tool in many item; do
   reset_calls
   printf '[]' > "$WORK/runs.json"
-  printf '[]' > "$WORK/runs_after.json"
-  ( sleep 1; run_old 333 "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$WORK/runs_after.json" ) &
+  seed_no_run; fire_after_arm 333
   if [ "$tool" = many ]; then
     "$HERE/pr_watch_many.sh" --interval 1 --timeout 8 --repos opencharly/x >/dev/null 2>&1; rc=$?
     eq "pr_watch_many: a run completed AFTER arm fires" "$rc" 0
@@ -165,7 +252,46 @@ for tool in many item; do
     "$HERE/gh_watch.sh" --events verdict --interval 1 --timeout 8 opencharly/x#1 >/dev/null 2>&1; rc=$?
     eq "gh_watch: a run completed AFTER arm fires" "$rc" 0
   fi
+  wait 2>/dev/null
 done
+
+# 8d ── MULTI-ITEM batched poll: TWO items in ONE GraphQL request → exactly ONE
+#       `api graphql` call for the whole poll (the calls-per-poll = 1 target).
+reset_calls
+printf '[]' > "$WORK/gql.json"
+gql_doc opencharly/x#1 "$(gql_item opencharly x 1 pr open true 0 h1 "$NOW")" r_y_2 "$(gql_item opencharly y 2 pr open false 0 h2 "$NOW")" > "$WORK/gql.json"
+"$HERE/gh_watch.sh" --events merged --interval 1 --timeout 3 opencharly/x#1 opencharly/y#2 >/dev/null 2>&1
+eq "multi-item: the batched poll fires the first event" "$?" 0
+# gqlcalls counts the SEED (1) plus the first poll that fires the event (1) = 2 total
+# for the whole 2-item run: calls-per-poll = 1, independent of the 2 items.
+eq "multi-item: 2 items cost exactly 1 GraphQL call per poll (2 total incl. seed)" "$(cat "$WORK/gqlcalls" 2>/dev/null || echo 0)" 2
+reset_calls
+
+# 8e ── RATE-LIMIT HARD ABORT: a poll that returns a RATE_LIMIT body ABORTS with a
+#       non-zero exit (7) and a FATAL naming the reset — it never polls again.
+reset_calls
+printf '{"errors":[{"type":"RATE_LIMIT","code":"graphql_rate_limit","message":"API rate limit already exceeded"}]}' > "$WORK/gqlerr.txt"
+printf '%s' "$(( $(date +%s) + 1200 ))" > "$WORK/reset.txt"
+"$HERE/gh_watch.sh" --events verdict --interval 1 --timeout 10 opencharly/x#1 > "$WORK/out_ratelimit.txt" 2>&1
+eq "rate-limit: a RATE_LIMIT poll ABORTS non-zero (exit 7)" "$?" 7
+grep -q 'FATAL gh_watch: GitHub rate limit reached' "$WORK/out_ratelimit.txt" \
+  && ok "rate-limit: prints a FATAL rate-limit message" \
+  || bad "rate-limit FATAL message" "$(cat "$WORK/out_ratelimit.txt")"
+grep -q 'quota resets at:' "$WORK/out_ratelimit.txt" \
+  && ok "rate-limit: the FATAL names the reset time" \
+  || bad "rate-limit reset time" "$(cat "$WORK/out_ratelimit.txt")"
+eq "rate-limit: it ABORTS on the first poll (no retry) — exactly 1 GraphQL call" "$(cat "$WORK/gqlcalls" 2>/dev/null || echo 0)" 1
+reset_calls
+
+# 8f ── pr_state_watch: a rate-limit poll also ABORTS non-zero (7)
+printf '%s' "$(( $(date +%s) + 900 ))" > "$WORK/reset.txt"
+printf 'gh: HTTP 403: API rate limit exceeded for user' > "$WORK/prerr.txt"
+"$HERE/pr_state_watch.sh" opencharly/x 1 --interval 1 --timeout 10 > "$WORK/out_psw_rl.txt" 2>&1
+eq "pr_state_watch: a rate-limit poll ABORTS non-zero (exit 7)" "$?" 7
+grep -q 'FATAL pr_state_watch: GitHub rate limit reached' "$WORK/out_psw_rl.txt" \
+  && ok "pr_state_watch: prints a FATAL rate-limit message" \
+  || bad "pr_state_watch rate-limit FATAL" "$(cat "$WORK/out_psw_rl.txt")"
+rm -f "$WORK/prerr.txt"
 reset_calls
 
 # 9 ── pr_watch_many: a terminal result is reported (stub pr_state_watch.sh beside a copy)
@@ -176,7 +302,7 @@ PSW
 chmod +x "$WORK/pr_state_watch.sh"
 cp "$HERE/pr_watch_many.sh" "$WORK/pr_watch_many.sh"
 cp "$HERE/_watch_common.sh" "$WORK/_watch_common.sh"
-"$WORK/pr_watch_many.sh" --interval 1 --timeout 4 opencharly/x 1 > "$WORK/out.txt" 2>&1
+ALLOW_FAST_POLL=1 "$WORK/pr_watch_many.sh" --interval 1 --timeout 4 opencharly/x 1 > "$WORK/out.txt" 2>&1
 grep -q '^TERMINAL BLOCKED (exit 2) opencharly/x#1' "$WORK/out.txt" \
   && ok "pr_watch_many: reports a terminal BLOCKED" || bad "pr_watch_many terminal" "$(cat "$WORK/out.txt")"
 
@@ -192,10 +318,10 @@ export WATCH_RUNTIME_DIR="$WORK/rt"; mkdir -p "$WATCH_RUNTIME_DIR"
 rearm_count() { grep -c '^REARM ' "$REARM_LOG" 2>/dev/null || echo 0; }
 rm -f "$REARM_LOG"
 
-# A stub that fires a DELTA `verdict` (a NOW-dated run after an empty seed) — the case
-# that MUST re-arm so a watch stays alive.
-reset_calls; printf '[]' > "$WORK/runs.json"
-( sleep 1; run_old 444 "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$WORK/runs_after.json" ) &
+# (fire_after_arm / seed_no_run are defined ONCE near the fixture helpers above.)
+
+# A DELTA `verdict` fire must re-arm so a watch stays alive.
+reset_calls; seed_no_run; fire_after_arm 444
 "$HERE/gh_watch.sh" --events verdict --interval 1 --timeout 6 --auto-rearm opencharly/x#1 >/dev/null 2>&1
 rc=$?
 eq "auto-rearm: a DELTA fire exits 0" "$rc" 0
@@ -203,14 +329,13 @@ eq "auto-rearm: a DELTA fire spawns EXACTLY ONE successor" "$(rearm_count)" 1
 reset_calls
 
 # A TIMEOUT (no event) MUST also keep a watch alive → exactly one successor.
-rm -f "$REARM_LOG"; printf '[]' > "$WORK/runs.json"; printf '[]' > "$WORK/runs_after.json"
+rm -f "$REARM_LOG"; seed_no_run
 "$HERE/gh_watch.sh" --events verdict --interval 1 --timeout 2 --auto-rearm opencharly/x#1 >/dev/null 2>&1
 eq "auto-rearm: a TIMEOUT re-arms (exit 4)" "$?" 4
 eq "auto-rearm: a TIMEOUT spawns EXACTLY ONE successor" "$(rearm_count)" 1
 
 # --no-rearm (the default) spawns NO successor — per-event notify is one-shot.
-rm -f "$REARM_LOG"; reset_calls; printf '[]' > "$WORK/runs.json"
-( sleep 1; run_old 555 "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$WORK/runs_after.json" ) &
+rm -f "$REARM_LOG"; reset_calls; seed_no_run; fire_after_arm 555
 "$HERE/gh_watch.sh" --events verdict --interval 1 --timeout 6 --no-rearm opencharly/x#1 >/dev/null 2>&1
 eq "--no-rearm: a DELTA fire still exits 0" "$?" 0
 eq "--no-rearm: spawns NO successor" "$(rearm_count)" 0
@@ -218,11 +343,11 @@ reset_calls
 
 # A STATE fire (merged) must NOT re-arm — a successor would IMMEDIATELY re-fire it
 # (livelock). This is the guard that keeps --auto-rearm from burning the API budget.
-rm -f "$REARM_LOG"; printf true > "$WORK/merged.txt"
+rm -f "$REARM_LOG"
+gql_doc opencharly/x#1 "$(gql_item opencharly x 1 pr open true 0 h1 "$NOW")" > "$WORK/gql.json"
 "$HERE/gh_watch.sh" --events merged --interval 1 --timeout 3 --auto-rearm opencharly/x#1 >/dev/null 2>&1
 eq "auto-rearm: a STATE (merged) fire exits 0" "$?" 0
 eq "auto-rearm: a STATE fire spawns NO successor (no livelock)" "$(rearm_count)" 0
-printf false > "$WORK/merged.txt"
 
 # A TAKEOVER (SIGTERM → exit 143) must NOT re-arm: a successor would immediately take
 # the lock back from the displacing arm → perpetual ping-pong. This exercises the
@@ -261,14 +386,14 @@ eq "pr_watch_many: a takeover spawns NO successor (the trap $?-capture)" "$(rear
 # arm fails THIS assertion — the previous coverage gap (a repo-only SIGTERM test never
 # reached the fire site). The same DELTA stub drives both: an empty seed, then a
 # NOW-dated completed run on the next poll.
-rm -f "$REARM_LOG"; reset_calls; printf '[]' > "$WORK/runs.json"; printf '[]' > "$WORK/runs_after.json"
+rm -f "$REARM_LOG"; reset_calls; printf '[]' > "$WORK/runs.json"
 ( sleep 1; run_old 777 "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$WORK/runs_after.json" ) &
 "$WORK/pr_watch_many.sh" --repos opencharly/x --interval 1 --timeout 8 --auto-rearm >/dev/null 2>&1
 eq "pr_watch_many --auto-rearm: a repo run completed AFTER arm fires" "$?" 0
 eq "pr_watch_many --auto-rearm: a verdict fire spawns EXACTLY ONE successor" "$(rearm_count)" 1
 
 # --no-rearm (the default) spawns NO successor for the same fire (one-shot notify).
-rm -f "$REARM_LOG"; reset_calls; printf '[]' > "$WORK/runs.json"; printf '[]' > "$WORK/runs_after.json"
+rm -f "$REARM_LOG"; reset_calls; printf '[]' > "$WORK/runs.json"
 ( sleep 1; run_old 778 "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$WORK/runs_after.json" ) &
 "$WORK/pr_watch_many.sh" --repos opencharly/x --interval 1 --timeout 8 --no-rearm >/dev/null 2>&1
 rc=$?
@@ -288,7 +413,7 @@ echo "REARM-ORDER"
 echo "REARM \$*" >> "$REARM_LOG"
 OH
 chmod +x "$WORK/order-hook.sh"
-rm -f "$REARM_LOG"; reset_calls; printf '[]' > "$WORK/runs.json"; printf '[]' > "$WORK/runs_after.json"
+rm -f "$REARM_LOG"; reset_calls; printf '[]' > "$WORK/runs.json"
 ( sleep 1; run_old 779 "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$WORK/runs_after.json" ) &
 WATCH_REARM_HOOK="$WORK/order-hook.sh" "$WORK/pr_watch_many.sh" --repos opencharly/x \
   --interval 1 --timeout 8 --auto-rearm > "$WORK/order.log" 2>&1
@@ -418,30 +543,36 @@ kill -0 "$LP1" 2>/dev/null && bad "lock: first probe still alive" "not displaced
 kill "$LP1" "$LP2" 2>/dev/null; wait "$LP1" "$LP2" 2>/dev/null
 
 # ── the rate-limit guard: below threshold, BACK OFF and do not poll/fire ──
+export ALLOW_FAST_POLL=1
 printf '#!/usr/bin/env bash\necho 5\n' > "$WORK/rate-low.sh"; chmod +x "$WORK/rate-low.sh"
+printf '#!/usr/bin/env bash\necho 0\n' > "$WORK/rate-zero.sh"; chmod +x "$WORK/rate-zero.sh"
 printf '#!/usr/bin/env bash\necho 99999\n' > "$WORK/rate-ok.sh"; chmod +x "$WORK/rate-ok.sh"
 SLEEP_LOG="$WORK/sleep.log"
 # the sleep hook records the requested seconds but sleeps only a hair, so the test is fast
 printf '#!/usr/bin/env bash\necho "SLEEP $1" >> %s\ncommand sleep 0.05\n' "$SLEEP_LOG" > "$WORK/sleep-hook.sh"
 chmod +x "$WORK/sleep-hook.sh"
 export WATCH_SLEEP_HOOK="$WORK/sleep-hook.sh"
-export WATCH_RATE_MIN=200
+export WATCH_RATE_MIN=200 WATCH_RATE_BACKOFF_FACTOR=2
 
 rm -f "$SLEEP_LOG"; export WATCH_RATE_HOOK="$WORK/rate-low.sh"
 "$HERE/gh_watch.sh" --events verdict --interval 5 --timeout 1 opencharly/x#1 >/dev/null 2>&1
 rc=$?
 eq "rate-limit: below threshold TIMES OUT without firing" "$rc" 4
-grep -q '^SLEEP 20$' "$SLEEP_LOG" 2>/dev/null \
-  && ok "rate-limit: backs off 4x the interval (5 → 20s)" \
-  || bad "rate-limit backoff" "no 4x backoff seen; log: $(cat "$SLEEP_LOG" 2>/dev/null)"
+grep -q '^SLEEP 10$' "$SLEEP_LOG" 2>/dev/null \
+  && ok "rate-limit: backs off the backoff-factor × interval (5 × 2 → 10s)" \
+  || bad "rate-limit backoff" "no 2x backoff seen; log: $(cat "$SLEEP_LOG" 2>/dev/null)"
 
-rm -f "$SLEEP_LOG"; export WATCH_RATE_HOOK="$WORK/rate-ok.sh"; reset_calls
-printf '[]' > "$WORK/runs.json"
-( sleep 1; run_old 666 "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$WORK/runs_after.json" ) &
+# ── a genuine exhaustion (remaining=0) is a HARD ABORT (exit 7), never a backoff/retry ──
+printf '%s' "$(( $(date +%s) + 600 ))" > "$WORK/reset.txt"
+export WATCH_RATE_HOOK="$WORK/rate-zero.sh"
+"$HERE/gh_watch.sh" --events verdict --interval 60 --timeout 5 opencharly/x#1 >/dev/null 2>&1
+eq "rate-limit: remaining=0 ABORTS non-zero (exit 7)" "$?" 7
+
+rm -f "$SLEEP_LOG"; export WATCH_RATE_HOOK="$WORK/rate-ok.sh"; reset_calls; seed_no_run; fire_after_arm 666
 "$HERE/gh_watch.sh" --events verdict --interval 1 --timeout 6 opencharly/x#1 >/dev/null 2>&1
 eq "rate-limit: healthy quota polls and fires normally" "$?" 0
 reset_calls
-unset WATCH_SLEEP_HOOK WATCH_RATE_HOOK WATCH_RATE_MIN
+unset ALLOW_FAST_POLL WATCH_SLEEP_HOOK WATCH_RATE_HOOK WATCH_RATE_MIN WATCH_RATE_BACKOFF_FACTOR
 
 echo
 if [ "$FAILS" -eq 0 ]; then
