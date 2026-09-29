@@ -162,6 +162,38 @@ alias-attribution instance converged only once a root-cause
 de-fragilization (state the stable spec-source, never an exact per-symbol
 location) replaced the per-instance patching.
 
+## Volatile facts are DISCOVERED, never baked into a brief
+
+**Rule.** A spawn brief may pin the INVARIANT — the owning skill, the
+deliverable, the change class, the preflight — but MUST NOT hardcode a
+VOLATILE org fact: a CI workflow file NAME or path, a `vars.*` value or
+charly pin, a tag, a branch name, an issue/PR number that may move, or the
+exact command a repo's CI runs. The worker DISCOVERS those at run time from
+upstream (`git fetch`; `gh api repos/<o>/<r>/contents/.github/workflows`;
+`git ls-remote`; `gh variable get` / the org pin) and the brief NAMES the
+discovery command instead of the value.
+
+**Why (measured).** Org cutover `opencharly/.github#141`
+(2026-09-27T14:08Z) DELETED the per-repo `deploy.yml` gate from ~376 repos
+mid-campaign, replacing it with the org reusable `candy-validate.yml`. Every
+brief that said "paste the repo's `deploy.yml` gate" then instructed a
+falsity: the worker either pastes a nonexistent gate (B10/R1
+body-truthfulness BLOCK) or, correctly, stops (wasted dispatch). Hardcoded
+`deploy.yml`/pin facts also made waves 1–3's already-merged docs reference a
+deleted file — now R1 issue `opencharly/opencharly#293`.
+
+**Brief-verification extension.** Before EVERY dispatch, re-verify the
+brief's load-bearing premise against upstream — if a fact it depends on can
+have changed since the brief was written, replace it with the discovery
+command. A brief whose premise is contradicted mid-run MUST instruct the
+worker to STOP and report (the correct behavior), never to improvise or push
+a falsity.
+
+**Parent responsibility.** The parent owns every subagent action; a brief
+that hardcodes a volatile fact makes the worker's BLOCK the PARENT's defect,
+not the worker's. Do not dispatch a wave until the brief's volatile facts are
+expressed as discovery steps.
+
 ## See also
 
 - Entry: `../SKILL.md`

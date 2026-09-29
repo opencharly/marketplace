@@ -259,18 +259,58 @@ A skill is either a single `SKILL.md`, or an entry `SKILL.md` plus sibling `refe
 | Version history / past changes / renames / cutover narration | the repo's `CHANGELOG/` (per-CalVer `<YYYY.DDD.HHMM>.md`) — never the project rulebook or a skill |
 | Long-term thesis / vision / aspiration ("why & where it's going") | `VISION.md` (repo root) — never restating command usage, architecture, or history |
 
+## Where guidance belongs
+
+Every new fact belongs on exactly ONE surface, and every surface has a reader.
+Choosing the surface wrong either duplicates the fact (two copies drift
+apart) or hides it where its reader never looks:
+
+| Surface | Carries | Put a new fact there when |
+|---|---|---|
+| `README.md` | the user-facing overview — what the repo is, how to use it | the reader has never opened the source: what the component does, how to install/run/use it |
+| `AGENTS.md` | the harness-neutral RULEBOOK — short, decisive policy (the WHAT and the MUST) | the fact is a hard rule, gate, or mandate every session must obey, or a pointer (trigger → owning skill) |
+| the owning skill | the detailed HOW — procedure, matrices, catalogs, worked examples, command sequences | the fact is operationalization detail one rule needs, or how-to that would bloat the rulebook |
+| `CHANGELOG/` | history — dated change notes, renames, completed cutovers, retired identifiers | the content is about the PAST (what changed, why, when). Never advice; nobody reads history for guidance |
+
+"Mandate in the harness rulebook, detail in the skill" (below) is this same
+split seen from the rule side: the rulebook states the mandate plus a pointer;
+the owning skill carries the detail. README and `CHANGELOG/` are the other two
+poles — the user overview and the history.
+
+**Anti-patterns — each is a placement mistake, not a wording one:**
+
+- **Policy prose drifting into a skill.** A MUST / gate / mandate written only
+  as skill prose: a session that loads the rulebook alone never sees it. The
+  rulebook states the mandate; the skill carries the how.
+- **How-to bloating `AGENTS.md`.** Matrices, catalogs, worked examples, and
+  command sequences are detail — move them to the owning skill and leave the
+  rulebook the mandate plus a pointer; the rulebook stays short.
+- **History kept in a rulebook.** Dated notes, rename narratives, and cutover
+  stories go to `CHANGELOG/<YYYY.DDD.HHMM>.md`; the rulebook and the skill state
+  only the standing rule, present tense, forward-looking.
+- **Harness / file names leaking into harness-neutral policy prose.** `AGENTS.md`
+  is harness-neutral: name the ROLE (the agent, the watcher, the gate), never the
+  harness or a harness-specific file. Harness mechanics live in the per-harness
+  config or skill.
+
+The umbrella rulebook's rule 11 ("Todo ledger & interruption safety") is a
+worked example of the split: the rulebook states the MUST and names the owning
+skill, and the sibling `/charly-internals:agents` owns the ledger procedure
+(see `/charly-internals:agents`, "Todo ledger & interruption safety").
+
 ## Mandate in the harness rulebook, detail in the skill
 
-The canonical split for every rule: **each harness root rulebook states the
-equivalent mandate and points at exactly one owning skill; the owning skill
+The canonical split for every rule: **the harness rulebook (`AGENTS.md`) states
+the equivalent mandate and points at exactly one owning skill; the owning skill
 carries the operationalization** —
 forbidden-pattern catalogs, decision matrices, worked examples, command
 sequences. Every other document links to the owner and NEVER restates it
 (restated copies drift; the linked original cannot).
 
-The complete harness rulebooks own the **Skill Dispatcher**, **RDD**, **ADE**,
-and **SDD** mandates, the acceptance checklist, and AI-attribution tiers. Keep
-their policy equivalent while preserving harness-specific tool language.
+The harness rulebook (`AGENTS.md`) owns the **Skill Dispatcher**, **RDD**,
+**ADE**, and **SDD** mandates, the acceptance checklist, and AI-attribution
+tiers. Keep its policy equivalent while preserving harness-specific tool
+language.
 
 ### Authoritative-copy registry
 

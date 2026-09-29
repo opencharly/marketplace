@@ -36,6 +36,26 @@ The agent runs an 8-step root cause analysis process:
 7. **Propose root fix** — a fix that prevents recurrence
 8. **Document the finding** — record the RCA result
 
+## Failure-signature enumeration and measurement discipline
+
+A full RCA is not one named cause. A visible symptom is usually a CONJUNCTION of independent issues, so naming a single cause and moving on is repeatedly wrong while the others stay live — the field failure this section exists to prevent (a single cause named three times in a row, each time wrong, and once declared fixed from a measurement taken inside a downtime window). Three rules bind every RCA:
+
+- **Enumerate EVERY distinct failure signature FIRST, before naming any cause.** One symptom ("the server restarts") usually has MULTIPLE independent signatures. Bucket them from the raw log before you theorize:
+
+  ```
+  grep -o 'cause="[^"]*"' <log> | sort | uniq -c | sort -rn
+  ```
+
+  Adapt the key to the log's shape — whatever field names the failure reason. A histogram with more than one signature means more than one issue; never explain them away as a single cause.
+
+- **Never verify a fix from a single sample.** Measure against a stable baseline over a window in which the system is PROVABLY UP — readiness confirmed by a separate probe, never by the mere absence of errors. A zero reading during downtime is NOT evidence: it is the expected output of a system that could not attempt the operation at all.
+
+- **Distinguish "the symptom stopped because it was fixed" from "it stopped because the system was down."** Both read as "zero failures"; only the first is a fix. State the measurement window and how you proved the system was up during it.
+
+Enumerate per-issue, fix each, and re-measure EACH independently. A fix validated only against the conjunction's aggregate reading is unproven.
+
+**Worked example — three independent issues under one "server restarts" symptom.** A restart-loop symptom had three independent causes: a snapshot loop exhausting a resource, a blocking plugin stalling a request thread, and a stale worktree serving an old binary. Naming one cause and shipping its fix — three times in a row — each time left the loop running, because the other two were still live; one "fix confirmed" came from a `0 failures / 90s` reading taken while the server was down, so no attempt could have occurred. Enumerating the failure signatures FIRST surfaced all three at once; each was fixed and re-measured independently against a stable baseline window, and only then did the symptom clear.
+
 ## Cross-References
 
 - `/charly-internals:strict-policy` — R1 mandate and forbidden-rationalization rules

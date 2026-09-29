@@ -31,7 +31,7 @@ only points to it.
 | The default multi-agent execution model: orchestrator/teammate model-tier split, maximum parallelization, the slot budget, concurrent landing, the orchestrator's bidirectional verification duty, architectural-integrity ownership, the responsibility matrix and tie-breakers | `references/orchestration-model.md` |
 | Program-wide alignment: the north-star protocol, the IOU register, per-merge measurement, migration-ledger discipline, crossed-ruling reconciliation, brief verification and stop-and-respawn, whack-a-mole escalation | `references/program-discipline.md` |
 | Bed-scoped parallel real-deployment testing: the concurrency ceilings (store lock, exclusive-resource tokens, long-bed ownership, in-tree build artifacts, per-worktree binaries) and their fixes; the charly binary in a multi-worktree setup; the binding rule for running a bed; implementation-workflow shape; speed levers | `references/parallel-bed-testing.md` |
-| Delegation as fresh context; teammate context lifecycle; the nine sub-agent operational invariants; the hooks doctrine (current hook inventory); agent lifecycle hygiene; the universal PR-gate audit; worktree/validator lifecycle | `references/hooks-and-lifecycle.md` |
+| Delegation as fresh context; teammate context lifecycle; the nine sub-agent operational invariants; the hooks doctrine (current hook inventory); agent lifecycle hygiene; the todo ledger & interruption safety; the universal PR-gate audit; worktree/validator lifecycle | `references/hooks-and-lifecycle.md` |
 
 ## Cross-References
 
@@ -78,6 +78,12 @@ surface a failure it cannot own - the pass that turns a BLOCK→BLOCK→PASS cyc
 into a first-try PASS (umbrella #286). Full checklist:
 the `/charly-internals:git-workflow` skill's pre-validator self-audit reference.
 
+**And a brief must never bake in a VOLATILE org fact** — a CI workflow file name,
+a pin/tag/branch, or a moving issue/PR number. The brief names the DISCOVERY
+command; the worker discovers the value at run time. Full rule and the measured
+`.github#141` evidence: `references/program-discipline.md` ("Volatile facts are
+DISCOVERED, never baked into a brief").
+
 ## The harness-adapter CONFIG mechanism (layer-charly-internals#49)
 
 Harness adaptation lives in the **per-harness config at the repo root**, never in
@@ -87,3 +93,38 @@ installed with `charly task hooks`. The two halves coexist by classification - e
 surface is identical-by-design, umbrella-only, or deliberately-forked - so a shared
 file is never copied into a fork and a fork is never silently re-synced. This skill
 documents the mechanism; the rulebooks stay harness-neutral.
+
+## A plugin resolves DIFFERENT PIECES FROM DIFFERENT REFS — verify the pin its BACKEND resolves from (R1 2026-09-29)
+
+A plugin is not one artifact and does not resolve from one ref. Its **code** may load from the workspace / origin checkout, while a **backend script it shells out to** resolves from a **pinned submodule** (a gitlink) or a pinned `@github` ref. Those two refs advance independently, so a plugin can be **HALF-USABLE**: one tool works, another fails inside the same plugin, in the same session.
+
+**The rule.** Before assuming a plugin works, verify the pin its BACKEND resolves from — not only that the plugin file loaded. A tool failure of the form **"X not found — sync the pin"** is a **PIN-LAG**, not a plugin defect: the tool is present in the plugin, but the script/submodule it dispatches to is older than the commit that added it. Do NOT debug the plugin's code for it, and do NOT reimplement or hand-copy the missing script into the pinned checkout (that is an R4 workaround and a generated-copy edit).
+
+**Remedy.** Identify the submodule / ref the backend script resolves from; compare the pinned gitlink (or `@github` ref) against the commit that merged the script; then advance the pin the sanctioned way — `charly task sync` for an umbrella gitlink, or a refs-list bump + `charly marketplace generate` for the marketplace corpus — never a hand-pin and never a checkout into the submodule.
+
+**Concrete case.** In one session `coord_comment` failed while `coord_watch` worked. Both are registered by the SAME plugin, loaded from the workspace — but `coord_comment` shells out to `marketplace/scripts/coord.sh` while `coord_watch` shells out to `marketplace/scripts/gh_watch.sh`. `gh_watch.sh` was already in the pinned `marketplace` gitlink; `coord.sh` had merged LATER and the gitlink had not advanced, so the tool reported "coord.sh not found — sync the marketplace pin". The failure was a stale `marketplace` gitlink, not a defect in the plugin that bound the script.
+
+## Todo ledger & interruption safety
+
+Durable in-flight state lives in the session's **structured todo ledger** — the
+harness's todo primitive. It is the ONE session-scoped record of what is in
+flight, and it preserves work across an interruption only when it is treated
+as durable. Full procedure and the harness-binding detail:
+`references/hooks-and-lifecycle.md` ("Todo ledger & interruption safety").
+
+- **The ledger IS the todo primitive.** Maintain it as the durable,
+  session-scoped ledger of in-flight work, not a scratch list rewritten each
+  turn.
+- **Reconcile FIRST, then act.** On ANY interrupting input — a fresh user
+  message, an automated watcher alert, a delegated/subagent report, or a
+  compaction — FIRST reconcile the ledger (keep every in-flight item; ADD the
+  new one; never drop), THEN act. An interruption is an **ADDITION, not a
+  reset**; never start a new list from scratch.
+- **Long operations are ledger-first.** Before starting any long-running
+  operation, ensure the ledger reflects it, so a later interruption resumes
+  from STATE, not memory.
+
+The umbrella rulebook states this as rule 11 (`AGENTS.md`, "Todo ledger &
+interruption safety") and points here for the detail. Where this guidance
+itself belongs is owned by the sibling `/charly-internals:skills` ("Where
+guidance belongs"): mandate in `AGENTS.md`, detail in the skill.
