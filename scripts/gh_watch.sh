@@ -65,13 +65,14 @@
 #
 # WHY THE FLOOR — the measured budget. MEASURED 2026-09-28: the account's shared core
 #   budget is 5000 calls/hr. The pre-floor defaults (30s here, 20s pr_watch_many, 15s
-#   pr_state_watch) each poll and this script then issued ~5 gh calls PER ITEM PER POLL
+#   pr_state_watch) each poll and this script's snapshot() issued 6 REST calls PER ITEM PER POLL
 #   (a `/pulls` type probe, `/issues` state, `/pulls` merged, `/issues/comments`, and a
 #   `gh run list`). A 20s watcher over just 5 items is ~90 calls/min = ~5400/hr — a
 #   budget incident on its own, and repeated fast/stacked polls produced HTTP 403s.
 #   Now: the default is 60s, and the WHOLE item list is polled in ONE GraphQL request
-#   (see the batched-poll comment) — MEASURED: 6 items over 4 polls went 73 → 5 gh
-#   calls, so ~60 calls/hr for the entire watch independent of item count.
+#   (see the batched-poll comment) — MEASURED at 6 items, seed + poll: 3 gh
+#   invocations (2 GraphQL + 1 FREE /rate_limit). The billable constant is ONE
+#   request per poll for N items, so a 60s watch is ~60 requests/hr regardless of N.
 #
 # RATE-LIMIT GUARD. Before each poll the FREE `/rate_limit` endpoint is read; below
 #   WATCH_RATE_MIN (default 200) the watcher backs off (interval × WATCH_RATE_BACKOFF_FACTOR,
@@ -177,11 +178,11 @@ done
 has() { watch_has "$1" "$EVENTS"; }
 
 # ── ONE batched GraphQL poll (calls-per-poll = 1 for N items) ────────────────
-# MEASURED 2026-09-28: the previous per-item REST snapshot issued ~5 calls per item
+# MEASURED 2026-09-28: the previous per-item REST snapshot issued 6 calls per item
 # per poll (a `/pulls` type probe, `/issues` state, `/pulls` merged,
-# `/issues/comments`, and a `gh run list`). With the old 30s default and 5 items that
-# is ~3000 calls/hr; a 20s cadence over the same set is ~4500/hr — enough to exhaust
-# the shared 5000/hr core budget on its own (observed HTTP 403).
+# `/issues/comments`, a per-item `gh run list`, and `/issues` updated_at). At the old
+# 20s default (3 polls/min) over 5 items that is 6 × 5 × 3 = 90 calls/min = 5400/hr —
+# enough to exhaust the shared 5000/hr core budget on its own (observed HTTP 403).
 #
 # This replaces it with ONE GraphQL request per poll, regardless of item count:
 # `issueOrPullRequest(number:)` serves BOTH PRs and issues, so a whole batch is a
