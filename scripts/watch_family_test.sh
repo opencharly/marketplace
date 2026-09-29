@@ -48,13 +48,17 @@ case "$1 $2" in
     if [ "$n" -le 1 ]; then cat "$d/gql.json" 2>/dev/null || echo '{"data":{}}'
     elif [ -f "$d/gql_after.json" ]; then cat "$d/gql_after.json"
     else cat "$d/gql.json" 2>/dev/null || echo '{"data":{}}'; fi ;;
-  "run view"*)
-    cat "$d/run_view.json" 2>/dev/null || echo '{"databaseId":null}' ;;
   "pr view"*)
     # pr_state_watch's single snapshot. If prerr.txt exists, emit it and exit non-zero
     # (to exercise the rate-limit abort); else a benign non-terminal PR.
     if [ -f "$d/prerr.txt" ]; then cat "$d/prerr.txt"; exit 1; fi
     printf '{"state":"OPEN","mergeStateStatus":"BLOCKED","headRefOid":"abcdef1234567890","url":"https://github.com/%s/pull/%s"}' "$3" "$4" ;;
+  "api repos/"*"/actions/runs/"*)
+    # gh_watch's item-scoped verdict probe (probe_run_id → the REST actions/runs
+    # endpoint). run_view.json is the fixture; the counter records that the probe ran,
+    # so an assertion can prove the path is exercised (and would fail without it).
+    n="$(cat "$d/runcalls" 2>/dev/null || echo 0)"; n=$((n + 1)); printf '%s' "$n" > "$d/runcalls"
+    cat "$d/run_view.json" 2>/dev/null || echo '{"id":null}' ;;
   "run list"*)
     # Sequence-aware: the FIRST `run list` (the seed read) returns runs.json; later
     # polls return runs_after.json when present.
@@ -153,7 +157,8 @@ gql_item() {
 # {"data":{...}} document. The alias is derived with the SAME `gql_alias` the watcher
 # uses, so fixture and script can never disagree on the key.
 gql_doc() { local s="" ; while [ "$#" -ge 2 ]; do s+="\"$(gql_alias "$1")\":{\"issueOrPullRequest\":$2},"; shift 2; done; printf '{"data":{%s}}' "${s%,}"; }
-run_view_of() { printf '{"databaseId":%s,"conclusion":"%s","updatedAt":"%s"}' "$1" "$2" "$3"; }
+# The REST actions/runs/{id} shape probe_run_id parses: .id/.conclusion/.updated_at.
+run_view_of() { printf '{"id":%s,"conclusion":"%s","updated_at":"%s"}' "$1" "$2" "$3"; }
 run_old() { printf '[{"databaseId":%s,"name":"charly/pr-validator","status":"completed","conclusion":"success","headBranch":"x","updatedAt":"%s","createdAt":"%s"}]' "$1" "$2" "$2"; }
 # seed_no_run — a benign, run-less PR seed (nothing new yet).
 seed_no_run() { gql_doc opencharly/x#1 "$(gql_item opencharly x 1 pr open false 0 h1 "$NOW")" > "$WORK/gql.json"; }
@@ -202,7 +207,7 @@ eq "gh_watch: comment does not fire on a pre-existing count" "$?" 4
 #      time; an id compare alone false-fires when the seed-vs-poll run CHANGES to a
 #      different but still-old run. The stub's graphql output can differ between the
 #      seed call (call 1) and later polls (gql_after.json), deterministically, no sleeps.
-reset_calls() { rm -f "$WORK/gqlcalls" "$WORK/ncalls" "$WORK/gql_after.json" "$WORK/runs_after.json" "$WORK/gqlerr.txt" "$WORK/run_view.json"; }
+reset_calls() { rm -f "$WORK/gqlcalls" "$WORK/ncalls" "$WORK/runcalls" "$WORK/gql_after.json" "$WORK/runs_after.json" "$WORK/gqlerr.txt" "$WORK/run_view.json"; }
 
 # 8a ── old seed AND a DIFFERENT old run on the next poll → MUST NOT fire
 for tool in many item; do
@@ -251,6 +256,12 @@ for tool in many item; do
   else
     "$HERE/gh_watch.sh" --events verdict --interval 1 --timeout 8 opencharly/x#1 >/dev/null 2>&1; rc=$?
     eq "gh_watch: a run completed AFTER arm fires" "$rc" 0
+    # The firing gh_watch verdict ran probe_run_id → the REST actions/runs probe.
+    # This FAILS if probe_run_id is deleted (then no probe call is made, and the
+    # candidate's own completion time would be used instead of the confirmed one).
+    [ "$(cat "$WORK/runcalls" 2>/dev/null || echo 0)" -ge 1 ] \
+      && ok "gh_watch verdict: the probe_run_id REST actions/runs probe is exercised" \
+      || bad "probe_run_id exercised" "no actions/runs probe call (probe_run_id dead?)"
   fi
   wait 2>/dev/null
 done

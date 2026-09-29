@@ -264,12 +264,13 @@ gql_parse() {
       end' 2>/dev/null
 }
 
-# probe_run_id <owner/repo> <candidate-id> <item-updEpoch> — the item-scoped
-# validator-run probe used ONLY when a fingerprint moved. The head check-suite gave a
-# CANDIDATE run id; `gh run view` returns the run's own completion time (a `gh run
-# view` counts as ONE REST core call — a normal REST read, not the GraphQL points
-# budget). Returns "id|conclusion|completedEpoch" or "" (unknown). The item-scoped id
-# is the fallback when the candidate is empty.
+# probe_run_id <owner/repo> <candidate-id> — the item-scoped validator-run probe used
+# ONLY when a fingerprint moved. The head check-suite gave a CANDIDATE run id; this
+# reads that run's own completion time via the REST `actions/runs/{id}` endpoint (ONE
+# REST core call — a normal REST read, not the GraphQL points budget). NB: `gh run
+# view` is NOT usable here — MEASURED: it 404s on a GraphQL `workflowRun.databaseId`
+# (it resolves a different run numbering), so this calls the REST endpoint directly.
+# Returns "id|conclusion|completedEpoch" or "" (unknown).
 probe_run_id() {
   { exec 9>&-; } 2>/dev/null || true
   local out rc
