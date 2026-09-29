@@ -58,7 +58,7 @@ watch_has() { case ",$2," in *",$1,"*) return 0 ;; *) return 1 ;; esac; }
 # ── the poll floor ────────────────────────────────────────────────────────────
 # ONE watcher, at most one poll per minute. MEASURED (2026-09-28): the pre-floor
 # defaults (30s gh_watch / 20s pr_watch_many / 15s pr_state_watch) with gh_watch's
-# ~5 gh calls per item per poll exhausted the account's shared 5000/hr core budget
+# 6 REST calls per item per poll exhausted the account's shared 5000/hr core budget
 # (repeated HTTP 403) and contributed to host load. A 20s watcher over 5 items is
 # ~5400 calls/hr ALONE — a budget incident. So the default interval is 60s AND a
 # hard floor of 60s rejects faster cadences at argument parse time, so no silent
