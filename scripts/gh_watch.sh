@@ -49,7 +49,7 @@
 #
 # OPTIONS / ENV
 #   --events LIST     comma list from the set above   (env EVENTS,   default merged,closed,stall)
-#   --interval SEC    poll cadence, seconds           (env INTERVAL, default 30; >= 1)
+#   --interval SEC    poll cadence, seconds           (env INTERVAL, default 60; FLOOR 60)
 #   --stallmin MIN    stall window, minutes           (env STALL_MIN, default 60; >= 0)
 #   --workflow NAME   validator run name              (env WF,       default charly/pr-validator)
 #   --timeout SEC     overall deadline; 0 = none      (env TIMEOUT,  default 0)
@@ -58,6 +58,25 @@
 #   --no-rearm        one-shot: exit on the event, the agent re-arms (env AUTO_REARM=0)
 #   -h, --help        print this help and exit 0
 #
+# ONE WATCHER PER SESSION, ONE POLL PER MINUTE. --interval is a FLOOR of 60 seconds
+#   (POLL_FLOOR): a sub-60s value is REFUSED at parse time (exit 5), so no silent
+#   sub-floor polling ever ships. Tests that must run fast opt in explicitly with
+#   ALLOW_FAST_POLL=1 (and --interval < 60); it is never a production setting.
+#
+# WHY THE FLOOR — the measured budget. MEASURED 2026-09-28: the account's shared core
+#   budget is 5000 calls/hr. The pre-floor defaults (30s here, 20s pr_watch_many, 15s
+#   pr_state_watch) each poll and this script then issued ~5 gh calls PER ITEM PER POLL
+#   (a `/pulls` type probe, `/issues` state, `/pulls` merged, `/issues/comments`, and a
+#   `gh run list`). A 20s watcher over just 5 items is ~90 calls/min = ~5400/hr — a
+#   budget incident on its own, and repeated fast/stacked polls produced HTTP 403s.
+#   Now: the default is 60s, and the WHOLE item list is polled in ONE GraphQL request
+#   (see the batched-poll comment) — MEASURED: 6 items over 4 polls went 73 → 5 gh
+#   calls, so ~60 calls/hr for the entire watch independent of item count.
+#
+# RATE-LIMIT GUARD. Before each poll the FREE `/rate_limit` endpoint is read; below
+#   WATCH_RATE_MIN (default 200) the watcher backs off (interval × WATCH_RATE_BACKOFF_FACTOR,
+#   default 2, capped 600s) and SKIPS the poll rather than hammering into the 403 wall.
+#
 # OUTPUT (stdout; the line's first token is the event)
 #   MERGED   <item>  (unblocked)
 #   CLOSED   <item>  closed without merging — find its successor
@@ -65,10 +84,14 @@
 #   VERDICT  <item>  new <WF> run <id>  <url>
 #   STALL    <item>  no progress for <MIN>m (open, unmerged) — takeover candidate
 #   TIMEOUT  no event within <SEC>s                      (only with --timeout > 0)
+#   FATAL    a rate limit was hit — ABORT (stderr), exit 7; never retried/still-polled
 #
-# EXIT  0 on an event; 4 on timeout; 5 on usage/argument/gh error; 6 on lock error.
+# EXIT  0 on an event; 4 on timeout; 5 on usage/argument (incl. a sub-floor interval);
+#       6 on lock error; 7 on a RATE LIMIT (a HARD abort — never retried); 8 on a poll
+#       error other than a rate limit.
 # A watcher must never die silently: like pr_watch_many.sh, poll WITHOUT `-e` (a
 # transient `gh` failure must skip this poll, not kill the watch) and keep `-uo pipefail`.
+# A RATE LIMIT is the ONE exception to "skip the poll": it is a STOP, so it exits 7.
 set -uo pipefail
 
 SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -78,7 +101,7 @@ SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ORIG_ARGS=("$@")
 ARGV0="$SELF_DIR/$(basename "${BASH_SOURCE[0]}")"
 
-INTERVAL="${INTERVAL:-30}"
+INTERVAL="${INTERVAL:-60}"
 STALL_MIN="${STALL_MIN:-60}"
 EVENTS="${EVENTS:-merged,closed,stall}"
 WF="${WF:-charly/pr-validator}"
@@ -104,7 +127,8 @@ while [ $# -gt 0 ]; do
 done
 
 numeric() { watch_is_uint "$1"; }
-numeric "$INTERVAL" && [ "$INTERVAL" -ge 1 ] || { echo "gh_watch: --interval must be an integer >= 1, got '$INTERVAL'" >&2; exit 5; }
+# ONE poll per minute (POLL_FLOOR); sub-floor is refused unless ALLOW_FAST_POLL=1 (tests).
+INTERVAL="$(watch_interval gh_watch "$INTERVAL" "the INTERVAL env/default")" || exit 5
 numeric "$STALL_MIN" || { echo "gh_watch: --stallmin must be an integer >= 0, got '$STALL_MIN'" >&2; exit 5; }
 numeric "$TIMEOUT" || { echo "gh_watch: --timeout must be an integer >= 0, got '$TIMEOUT'" >&2; exit 5; }
 case "$AUTO_REARM" in 0|1) ;; *) echo "gh_watch: AUTO_REARM must be 0 or 1, got '$AUTO_REARM'" >&2; exit 5 ;; esac
@@ -152,40 +176,133 @@ done
 
 has() { watch_has "$1" "$EVENTS"; }
 
-# snapshot <owner> <repo> <num> -> "type|state|merged|comments|verdictId|updEpoch|verdictEpoch"
-# Every gh call is guarded (|| echo …) AND the script polls without `-e`, so a transient
-# failure skips a poll instead of killing the watcher.
-snapshot() {
-  # A poll child must NOT inherit the lock fd (9): a hung `gh` would otherwise hold the
-  # flock after we exit and time out a successor's takeover. snapshot runs in a `$(…)`
-  # subshell, so closing fd 9 here never touches the parent's lock.
-  exec 9>&- 2>/dev/null || true
-  local o="$1" r="$2" n="$3" type state merged cc run v ve up e
-  if gh api "/repos/$o/$r/pulls/$n" >/dev/null 2>&1; then type=pr; else type=issue; fi
-  state="$(gh api "/repos/$o/$r/issues/$n" --jq '.state' 2>/dev/null || echo unknown)"
-  merged="$(gh api "/repos/$o/$r/pulls/$n" --jq '.merged' 2>/dev/null || echo "")"
-  cc="$(gh api "/repos/$o/$r/issues/$n/comments" --paginate --jq 'length' 2>/dev/null || echo "")"
-  run="$(watch_run_latest "$o/$r" "$WF" || echo "")"
-  v="${run%%|*}"; ve="${run##*|}"
-  [ "$run" = "$v" ] && ve=""          # no run at all (run was empty)
-  up="$(gh api "/repos/$o/$r/issues/$n" --jq '.updated_at' 2>/dev/null || echo "")"
-  if [ -n "$up" ]; then e="$(date -u -d "$up" +%s 2>/dev/null || date -u +%s)"; else e="$(date -u +%s)"; fi
-  printf '%s|%s|%s|%s|%s|%s|%s' "$type" "$state" "$merged" "$cc" "$v" "$e" "$ve"
+# ── ONE batched GraphQL poll (calls-per-poll = 1 for N items) ────────────────
+# MEASURED 2026-09-28: the previous per-item REST snapshot issued ~5 calls per item
+# per poll (a `/pulls` type probe, `/issues` state, `/pulls` merged,
+# `/issues/comments`, and a `gh run list`). With the old 30s default and 5 items that
+# is ~3000 calls/hr; a 20s cadence over the same set is ~4500/hr — enough to exhaust
+# the shared 5000/hr core budget on its own (observed HTTP 403).
+#
+# This replaces it with ONE GraphQL request per poll, regardless of item count:
+# `issueOrPullRequest(number:)` serves BOTH PRs and issues, so a whole batch is a
+# single aliased query. `state`, `merged`, `updatedAt`, `comments.totalCount` and the
+# head commit's latest check-suites (for the `verdict` event) all arrive in that one
+# round-trip. GraphQL counts as ONE request against the budget (not per-node), so
+# N items cost exactly 1 call per poll.
+#
+# SKIP UNCHANGED WORK: a per-item fingerprint of
+# `updatedAt|headOid|newestCompletedRunId` gates the event checks — an idempotent
+# no-change poll returns a fingerprint equal to the seed and is skipped before any
+# event logic (the poll itself is not skipped; it is the SINGLE batched call that
+# keeps the watch honest). The check-suite walk (candidate run ids) is only consulted
+# for an item whose fingerprint moved.
+#
+# RATE-LIMIT HARD ABORT: any rate-limit signal — HTTP 403/429, an `errors[].type ==
+# RATE_LIMIT` body, or a zero/absent quota — is a STOP, not a retry. `graphql_batch`
+# exits 7 via `watch_fatal_rate_limit` (naming the reset instant). MEASURED trap:
+# `gh api graphql` exits 0 while its body carries the RATE_LIMIT error, so the payload
+# is inspected, never the exit code alone.
+
+# gql_alias is defined in _watch_common.sh (shared with the test fixtures).
+
+# graphql_batch → prints the raw JSON on stdout; on a rate-limit signal it prints the
+# signal to stderr and exits 7 (the poll loop aborts). Any other failure exits 8 (a
+# genuine poll error the caller treats as a skipped poll, not a fire).
+graphql_batch() {
+  { exec 9>&-; } 2>/dev/null || true
+  local sel="" q out alias
+  for tok in "${NORM[@]}"; do
+    o="${tok%%/*}"; rest="${tok#*/}"; r="${rest%%#*}"; n="${tok##*#}"
+    # GraphQL alias names allow only [A-Za-z0-9_]; sanitize owner/repo/number to that
+    # set (a hyphen in a repo name would otherwise make the query invalid). gql_parse
+    # derives the SAME key from the token, so the two must sanitize identically.
+    alias="$(gql_alias "$tok")"
+    # NOTE the shape (MEASURED): `conclusion`/`updatedAt` live on the CheckSuite, NOT
+    # on `workflowRun`; the run id and workflow NAME live under `workflowRun`.
+    sel+=" $alias: repository(owner: \"$o\", name: \"$r\") { issueOrPullRequest(number: $n) { __typename ... on Issue { state updatedAt comments { totalCount } } ... on PullRequest { state merged updatedAt comments { totalCount } headRefOid commits(last: 1) { nodes { commit { checkSuites(last: 5) { nodes { conclusion updatedAt workflowRun { databaseId workflow { name } } } } } } } } } }"
+  done
+  q="query { ${sel} }"
+  out="$(gh api graphql -f "query=$q" 2>&1)"; rc=$?
+  if watch_is_rate_limited "$out"; then
+    watch_fatal_rate_limit "gh_watch" "$(printf '%s' "$out" | head -c 200)"
+  fi
+  [ "$rc" -eq 0 ] || { printf 'gh_watch: graphql poll failed (%s): %s\n' "$rc" "$(printf '%s' "$out" | head -c 200)" >&2; exit 8; }
+  printf '%s' "$out"
+}
+
+# gql_parse <json> <tok> — one item's fingerprint line
+#   "type|state|merged|comments|headOid|updEpoch|newestRunId|newestRunConclusion|newestRunEpoch"
+# Missing/null fields become empty so the caller's exact-value gates never fire on an
+# unknown. `updEpoch` is the item's updatedAt as Unix seconds.
+gql_parse() {
+  printf '%s' "$1" | jq -r --arg tok "$2" --arg wf "$WF" --arg alias "$(gql_alias "$2")" '
+    .data[$alias] as $r
+    | ($r.issueOrPullRequest // null) as $i
+    | if $i == null then "unknown|||0|||"
+      else
+        ($i.__typename) as $t
+        | (if $t == "PullRequest" then "pr" else "issue" end) as $ty
+        # GraphQL state is an uppercase enum (OPEN/CLOSED/MERGED); the event checks
+        # compare lowercase, so normalize here (the ONE place the raw state is read).
+        | ($i.state | ascii_downcase) as $st
+        | ($i.comments.totalCount // 0) as $c
+        | (($i.updatedAt // "") | if . == "" then 0 else (fromdateiso8601) end) as $u
+        | (if $t == "PullRequest" then
+             # conclusion/updatedAt are on the CheckSuite; databaseId + workflow.name
+             # are under workflowRun (MEASURED shape).
+             ([ $i.commits.nodes[]?.commit.checkSuites.nodes[]?
+                | select(.workflowRun.workflow.name == $wf and .conclusion != null) ]
+              | sort_by(.workflowRun.databaseId) | last) as $cs
+             | ($cs.workflowRun.databaseId // "") as $rid
+             | ($cs.conclusion // "") as $rc
+             | (($cs.updatedAt // "") | if . == "" then 0 else (fromdateiso8601) end) as $re
+             | "\($ty)|\($st)|\($i.merged)|\($c)|\($i.headRefOid // "")|\($u)|\($rid)|\($rc)|\($re)"
+           else
+             "\($ty)|\($st)||\($c)||\($u)|||"
+           end)
+      end' 2>/dev/null
+}
+
+# probe_run_id <owner/repo> <candidate-id> <item-updEpoch> — the item-scoped
+# validator-run probe used ONLY when a fingerprint moved. The head check-suite gave a
+# CANDIDATE run id; `gh run view` returns the run's own completion time (a `gh run
+# view` counts as ONE REST core call — a normal REST read, not the GraphQL points
+# budget). Returns "id|conclusion|completedEpoch" or "" (unknown). The item-scoped id
+# is the fallback when the candidate is empty.
+probe_run_id() {
+  { exec 9>&-; } 2>/dev/null || true
+  local out rc
+  out="$(gh api "repos/$1/actions/runs/$2" 2>&1)"; rc=$?
+  if watch_is_rate_limited "$out"; then
+    watch_fatal_rate_limit "gh_watch" "$(printf '%s' "$out" | head -c 200)"
+  fi
+  [ "$rc" -eq 0 ] || return 0
+  printf '%s' "$out" \
+    | jq -r 'if .id == null then "" else "\(.id)|\(.conclusion // "")|\(.updated_at | fromdateiso8601)" end' 2>/dev/null
 }
 
 # A "new" event must be genuinely newer than ARM_EPOCH — never merely different from an
 # empty seed, and never a pre-existing comment. An EMPTY seed is UNKNOWN (transient gh
 # failure / no run yet), so an item with no seed adopts its first observation as the
-# baseline WITHOUT firing. A `verdict` fires ONLY on a run that COMPLETED at/after
-# ARM_EPOCH — an id compare alone is not enough (the newest completed run can change to
-# a DIFFERENT but still-old run). merged/closed are STATE events and intentionally fire
-# from the baseline.
+# baseline WITHOUT firing. A `verdict` fires ONLY on its run COMPLETING at/after
+# ARM_EPOCH (the field-validated newness gate). merged/closed are STATE events and
+# intentionally fire from the baseline.
 ARM_EPOCH="$(date -u +%s)"
 declare -A SEED
-for tok in "${NORM[@]}"; do
-  o="${tok%%/*}"; rest="${tok#*/}"; r="${rest%%#*}"; n="${tok##*#}"
-  SEED[$tok]="$(snapshot "$o" "$r" "$n")"
-done
+declare -A CAND_RUN
+
+seed_batch() {
+  local batch rc
+  batch="$(graphql_batch)"; rc=$?
+  watch_rc_guard "$rc"          # a rate-limit abort inside the subshell ends us too
+  [ "$rc" -eq 0 ] || return 1   # any other poll error: seed failed
+  for tok in "${NORM[@]}"; do
+    SEED[$tok]="$(gql_parse "$batch" "$tok")" || SEED[$tok]="unknown|||0|||"
+    IFS='|' read -r _ _ _ _ _ _ v _ _ <<<"${SEED[$tok]}"
+    CAND_RUN[$tok]="$v"
+  done
+}
+seed_batch || { echo "gh_watch: initial GraphQL seed failed" >&2; exit 8; }
 
 start="$(date -u +%s)"
 while :; do
@@ -194,22 +311,33 @@ while :; do
   if [ "$TIMEOUT" -gt 0 ] && [ $(( $(date -u +%s) - start )) -ge "$TIMEOUT" ]; then
     printf 'TIMEOUT  no event within %ss\n' "$TIMEOUT"; exit 4
   fi
-  # RATE-LIMIT DISCIPLINE: never poll when the core quota is nearly exhausted.
-  watch_rate_gate "$INTERVAL" || continue
+  # RATE-LIMIT DISCIPLINE: never poll when the core quota is nearly exhausted; a
+  # genuine EXHAUSTION aborts (exit 7) rather than sleeping into the 403 wall.
+  watch_rate_gate "$INTERVAL" "gh_watch" || continue
 
+  # ONE batched GraphQL request for the WHOLE item list (calls-per-poll = 1).
+  batch="$(graphql_batch)"; grc=$?
+  watch_rc_guard "$grc"                                                 # rate limit → abort 7
+  [ "$grc" -eq 0 ] || { watch_sleep "$INTERVAL"; continue; }            # poll error → skip
   now="$(date -u +%s)"
+
   for tok in "${NORM[@]}"; do
     o="${tok%%/*}"; rest="${tok#*/}"; r="${rest%%#*}"; n="${tok##*#}"
-    cur="$(snapshot "$o" "$r" "$n")"
-    IFS='|' read -r type state merged cc v up ve <<<"$cur"
-    IFS='|' read -r _ _ _ pcc pv _ _ <<<"${SEED[$tok]}"
+    cur="$(gql_parse "$batch" "$tok")"
+    IFS='|' read -r type state merged cc head up v rc ve <<<"$cur"
+    IFS='|' read -r ptype pstate pmerged pcc phead pup pv prc pve <<<"${SEED[$tok]}"
     url="https://github.com/$o/$r"
 
+    # SKIP UNCHANGED WORK applies ONLY to the DELTA events (comment/verdict): STATE
+    # events (merged/closed/stall) fire from the BASELINE by design, so they can never
+    # be skipped. An unchanged fingerprint means an idle item costs nothing beyond the
+    # single batched poll (the poll itself is never skipped).
+    changed=0; [ "$cur" != "${SEED[$tok]}" ] && changed=1
+
     # merged/closed/comment/verdict all key on an exact per-FIELD value, so an UNKNOWN
-    # field (empty from a transient failure) never fires: merged/closed need an exact
+    # field (empty from a failed poll) never fires: merged/closed need an exact
     # "true"/"closed"; comment needs both counts known; verdict needs a run that
-    # COMPLETED at/after arm time. No whole-line "empty" guard is needed (snapshot
-    # always prints).
+    # COMPLETED at/after arm time.
     #
     # A STATE fire (merged/closed/stall) sets WATCH_DONE=1 and does NOT re-arm: the
     # successor would IMMEDIATELY re-fire it (a merged PR stays merged; a stalled item
@@ -222,17 +350,27 @@ while :; do
     if has closed && [ "$state" = "closed" ] && [ "$merged" != "true" ]; then
       WATCH_DONE=1
       printf 'CLOSED   %s  closed without merging — find its successor\n' "$tok"; exit 0; fi
-    if has comment && [ -n "$cc" ] && [ -n "$pcc" ] && [ "$cc" != "$pcc" ]; then
+    if has comment && [ "$changed" = 1 ] && [ -n "$cc" ] && [ -n "$pcc" ] && [ "$cc" != "$pcc" ]; then
       watch_rearm_now
       printf 'COMMENT  %s  new comment (%s -> %s)  %s/%s/%s\n' \
         "$tok" "$pcc" "$cc" "$url" "$([ "$type" = pr ] && echo pull || echo issues)" "$n"; exit 0; fi
-    if has verdict && [ -n "$v" ] && [ "$v" != "$pv" ] \
-       && [ -n "$ve" ] && [ "$ve" -ge "$ARM_EPOCH" ]; then
-      watch_rearm_now
-      printf 'VERDICT  %s  new %s run %s  %s/actions/runs/%s\n' "$tok" "$WF" "$v" "$url" "$v"; exit 0; fi
+    if has verdict && [ "$changed" = 1 ] && [ -n "$v" ] && [ "$v" != "$pv" ]; then
+      # The batched query supplied a CANDIDATE run id (newest completed `$WF` run on
+      # the head); confirm its COMPLETION time with a single item-scoped `gh run view`.
+      # Falls back to the query's own run-completion instant when the probe is
+      # unavailable. `probe_run_id` returns "id|conclusion|completedEpoch".
+      probe="$(probe_run_id "$o/$r" "$v" "$up")"; prc=$?
+      watch_rc_guard "$prc"      # a rate-limit abort inside the probe ends us too
+      probe_rc=""; probe_epoch="$ve"
+      [ -n "$probe" ] && { v="${probe%%|*}"; rest2="${probe#*|}"; probe_rc="${rest2%%|*}"; probe_epoch="${rest2##*|}"; }
+      if [ -n "$probe_epoch" ] && [ "$probe_epoch" -ge "$ARM_EPOCH" ]; then
+        watch_rearm_now
+        printf 'VERDICT  %s  new %s run %s%s  %s/actions/runs/%s\n' \
+          "$tok" "$WF" "$v" "$([ -n "$probe_rc" ] && printf ' (%s)' "$probe_rc")" "$url" "$v"; exit 0; fi
+    fi
     # stall requires an OBSERVED open state — never alarm on an unknown state.
     if has stall && [ "$merged" != "true" ] && [ "$state" != "closed" ] \
-       && [ -n "$state" ] && [ "$state" != "unknown" ] \
+       && [ -n "$state" ] && [ "$state" != "unknown" ] && [ -n "$up" ] && [ "$up" -gt 0 ] \
        && [ $(( (now - up) / 60 )) -ge "$STALL_MIN" ]; then
       WATCH_DONE=1
       printf 'STALL    %s  no progress for %sm (open, unmerged) — takeover candidate\n' "$tok" "$STALL_MIN"; exit 0; fi

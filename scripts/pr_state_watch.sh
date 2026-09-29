@@ -32,9 +32,16 @@
 #   5  ERROR    (bad usage, or gh/API failure)
 set -euo pipefail
 
+SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/_watch_common.sh
+. "$SELF_DIR/_watch_common.sh"
+
 REPO=""
 PR=""
-INTERVAL=15
+# --interval defaults to 60 and is a FLOOR of 60 seconds (POLL_FLOOR, from
+# _watch_common.sh): a sub-60s value is REFUSED (exit 5) so no silent sub-floor
+# polling ever ships. Tests that must run fast opt in via ALLOW_FAST_POLL=1.
+INTERVAL="${PR_STATE_INTERVAL:-60}"
 TIMEOUT=900
 
 usage() {
@@ -43,6 +50,10 @@ pr_state_watch.sh — poll a PR and STOP the instant it reaches a terminal state
 
 Usage:
   pr_state_watch.sh <owner>/<repo> <pr-number> [--interval SECONDS] [--timeout SECONDS]
+
+--interval defaults to 60 and is a FLOOR of 60 seconds (POLL_FLOOR): a sub-60s value
+is REFUSED (exit 5) so no silent sub-floor polling ever ships. Tests that must run
+fast opt in explicitly with ALLOW_FAST_POLL=1; it is never a production setting.
 
 Watches the required `validate / validate` check over ALL of its same-name runs on
 the PR head. Terminal states halt immediately (this script never retries them):
@@ -53,6 +64,7 @@ the PR head. Terminal states halt immediately (this script never retries them):
   3  CLOSED    closed without merge
   4  TIMEOUT   no terminal state within --timeout
   5  ERROR     bad usage, or gh/API failure
+  7  FATAL     a GitHub rate limit was hit — a HARD abort, never retried
 
 WHY NOT `gh pr checks --watch`: a body-only fix does not move the head, so a
 same-head re-dispatch leaves BOTH same-name runs in the rollup; GitHub collapses
@@ -79,6 +91,11 @@ done
 case "$PR" in ''|*[!0-9]*) echo "pr_state_watch: <pr-number> must be numeric, got '$PR'" >&2; exit 5 ;; esac
 command -v gh >/dev/null 2>&1 || { echo "pr_state_watch: gh not found" >&2; exit 5; }
 
+# --interval is validated against the 60s POLL_FLOOR (refuse sub-floor unless
+# ALLOW_FAST_POLL=1 — tests only).
+INTERVAL="$(watch_interval pr_state_watch "$INTERVAL" "--interval (or PR_STATE_INTERVAL env)")" \
+  || { usage >&2; exit 5; }
+
 # The required check this org protects `main` with. Overridable for a repo whose
 # ruleset names a different context (and for testing) — the default is the org one.
 REQUIRED_CHECK="${PR_STATE_REQUIRED_CHECK:-validate / validate}"
@@ -91,10 +108,24 @@ report() { # report <verdict> <detail>
 }
 
 while :; do
-  # One snapshot: state + head + all same-name check-runs for that head.
+  # RATE-LIMIT HARD ABORT: read the FREE /rate_limit endpoint FIRST; a zero (or
+  # below-min) quota is a STOP. `watch_rate_gate` backs off below WATCH_RATE_MIN; a
+  # genuine ZERO is unrecoverable within the window, so this watcher aborts (exit 7)
+  # rather than sleeping into the 403 wall. `--interval` floors the cadence; this is
+  # the second line.
+  rem="$(watch_rate_remaining)"
+  if watch_is_uint "$rem" && [ "$rem" -eq 0 ]; then
+    watch_fatal_rate_limit "pr_state_watch" "core quota exhausted"
+  fi
+
+  # One snapshot: state + head + all same-name check-runs for that head. Capture the
+  # RAW output so a rate-limit signal in it is detected and ABORTS, rather than being
+  # mistaken for a generic gh failure (a rate limit is a stop, not a transient).
   json="$(gh pr view "$PR" --repo "$REPO" \
-            --json state,mergeStateStatus,headRefOid,url 2>/dev/null)" || {
+            --json state,mergeStateStatus,headRefOid,url 2>&1)" || {
+    watch_is_rate_limited "$json" && watch_fatal_rate_limit "pr_state_watch" "$(printf '%s' "$json" | head -c 200)"
     echo "pr_state_watch: gh pr view failed for $REPO#$PR" >&2; exit 5; }
+  watch_is_rate_limited "$json" && watch_fatal_rate_limit "pr_state_watch" "$(printf '%s' "$json" | head -c 200)"
 
   state="$(printf '%s' "$json" | grep -o '"state":"[^"]*"' | head -1 | cut -d'"' -f4)"
   head="$(printf '%s' "$json" | grep -o '"headRefOid":"[^"]*"' | head -1 | cut -d'"' -f4)"
@@ -118,8 +149,11 @@ while :; do
   # NB: the REST check-runs API returns lowercase "completed"/"success"/"failure",
   # while `gh pr view --json` (GraphQL) returns uppercase. Normalize with ascii_upcase
   # so the script is correct against EITHER shape.
-  verdict="$(gh api "repos/$REPO/commits/$head/check-runs" --paginate 2>/dev/null \
-      | jq -r --arg name "$REQUIRED_CHECK" '
+  cr_json="$(gh api "repos/$REPO/commits/$head/check-runs" --paginate 2>&1)" || {
+    watch_is_rate_limited "$cr_json" && watch_fatal_rate_limit "pr_state_watch" "$(printf '%s' "$cr_json" | head -c 200)"
+    echo "pr_state_watch: gh api check-runs failed for $REPO@$head" >&2; exit 5; }
+  watch_is_rate_limited "$cr_json" && watch_fatal_rate_limit "pr_state_watch" "$(printf '%s' "$cr_json" | head -c 200)"
+  verdict="$(printf '%s' "$cr_json" | jq -r --arg name "$REQUIRED_CHECK" '
         [.check_runs[] | select(.name==$name)]
         | if length==0 then "NONE"
           elif any(.[]; (.status|ascii_upcase) != "COMPLETED") then "PENDING"
@@ -128,7 +162,7 @@ while :; do
                  elif any(.[]; (.conclusion|ascii_upcase)=="FAILURE") then "POISON"
                  else "PASS" end
           end')" || {
-    echo "pr_state_watch: gh api check-runs failed for $REPO@$head" >&2; exit 5; }
+    echo "pr_state_watch: jq failed for check-runs of $REPO@$head" >&2; exit 5; }
 
   case "$verdict" in
     BLOCKED)
