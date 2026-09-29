@@ -33,7 +33,8 @@
 #   --repos LIST      repos to watch for validator runs, comma-separated. Default:
 #                     the repos named by the PR pairs, deduped. In repo-only mode
 #                     (no PR pairs) signals 0 and 2 are inactive.
-#   --interval SEC    poll cadence, seconds (default 20; minimum 1).
+#   --interval SEC    poll cadence, seconds (default 60; FLOOR 60 — sub-floor is
+#                     refused, tests only via ALLOW_FAST_POLL=1).
 #   --timeout SEC     overall deadline, seconds; 0 disables (default 7200).
 #   --stallmin MIN    stall window, minutes; 0 disables signal 2 (default 0).
 #   --validator NAME  validator workflow name (default charly/pr-validator).
@@ -52,7 +53,8 @@
 #   WAKE TIMEOUT  no signal within <SEC>s
 #
 # EXIT  0 once a wake was reported (the scope's own status is in the output line);
-#       4 on timeout; 5 on usage/error; 6 on lock error. Every per-PR terminal decision
+#       4 on timeout; 5 on usage/error; 6 on lock error; 7 on a RATE LIMIT (a HARD
+#       abort — never retried). Every per-PR terminal decision
 #       is pr_state_watch.sh's (which defines 0 MERGED / 2 BLOCKED / 3 CLOSED /
 #       4 TIMEOUT / 5 ERROR and distinguishes POISON).
 #
@@ -70,7 +72,7 @@ WATCH="$SELF_DIR/pr_state_watch.sh"
 ORIG_ARGS=("$@")
 ARGV0="$SELF_DIR/$(basename "${BASH_SOURCE[0]}")"
 
-INTERVAL=20
+INTERVAL=60
 TIMEOUT=7200
 STALLMIN=0
 VALIDATOR="${PR_WATCH_VALIDATOR:-charly/pr-validator}"
@@ -100,7 +102,8 @@ while [ $# -gt 0 ]; do
 done
 
 # --- validation (fail loud, never a silent default) ------------------------
-watch_is_uint "$INTERVAL" && [ "$INTERVAL" -ge 1 ] || { echo "pr_watch_many: --interval must be an integer >= 1, got '$INTERVAL'" >&2; exit 5; }
+# ONE poll per minute (POLL_FLOOR); sub-floor is refused unless ALLOW_FAST_POLL=1 (tests).
+INTERVAL="$(watch_interval pr_watch_many "$INTERVAL" "--interval")" || exit 5
 watch_is_uint "$TIMEOUT"  || { echo "pr_watch_many: --timeout must be an integer >= 0, got '$TIMEOUT'" >&2; exit 5; }
 watch_is_uint "$STALLMIN" || { echo "pr_watch_many: --stallmin must be an integer >= 0, got '$STALLMIN'" >&2; exit 5; }
 case "$AUTO_REARM" in 0|1) ;; *) echo "pr_watch_many: AUTO_REARM must be 0 or 1, got '$AUTO_REARM'" >&2; exit 5 ;; esac
@@ -172,7 +175,8 @@ run_latest() { watch_run_latest "$1" "$VALIDATOR"; }
 declare -A RUN_LAST
 ARM_EPOCH="$(date +%s)"
 for r in "${REPOS[@]}"; do
-  seed="$(run_latest "$r")"
+  seed="$(run_latest "$r")"; src_s=$?
+  watch_rc_guard "$src_s"           # a rate-limit abort inside the subshell ends us too
   RUN_LAST[$r]="${seed%%|*}"        # run id only; "" means UNKNOWN, not "none yet"
 done
 
@@ -219,8 +223,9 @@ while :; do
   if [ "$TIMEOUT" -gt 0 ] && [ $(( $(date +%s) - start )) -ge "$TIMEOUT" ]; then
     printf 'WAKE TIMEOUT  no signal within %ss\n' "$TIMEOUT"; exit 4
   fi
-  # RATE-LIMIT DISCIPLINE: never poll when the core quota is nearly exhausted.
-  watch_rate_gate "$INTERVAL" || continue
+  # RATE-LIMIT DISCIPLINE: never poll when the core quota is nearly exhausted; a
+  # genuine EXHAUSTION aborts via watch_rate_gate (exit 7), never a silent retry.
+  watch_rate_gate "$INTERVAL" "pr_watch_many" || continue
 
   # signal 0 — a PR reached a terminal state (atomic "<key>.done" file present).
   # TERMINAL: nothing is left to watch, so set WATCH_DONE (no successor is spawned).
@@ -236,7 +241,8 @@ while :; do
   # both spawn a successor here and the `WATCH_REARMED` latch de-dupes them — the
   # committed `... re-arms BEFORE printing the WAKE` assertion pins this ordering.
   for r in "${REPOS[@]}"; do
-    cur="$(run_latest "$r")"
+    cur="$(run_latest "$r")"; crc=$?
+    watch_rc_guard "$crc"           # a rate-limit abort inside the subshell ends us too
     if [ -n "$cur" ]; then
       cid="${cur%%|*}"; cepoch="${cur##*|}"
       prev="${RUN_LAST[$r]:-}"
