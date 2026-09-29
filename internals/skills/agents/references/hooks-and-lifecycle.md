@@ -3,9 +3,9 @@
 # Hooks, Delegation & Lifecycle
 
 Companion reference for `/charly-internals:agents`. Owns the hooks
-doctrine, delegation-as-fresh-context, teammate context lifecycle, the
-sub-agent operational invariants, agent lifecycle hygiene, the PR-gate
-audit, and worktree/validator lifecycle.
+doctrine, delegation-as-fresh-context, teammate context lifecycle and
+rotate-on-stall, the sub-agent operational invariants, agent lifecycle
+hygiene, the PR-gate audit, and worktree/validator lifecycle.
 
 ## Delegation is fresh context — the primitives' primary purpose
 
@@ -109,6 +109,59 @@ orchestrator, never one teammate marching through a queue.
   the same task is normal; if the remainder is separable, write the
   handoff package (above) and the orchestrator spawns a successor for the
   remainder — never re-purpose the drained teammate for new work.
+
+### Rotate on stall — stop a stalled session, spawn a fresh one
+
+**The hard trigger.** If a subagent/teammate has produced **no
+ARTIFACT** — a pushed commit, an opened PR, a merge, a tag, or measured
+output — after **two re-briefs**, or its session passes **~50 messages
+without a produced artifact**, **STOP it and spawn a FRESH subagent with
+a clean brief.** Do not append a third correction. Re-briefing a stalled
+session is the one reuse that is never legitimate: it is the failure this
+rule exists for — and it reads like continue-same-task while being its
+opposite (a stalled session is not continuing its own unit; it is not
+producing at all).
+
+**Why re-tasking a stalled session fails — the measured evidence.** A
+session ran **7 hours / 351 messages** and produced **no artifact** on a
+few-file change; a **fresh** session with the same brief produced it
+directly. Each appended correction grows the context with dead ends and
+superseded instructions, so the worker gets slower and less likely to
+converge — not closer. The cost of a clean restart is one fresh brief;
+the cost of nursing the stalled session is the whole elapsed window.
+
+**Artifacts, never liveness.** An idle signal, a heartbeat, a
+`TeammateIdle` event, or "still working / still investigating" is NOT
+progress — a working teammate yields its turn constantly (operational
+invariant 5). Act only on a **changed artifact** (a new head SHA, an
+opened PR, a merge, a tag, a measured output), which is the same
+artifact-not-liveness rule the watcher family's stall alarm already
+encodes.
+
+**Distinguish rotation from legitimate continue-same-task.** A
+CHANGES-REQUESTED fix round on its own PR, a rebase / `update-branch`
+round, or the next leg of its cutover chain is reuse — the loaded
+context is the point (see "Continue-same-task" above). **Re-briefing a
+session that has stalled without producing is rotation**, and after the
+trigger it is mandatory. The artifact tells them apart: a session that
+produced and is being corrected continues; a session that has produced
+nothing and is being re-briefed a third time is rotated.
+
+**The orchestrator's duty.** Monitoring by artifact and rotating on the
+trigger is the orchestrator's job — the same ownership the
+"orchestrator's bidirectional verification duty"
+(`references/orchestration-model.md`) places on it. A stall the
+orchestrator does not rotate is a stall the loop never converges past:
+the session stays slow, its budget drains, and the critical path waits
+on a worker that will not produce. Cap the fan-out (rotate rather than
+accumulate stale sessions) and keep state in durable artifacts (a brief
+file, a PR comment, a scratchpad) so a fresh successor starts from disk.
+
+This is the mechanism behind the umbrella rulebook rule **"Subagent
+lifecycle — one task per worker; rotate, never re-task"**
+(`opencharly/opencharly` `AGENTS.md`); the rulebook states the mandate
+and this reference carries the mechanism — one canonical statement in
+AGENTS.md, the detail here, and the two must not drift.
 
 ## Sub-agent operational invariants — the autonomous loop depends on these
 

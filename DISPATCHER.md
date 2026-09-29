@@ -59,7 +59,7 @@
 | `charly feature` / feature list / feature pending / feature validate / ADE entity descriptions | `/charly-feature:feature` |
 | Editing a box (`box/<name>/charly.yml` — boxes live in the `box/<distro>` submodules; main owns none), box composition | `/charly-image:image` |
 | Editing a candy (`candy/<name>/charly.yml`), candy authoring, candy tasks/services | `/charly-image:layer` |
-| Verify a cutover by running the R10 beds (drive `charly check run <bed>`) / Evaluate/audit a deployment config (image or deploy, yours) / Sub-agents / dynamic workflows / agent teams / agent-lifecycle or commit-push gate hooks | `/charly-internals:agents` |
+| Verify a cutover by running the R10 beds (drive `charly check run <bed>`) / Evaluate/audit a deployment config (image or deploy, yours) / Sub-agents / dynamic workflows / agent teams / agent-lifecycle or commit-push gate hooks / Todo ledger / interruption safety / never drop in-flight work across a new instruction | `/charly-internals:agents` |
 | OCI labels / capabilities contract | `/charly-internals:capabilities` |
 | Hard-cutover concerns / rename sweeps | `/charly-internals:cutover-policy` |
 | Disposable-flag semantics / `disposable: true` authorization / preemptible-flag / `requires_exclusive:` / `charly preempt` / exclusive host-resource arbitration (GPU passthrough contention) | `/charly-internals:disposable` |
