@@ -160,6 +160,9 @@ gql_doc() { local s="" ; while [ "$#" -ge 2 ]; do s+="\"$(gql_alias "$1")\":{\"i
 # The REST actions/runs/{id} shape probe_run_id parses: .id/.conclusion/.updated_at.
 run_view_of() { printf '{"id":%s,"conclusion":"%s","updated_at":"%s"}' "$1" "$2" "$3"; }
 run_old() { printf '[{"databaseId":%s,"name":"charly/pr-validator","status":"completed","conclusion":"success","headBranch":"x","updatedAt":"%s","createdAt":"%s"}]' "$1" "$2" "$2"; }
+# reset_calls — clear every sequence/call counter + later-poll fixture. Defined HERE
+# (before its first use) — a later definition left the early tests' counters unreset.
+reset_calls() { rm -f "$WORK/gqlcalls" "$WORK/ncalls" "$WORK/runcalls" "$WORK/gql_after.json" "$WORK/runs_after.json" "$WORK/gqlerr.txt" "$WORK/run_view.json"; }
 # seed_no_run — a benign, run-less PR seed (nothing new yet).
 seed_no_run() { gql_doc opencharly/x#1 "$(gql_item opencharly x 1 pr open false 0 h1 "$NOW")" > "$WORK/gql.json"; }
 # fire_after_arm <runid> — a background writer that, AFTER the arm read, swaps in a
@@ -203,11 +206,23 @@ gql_doc opencharly/x#1 "$(gql_item opencharly x 1 pr open false 5 h1 "$NOW")" > 
 "$HERE/gh_watch.sh" --events comment --interval 1 --timeout 2 opencharly/x#1 >/dev/null 2>&1
 eq "gh_watch: comment does not fire on a pre-existing count" "$?" 4
 
+# 7b ── an UNKNOWN seed (the item is null on the seed poll) must NOT fire a COMMENT
+#       when the next poll shows a real comment count. This is the unknown-sentinel
+#       regression: the sentinel must leave the comments slot EMPTY, not 0, or the
+#       `[ -n "$pcc" ]` gate passes and a pre-existing comment fires. FAILS if the
+#       sentinel carries a 0 in the comments slot.
+reset_calls
+gql_doc opencharly/x#1 null > "$WORK/gql.json"
+gql_doc opencharly/x#1 "$(gql_item opencharly x 1 pr open false 5 h2 "$NOW")" > "$WORK/gql_after.json"
+"$HERE/gh_watch.sh" --events comment --interval 1 --timeout 2 opencharly/x#1 >/dev/null 2>&1
+eq "gh_watch: an UNKNOWN seed never fires a false COMMENT" "$?" 4
+reset_calls
+
 # 8 ── STALE-FIRE guard (the field bug). A "new" verdict must COMPLETE at/after arm
 #      time; an id compare alone false-fires when the seed-vs-poll run CHANGES to a
 #      different but still-old run. The stub's graphql output can differ between the
 #      seed call (call 1) and later polls (gql_after.json), deterministically, no sleeps.
-reset_calls() { rm -f "$WORK/gqlcalls" "$WORK/ncalls" "$WORK/runcalls" "$WORK/gql_after.json" "$WORK/runs_after.json" "$WORK/gqlerr.txt" "$WORK/run_view.json"; }
+# (reset_calls is defined near the fixture helpers above.)
 
 # 8a ── old seed AND a DIFFERENT old run on the next poll → MUST NOT fire
 for tool in many item; do

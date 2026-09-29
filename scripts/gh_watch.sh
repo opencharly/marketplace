@@ -239,7 +239,7 @@ gql_parse() {
   printf '%s' "$1" | jq -r --arg tok "$2" --arg wf "$WF" --arg alias "$(gql_alias "$2")" '
     .data[$alias] as $r
     | ($r.issueOrPullRequest // null) as $i
-    | if $i == null then "unknown|||0|||"
+    | if $i == null then "unknown||||||||"
       else
         ($i.__typename) as $t
         | (if $t == "PullRequest" then "pr" else "issue" end) as $ty
@@ -299,7 +299,11 @@ seed_batch() {
   watch_rc_guard "$rc"          # a rate-limit abort inside the subshell ends us too
   [ "$rc" -eq 0 ] || return 1   # any other poll error: seed failed
   for tok in "${NORM[@]}"; do
-    SEED[$tok]="$(gql_parse "$batch" "$tok")" || SEED[$tok]="unknown|||0|||"
+    # The UNKNOWN sentinel is the documented 9-field shape with EVERY field empty
+    # except type: type|state|merged|comments|head|updEpoch|runId|runConclusion|runEpoch.
+    # The comments slot is EMPTY (not 0) so the comment gate's [ -n "$pcc" ] is false
+    # and a failed/unknown seed can never fire a COMMENT.
+    SEED[$tok]="$(gql_parse "$batch" "$tok")" || SEED[$tok]="unknown||||||||"
     IFS='|' read -r _ _ _ _ _ _ v _ _ <<<"${SEED[$tok]}"
     CAND_RUN[$tok]="$v"
   done
