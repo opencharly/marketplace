@@ -23,7 +23,7 @@ Before declaring "working", verify ALL of these:
 4. `charly shell <image>` runs successfully (if applicable)
 5. Services start and respond correctly (if applicable)
 6. No unexpected errors or warnings in output
-7. Behavior matches what the owning skill documents (skills own usage/behavior; the project rulebook (`AGENTS.md`) owns the rules)
+7. Behavior matches what the owning skill documents (skills own usage/behavior; the project rulebook (`AGENTS.md` / `CLAUDE.md`) owns the rules)
 8. No workarounds or hacks needed
 9. **Risk Driven Development (RDD) was applied** — every HIGH-RISK assumption was
    proven on a live bed, not accepted from docs or code. Low-risk orientation

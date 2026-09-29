@@ -49,7 +49,7 @@ different things to the caller.
 
 ## Hard constraints (these are the contract — violating them is fraud)
 
-- **Disposable-only (the project rulebook R10 / "Disposable-Only Autonomy" (`AGENTS.md`)).** `charly check run <bed>` performs an
+- **Disposable-only (the project rulebook R10 / "Disposable-Only Autonomy" (`AGENTS.md` / `CLAUDE.md`)).** `charly check run <bed>` performs an
   unattended destroy + rebuild. The ONLY authorization is the bed's
   explicit `disposable: true` field. Every check bed carries it (a check bed is
   just a `disposable: true` fleet); you run beds, never arbitrary deploys. Never run `charly update`/`charly check run`
