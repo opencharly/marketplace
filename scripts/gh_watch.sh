@@ -191,12 +191,12 @@ has() { watch_has "$1" "$EVENTS"; }
 # round-trip. GraphQL counts as ONE request against the budget (not per-node), so
 # N items cost exactly 1 call per poll.
 #
-# SKIP UNCHANGED WORK: a per-item fingerprint of
-# `updatedAt|headOid|newestCompletedRunId` gates the event checks — an idempotent
-# no-change poll returns a fingerprint equal to the seed and is skipped before any
-# event logic (the poll itself is not skipped; it is the SINGLE batched call that
-# keeps the watch honest). The check-suite walk (candidate run ids) is only consulted
-# for an item whose fingerprint moved.
+# SKIP UNCHANGED WORK lives in the DELTA GATES, not in a separate fingerprint: the
+# `comment` gate fires only on a changed comment count (`cc != pcc`) and the `verdict`
+# gate only on a changed run id (`v != pv`), so an idle item produces no event. The
+# batched poll itself is NEVER skipped — it is the single call that keeps the watch
+# honest. The only conditional fetch is the item-scoped `probe_run_id` REST probe,
+# run solely when the candidate run id moved.
 #
 # RATE-LIMIT HARD ABORT: any rate-limit signal — HTTP 403/429, an `errors[].type ==
 # RATE_LIMIT` body, or a zero/absent quota — is a STOP, not a retry. `graphql_batch`
@@ -231,7 +231,7 @@ graphql_batch() {
   printf '%s' "$out"
 }
 
-# gql_parse <json> <tok> — one item's fingerprint line
+# gql_parse <json> <tok> — one item's 9-field state line
 #   "type|state|merged|comments|headOid|updEpoch|newestRunId|newestRunConclusion|newestRunEpoch"
 # Missing/null fields become empty so the caller's exact-value gates never fire on an
 # unknown. `updEpoch` is the item's updatedAt as Unix seconds.
@@ -265,7 +265,7 @@ gql_parse() {
 }
 
 # probe_run_id <owner/repo> <candidate-id> — the item-scoped validator-run probe used
-# ONLY when a fingerprint moved. The head check-suite gave a CANDIDATE run id; this
+# ONLY when the candidate run id moved. The head check-suite gave a CANDIDATE run id; this
 # reads that run's own completion time via the REST `actions/runs/{id}` endpoint (ONE
 # REST core call — a normal REST read, not the GraphQL points budget). NB: `gh run
 # view` is NOT usable here — MEASURED: it 404s on a GraphQL `workflowRun.databaseId`
