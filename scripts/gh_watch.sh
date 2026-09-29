@@ -291,21 +291,19 @@ probe_run_id() {
 # intentionally fire from the baseline.
 ARM_EPOCH="$(date -u +%s)"
 declare -A SEED
-declare -A CAND_RUN
 
 seed_batch() {
   local batch rc
   batch="$(graphql_batch)"; rc=$?
   watch_rc_guard "$rc"          # a rate-limit abort inside the subshell ends us too
   [ "$rc" -eq 0 ] || return 1   # any other poll error: seed failed
+  local tok
   for tok in "${NORM[@]}"; do
     # The UNKNOWN sentinel is the documented 9-field shape with EVERY field empty
     # except type: type|state|merged|comments|head|updEpoch|runId|runConclusion|runEpoch.
     # The comments slot is EMPTY (not 0) so the comment gate's [ -n "$pcc" ] is false
     # and a failed/unknown seed can never fire a COMMENT.
     SEED[$tok]="$(gql_parse "$batch" "$tok")" || SEED[$tok]="unknown||||||||"
-    IFS='|' read -r _ _ _ _ _ _ v _ _ <<<"${SEED[$tok]}"
-    CAND_RUN[$tok]="$v"
   done
 }
 seed_batch || { echo "gh_watch: initial GraphQL seed failed" >&2; exit 8; }
