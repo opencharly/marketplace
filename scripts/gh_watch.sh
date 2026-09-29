@@ -64,11 +64,10 @@
 #   ALLOW_FAST_POLL=1 (and --interval < 60); it is never a production setting.
 #
 # WHY THE FLOOR — the measured budget. MEASURED 2026-09-28: the account's shared core
-#   budget is 5000 calls/hr. The pre-floor defaults (30s here, 20s pr_watch_many, 15s
-#   pr_state_watch) each poll and this script's snapshot() issued 6 REST calls PER ITEM PER POLL
-#   (a `/pulls` type probe, `/issues` state, `/pulls` merged, `/issues/comments`, and a
-#   `gh run list`). A 20s watcher over just 5 items is ~90 calls/min = ~5400/hr — a
-#   budget incident on its own, and repeated fast/stacked polls produced HTTP 403s.
+#   budget is 5000 calls/hr. This script's snapshot() issued 6 REST calls PER ITEM PER
+#   POLL and over 5 items that is 30 calls/poll: at its own old 30s default (2 polls/
+#   min) 3600/hr (72% of the budget for ONE watcher), and at a then-reachable 20s
+#   cadence 5400/hr (OVER budget). Repeated fast/stacked polls produced HTTP 403s.
 #   Now: the default is 60s, and the WHOLE item list is polled in ONE GraphQL request
 #   (see the batched-poll comment) — MEASURED at 6 items, seed + poll: 3 gh
 #   invocations (2 GraphQL + 1 FREE /rate_limit). The billable constant is ONE
@@ -180,9 +179,10 @@ has() { watch_has "$1" "$EVENTS"; }
 # ── ONE batched GraphQL poll (calls-per-poll = 1 for N items) ────────────────
 # MEASURED 2026-09-28: the previous per-item REST snapshot issued 6 calls per item
 # per poll (a `/pulls` type probe, `/issues` state, `/pulls` merged,
-# `/issues/comments`, a per-item `gh run list`, and `/issues` updated_at). At the old
-# 20s default (3 polls/min) over 5 items that is 6 × 5 × 3 = 90 calls/min = 5400/hr —
-# enough to exhaust the shared 5000/hr core budget on its own (observed HTTP 403).
+# `/issues/comments`, a per-item `gh run list`, and `/issues` updated_at). Over 5
+# items that is 30 calls/poll: 3600/hr at this script's own old 30s default (72% of
+# the shared 5000/hr budget for ONE watcher), 5400/hr at a reachable 20s cadence
+# (over budget). Repeated fast/stacked polls produced the observed HTTP 403.
 #
 # This replaces it with ONE GraphQL request per poll, regardless of item count:
 # `issueOrPullRequest(number:)` serves BOTH PRs and issues, so a whole batch is a
