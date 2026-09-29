@@ -13,7 +13,7 @@ had done this pass; the ones that did not, blocked.
 ## The five classes (root causes)
 
 1. **Body claims the diff does not carry** (body-truthfulness): a pasted command
-   output that cannot reproduce (a `CLAUDE.md` sweep returning `(none)` while a
+   output that cannot reproduce (a sweep returning `(none)` while a
    non-excluded file still held the token); a placeholder command
    (`<org-map check>`) instead of the executed one; a title advertising a change
    absent from the diff.
@@ -45,7 +45,13 @@ had done this pass; the ones that did not, blocked.
 5. NEVER surface a failure you cannot own. Either fix it (including the coupled
    pin/migrate, not just the manifest) or omit it and paste only the repo's
    authoritative gate. If it is genuinely separate, name the EXACT owning
-   batch/task id — "pre-existing/unrelated" with no exit is a BLOCK.
+   batch/task id — "pre-existing/unrelated" with no exit is a BLOCK. The
+   repo's authoritative gate must be **DISCOVERED** (its CURRENT workflow file
+   under `.github/workflows/`, read from upstream — `gh api
+   repos/<o>/<r>/contents/.github/workflows` / `git ls-remote`), never
+   assumed from a brief or a memorized file name: `opencharly/.github#141`
+   deleted the per-repo `deploy.yml` gate from ~376 repos, so a brief-baked
+   gate name is a falsity the body would carry (B10/R1).
 6. One cutover = remove AND place in the SAME change. If the replacement home
    does not exist yet, land the home first, or name a DISTINCT immediate-next
    batch cutover with a stated non-blocking rationale (the pointer must not be
