@@ -332,11 +332,10 @@ while :; do
     IFS='|' read -r ptype pstate pmerged pcc phead pup pv prc pve <<<"${SEED[$tok]}"
     url="https://github.com/$o/$r"
 
-    # SKIP UNCHANGED WORK applies ONLY to the DELTA events (comment/verdict): STATE
-    # events (merged/closed/stall) fire from the BASELINE by design, so they can never
-    # be skipped. An unchanged fingerprint means an idle item costs nothing beyond the
-    # single batched poll (the poll itself is never skipped).
-    changed=0; [ "$cur" != "${SEED[$tok]}" ] && changed=1
+    # SKIP UNCHANGED WORK lives in the DELTA gates THEMSELVES: `comment` fires only on
+    # a changed comment count, `verdict` only on a changed run id, so an idle item costs
+    # nothing beyond the single batched poll (which is never skipped). STATE events
+    # (merged/closed/stall) fire from the BASELINE by design and are never skipped.
 
     # merged/closed/comment/verdict all key on an exact per-FIELD value, so an UNKNOWN
     # field (empty from a failed poll) never fires: merged/closed need an exact
@@ -354,13 +353,14 @@ while :; do
     if has closed && [ "$state" = "closed" ] && [ "$merged" != "true" ]; then
       WATCH_DONE=1
       printf 'CLOSED   %s  closed without merging — find its successor\n' "$tok"; exit 0; fi
-    if has comment && [ "$changed" = 1 ] && [ -n "$cc" ] && [ -n "$pcc" ] && [ "$cc" != "$pcc" ]; then
+    if has comment && [ -n "$cc" ] && [ -n "$pcc" ] && [ "$cc" != "$pcc" ]; then
       watch_rearm_now
       printf 'COMMENT  %s  new comment (%s -> %s)  %s/%s/%s\n' \
         "$tok" "$pcc" "$cc" "$url" "$([ "$type" = pr ] && echo pull || echo issues)" "$n"; exit 0; fi
-    if has verdict && [ "$changed" = 1 ] && [ -n "$v" ] && [ "$v" != "$pv" ]; then
+    if has verdict && [ -n "$v" ] && [ "$v" != "$pv" ]; then
       # The batched query supplied a CANDIDATE run id (newest completed `$WF` run on
-      # the head); confirm its COMPLETION time with a single item-scoped `gh run view`.
+      # the head); `probe_run_id` confirms its COMPLETION time via the item-scoped REST
+      # `actions/runs/{id}` endpoint (NOT `gh run view`, which 404s on a GraphQL run id).
       # Falls back to the query's own run-completion instant when the probe is
       # unavailable. `probe_run_id` returns "id|conclusion|completedEpoch".
       probe="$(probe_run_id "$o/$r" "$v" "$up")"; prc=$?

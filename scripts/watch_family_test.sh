@@ -283,11 +283,17 @@ done
 
 # 8d ── MULTI-ITEM batched poll: TWO items in ONE GraphQL request → exactly ONE
 #       `api graphql` call for the whole poll (the calls-per-poll = 1 target).
+#       The SECOND item is the one with the fireable state (merged=true); the first is
+#       benign. This proves the batch resolves BOTH aliases (a mis-keyed second alias
+#       would parse as the `unknown` sentinel and the second item would never fire).
 reset_calls
 printf '[]' > "$WORK/gql.json"
-gql_doc opencharly/x#1 "$(gql_item opencharly x 1 pr open true 0 h1 "$NOW")" r_y_2 "$(gql_item opencharly y 2 pr open false 0 h2 "$NOW")" > "$WORK/gql.json"
-"$HERE/gh_watch.sh" --events merged --interval 1 --timeout 3 opencharly/x#1 opencharly/y#2 >/dev/null 2>&1
-eq "multi-item: the batched poll fires the first event" "$?" 0
+gql_doc opencharly/x#1 "$(gql_item opencharly x 1 pr open false 0 h1 "$NOW")" opencharly/y#2 "$(gql_item opencharly y 2 pr open true 0 h2 "$NOW")" > "$WORK/gql.json"
+"$HERE/gh_watch.sh" --events merged --interval 1 --timeout 3 opencharly/x#1 opencharly/y#2 > "$WORK/8d.out" 2>&1
+eq "multi-item: the batched poll fires the SECOND item's event" "$?" 0
+grep -q '^MERGED   opencharly/y#2' "$WORK/8d.out" \
+  && ok "multi-item: the second item resolves in the batch (its alias is keyed correctly)" \
+  || bad "multi-item second item" "did not fire on y#2: $(cat "$WORK/8d.out")"
 # gqlcalls counts the SEED (1) plus the first poll that fires the event (1) = 2 total
 # for the whole 2-item run: calls-per-poll = 1, independent of the 2 items.
 eq "multi-item: 2 items cost exactly 1 GraphQL call per poll (2 total incl. seed)" "$(cat "$WORK/gqlcalls" 2>/dev/null || echo 0)" 2

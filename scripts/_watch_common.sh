@@ -159,14 +159,27 @@ watch_rate_remaining() {
 # watch_rate_gate <interval-secs> — 0 = OK to poll NOW; 1 = the quota is below
 # $WATCH_RATE_MIN, so we backed off (slept a longer interval) and the caller must
 # `continue` without polling. Never exits; never hammers.
+# watch_rate_zero_abort <label> — read the remaining core quota and, on a genuine
+# ZERO, hard-abort (exit 7). This is the ONE shared zero-quota guard (R3): the
+# standalone check in pr_state_watch.sh and watch_rate_gate both reach it, so the
+# policy lives ONCE. A read failure (UNKNOWN / non-numeric) is NOT a zero — it
+# returns quietly. Pass an already-read value as $2 to avoid a second API read.
+watch_rate_zero_abort() {
+  local label="${1:-watcher}" rem="${2:-}"
+  [ -n "$rem" ] || rem="$(watch_rate_remaining)"
+  watch_is_uint "$rem" || return 0
+  [ "$rem" -eq 0 ] && watch_fatal_rate_limit "$label" "core quota exhausted (remaining=0)"
+  return 0
+}
+
 watch_rate_gate() {
   local base="$1" label="${2:-watcher}" rem next factor
   rem="$(watch_rate_remaining)"
+  # A genuine ZERO is a rate-limit STOP, not a slow down: abort (never sleep into the
+  # 403 wall, never treat it as a skipped poll) — via the ONE shared guard.
+  watch_rate_zero_abort "$label" "$rem"
   [ -z "$rem" ] && return 0
   watch_is_uint "$rem" || return 0
-  # A genuine ZERO is a rate-limit STOP, not a slow down: abort (never sleep into the
-  # 403 wall, never treat it as a skipped poll).
-  [ "$rem" -eq 0 ] && watch_fatal_rate_limit "$label" "core quota exhausted (remaining=0)"
   [ "$rem" -ge "${WATCH_RATE_MIN:-200}" ] && return 0
   factor="$(watch_rate_backoff_factor)"
   next=$(( base * factor ))

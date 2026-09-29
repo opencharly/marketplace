@@ -108,15 +108,10 @@ report() { # report <verdict> <detail>
 }
 
 while :; do
-  # RATE-LIMIT HARD ABORT: read the FREE /rate_limit endpoint FIRST; a zero (or
-  # below-min) quota is a STOP. `watch_rate_gate` backs off below WATCH_RATE_MIN; a
-  # genuine ZERO is unrecoverable within the window, so this watcher aborts (exit 7)
-  # rather than sleeping into the 403 wall. `--interval` floors the cadence; this is
-  # the second line.
-  rem="$(watch_rate_remaining)"
-  if watch_is_uint "$rem" && [ "$rem" -eq 0 ]; then
-    watch_fatal_rate_limit "pr_state_watch" "core quota exhausted"
-  fi
+  # RATE-LIMIT HARD ABORT: a genuine ZERO quota is a STOP, routed through the ONE
+  # shared guard (watch_rate_zero_abort) so the policy lives in _watch_common.sh, not
+  # duplicated here. `--interval` floors the cadence; this is the second line.
+  watch_rate_zero_abort "pr_state_watch"
 
   # One snapshot: state + head + all same-name check-runs for that head. Capture the
   # RAW output so a rate-limit signal in it is detected and ABORTS, rather than being
