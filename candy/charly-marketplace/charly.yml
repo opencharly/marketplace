@@ -172,7 +172,7 @@ charly-marketplace:
             - '@github.com/opencharly/layer-xurl:v2026.274.0644'
             - '@github.com/opencharly/layer-yay:v2026.272.0425'
             - '@github.com/opencharly/layer-agent-forwarding:v2026.274.0608'
-            - '@github.com/opencharly/layer-agentteams:v2026.274.1654'
+            - '@github.com/opencharly/layer-agentteams:v2026.274.1802'
             - '@github.com/opencharly/layer-charly-comfyui:v2026.271.2125'
             - '@github.com/opencharly/layer-charly-infrastructure:v2026.271.2157'
             - '@github.com/opencharly/layer-charly-ollama:v2026.271.2233'
