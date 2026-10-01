@@ -15,14 +15,14 @@ charly-marketplace:
             # resolved to unknown candy "github.com/opencharly/charly" - silently in
             # this repo, but as a hard validation error in every consumer of the list.
             - '@github.com/opencharly/pod-charly-hooks:v2026.272.0616'
-            - '@github.com/opencharly/eval-omarchy:v2026.274.1441'
+            - '@github.com/opencharly/eval-omarchy:v2026.274.2144'
             # The distro-* image families own their OS/base skills (relocated from the
             # layer-charly-distros concept aggregator — this pin is the corpus source for
             # them). distro-arch is the first pinned; the rest follow in the same wave.
             - '@github.com/opencharly/distro-arch:v2026.274.1256'
             # The remaining distro-* image families own their OS/base skills too
             # (same wave as distro-arch).
-            - '@github.com/opencharly/distro-fedora:v2026.274.1816'
+            - '@github.com/opencharly/distro-fedora:v2026.274.2144'
             - '@github.com/opencharly/distro-cachyos:v2026.274.2120'
             - '@github.com/opencharly/distro-omarchy:v2026.274.2118'
             - '@github.com/opencharly/distro-debian:v2026.274.0746'
@@ -172,7 +172,7 @@ charly-marketplace:
             - '@github.com/opencharly/layer-xurl:v2026.274.0644'
             - '@github.com/opencharly/layer-yay:v2026.272.0425'
             - '@github.com/opencharly/layer-agent-forwarding:v2026.274.0608'
-            - '@github.com/opencharly/layer-agentteams:v2026.274.2118'
+            - '@github.com/opencharly/layer-agentteams:v2026.274.2144'
             - '@github.com/opencharly/layer-charly-comfyui:v2026.271.2125'
             - '@github.com/opencharly/layer-charly-infrastructure:v2026.271.2157'
             - '@github.com/opencharly/layer-charly-ollama:v2026.271.2233'
