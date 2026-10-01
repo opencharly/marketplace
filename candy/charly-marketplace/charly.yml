@@ -15,14 +15,14 @@ charly-marketplace:
             # resolved to unknown candy "github.com/opencharly/charly" - silently in
             # this repo, but as a hard validation error in every consumer of the list.
             - '@github.com/opencharly/pod-charly-hooks:v2026.272.0616'
-            - '@github.com/opencharly/eval-omarchy:v2026.274.1400'
+            - '@github.com/opencharly/eval-omarchy:v2026.274.1441'
             # The distro-* image families own their OS/base skills (relocated from the
             # layer-charly-distros concept aggregator — this pin is the corpus source for
             # them). distro-arch is the first pinned; the rest follow in the same wave.
             - '@github.com/opencharly/distro-arch:v2026.274.1256'
             # The remaining distro-* image families own their OS/base skills too
             # (same wave as distro-arch).
-            - '@github.com/opencharly/distro-fedora:v2026.274.1257'
+            - '@github.com/opencharly/distro-fedora:v2026.274.1453'
             - '@github.com/opencharly/distro-cachyos:v2026.274.1422'
             - '@github.com/opencharly/distro-omarchy:v2026.274.1400'
             - '@github.com/opencharly/distro-debian:v2026.274.0746'
