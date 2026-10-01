@@ -15,7 +15,7 @@ charly-marketplace:
             # resolved to unknown candy "github.com/opencharly/charly" - silently in
             # this repo, but as a hard validation error in every consumer of the list.
             - '@github.com/opencharly/pod-charly-hooks:v2026.272.0616'
-            - '@github.com/opencharly/eval-omarchy:v2026.274.1112'
+            - '@github.com/opencharly/eval-omarchy:v2026.274.1400'
             # The distro-* image families own their OS/base skills (relocated from the
             # layer-charly-distros concept aggregator — this pin is the corpus source for
             # them). distro-arch is the first pinned; the rest follow in the same wave.
@@ -24,7 +24,7 @@ charly-marketplace:
             # (same wave as distro-arch).
             - '@github.com/opencharly/distro-fedora:v2026.274.1257'
             - '@github.com/opencharly/distro-cachyos:v2026.274.0747'
-            - '@github.com/opencharly/distro-omarchy:v2026.274.1257'
+            - '@github.com/opencharly/distro-omarchy:v2026.274.1400'
             - '@github.com/opencharly/distro-debian:v2026.274.0746'
             - '@github.com/opencharly/distro-ubuntu:v2026.274.0752'
             # The candies extracted out of charly/candy/ by the de-submodule cutover's
@@ -197,7 +197,7 @@ charly-marketplace:
             - '@github.com/opencharly/layer-notebook-finetuning:v2026.272.0321'
             - '@github.com/opencharly/layer-openclaw-full:v2026.274.0803'
             - '@github.com/opencharly/pod-openwebui:v2026.274.0629'
-            - '@github.com/opencharly/layer-selkies-kde-desktop:v2026.274.1029'
+            - '@github.com/opencharly/layer-selkies-kde-desktop:v2026.274.1343'
             - '@github.com/opencharly/layer-vectorchord:v2026.273.1836'
             - '@github.com/opencharly/layer-charly-openwebui:v2026.271.2234'
             - '@github.com/opencharly/layer-charly-selkies:v2026.271.2235'
@@ -213,8 +213,8 @@ charly-marketplace:
             - '@github.com/opencharly/layer-charly-jupyter:v2026.271.2217'
             - '@github.com/opencharly/layer-heroic:v2026.274.1029'
             - '@github.com/opencharly/layer-steam:v2026.274.1030'
-            - '@github.com/opencharly/layer-sway-desktop:v2026.274.1258'
-            - '@github.com/opencharly/layer-sway-desktop-vnc:v2026.274.1029'
+            - '@github.com/opencharly/layer-sway-desktop:v2026.274.1400'
+            - '@github.com/opencharly/layer-sway-desktop-vnc:v2026.274.1343'
             - '@github.com/opencharly/layer-thunar:v2026.274.1030'
             - '@github.com/opencharly/layer-xfce4-terminal:v2026.274.1031'
             - '@github.com/opencharly/layer-punktfunk:v2026.272.0431'
