@@ -23,7 +23,7 @@ charly-marketplace:
             # The remaining distro-* image families own their OS/base skills too
             # (same wave as distro-arch).
             - '@github.com/opencharly/distro-fedora:v2026.274.1257'
-            - '@github.com/opencharly/distro-cachyos:v2026.274.0747'
+            - '@github.com/opencharly/distro-cachyos:v2026.274.1422'
             - '@github.com/opencharly/distro-omarchy:v2026.274.1400'
             - '@github.com/opencharly/distro-debian:v2026.274.0746'
             - '@github.com/opencharly/distro-ubuntu:v2026.274.0752'
@@ -214,7 +214,7 @@ charly-marketplace:
             - '@github.com/opencharly/layer-heroic:v2026.274.1029'
             - '@github.com/opencharly/layer-steam:v2026.274.1030'
             - '@github.com/opencharly/layer-sway-desktop:v2026.274.1400'
-            - '@github.com/opencharly/layer-sway-desktop-vnc:v2026.274.1343'
+            - '@github.com/opencharly/layer-sway-desktop-vnc:v2026.274.1428'
             - '@github.com/opencharly/layer-thunar:v2026.274.1030'
             - '@github.com/opencharly/layer-xfce4-terminal:v2026.274.1031'
             - '@github.com/opencharly/layer-punktfunk:v2026.272.0431'
