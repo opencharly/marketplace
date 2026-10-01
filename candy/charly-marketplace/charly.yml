@@ -15,7 +15,7 @@ charly-marketplace:
             # resolved to unknown candy "github.com/opencharly/charly" - silently in
             # this repo, but as a hard validation error in every consumer of the list.
             - '@github.com/opencharly/pod-charly-hooks:v2026.272.0616'
-            - '@github.com/opencharly/eval-omarchy:v2026.263.1432'
+            - '@github.com/opencharly/eval-omarchy:v2026.274.0607'
             # The distro-* image families own their OS/base skills (relocated from the
             # layer-charly-distros concept aggregator — this pin is the corpus source for
             # them). distro-arch is the first pinned; the rest follow in the same wave.
@@ -23,7 +23,7 @@ charly-marketplace:
             # The remaining distro-* image families own their OS/base skills too
             # (same wave as distro-arch).
             - '@github.com/opencharly/distro-fedora:v2026.274.0533'
-            - '@github.com/opencharly/distro-cachyos:v2026.274.0532'
+            - '@github.com/opencharly/distro-cachyos:v2026.274.0606'
             - '@github.com/opencharly/distro-omarchy:v2026.274.0533'
             - '@github.com/opencharly/distro-debian:v2026.273.0834'
             - '@github.com/opencharly/distro-ubuntu:v2026.273.0824'
@@ -59,7 +59,7 @@ charly-marketplace:
             - '@github.com/opencharly/pod-pipewire:v2026.273.1856'
             - '@github.com/opencharly/layer-ffmpeg:v2026.272.0056'
             - '@github.com/opencharly/pod-sway:v2026.272.1053'
-            - '@github.com/opencharly/layer-cuda:v2026.271.2310'
+            - '@github.com/opencharly/layer-cuda:v2026.274.0643'
             - '@github.com/opencharly/layer-socat:v2026.272.0422'
             - '@github.com/opencharly/pod-selkies:v2026.272.0240'
             - '@github.com/opencharly/layer-chrome:v2026.271.2309'
