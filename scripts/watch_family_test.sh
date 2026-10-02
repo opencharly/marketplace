@@ -370,11 +370,13 @@ rm -f "$WORK/checkruns.json" "$WORK/headruns.json"
 # 8h ── pr_state_watch: a RED check whose gate produced NO verdict is INCONCLUSIVE (exit 8),
 #       NOT a BLOCK. The check run's `failure` conclusion is identical for both classes, so the
 #       class must come from the gate's own comment heading. A false BLOCK here is expensive:
-#       it starts a fix loop for a finding that does not exist.
+#       it starts a fix loop for a finding that does not exist. The notice is posted DURING the
+#       run it belongs to, so its timestamp sits inside the failed run's window (started_at
+#       03:04:52Z) — that is what makes it attributable to THIS head.
 rm -f "$WORK/commentcalls"
 printf '%s' '{"check_runs":[{"name":"validate / validate","status":"completed","conclusion":"failure","started_at":"2026-10-02T03:04:52Z"}]}' > "$WORK/checkruns.json"
 printf '%s' '{"workflow_runs":[],"total_count":0}' > "$WORK/headruns.json"
-printf '%s' '[{"user":{"login":"github-actions[bot]"},"created_at":"2026-10-02T03:04:52Z","body":"## validator INCONCLUSIVE — no review verdict was produced (not a BLOCK; no code finding)\n\nThe gate could **not** obtain a review verdict on this run."}]' > "$WORK/comments.json"
+printf '%s' '[{"user":{"login":"github-actions[bot]"},"created_at":"2026-10-02T03:04:53Z","body":"## validator INCONCLUSIVE — no review verdict was produced (not a BLOCK; no code finding)\n\nThe gate could **not** obtain a review verdict on this run."}]' > "$WORK/comments.json"
 timeout 15 "$HERE/pr_state_watch.sh" opencharly/x 1 --interval 60 --timeout 1 > "$WORK/out_psw_ic.txt" 2>&1
 eq "pr_state_watch: a no-verdict red check is INCONCLUSIVE (exit 8), not BLOCKED" "$?" 8
 grep -q 'NO code finding' "$WORK/out_psw_ic.txt" \
@@ -385,10 +387,43 @@ grep -q 'NO code finding' "$WORK/out_psw_ic.txt" \
   || bad "class read exercised" "no issues/<n>/comments call"
 
 # 8i ── the control for 8h: the SAME red check with a real BLOCK comment must still exit 2, so
-#       8h proves the class read discriminates rather than always reporting INCONCLUSIVE.
-printf '%s' '[{"user":{"login":"github-actions[bot]"},"created_at":"2026-10-02T02:00:00Z","body":"## Review — BLOCK\n\nHead SHA: `abc`\n"}]' > "$WORK/comments.json"
+#       8h proves the class read discriminates rather than always reporting INCONCLUSIVE. This
+#       comment carries the engine's `Head SHA:` line naming THIS head (the stub's headRefOid),
+#       and its timestamp deliberately PREDATES the failed run — a re-run at the same head
+#       leaves exactly that pair, and it proves the head-bearing arm scopes by head, not time.
+printf '%s' '[{"user":{"login":"github-actions[bot]"},"created_at":"2026-10-02T02:00:00Z","body":"## Review — BLOCK\n\nHead SHA: `abcdef1234567890`\n"}]' > "$WORK/comments.json"
 timeout 15 "$HERE/pr_state_watch.sh" opencharly/x 1 --interval 60 --timeout 1 > "$WORK/out_psw_bl.txt" 2>&1
 eq "pr_state_watch: the same red check with a BLOCK comment is still BLOCKED (exit 2)" "$?" 2
+grep -q 'could be attributed to this head' "$WORK/out_psw_bl.txt" \
+  && bad "head-scoped BLOCK accepted" "the BLOCK naming THIS head was rejected as unattributable" \
+  || ok "pr_state_watch: a BLOCK naming THIS head is accepted as this head's verdict"
+
+# 8k ── the SCOPE control for 8h: the SAME red check and the same INCONCLUSIVE heading, but the
+#       notice PREDATES this head's failed run — it belongs to an EARLIER head, so it must not
+#       set this head's class (exit 2 with the unattributed notice, never exit 8). Without this
+#       control a stale notice stops the watcher on a head whose own verdict was never read
+#       (opencharly/marketplace#405 review finding B18).
+printf '%s' '{"check_runs":[{"name":"validate / validate","status":"completed","conclusion":"failure","started_at":"2026-10-02T03:04:52Z"}]}' > "$WORK/checkruns.json"
+printf '%s' '{"workflow_runs":[],"total_count":0}' > "$WORK/headruns.json"
+printf '%s' '[{"user":{"login":"github-actions[bot]"},"created_at":"2026-10-02T03:00:00Z","body":"## validator INCONCLUSIVE — no review verdict was produced (not a BLOCK; no code finding)\n\nA notice from an earlier head."}]' > "$WORK/comments.json"
+timeout 15 "$HERE/pr_state_watch.sh" opencharly/x 1 --interval 60 --timeout 1 > "$WORK/out_psw_stale.txt" 2>&1
+eq "pr_state_watch: a stale INCONCLUSIVE (older than the head's failed run) does NOT set the class (exit 2, not 8)" "$?" 2
+grep -q 'could be attributed to this head' "$WORK/out_psw_stale.txt" \
+  && ok "pr_state_watch: the stale notice is reported as unattributable to this head" \
+  || bad "stale notice scoping" "$(cat "$WORK/out_psw_stale.txt")"
+
+# 8l ── the head-bearing arm's scope control: the same red check with a BLOCK whose `Head SHA:`
+#       names a DIFFERENT head is another head's verdict, not this head's class. Its timestamp is
+#       NEWER than the failed run, so a time-scoped read would accept it — only the Head SHA
+#       comparison rejects it.
+printf '%s' '{"check_runs":[{"name":"validate / validate","status":"completed","conclusion":"failure","started_at":"2026-10-02T03:04:52Z"}]}' > "$WORK/checkruns.json"
+printf '%s' '{"workflow_runs":[],"total_count":0}' > "$WORK/headruns.json"
+printf '%s' '[{"user":{"login":"github-actions[bot]"},"created_at":"2026-10-02T04:00:00Z","body":"## Review — BLOCK\n\nHead SHA: `deadbeefdeadbeef`\n"}]' > "$WORK/comments.json"
+timeout 15 "$HERE/pr_state_watch.sh" opencharly/x 1 --interval 60 --timeout 1 > "$WORK/out_psw_other.txt" 2>&1
+eq "pr_state_watch: a BLOCK naming another head is not this head's class (exit 2, unattributed)" "$?" 2
+grep -q 'could be attributed to this head' "$WORK/out_psw_other.txt" \
+  && ok "pr_state_watch: a mismatched Head SHA is rejected as another head's verdict" \
+  || bad "Head SHA scoping" "$(cat "$WORK/out_psw_other.txt")"
 
 # 8j ── an older FAILURE beside a NEWER SUCCESS at one head is SUPERSEDED, never terminal: a
 #       REST re-run leaves a second same-name check run at the SAME head (MEASURED on

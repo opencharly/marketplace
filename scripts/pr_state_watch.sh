@@ -209,13 +209,32 @@ while :; do
   # read it before naming a terminal state — an unreviewed red check must NOT start a fix loop.
   class=""
   if [ "$verdict" = "BLOCKED" ]; then
+    # The class may only be read from a comment attributable to THIS head: a verdict left on
+    # an EARLIER head must never set this head's class. The gate's two comment shapes are
+    # attributable by different signals, so both are scoped below:
+    #   * the ENGINE's review verdict carries the head it reviewed — `Head SHA: `<sha>`` — so
+    #     it is attributable exactly when that sha is this head (a re-run at the same head
+    #     legitimately leaves a comment older than the newest attempt's run start).
+    #   * the workflow's own INCONCLUSIVE notice carries NO head line (it names the run's
+    #     class, not the head), so its only signal is time: it is posted DURING the run it
+    #     belongs to, so it must not PREDATE this head's failed run.
+    # Without the scoping an older head's INCONCLUSIVE stops the watcher (exit 8, "no finding —
+    # escalate") on a fresh head whose own verdict was never read (marketplace#405 B18).
+    run_started="$(printf '%s' "$cr_json" | jq -r --arg name "$REQUIRED_CHECK" '
+          [.check_runs[] | select(.name==$name)
+                          | select((.conclusion|ascii_upcase)=="FAILURE")]
+          | sort_by(.started_at) | .[-1].started_at // ""')" || {
+      echo "pr_state_watch: jq failed for the failed run timestamp of $REPO@$head" >&2; exit 5; }
     vc_json="$(gh api "repos/$REPO/issues/$PR/comments?per_page=100" 2>&1)" || {
       watch_is_rate_limited "$vc_json" && watch_fatal_rate_limit "pr_state_watch" "$(printf '%s' "$vc_json" | head -c 200)"
       echo "pr_state_watch: gh api issue comments failed for $REPO#$PR" >&2; exit 5; }
     watch_is_rate_limited "$vc_json" && watch_fatal_rate_limit "pr_state_watch" "$(printf '%s' "$vc_json" | head -c 200)"
-    class="$(printf '%s' "$vc_json" | jq -r --arg author "$VALIDATOR_AUTHOR" '
+    class="$(printf '%s' "$vc_json" | jq -r --arg author "$VALIDATOR_AUTHOR" --arg head "$head" --arg since "$run_started" '
           [ .[] | select(.user.login==$author)
-                | select((.body // "") | test("^## (validator|Review)")) ]
+                | select((.body // "") | test("^## (validator|Review)"))
+                | select((if ((.body // "") | test("Head SHA:"))
+                         then ((.body // "") | test("Head SHA: `" + $head + "`"))
+                         else (($since != "") and ((.created_at // "") >= $since)) end)) ]
           | if length==0 then "UNKNOWN"
             else (.[-1].body | split("\n")[0])
                  | if test("INCONCLUSIVE") then "INCONCLUSIVE" else "BLOCK" end end')" || {
@@ -231,6 +250,16 @@ while :; do
         echo "  rather than re-running blindly; a re-run is a fresh attempt and may still pass:"
         echo "    gh api -X POST repos/$REPO/actions/runs/<run-id>/rerun"
         exit 8
+      fi
+      if [ "$class" = "UNKNOWN" ]; then
+        report BLOCKED "verdict BLOCK at head ${head:0:9} (mergeState=$merge_state)"
+        echo "  No verdict comment could be attributed to this head: every gate verdict on the"
+        echo "  thread names another head, or predates this head's failed run, and a stale verdict"
+        echo "  must NOT set this head's class. Fail-closed: read the run's own evidence artifact"
+        echo "  and the thread before assuming a BLOCK finding exists — and never fix-loop on a"
+        echo "  comment that cannot be attributed to this head:"
+        echo "    gh pr view $url --comments"
+        exit 2
       fi
       report BLOCKED "verdict BLOCK at head ${head:0:9} (mergeState=$merge_state)"
       echo "  read the latest '## Review — BLOCK' comment on $url; fix, commit, RE-FINALIZE the body, push."
