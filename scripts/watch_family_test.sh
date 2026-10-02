@@ -55,6 +55,31 @@ case "$1 $2" in
     # (to exercise the rate-limit abort); else a benign non-terminal PR.
     if [ -f "$d/prerr.txt" ]; then cat "$d/prerr.txt"; exit 1; fi
     printf '{"state":"OPEN","mergeStateStatus":"BLOCKED","headRefOid":"abcdef1234567890","url":"https://github.com/%s/pull/%s"}' "$3" "$4" ;;
+  "api repos/"*"/check-runs"*)
+    # pr_state_watch's check-runs read for the head (checkruns.json fixture).
+    cat "$d/checkruns.json" 2>/dev/null || echo '{"check_runs":[]}' ;;
+  "api --paginate")
+    # The class read PAGINATES (gh emits ONE ARRAY PER PAGE; the script slurps and flattens
+    # them). The stub matches on "$1 $2", so a paged call is exactly "api --paginate" — the
+    # path is the third argument and is deliberately not part of the match (this is the only
+    # paginated read). It serves comments_paged.json when staged — a multi-page fixture — and
+    # falls back to the unchanged single-page comments.json, so the 8h/8i/8k/8l fixtures keep
+    # working. A paged call is counted separately so an assertion can PROVE the read paginated.
+    n="$(cat "$d/commentcalls" 2>/dev/null || echo 0)"; n=$((n + 1)); printf '%s' "$n" > "$d/commentcalls"
+    p="$(cat "$d/paginatecalls" 2>/dev/null || echo 0)"; p=$((p + 1)); printf '%s' "$p" > "$d/paginatecalls"
+    if [ -f "$d/comments_paged.json" ]; then cat "$d/comments_paged.json"
+    else cat "$d/comments.json" 2>/dev/null || echo '[]'; fi ;;
+  "api repos/"*"/issues/"*"/comments"*)
+    # pr_state_watch's verdict-CLASS read: the gate's own comment carries the class
+    # (comments.json fixture). The counter proves the read ran, so an assertion can show
+    # the class is read for a RED check rather than the check run being trusted.
+    n="$(cat "$d/commentcalls" 2>/dev/null || echo 0)"; n=$((n + 1)); printf '%s' "$n" > "$d/commentcalls"
+    cat "$d/comments.json" 2>/dev/null || echo '[]' ;;
+  "api repos/"*"/actions/runs?"*)
+    # pr_state_watch's in-flight probe: the head's workflow runs (headruns.json fixture);
+    # the counter proves the probe ran.
+    n="$(cat "$d/headrunscalls" 2>/dev/null || echo 0)"; n=$((n + 1)); printf '%s' "$n" > "$d/headrunscalls"
+    cat "$d/headruns.json" 2>/dev/null || echo '{"workflow_runs":[]}' ;;
   "api repos/"*"/actions/runs/"*)
     # gh_watch's item-scoped verdict probe (probe_run_id → the REST actions/runs
     # endpoint). run_view.json is the fixture; the counter records that the probe ran,
@@ -331,6 +356,129 @@ grep -q 'FATAL pr_state_watch: GitHub rate limit reached' "$WORK/out_psw_rl.txt"
   || bad "pr_state_watch rate-limit FATAL" "$(cat "$WORK/out_psw_rl.txt")"
 rm -f "$WORK/prerr.txt"
 reset_calls
+
+# 8g ── pr_state_watch: a FAILURE check run with a QUEUED re-run of the required workflow is
+#       PENDING, not BLOCKED (opencharly/marketplace#403) — and the same FAILURE with nothing in
+#       flight is still a terminal BLOCKED (the control).
+rm -f "$WORK/prerr.txt" "$WORK/headrunscalls"
+printf '%s' '{"check_runs":[{"name":"validate / validate","status":"completed","conclusion":"failure","started_at":"2026-10-01T22:14:50Z"}]}' > "$WORK/checkruns.json"
+printf '%s' '{"workflow_runs":[{"path":".github/workflows/org-wide-pr-validator-required.yml","status":"queued","run_attempt":2}]}' > "$WORK/headruns.json"
+timeout 15 "$HERE/pr_state_watch.sh" opencharly/x 1 --interval 60 --timeout 1 > "$WORK/out_psw_q.txt" 2>&1
+rc=$?
+[ "$rc" -ne 2 ] && ok "pr_state_watch: a queued re-run keeps a stale FAILURE non-terminal (rc=$rc)" \
+  || bad "pr_state_watch queued re-run" "exited 2 (false BLOCKED): $(cat "$WORK/out_psw_q.txt")"
+grep -q 'running at head' "$WORK/out_psw_q.txt" \
+  && ok "pr_state_watch: reports the queued re-run as WAIT/running" \
+  || bad "pr_state_watch queued re-run report" "$(cat "$WORK/out_psw_q.txt")"
+[ "$(cat "$WORK/headrunscalls" 2>/dev/null || echo 0)" -ge 1 ] \
+  && ok "pr_state_watch: the actions/runs in-flight probe is exercised" \
+  || bad "in-flight probe exercised" "no actions/runs?head_sha call"
+printf '%s' '{"workflow_runs":[{"path":".github/workflows/org-wide-pr-validator-required.yml","status":"completed","conclusion":"failure","run_attempt":1}]}' > "$WORK/headruns.json"
+timeout 15 "$HERE/pr_state_watch.sh" opencharly/x 1 --interval 60 --timeout 1 > "$WORK/out_psw_b.txt" 2>&1
+eq "pr_state_watch: a FAILURE with nothing in flight is still BLOCKED (exit 2)" "$?" 2
+rm -f "$WORK/checkruns.json" "$WORK/headruns.json"
+
+# 8h ── pr_state_watch: a RED check whose gate produced NO verdict is INCONCLUSIVE (exit 8),
+#       NOT a BLOCK. The check run's `failure` conclusion is identical for both classes, so the
+#       class must come from the gate's own comment heading. A false BLOCK here is expensive:
+#       it starts a fix loop for a finding that does not exist. The notice is posted DURING the
+#       run it belongs to, so its timestamp sits inside the failed run's window (started_at
+#       03:04:52Z) — that is what makes it attributable to THIS head.
+rm -f "$WORK/commentcalls"
+printf '%s' '{"check_runs":[{"name":"validate / validate","status":"completed","conclusion":"failure","started_at":"2026-10-02T03:04:52Z"}]}' > "$WORK/checkruns.json"
+printf '%s' '{"workflow_runs":[],"total_count":0}' > "$WORK/headruns.json"
+printf '%s' '[{"user":{"login":"github-actions[bot]"},"created_at":"2026-10-02T03:04:53Z","body":"## validator INCONCLUSIVE — no review verdict was produced (not a BLOCK; no code finding)\n\nThe gate could **not** obtain a review verdict on this run."}]' > "$WORK/comments.json"
+timeout 15 "$HERE/pr_state_watch.sh" opencharly/x 1 --interval 60 --timeout 1 > "$WORK/out_psw_ic.txt" 2>&1
+eq "pr_state_watch: a no-verdict red check is INCONCLUSIVE (exit 8), not BLOCKED" "$?" 8
+grep -q 'NO code finding' "$WORK/out_psw_ic.txt" \
+  && ok "pr_state_watch: the INCONCLUSIVE message says there is no finding to fix" \
+  || bad "pr_state_watch INCONCLUSIVE message" "$(cat "$WORK/out_psw_ic.txt")"
+[ "$(cat "$WORK/commentcalls" 2>/dev/null || echo 0)" -ge 1 ] \
+  && ok "pr_state_watch: the gate-comment class read is exercised" \
+  || bad "class read exercised" "no issues/<n>/comments call"
+
+# 8i ── the control for 8h: the SAME red check with a real BLOCK comment must still exit 2, so
+#       8h proves the class read discriminates rather than always reporting INCONCLUSIVE. This
+#       comment carries the engine's `Head SHA:` line naming THIS head (the stub's headRefOid),
+#       and its timestamp deliberately PREDATES the failed run — a re-run at the same head
+#       leaves exactly that pair, and it proves the head-bearing arm scopes by head, not time.
+printf '%s' '[{"user":{"login":"github-actions[bot]"},"created_at":"2026-10-02T02:00:00Z","body":"## Review — BLOCK\n\nHead SHA: `abcdef1234567890`\n"}]' > "$WORK/comments.json"
+timeout 15 "$HERE/pr_state_watch.sh" opencharly/x 1 --interval 60 --timeout 1 > "$WORK/out_psw_bl.txt" 2>&1
+eq "pr_state_watch: the same red check with a BLOCK comment is still BLOCKED (exit 2)" "$?" 2
+grep -q 'could be attributed to this head' "$WORK/out_psw_bl.txt" \
+  && bad "head-scoped BLOCK accepted" "the BLOCK naming THIS head was rejected as unattributable" \
+  || ok "pr_state_watch: a BLOCK naming THIS head is accepted as this head's verdict"
+
+# 8k ── the SCOPE control for 8h: the SAME red check and the same INCONCLUSIVE heading, but the
+#       notice PREDATES this head's failed run — it belongs to an EARLIER head, so it must not
+#       set this head's class (exit 2 with the unattributed notice, never exit 8). Without this
+#       control a stale notice stops the watcher on a head whose own verdict was never read
+#       (opencharly/marketplace#405 review finding B18).
+printf '%s' '{"check_runs":[{"name":"validate / validate","status":"completed","conclusion":"failure","started_at":"2026-10-02T03:04:52Z"}]}' > "$WORK/checkruns.json"
+printf '%s' '{"workflow_runs":[],"total_count":0}' > "$WORK/headruns.json"
+printf '%s' '[{"user":{"login":"github-actions[bot]"},"created_at":"2026-10-02T03:00:00Z","body":"## validator INCONCLUSIVE — no review verdict was produced (not a BLOCK; no code finding)\n\nA notice from an earlier head."}]' > "$WORK/comments.json"
+timeout 15 "$HERE/pr_state_watch.sh" opencharly/x 1 --interval 60 --timeout 1 > "$WORK/out_psw_stale.txt" 2>&1
+eq "pr_state_watch: a stale INCONCLUSIVE (older than the head's failed run) does NOT set the class (exit 2, not 8)" "$?" 2
+grep -q 'could be attributed to this head' "$WORK/out_psw_stale.txt" \
+  && ok "pr_state_watch: the stale notice is reported as unattributable to this head" \
+  || bad "stale notice scoping" "$(cat "$WORK/out_psw_stale.txt")"
+
+# 8l ── the head-bearing arm's scope control: the same red check with a BLOCK whose `Head SHA:`
+#       names a DIFFERENT head is another head's verdict, not this head's class. Its timestamp is
+#       NEWER than the failed run, so a time-scoped read would accept it — only the Head SHA
+#       comparison rejects it.
+printf '%s' '{"check_runs":[{"name":"validate / validate","status":"completed","conclusion":"failure","started_at":"2026-10-02T03:04:52Z"}]}' > "$WORK/checkruns.json"
+printf '%s' '{"workflow_runs":[],"total_count":0}' > "$WORK/headruns.json"
+printf '%s' '[{"user":{"login":"github-actions[bot]"},"created_at":"2026-10-02T04:00:00Z","body":"## Review — BLOCK\n\nHead SHA: `deadbeefdeadbeef`\n"}]' > "$WORK/comments.json"
+timeout 15 "$HERE/pr_state_watch.sh" opencharly/x 1 --interval 60 --timeout 1 > "$WORK/out_psw_other.txt" 2>&1
+eq "pr_state_watch: a BLOCK naming another head is not this head's class (exit 2, unattributed)" "$?" 2
+grep -q 'could be attributed to this head' "$WORK/out_psw_other.txt" \
+  && ok "pr_state_watch: a mismatched Head SHA is rejected as another head's verdict" \
+  || bad "Head SHA scoping" "$(cat "$WORK/out_psw_other.txt")"
+
+# 8m ── the class read PAGINATES: the API orders issue comments OLDEST-first, so on a thread
+#       longer than one page a single-page read never sees the NEWEST verdict — it reports no
+#       verdict for a head whose gate DID produce one, the same misclassification 8h guards.
+#       gh --paginate emits ONE ARRAY PER PAGE, so the fixture is two documents: a full first
+#       page of 100 filler comments, then the verdict naming THIS head. Both the outcome (the
+#       verdict IS attributed to this head, exit 2) and the call shape (--paginate) are asserted.
+{ jq -nc '[range(100) | {user:{login:"someoneelse"},created_at:"2026-10-02T01:00:00Z",body:"filler"}]'
+  jq -nc '[{user:{login:"github-actions[bot]"},created_at:"2026-10-02T04:00:00Z",body:"## Review — BLOCK\n\nHead SHA: `abcdef1234567890`\n"}]'
+} > "$WORK/comments_paged.json"
+printf '0' > "$WORK/paginatecalls"
+timeout 15 "$HERE/pr_state_watch.sh" opencharly/x 1 --interval 60 --timeout 1 > "$WORK/out_psw_pg.txt" 2>&1
+eq "pr_state_watch: a verdict beyond the first page is this head's class (exit 2)" "$?" 2
+grep -q 'could be attributed to this head' "$WORK/out_psw_pg.txt" \
+  && bad "paged verdict found" "the verdict on page 2 was not attributed to this head" \
+  || ok "pr_state_watch: the page-2 verdict was attributed to this head"
+# The POSITIVE arm, so this case cannot pass by exiting early on an error: the report must be
+# the real BLOCK path (whose remedy text is unique to it), not the unattributable notice and
+# not a jq/gh failure.
+grep -q 'RE-FINALIZE the body' "$WORK/out_psw_pg.txt" \
+  && ok "pr_state_watch: the page-2 verdict reached the BLOCK report" \
+  || bad "paged BLOCK report" "the paged verdict did not reach the BLOCK report"
+[ "$(cat "$WORK/paginatecalls" 2>/dev/null || echo 0)" -ge 1 ] \
+  && ok "pr_state_watch: the class read paginates (gh --paginate)" \
+  || bad "pagination" "the class read fetched only one page"
+rm -f "$WORK/comments_paged.json"
+
+# 8j ── an older FAILURE beside a NEWER SUCCESS at one head is SUPERSEDED, never terminal: a
+#       REST re-run leaves a second same-name check run at the SAME head (MEASURED on
+#       charly#750: `110686319282 failure` + `110688937293 success`), and the newer attempt
+#       settles the merge — #750 merged carrying exactly that pair. Reading check-runs with the
+#       API's `latest` default would HIDE the older attempt, so this also pins `filter=all`.
+printf '%s' '{"check_runs":[{"name":"validate / validate","status":"completed","conclusion":"failure","started_at":"2026-10-02T03:02:27Z"},{"name":"validate / validate","status":"completed","conclusion":"success","started_at":"2026-10-02T03:13:35Z"}]}' > "$WORK/checkruns.json"
+timeout 15 "$HERE/pr_state_watch.sh" opencharly/x 1 --interval 60 --timeout 1 > "$WORK/out_psw_ss.txt" 2>&1
+rc=$?
+[ "$rc" -ne 2 ] && ok "pr_state_watch: a superseded FAILURE is not terminal (rc=$rc)" \
+  || bad "pr_state_watch superseded" "exited 2 (false BLOCKED): $(cat "$WORK/out_psw_ss.txt")"
+grep -q 'superseded by a newer SUCCESS' "$WORK/out_psw_ss.txt" \
+  && ok "pr_state_watch: names the superseded FAILURE explicitly" \
+  || bad "pr_state_watch superseded report" "$(cat "$WORK/out_psw_ss.txt")"
+grep -q 'check-runs?filter=all' "$HERE/pr_state_watch.sh" \
+  && ok "pr_state_watch: reads check-runs with filter=all (the default hides the older attempt)" \
+  || bad "filter=all read" "check-runs call drops filter=all, so a superseded attempt is invisible"
+rm -f "$WORK/checkruns.json" "$WORK/headruns.json" "$WORK/comments.json"
 
 # 9 ── pr_watch_many: a terminal result is reported (stub pr_state_watch.sh beside a copy)
 cat > "$WORK/pr_state_watch.sh" <<'PSW'
