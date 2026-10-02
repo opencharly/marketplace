@@ -5,31 +5,43 @@
 # immediately, and this script exists so that "keep polling" can never be the wrong
 # answer to any of them:
 #
-#   MERGED   — the PR landed (auto-merge squashed it). Done; move to the tag check.
-#   BLOCKED  — the fresh `charly/pr-validator` verdict is BLOCK, or the PR is stuck
-#              behind a duplicate same-name check-run (see below). Do NOT re-dispatch
-#              in a loop, do NOT "retry and see" (R1/R4): read the verdict, fix, and
-#              land a NEW commit.
-#   CLOSED   — closed without merge (abandoned).
+#   MERGED       — the PR landed (auto-merge squashed it). Done; move to the tag check.
+#   BLOCKED      — the fresh `charly/pr-validator` verdict is BLOCK. Do NOT re-dispatch
+#                  in a loop, do NOT "retry and see" (R1/R4): read the verdict, fix, and
+#                  land a NEW commit.
+#   INCONCLUSIVE — the required check is red but the gate produced NO review verdict (its
+#                  provider returned nothing). This is NOT a code finding and NOT a BLOCK:
+#                  no diff fix follows, so the watcher stops and hands it to the operator
+#                  instead of starting a fix loop.
+#   CLOSED       — closed without merge (abandoned).
 #
-# WHY THIS IS NOT `gh pr checks --watch`. A body-only fix does not move the head, and
-# re-dispatching the validator on the SAME head leaves BOTH same-name check-runs in
-# the rollup. GitHub's rollup collapses them to the WORST conclusion, so a green
-# re-dispatch does NOT clear an earlier red run of the same name — the PR reads
-# `mergeStateStatus=BLOCKED` while its verdict is PASS. That state is indistinguishable
-# from a real BLOCK by `gh pr checks`, and it is exactly what this script names, because
-# the remedy (re-run the failed run through the REST API, or push a NEW commit) is different
-# from a real BLOCK's remedy (fix the finding).
+# WHY THIS IS NOT `gh pr checks --watch`. A body-only fix does not move the head, so the
+# body-fix path is re-running the FAILED run through the REST API. That re-run produces a
+# SECOND same-name check-run at the SAME head (MEASURED on opencharly/charly#750 head
+# 81a31ee5: attempt 1 `110686319282 failure` + attempt 2 `110688937293 success` both present
+# under `filter=all`), which is why the check-run read below asks for `filter=all` rather
+# than the API's `latest` default: with `latest` the older attempt is invisible, so the
+# classifier cannot tell a fresh single verdict from a superseded one. The NEWER attempt
+# settles the merge — #750 merged at 03:15:37Z carrying exactly that pair — so an older
+# FAILURE beside a newer SUCCESS is SUPERSEDED (keep polling), never a terminal state.
+#
+# THE CLASS IS NOT IN THE CHECK-RUN. Both classes conclude `failure`, and the check run's
+# own `output.title`/`output.summary` are EMPTY for BLOCK, INCONCLUSIVE and PASS alike
+# (MEASURED on marketplace#405 and .github#157). The ONE artifact that carries the class is
+# the gate's own PR comment, whose heading is `## Review — BLOCK` or
+# `## validator INCONCLUSIVE — …`; this script reads that heading before it calls a red
+# check a BLOCK.
 #
 # Usage:
 #   pr_state_watch.sh <owner>/<repo> <pr-number> [--interval SECONDS] [--timeout SECONDS]
 #
 # Exit codes (terminal — never retried by this script):
 #   0  MERGED
-#   2  BLOCKED  (verdict BLOCK, or a poisonously stuck duplicate check-run)
-#   3  CLOSED   (closed without merge)
-#   4  TIMEOUT  (no terminal state within --timeout)
-#   5  ERROR    (bad usage, or gh/API failure)
+#   2  BLOCKED       (verdict BLOCK — a code finding to fix)
+#   3  CLOSED        (closed without merge)
+#   4  TIMEOUT       (no terminal state within --timeout)
+#   5  ERROR         (bad usage, or gh/API failure)
+#   8  INCONCLUSIVE  (red check, no review verdict — no code finding; operator class)
 set -euo pipefail
 
 SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -58,19 +70,23 @@ fast opt in explicitly with ALLOW_FAST_POLL=1; it is never a production setting.
 Watches the required `validate / validate` check over ALL of its same-name runs on
 the PR head. Terminal states halt immediately (this script never retries them):
 
-  0  MERGED    the PR landed (auto-merge squashed it)
-  2  BLOCKED   verdict BLOCK, OR a green re-dispatch stuck behind an older
-               same-name FAILURE in the rollup (the POISON state below)
-  3  CLOSED    closed without merge
-  4  TIMEOUT   no terminal state within --timeout
-  5  ERROR     bad usage, or gh/API failure
-  7  FATAL     a GitHub rate limit was hit — a HARD abort, never retried
+  0  MERGED        the PR landed (auto-merge squashed it)
+  2  BLOCKED       verdict BLOCK — a code finding to read, fix and land
+  3  CLOSED        closed without merge
+  4  TIMEOUT       no terminal state within --timeout
+  5  ERROR         bad usage, or gh/API failure
+  7  FATAL         a GitHub rate limit was hit — a HARD abort, never retried
+  8  INCONCLUSIVE  the required check is red but the gate produced NO review verdict
+                   (its provider answered nothing). NOT a BLOCK and NOT a code
+                   finding: no diff fix follows, so this stops and goes to the
+                   operator instead of a fix loop.
 
-WHY NOT `gh pr checks --watch`: a body-only fix does not move the head, so a
-same-head re-dispatch leaves BOTH same-name runs in the rollup; GitHub collapses
-them to the WORST conclusion, so a green run does NOT clear an earlier red one of
-the same name — the PR reads BLOCKED while its verdict is PASS. That POISON state
-(watch for it in the output) is remedied by a NEW commit, not by re-dispatching.
+WHY NOT `gh pr checks --watch`: a body-only fix does not move the head, so the fix
+is re-running the FAILED run through the REST API — which leaves TWO same-name runs
+at that head. The newer attempt settles the merge (MEASURED: charly#750 merged with
+an older `failure` and a newer `success` at one head), so an older FAILURE beside a
+newer SUCCESS is SUPERSEDED and keeps polling. The class of a RED check is read from
+the gate's own comment, never from the check run, whose output fields are empty.
 EOF
 }
 
@@ -103,6 +119,10 @@ REQUIRED_CHECK="${PR_STATE_REQUIRED_CHECK:-validate / validate}"
 # `path`). A re-run of it that is queued/in progress has NO check run yet, so the check-runs
 # view still shows the previous attempt's FAILURE; this lets the classifier see it in flight.
 REQUIRED_WORKFLOW="${PR_STATE_REQUIRED_WORKFLOW:-org-wide-pr-validator-required.yml}"
+# The account the gate posts its verdict comment as. The comment is the ONLY artifact that
+# carries the verdict CLASS (BLOCK vs INCONCLUSIVE) — the check run's `failure` conclusion and
+# its empty `output.*` fields are identical for both.
+VALIDATOR_AUTHOR="${PR_STATE_VALIDATOR_AUTHOR:-github-actions[bot]}"
 
 deadline=$(( $(date +%s) + TIMEOUT ))
 last_report=""
@@ -137,18 +157,21 @@ while :; do
   esac
 
   # Classify the required check over ALL same-name runs on the head.
-  #   NONE    no run yet (or a different check name)  -> keep polling
-  #   PENDING a run is queued/in progress             -> keep polling
-  #   PASS    newest completed is SUCCESS, no failure -> keep polling (await merge)
-  #   BLOCKED newest completed is FAILURE             -> terminal
-  #   POISON  newest is SUCCESS but an older FAILURE
-  #           of the same name remains in the rollup  -> terminal (stuck)
+  #   NONE       no run yet (or a different check name)  -> keep polling
+  #   PENDING    a run is queued/in progress             -> keep polling
+  #   PASS       newest completed is SUCCESS, no failure -> keep polling (await merge)
+  #   SUPERSEDED newest is SUCCESS but an older FAILURE
+  #              of the same name remains               -> keep polling (the newer
+  #              attempt settles the merge; charly#750 merged on exactly this pair)
+  #   BLOCKED    newest completed is FAILURE             -> terminal (class below)
   # gh api's --jq takes ONE expression (no jq flags), so filter in jq itself with the
   # required-check name passed as a positional argument.
   # NB: the REST check-runs API returns lowercase "completed"/"success"/"failure",
   # while `gh pr view --json` (GraphQL) returns uppercase. Normalize with ascii_upcase
   # so the script is correct against EITHER shape.
-  cr_json="$(gh api "repos/$REPO/commits/$head/check-runs" --paginate 2>&1)" || {
+  # `filter=all` is REQUIRED, not cosmetic: the endpoint's default is `latest`, which
+  # returns only the newest same-name run and so hides a superseded attempt entirely.
+  cr_json="$(gh api "repos/$REPO/commits/$head/check-runs?filter=all" --paginate 2>&1)" || {
     watch_is_rate_limited "$cr_json" && watch_fatal_rate_limit "pr_state_watch" "$(printf '%s' "$cr_json" | head -c 200)"
     echo "pr_state_watch: gh api check-runs failed for $REPO@$head" >&2; exit 5; }
   watch_is_rate_limited "$cr_json" && watch_fatal_rate_limit "pr_state_watch" "$(printf '%s' "$cr_json" | head -c 200)"
@@ -158,7 +181,7 @@ while :; do
           elif any(.[]; (.status|ascii_upcase) != "COMPLETED") then "PENDING"
           else (sort_by(.started_at) | .[-1]) as $newest
                | if   ($newest.conclusion|ascii_upcase)=="FAILURE" then "BLOCKED"
-                 elif any(.[]; (.conclusion|ascii_upcase)=="FAILURE") then "POISON"
+                 elif any(.[]; (.conclusion|ascii_upcase)=="FAILURE") then "SUPERSEDED"
                  else "PASS" end
           end')" || {
     echo "pr_state_watch: jq failed for check-runs of $REPO@$head" >&2; exit 5; }
@@ -168,7 +191,7 @@ while :; do
   # the check-runs view still shows the old attempt's FAILURE. Consult the head's workflow runs:
   # a queued/in-progress run of the required workflow means the verdict is PENDING, not BLOCKED
   # (opencharly/marketplace#403).
-  if [ "$verdict" = "BLOCKED" ] || [ "$verdict" = "POISON" ]; then
+  if [ "$verdict" = "BLOCKED" ]; then
     wr_json="$(gh api "repos/$REPO/actions/runs?head_sha=$head&per_page=100" 2>&1)" || {
       watch_is_rate_limited "$wr_json" && watch_fatal_rate_limit "pr_state_watch" "$(printf '%s' "$wr_json" | head -c 200)"
       echo "pr_state_watch: gh api actions/runs failed for $REPO@$head" >&2; exit 5; }
@@ -180,18 +203,40 @@ while :; do
     [ "${inflight:-0}" -gt 0 ] && verdict="PENDING"
   fi
 
+  # A RED check is not yet a BLOCK: the gate's `failure` conclusion is the SAME for a real
+  # BLOCK and for an INCONCLUSIVE run that produced no verdict at all. The class lives only in
+  # the gate's own comment heading (`## Review — BLOCK` / `## validator INCONCLUSIVE — …`), so
+  # read it before naming a terminal state — an unreviewed red check must NOT start a fix loop.
+  class=""
+  if [ "$verdict" = "BLOCKED" ]; then
+    vc_json="$(gh api "repos/$REPO/issues/$PR/comments?per_page=100" 2>&1)" || {
+      watch_is_rate_limited "$vc_json" && watch_fatal_rate_limit "pr_state_watch" "$(printf '%s' "$vc_json" | head -c 200)"
+      echo "pr_state_watch: gh api issue comments failed for $REPO#$PR" >&2; exit 5; }
+    watch_is_rate_limited "$vc_json" && watch_fatal_rate_limit "pr_state_watch" "$(printf '%s' "$vc_json" | head -c 200)"
+    class="$(printf '%s' "$vc_json" | jq -r --arg author "$VALIDATOR_AUTHOR" '
+          [ .[] | select(.user.login==$author)
+                | select((.body // "") | test("^## (validator|Review)")) ]
+          | if length==0 then "UNKNOWN"
+            else (.[-1].body | split("\n")[0])
+                 | if test("INCONCLUSIVE") then "INCONCLUSIVE" else "BLOCK" end end')" || {
+      echo "pr_state_watch: jq failed for issue comments of $REPO#$PR" >&2; exit 5; }
+  fi
+
   case "$verdict" in
     BLOCKED)
+      if [ "$class" = "INCONCLUSIVE" ]; then
+        report INCONCLUSIVE "no review verdict at head ${head:0:9} — the gate is red but produced NO code finding (mergeState=$merge_state)"
+        echo "  This is NOT a BLOCK and there is NO finding to fix, so do NOT open a fix loop."
+        echo "  The gate could not obtain a verdict (its provider class). Escalate to the operator"
+        echo "  rather than re-running blindly; a re-run is a fresh attempt and may still pass:"
+        echo "    gh api -X POST repos/$REPO/actions/runs/<run-id>/rerun"
+        exit 8
+      fi
       report BLOCKED "verdict BLOCK at head ${head:0:9} (mergeState=$merge_state)"
-      echo "  read the latest 'Review — BLOCK' comment on $url; fix, commit, RE-FINALIZE the body, push."
+      echo "  read the latest '## Review — BLOCK' comment on $url; fix, commit, RE-FINALIZE the body, push."
       exit 2 ;;
-    POISON)
-      report BLOCKED "STUCK: newest $REQUIRED_CHECK is SUCCESS but an older FAILURE of the same name still poisons the rollup (head ${head:0:9})"
-      echo "  This is NOT a verdict BLOCK. A same-head workflow_dispatch cannot clear it."
-      echo "  Remedy: re-run the FAILED run (a new attempt supersedes it):"
-      echo "    gh api -X POST repos/$REPO/actions/runs/<run-id>/rerun   (not gh run rerun — it 404s on the org-required workflow)"
-      echo "  or push a NEW commit (fresh SHA)."
-      exit 2 ;;
+    SUPERSEDED)
+      [ "$last_report" = "SUPERSEDED" ] || { report WAIT "an older FAILURE of $REQUIRED_CHECK is superseded by a newer SUCCESS at head ${head:0:9} (mergeState=$merge_state)"; last_report=SUPERSEDED; } ;;
     PASS)
       [ "$last_report" = "PASS" ] || { report PASS "verdict PASS at head ${head:0:9}; awaiting merge (mergeState=$merge_state)"; last_report=PASS; } ;;
     NONE)
