@@ -225,12 +225,18 @@ while :; do
                           | select((.conclusion|ascii_upcase)=="FAILURE")]
           | sort_by(.started_at) | .[-1].started_at // ""')" || {
       echo "pr_state_watch: jq failed for the failed run timestamp of $REPO@$head" >&2; exit 5; }
-    vc_json="$(gh api "repos/$REPO/issues/$PR/comments?per_page=100" 2>&1)" || {
+    # PAGINATED, like the check-runs read above: this read exists to find the NEWEST verdict
+    # comment, and the API orders issue comments OLDEST-first, so a single page hides the newest
+    # one on any thread longer than a page — the read would then report no verdict for a head
+    # whose gate did produce one. gh emits ONE JSON ARRAY PER PAGE, so the jq below slurps the
+    # pages and flattens them (`add`) before filtering.
+    vc_json="$(gh api --paginate "repos/$REPO/issues/$PR/comments" 2>&1)" || {
       watch_is_rate_limited "$vc_json" && watch_fatal_rate_limit "pr_state_watch" "$(printf '%s' "$vc_json" | head -c 200)"
       echo "pr_state_watch: gh api issue comments failed for $REPO#$PR" >&2; exit 5; }
     watch_is_rate_limited "$vc_json" && watch_fatal_rate_limit "pr_state_watch" "$(printf '%s' "$vc_json" | head -c 200)"
-    class="$(printf '%s' "$vc_json" | jq -r --arg author "$VALIDATOR_AUTHOR" --arg head "$head" --arg since "$run_started" '
-          [ .[] | select(.user.login==$author)
+    class="$(printf '%s' "$vc_json" | jq -sr --arg author "$VALIDATOR_AUTHOR" --arg head "$head" --arg since "$run_started" '
+          (add // [])
+          | [ .[] | select(.user.login==$author)
                 | select((.body // "") | test("^## (validator|Review)"))
                 | select((if ((.body // "") | test("Head SHA:"))
                          then ((.body // "") | test("Head SHA: `" + $head + "`"))
@@ -253,7 +259,7 @@ while :; do
       fi
       if [ "$class" = "UNKNOWN" ]; then
         report BLOCKED "verdict BLOCK at head ${head:0:9} (mergeState=$merge_state)"
-        echo "  No verdict comment could be attributed to this head: every gate verdict on the"
+        echo "  No verdict comment could be attributed to this head: every gate verdict on this"
         echo "  thread names another head, or predates this head's failed run, and a stale verdict"
         echo "  must NOT set this head's class. Fail-closed: read the run's own evidence artifact"
         echo "  and the thread before assuming a BLOCK finding exists — and never fix-loop on a"

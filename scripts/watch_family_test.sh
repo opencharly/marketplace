@@ -58,6 +58,17 @@ case "$1 $2" in
   "api repos/"*"/check-runs"*)
     # pr_state_watch's check-runs read for the head (checkruns.json fixture).
     cat "$d/checkruns.json" 2>/dev/null || echo '{"check_runs":[]}' ;;
+  "api --paginate")
+    # The class read PAGINATES (gh emits ONE ARRAY PER PAGE; the script slurps and flattens
+    # them). The stub matches on "$1 $2", so a paged call is exactly "api --paginate" — the
+    # path is the third argument and is deliberately not part of the match (this is the only
+    # paginated read). It serves comments_paged.json when staged — a multi-page fixture — and
+    # falls back to the unchanged single-page comments.json, so the 8h/8i/8k/8l fixtures keep
+    # working. A paged call is counted separately so an assertion can PROVE the read paginated.
+    n="$(cat "$d/commentcalls" 2>/dev/null || echo 0)"; n=$((n + 1)); printf '%s' "$n" > "$d/commentcalls"
+    p="$(cat "$d/paginatecalls" 2>/dev/null || echo 0)"; p=$((p + 1)); printf '%s' "$p" > "$d/paginatecalls"
+    if [ -f "$d/comments_paged.json" ]; then cat "$d/comments_paged.json"
+    else cat "$d/comments.json" 2>/dev/null || echo '[]'; fi ;;
   "api repos/"*"/issues/"*"/comments"*)
     # pr_state_watch's verdict-CLASS read: the gate's own comment carries the class
     # (comments.json fixture). The counter proves the read ran, so an assertion can show
@@ -424,6 +435,32 @@ eq "pr_state_watch: a BLOCK naming another head is not this head's class (exit 2
 grep -q 'could be attributed to this head' "$WORK/out_psw_other.txt" \
   && ok "pr_state_watch: a mismatched Head SHA is rejected as another head's verdict" \
   || bad "Head SHA scoping" "$(cat "$WORK/out_psw_other.txt")"
+
+# 8m ── the class read PAGINATES: the API orders issue comments OLDEST-first, so on a thread
+#       longer than one page a single-page read never sees the NEWEST verdict — it reports no
+#       verdict for a head whose gate DID produce one, the same misclassification 8h guards.
+#       gh --paginate emits ONE ARRAY PER PAGE, so the fixture is two documents: a full first
+#       page of 100 filler comments, then the verdict naming THIS head. Both the outcome (the
+#       verdict IS attributed to this head, exit 2) and the call shape (--paginate) are asserted.
+{ jq -nc '[range(100) | {user:{login:"someoneelse"},created_at:"2026-10-02T01:00:00Z",body:"filler"}]'
+  jq -nc '[{user:{login:"github-actions[bot]"},created_at:"2026-10-02T04:00:00Z",body:"## Review — BLOCK\n\nHead SHA: `abcdef1234567890`\n"}]'
+} > "$WORK/comments_paged.json"
+printf '0' > "$WORK/paginatecalls"
+timeout 15 "$HERE/pr_state_watch.sh" opencharly/x 1 --interval 60 --timeout 1 > "$WORK/out_psw_pg.txt" 2>&1
+eq "pr_state_watch: a verdict beyond the first page is this head's class (exit 2)" "$?" 2
+grep -q 'could be attributed to this head' "$WORK/out_psw_pg.txt" \
+  && bad "paged verdict found" "the verdict on page 2 was not attributed to this head" \
+  || ok "pr_state_watch: the page-2 verdict was attributed to this head"
+# The POSITIVE arm, so this case cannot pass by exiting early on an error: the report must be
+# the real BLOCK path (whose remedy text is unique to it), not the unattributable notice and
+# not a jq/gh failure.
+grep -q 'RE-FINALIZE the body' "$WORK/out_psw_pg.txt" \
+  && ok "pr_state_watch: the page-2 verdict reached the BLOCK report" \
+  || bad "paged BLOCK report" "the paged verdict did not reach the BLOCK report"
+[ "$(cat "$WORK/paginatecalls" 2>/dev/null || echo 0)" -ge 1 ] \
+  && ok "pr_state_watch: the class read paginates (gh --paginate)" \
+  || bad "pagination" "the class read fetched only one page"
+rm -f "$WORK/comments_paged.json"
 
 # 8j ── an older FAILURE beside a NEWER SUCCESS at one head is SUPERSEDED, never terminal: a
 #       REST re-run leaves a second same-name check run at the SAME head (MEASURED on
