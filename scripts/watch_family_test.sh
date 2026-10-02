@@ -55,6 +55,14 @@ case "$1 $2" in
     # (to exercise the rate-limit abort); else a benign non-terminal PR.
     if [ -f "$d/prerr.txt" ]; then cat "$d/prerr.txt"; exit 1; fi
     printf '{"state":"OPEN","mergeStateStatus":"BLOCKED","headRefOid":"abcdef1234567890","url":"https://github.com/%s/pull/%s"}' "$3" "$4" ;;
+  "api repos/"*"/check-runs"*)
+    # pr_state_watch's check-runs read for the head (checkruns.json fixture).
+    cat "$d/checkruns.json" 2>/dev/null || echo '{"check_runs":[]}' ;;
+  "api repos/"*"/actions/runs?"*)
+    # pr_state_watch's in-flight probe: the head's workflow runs (headruns.json fixture);
+    # the counter proves the probe ran.
+    n="$(cat "$d/headrunscalls" 2>/dev/null || echo 0)"; n=$((n + 1)); printf '%s' "$n" > "$d/headrunscalls"
+    cat "$d/headruns.json" 2>/dev/null || echo '{"workflow_runs":[]}' ;;
   "api repos/"*"/actions/runs/"*)
     # gh_watch's item-scoped verdict probe (probe_run_id → the REST actions/runs
     # endpoint). run_view.json is the fixture; the counter records that the probe ran,
@@ -331,6 +339,27 @@ grep -q 'FATAL pr_state_watch: GitHub rate limit reached' "$WORK/out_psw_rl.txt"
   || bad "pr_state_watch rate-limit FATAL" "$(cat "$WORK/out_psw_rl.txt")"
 rm -f "$WORK/prerr.txt"
 reset_calls
+
+# 8g ── pr_state_watch: a FAILURE check run with a QUEUED re-run of the required workflow is
+#       PENDING, not BLOCKED (opencharly/marketplace#403) — and the same FAILURE with nothing in
+#       flight is still a terminal BLOCKED (the control).
+rm -f "$WORK/prerr.txt" "$WORK/headrunscalls"
+printf '%s' '{"check_runs":[{"name":"validate / validate","status":"completed","conclusion":"failure","started_at":"2026-10-01T22:14:50Z"}]}' > "$WORK/checkruns.json"
+printf '%s' '{"workflow_runs":[{"path":".github/workflows/org-wide-pr-validator-required.yml","status":"queued","run_attempt":2}]}' > "$WORK/headruns.json"
+timeout 15 "$HERE/pr_state_watch.sh" opencharly/x 1 --interval 60 --timeout 1 > "$WORK/out_psw_q.txt" 2>&1
+rc=$?
+[ "$rc" -ne 2 ] && ok "pr_state_watch: a queued re-run keeps a stale FAILURE non-terminal (rc=$rc)" \
+  || bad "pr_state_watch queued re-run" "exited 2 (false BLOCKED): $(cat "$WORK/out_psw_q.txt")"
+grep -q 'running at head' "$WORK/out_psw_q.txt" \
+  && ok "pr_state_watch: reports the queued re-run as WAIT/running" \
+  || bad "pr_state_watch queued re-run report" "$(cat "$WORK/out_psw_q.txt")"
+[ "$(cat "$WORK/headrunscalls" 2>/dev/null || echo 0)" -ge 1 ] \
+  && ok "pr_state_watch: the actions/runs in-flight probe is exercised" \
+  || bad "in-flight probe exercised" "no actions/runs?head_sha call"
+printf '%s' '{"workflow_runs":[{"path":".github/workflows/org-wide-pr-validator-required.yml","status":"completed","conclusion":"failure","run_attempt":1}]}' > "$WORK/headruns.json"
+timeout 15 "$HERE/pr_state_watch.sh" opencharly/x 1 --interval 60 --timeout 1 > "$WORK/out_psw_b.txt" 2>&1
+eq "pr_state_watch: a FAILURE with nothing in flight is still BLOCKED (exit 2)" "$?" 2
+rm -f "$WORK/checkruns.json" "$WORK/headruns.json"
 
 # 9 ── pr_watch_many: a terminal result is reported (stub pr_state_watch.sh beside a copy)
 cat > "$WORK/pr_state_watch.sh" <<'PSW'

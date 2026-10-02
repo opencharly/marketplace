@@ -18,7 +18,7 @@
 # re-dispatch does NOT clear an earlier red run of the same name — the PR reads
 # `mergeStateStatus=BLOCKED` while its verdict is PASS. That state is indistinguishable
 # from a real BLOCK by `gh pr checks`, and it is exactly what this script names, because
-# the remedy (push a NEW commit, or add the per-repo concurrency dedupe) is different
+# the remedy (re-run the failed run through the REST API, or push a NEW commit) is different
 # from a real BLOCK's remedy (fix the finding).
 #
 # Usage:
@@ -99,6 +99,10 @@ INTERVAL="$(watch_interval pr_state_watch "$INTERVAL" "--interval")" \
 # The required check this org protects `main` with. Overridable for a repo whose
 # ruleset names a different context (and for testing) — the default is the org one.
 REQUIRED_CHECK="${PR_STATE_REQUIRED_CHECK:-validate / validate}"
+# The workflow FILE that produces the required check (matched as a suffix of a workflow run's
+# `path`). A re-run of it that is queued/in progress has NO check run yet, so the check-runs
+# view still shows the previous attempt's FAILURE; this lets the classifier see it in flight.
+REQUIRED_WORKFLOW="${PR_STATE_REQUIRED_WORKFLOW:-org-wide-pr-validator-required.yml}"
 
 deadline=$(( $(date +%s) + TIMEOUT ))
 last_report=""
@@ -159,6 +163,23 @@ while :; do
           end')" || {
     echo "pr_state_watch: jq failed for check-runs of $REPO@$head" >&2; exit 5; }
 
+  # A FAILURE verdict is only terminal when no NEWER attempt is in flight. A requested re-run
+  # (the REST body-only fix) creates its check run only once its job starts, so for that window
+  # the check-runs view still shows the old attempt's FAILURE. Consult the head's workflow runs:
+  # a queued/in-progress run of the required workflow means the verdict is PENDING, not BLOCKED
+  # (opencharly/marketplace#403).
+  if [ "$verdict" = "BLOCKED" ] || [ "$verdict" = "POISON" ]; then
+    wr_json="$(gh api "repos/$REPO/actions/runs?head_sha=$head&per_page=100" 2>&1)" || {
+      watch_is_rate_limited "$wr_json" && watch_fatal_rate_limit "pr_state_watch" "$(printf '%s' "$wr_json" | head -c 200)"
+      echo "pr_state_watch: gh api actions/runs failed for $REPO@$head" >&2; exit 5; }
+    watch_is_rate_limited "$wr_json" && watch_fatal_rate_limit "pr_state_watch" "$(printf '%s' "$wr_json" | head -c 200)"
+    inflight="$(printf '%s' "$wr_json" | jq -r --arg wf "$REQUIRED_WORKFLOW" '
+          [.workflow_runs[]? | select((.path // "") | endswith($wf))
+                             | select((.status // "" | ascii_downcase) != "completed")] | length')" || {
+      echo "pr_state_watch: jq failed for actions/runs of $REPO@$head" >&2; exit 5; }
+    [ "${inflight:-0}" -gt 0 ] && verdict="PENDING"
+  fi
+
   case "$verdict" in
     BLOCKED)
       report BLOCKED "verdict BLOCK at head ${head:0:9} (mergeState=$merge_state)"
@@ -166,9 +187,10 @@ while :; do
       exit 2 ;;
     POISON)
       report BLOCKED "STUCK: newest $REQUIRED_CHECK is SUCCESS but an older FAILURE of the same name still poisons the rollup (head ${head:0:9})"
-      echo "  This is NOT a verdict BLOCK. A same-head re-dispatch cannot clear it."
-      echo "  Remedy: push a NEW commit (fresh SHA), OR add the per-repo concurrency dedupe to"
-      echo "  .github/workflows/pr-validator.yml (group pr-validator-\${{ github.repository }}-\${{ ... }})."
+      echo "  This is NOT a verdict BLOCK. A same-head workflow_dispatch cannot clear it."
+      echo "  Remedy: re-run the FAILED run (a new attempt supersedes it):"
+      echo "    gh api -X POST repos/$REPO/actions/runs/<run-id>/rerun   (not gh run rerun — it 404s on the org-required workflow)"
+      echo "  or push a NEW commit (fresh SHA)."
       exit 2 ;;
     PASS)
       [ "$last_report" = "PASS" ] || { report PASS "verdict PASS at head ${head:0:9}; awaiting merge (mergeState=$merge_state)"; last_report=PASS; } ;;
