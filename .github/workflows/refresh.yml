@@ -216,18 +216,41 @@ jobs:
             sed -n '/->/p' /tmp/refresh.log
             echo '```'
             echo
-            echo '*2. Each changed code path executing — the ACTUAL generator output (full):*'
+            echo '*2. Each changed code path executing — the ACTUAL generator output, minus only its'
+            echo '   routine per-ref `Downloading …` progress lines (noted below the block):*'
             echo '```'
-            # Paste the WHOLE generator log, not a tail: a warning earlier in the file must be
-            # visible in the body that asserts the tier. Refuse an empty/absent log loudly.
+            # Paste the generator log WITHOUT its routine per-ref `Downloading …` progress lines:
+            # 641 of them on a full refresh, ~44 KB, and every ref they name is already listed by
+            # the refs-resolution section and the changed-file list above. Everything ELSE is kept
+            # verbatim, so the warning this section exists to surface cannot be hidden — a `tail`
+            # could drop it, which is the exact failure mode this guards against.
+            #
+            # Why an elision is forced at all: GitHub rejects a PR body over 65536 BYTES, and the
+            # full log is ~62 KB of it (measured 2026-10-04, run 37226249924: the body assembled to
+            # 70876 bytes and `gh pr create` was rejected three times). opencharly/marketplace#413.
+            LOG_ELIDED=""
+            LOG_LINES=""
             if [ ! -s /tmp/generate.log ]; then
               echo "(ERROR: /tmp/generate.log is missing or empty — the generator capture failed)"
             else
-              cat /tmp/generate.log
+              LOG_LINES=$(wc -l < /tmp/generate.log)
+              LOG_ELIDED=$(grep -c '^Downloading ' /tmp/generate.log || true)
+              # `|| true`: this step runs under `bash -e`, and `grep -v` exits 1 when it matches
+              # nothing — i.e. a log consisting solely of progress lines, which would then abort
+              # the step for no reason. The notice below states that case truthfully instead.
+              grep -v '^Downloading ' /tmp/generate.log || true
             fi
             echo "\$ git status --porcelain -uall | wc -l"
             echo "${FILES}"
             echo '```'
+            if [ -n "$LOG_ELIDED" ] && [ "$LOG_ELIDED" -gt 0 ]; then
+              echo
+              echo "> **Elision notice — read this before quoting the block above.** \`${LOG_ELIDED}\` of"
+              echo "> its \`${LOG_LINES}\` log lines are NOT shown: exactly the routine \`Downloading <ref>…\`"
+              echo "> progress lines, and nothing else. Every warning and every other line is present"
+              echo "> verbatim. The complete, unelided log is this run's step log for *Regenerate the"
+              echo "> corpus at the new pins*."
+            fi
             echo
             echo '*3. Docs-only evidence:*'
             echo '```'
@@ -313,6 +336,22 @@ jobs:
           git add -A
           git commit -m "chore: refresh the refs list to the newest tags"
           git push -u origin HEAD
+
+          # GitHub rejects a PR body over 65536 BYTES ("GraphQL: Body is too long") and that
+          # rejection is DETERMINISTIC — the retry loop below cannot fix it, it only burns three
+          # attempts and three sleeps on an error that will never change. Assert the size HERE,
+          # AFTER the push (so an over-long body costs a PR, not the night's refresh — the branch
+          # above is committed and pushed), and fail naming the byte count instead of leaving an
+          # opaque GraphQL error to be misread as a transient 5xx.
+          PR_BODY_BYTES=$(wc -c < /tmp/pr-body.md)
+          if [ "$PR_BODY_BYTES" -gt 65536 ]; then
+            echo "::error title=refresh: the assembled PR body is over GitHub's limit::${PR_BODY_BYTES} bytes; the limit is 65536."
+            echo "The body's largest section is the pasted generator log — check that its"
+            echo "'Downloading …' progress lines are being elided, then trim whatever else grew."
+            echo "Nothing is lost: the refreshed branch is already pushed (see above) — open the"
+            echo "PR by hand with a shorter body."
+            exit 1
+          fi
 
           # The branch is pushed FIRST and the PR attempted second, so a failure here costs
           # a PR rather than a night's refresh — the work is already safe on a branch.
