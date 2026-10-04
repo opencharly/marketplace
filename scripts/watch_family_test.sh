@@ -492,6 +492,39 @@ ALLOW_FAST_POLL=1 "$WORK/pr_watch_many.sh" --interval 1 --timeout 4 opencharly/x
 grep -q '^TERMINAL BLOCKED (exit 2) opencharly/x#1' "$WORK/out.txt" \
   && ok "pr_watch_many: reports a terminal BLOCKED" || bad "pr_watch_many terminal" "$(cat "$WORK/out.txt")"
 
+# 9b ── pr_watch_many: cleanup() must stop the WATCHER, not just its wrapper subshell
+# (opencharly/marketplace#417). The per-PR watcher is the wrapper subshell's CHILD and is
+# LONG-LIVED, so killing the subshell alone leaves it polling as an orphan — reparented to
+# systemd --user, outside every control this family has (the poll floor, the batched poll,
+# the rate-limit abort). The stub blocks until killed and records ITS OWN pid, so the
+# assertion is about the WATCHER's liveness and cannot be satisfied by the wrapper dying.
+cat > "$WORK/pr_state_watch.sh" <<'PSW'
+#!/usr/bin/env bash
+printf '%s\n' "$$" > "${WATCH_TEST_DIR:?}/watcher.pid"
+while :; do sleep 0.2; done
+PSW
+chmod +x "$WORK/pr_state_watch.sh"
+rm -f "$WORK/watcher.pid"
+# A TIMEOUT is the trigger that isolates this: no watcher ever reports, so the ONLY thing
+# that can stop the stub is cleanup forwarding our teardown signal.
+ALLOW_FAST_POLL=1 "$WORK/pr_watch_many.sh" --interval 1 --timeout 3 opencharly/x 1 >/dev/null 2>&1
+eq "pr_watch_many: a TIMEOUT exits 4" "$?" 4
+wpid="$(cat "$WORK/watcher.pid" 2>/dev/null)"
+if [ -z "$wpid" ]; then
+  bad "pr_watch_many: cleanup stops the WATCHER (no orphan)" \
+      "the stub never recorded a pid — the watcher was never spawned"
+else
+  # Bounded: the forward IS a signal, so allow it a moment to land rather than assume it did.
+  i=0; while [ "$i" -lt 25 ] && kill -0 "$wpid" 2>/dev/null; do sleep 0.2; i=$((i + 1)); done
+  if kill -0 "$wpid" 2>/dev/null; then
+    bad "pr_watch_many: cleanup stops the WATCHER (no orphan)" \
+        "watcher pid $wpid survived cleanup — it is the wrapper's child, not the wrapper"
+    kill -KILL "$wpid" 2>/dev/null   # never leak the failure into the suite's own teardown
+  else
+    ok "pr_watch_many: cleanup stops the WATCHER (no orphan)"
+  fi
+fi
+
 # ── 10..13: the AUTO-REARM loop, the single-instance lock, the rate-limit guard ──
 # Every auto-rearm assertion uses WATCH_REARM_HOOK so NO real successor is ever spawned
 # (a real one would detach a stray watcher). The hook logs one line per call; the count
