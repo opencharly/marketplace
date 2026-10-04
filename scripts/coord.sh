@@ -78,6 +78,19 @@ need() { [ "$#" -ge 2 ] || die "option $1 needs a value"; }
 have() { command -v "$1" >/dev/null 2>&1; }
 in_list() { local needle=$1; shift; local x; for x in "$@"; do [ "$x" = "$needle" ] && return 0; done; return 1; }
 
+# canon_verb is the ONE verb normalisation (R3): upper-cased, with `_` and `-` read as a
+# space and runs of spaces collapsed, so any spelling a caller may type (`TAKING OVER`,
+# `TAKING-OVER`, `taking_over`) reaches the closed set as the same label. It trims the
+# outer spaces the `_`/`-` mapping can produce (a leading `_`).
+# BOTH callers use it — the closed-set validation below and the two-word-verb diagnostic
+# in positional() — so the two can never drift into different notions of "the same verb".
+canon_verb() {
+  local v
+  v=$(printf '%s' "$1" | tr '[:lower:]' '[:upper:]' | tr '_-' '  ' | tr -s ' ')
+  v=${v# }
+  printf '%s' "${v% }"
+}
+
 verb= target= body= body_file=
 agent=${COORD_AGENT:-} session=${COORD_SESSION:-}
 harness=${COORD_HARNESS:-} model=${COORD_MODEL:-}
@@ -94,7 +107,7 @@ positional() {
     # repo ref the caller actually typed, which points at the wrong half of the
     # command line and sends them looking for a quoting bug in the target.
     local up w
-    up=$(printf '%s' "$verb" | tr '[:lower:]' '[:upper:]' | tr '_-' '  ' | tr -s ' ')
+    up=$(canon_verb "$verb")
     for w in "${VERBS[@]}"; do
       case "$w" in
         *" "*) [ "${w%% *}" = "$up" ] && \
@@ -130,9 +143,7 @@ done
 [ -n "$target" ] || die "missing <owner/repo#num> (try --help)"
 
 # --- canonicalise + validate the verb (the closed set) ----------------------
-canon=$(printf '%s' "$verb" | tr '[:lower:]' '[:upper:]' | tr '_-' '  ' | tr -s ' ')
-canon=${canon# }
-canon=${canon% }
+canon=$(canon_verb "$verb")
 in_list "$canon" "${VERBS[@]}" || die "invalid verb '$verb' — one of: ${VERBS[*]}"
 
 # --- validate the confidence tier -------------------------------------------

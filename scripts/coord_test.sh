@@ -130,6 +130,30 @@ for form in "handing-over" "handing_over" "Handing Over"; do
   eq "$got" "HANDING OVER" "normalises '$form' → HANDING OVER"
 done
 
+# 7b. a two-word verb left unquoted and split across two arguments is caught by the
+#     diagnostic in `positional()` — and stderr must name the two-word verb plus both
+#     spellings that need no quoting. That is the whole point of the branch: the older
+#     message was `unexpected argument: <repo ref>` alone, which points at the target and
+#     sends the caller hunting for a quoting bug in the wrong half of the command line.
+#     The lowercase case passes only if the diagnostic runs the SAME normalisation as the
+#     closed-set validation (R3): `handing` + `OVER` reaches the label 'HANDING OVER' only
+#     through `canon_verb`, never through a raw string compare.
+assert_two_word() { # assert_two_word <first-word> <second-word> <expected label>
+  local err rc under="${3%% *}_${3#* }"
+  err=$("$COORD" "$1" "$2" acme/widget#1 "${common[@]}" --dry-run 2>&1 >/dev/null)
+  rc=$?
+  eq "$rc" 2 "an unquoted two-word verb ('$1 $2') exits 2"
+  printf '%s' "$err" | grep -qF "$3" && ok "  … and its message names the two-word verb '$3'" \
+    || bad "  … and its message names the two-word verb '$3' (got: $err)"
+  printf '%s' "$err" | grep -qF "$under" && ok "  … and its message names the '$under' form" \
+    || bad "  … and its message names the '$under' form (got: $err)"
+  printf '%s' "$err" | grep -qF "\"$3\"" && ok "  … and its message shows the quoted one-argument form" \
+    || bad "  … and its message shows the quoted one-argument form '\"$3\"' (got: $err)"
+}
+assert_two_word TAKING OVER "TAKING OVER"
+assert_two_word HANDING OVER "HANDING OVER"
+assert_two_word handing OVER "HANDING OVER"
+
 # 8. verb-only comment (no body) is well-formed.
 got=$("$COORD" STATUS acme/widget#1 "${common[@]}" --dry-run 2>/dev/null | head -1)
 eq "$got" "STATUS" "verb-only comment's first line is the verb"
