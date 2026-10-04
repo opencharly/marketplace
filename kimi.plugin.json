@@ -1,6 +1,6 @@
 {
   "name": "charly",
-  "description": "Claude Code, Codex, and Kimi plugins for OpenCharly — The wonky DevOps tool for you and your agents: runtime commands, schema authoring, contributor internals, and deployable image families.",
+  "description": "Claude Code, Codex, and Kimi plugins for OpenCharly — The agentic DevOps tool for you and your agents: runtime commands, schema authoring, contributor internals, and deployable image families.",
   "skills": [
     "./agent/skills",
     "./agentteams/skills",
@@ -47,6 +47,6 @@
   ],
   "interface": {
     "displayName": "OpenCharly",
-    "shortDescription": "Claude Code, Codex, and Kimi plugins for OpenCharly — The wonky DevOps tool for you and your agents: runtime commands, schema authoring, contributor internals, and deployable image families."
+    "shortDescription": "Claude Code, Codex, and Kimi plugins for OpenCharly — The agentic DevOps tool for you and your agents: runtime commands, schema authoring, contributor internals, and deployable image families."
   }
 }

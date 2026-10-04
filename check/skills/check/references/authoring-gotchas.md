@@ -406,31 +406,51 @@ when the pattern would also match the wrapping bash. The harness
 defense is a safety net, not a license to use the broken pattern
 deliberately.
 
-### 13. A step is SIGKILLed at 90s unless it declares `timeout:`
+### 13. A step is SIGKILLed at its never-hang bound unless it declares `timeout:`
 
-`ProbeNeverHang` (`sdk/kit/runner.go`) bounds every probe ATTEMPT at
-`runnerProbeNeverHangFallback` = **90 seconds**. A step that runs longer is killed,
-and the runner names the bound in the message — but the underlying exec-layer text is
-still `process terminated by signal (signal: killed)`, which describes the mechanism
-of death and not its cause. Read alone, it looks like the command crashed.
+`ProbeNeverHang` (`sdk/kit/runner.go`) bounds every probe ATTEMPT. The
+live `charly check` path sets that bound from the readiness table —
+`cfg.ProbeTimeout = poll.ReadinessProvider().PerAttemptFor(PollLocal)`
+(`candy/plugin-check/plugin_runner.go`), whose class fallback is
+`readinessPerAttemptFallback` = **120 seconds** (`spec/poll/poll.go`).
+The `runnerProbeNeverHangFallback` = 90s constant in `sdk/kit/runner.go`
+is ONLY the bare-`NewRunner` guard (a test / a plugin); it is never the
+bound on the real check paths. **Read the number out of the kill message
+rather than assuming** — an actual run prints
+`killed by the per-attempt never-hang bound of 2m0s`. A step that runs
+longer is killed, and the underlying exec-layer text is still
+`process terminated by signal (signal: killed)`, which describes the
+mechanism of death and not its cause. Read alone, it looks like a crash.
 
-What crosses 90s in practice: **installing charly from a published distro repo pulls
-~190 packages** (podman, qemu, libvirt, gnupg, tailscale). On a 2-vCPU cloud-image VM
-`dnf install` does not finish in time while `pacman -S` does — so two beds differing
-only in package manager come out one green and one "killed", which invites a
-distro-specific theory (repo layout, signing, cloud image) when the variable is
-elapsed time against a shared floor. **Compare the step's duration to 90s before
-theorising about the distro.**
+What crosses the bound in practice is any step whose own work is
+minutes-long:
+
+- **Installing charly from a published distro repo pulls ~190 packages**
+  (podman, qemu, libvirt, gnupg, tailscale). On a 2-vCPU cloud-image VM
+  `dnf install` does not finish in time while `pacman -S` does — so two
+  beds differing only in package manager come out one green and one
+  "killed", which invites a distro-specific theory (repo layout, signing,
+  cloud image) when the variable is elapsed time against a shared floor.
+- **A full nested-container acceptance loop** — e.g. `cbx-e2e-loop`,
+  which leases a real nested container via `local-container`, syncs a git
+  workdir and streams a command. Its own work is minutes-long: on
+  distro-cachyos the enclosing `check-live` bucket (129 checks incl. this
+  one) measures **2m39s idle and 3m07s under concurrent host load** —
+  both above the 120s default, so the step is killed by the bound on its
+  own duration, not by a wedge (before the bound was declared it was
+  killed at `2m0s`; with `timeout: 10m` it PASSes). A check bed's long
+  acceptance steps are a normal case for an authored bound — not a sign
+  of a hang.
 
 The fix is authored, not code: `#Op` carries `timeout?: #Duration`, and
-`ProbeNeverHang` honours a longer authored value over the floor (the effective
-ceiling becomes `declared + 30s`). Declaring it is USING the mechanism's own
-parameter — not an R4 workaround:
+`ProbeNeverHang` honours a longer authored value over the floor (the
+effective ceiling becomes `declared + 30s`). Declaring it is USING the
+mechanism's own parameter — not an R4 workaround:
 
 ```yaml
 - check: dnf install charly installs the package
   id: fedora-charly-installed
-  timeout: 10m          # ~190 packages on 2 vCPUs; the 90s floor kills this
+  timeout: 10m          # ~190 packages on 2 vCPUs; the floor kills this
   exit_status: 0
   command: |
       sudo dnf install -y charly &&

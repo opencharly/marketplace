@@ -6,7 +6,7 @@ description: |-
   use_packaged: socket form). The daemon set is DISTRO-DIVERGENT: Fedora/Arch
   ship the modular virtqemud + virtnetworkd, Debian/Ubuntu ship only the
   monolithic libvirtd — selected by a per-entry `service: distro:` filter.
-  Uses the mixed-entry `service:` schema (CLAUDE.md "Init-system
+  Uses the mixed-entry `service:` schema (AGENTS.md "Init-system
   polymorphism") — same name appears twice, init system at deploy time picks
   the matching form. Canonical worked example of the polymorphism pattern.
 ---
@@ -69,7 +69,7 @@ service:
 
 The `distro:` filter is applied at render time against the target's distro tag chain — in the DEPLOY path (`compileServiceSteps`, VM/host/pod) and in the BUILD path (`generateInitFragments` for supervisord fragments + the bootc `system_enable` units). A Debian systemd VM therefore enables ONLY `libvirtd.socket`; a Fedora container's supervisord runs ONLY `virtqemud` + `virtnetworkd`.
 
-Why this matters: a `<name>-host` (or per-distro) sibling candy would duplicate package lists, check probes, and tasks, and drift between the siblings would be inevitable. The mixed-entry + `distro:`-filter pattern eliminates the sibling — ONE candy covers every (init-system × distro) cell; the schema does the polymorphism. See the project rulebook "Init-system polymorphism via mixed `service:` entries" (`AGENTS.md` / `CLAUDE.md`) for the rule and `/charly-image:layer` "Service Declaration" → "Anti-pattern: `<name>-host` / `<name>-pod` sibling candies" for what NOT to do.
+Why this matters: a `<name>-host` (or per-distro) sibling candy would duplicate package lists, check probes, and tasks, and drift between the siblings would be inevitable. The mixed-entry + `distro:`-filter pattern eliminates the sibling — ONE candy covers every (init-system × distro) cell; the schema does the polymorphism. See the project rulebook "Init-system polymorphism via mixed `service:` entries" (`AGENTS.md`) for the rule and `/charly-image:layer` "Service Declaration" → "Anti-pattern: `<name>-host` / `<name>-pod` sibling candies" for what NOT to do.
 
 ## Overview
 

@@ -16,9 +16,12 @@ description: |-
 ## How it works
 
 ONE path: assemble the COMPLETE PR context (the body, EVERY changed file's full
-unified diff, the commits, and every comment) → ONE message → ONE model call →
+unified diff, the commits, and the comment thread) → ONE message → ONE model call →
 extract the deterministic `Verdict: PASS|BLOCK` line → emit the effects
-(`--out`, `$GITHUB_OUTPUT`, ONE PR comment).
+(`--out`, `$GITHUB_OUTPUT`, ONE PR comment). The body, the per-file diffs and the
+commits are always whole; the comment thread keeps its NEWEST comments whole and,
+when it exceeds `AI_REVIEW_CONTEXT_THREAD_MAX_BYTES`, summarises the older ones
+rather than letting the thread dominate the context.
 
 The prompt is EMBEDDED in the binary (`prompt.md`) — no external file is read at
 run time, so a run cannot be redirected by an environment path. Every

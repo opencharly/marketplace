@@ -16,7 +16,7 @@ description: |-
 | Install files | `charly.yml`, `package.json`, `dsh-entrypoint` |
 | Depends | `nodejs` (>=22.19.0), `supervisord` |
 | Port | 3080 (web UI, loopback) / 3081 (socat forwarder) |
-| Volume | `~/.dsh` (profiles + plugin data) |
+| Volume | `~/.dsh` (profiles + plugin data + the captured web token) |
 
 ## Environment Variables
 
@@ -28,9 +28,9 @@ description: |-
 
 RPM/DEB/PAC: `socat` (the loopback→eth0 forwarder)
 
-## The web UI is loopback-only — socat exposes it
+## The web UI is loopback-only and token-authenticated
 
-`dsh web` binds **127.0.0.1:3080 only**: dsh-web-app 0.1.0-rc.6
+`dsh web` binds **127.0.0.1:3080 only**: dsh-web-app 0.1.7-rc.1
 hard-rejects `--host 0.0.0.0` (RCE safety). A container's published
 port maps to the container's eth0, not loopback — so the charly-owned
 `dsh-entrypoint` runs `dsh web` in the background and `exec`s a socat
@@ -40,6 +40,16 @@ forbids a wildcard + loopback listener pair on one port), so the
 published port (auto-allocated host port → container 3081) reaches
 the web UI through socat. On the vm substrate the `ssh -L` forward
 targets loopback directly — socat just doesn't hurt there.
+
+Since dsh-web-app 0.1.5-rc.x the web UI authenticates every request:
+each process mints a random launch token, and `dsh web` prints its
+readiness URL as `dsh web: http://127.0.0.1:3080/?token=...`. There is
+no flag or config that disables authentication. The entrypoint parses
+that token from the readiness line and writes it to
+`$DSH_HOME/web-token` (on the `dsh` volume, so a fresh `charly update`
+rebuild re-captures it); a tokenless `GET /` returns **401**. In-box
+probes authenticate with the token, e.g.
+`curl "http://127.0.0.1:3080/?token=$(cat $DSH_HOME/web-token)"`.
 
 ## Usage
 

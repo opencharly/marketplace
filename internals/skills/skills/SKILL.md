@@ -157,7 +157,7 @@ indistinguishable from a legitimate update.
 
 Measured: a wholesale `charly marketplace generate` touched **21** files in `plugins`
 and **41** in `docs` when three candy sources had changed. The extra ones were reverts,
-~500 lines of landed prose including 317 from one `git-workflow` reference and 107 from
+about 500 lines of landed prose including 317 from one `git-workflow` reference and 107 from
 the `pr-validator` agent spec. Nothing in the output flagged it.
 
 So: after regenerating, **restore every file whose candy source you did not touch**, and

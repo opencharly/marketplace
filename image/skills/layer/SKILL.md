@@ -859,7 +859,7 @@ Do **NOT** split a polymorphic service into two candies like `myservice` (superv
 
 If you find yourself reaching for a `-host` suffix on a candy name, reach for a second `service:` entry instead. The same rule applies to `-pod` suffixes for the inverse case (a candy that needs container-only behavior under systemd targets).
 
-`charly box validate` does NOT (yet) statically reject `*-host` / `*-pod` candy names, because some legitimate uses might exist (a candy whose package literally only exists on host distros). The rule lives in the project rulebook "Init-system polymorphism via mixed `service:` entries" (`AGENTS.md` / `CLAUDE.md`) + this skill + `/charly-infrastructure:supervisord` — agents that load any of those before authoring will see the guidance. Canonical worked examples: `/charly-coder:sshd` (mixed), `/charly-infrastructure:virtualization` (mixed; CANONICAL example), `/charly-infrastructure:postgresql` (use_packaged-only).
+`charly box validate` does NOT (yet) statically reject `*-host` / `*-pod` candy names, because some legitimate uses might exist (a candy whose package literally only exists on host distros). The rule lives in the project rulebook "Init-system polymorphism via mixed `service:` entries" (`AGENTS.md`) + this skill + `/charly-infrastructure:supervisord` — agents that load any of those before authoring will see the guidance. Canonical worked examples: `/charly-coder:sshd` (mixed), `/charly-infrastructure:virtualization` (mixed; CANONICAL example), `/charly-infrastructure:postgresql` (use_packaged-only).
 
 ## Volume Declaration
 

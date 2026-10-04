@@ -114,13 +114,16 @@ orchestrator, never one teammate marching through a queue.
 
 **The hard trigger.** If a subagent/teammate has produced **no
 ARTIFACT** — a pushed commit, an opened PR, a merge, a tag, or measured
-output — after **two re-briefs**, or its session passes **~50 messages
-without a produced artifact**, **STOP it and spawn a FRESH subagent with
-a clean brief.** Do not append a third correction. Re-briefing a stalled
-session is the one reuse that is never legitimate: it is the failure this
-rule exists for — and it reads like continue-same-task while being its
-opposite (a stalled session is not continuing its own unit; it is not
-producing at all).
+output — after **two re-briefs** of the SAME task, **STOP it and spawn a
+FRESH subagent with a clean brief.** Do not append a third correction.
+Re-briefing a stalled session is the one reuse that is never legitimate:
+it is the failure this rule exists for — and it reads like
+continue-same-task while being its opposite (a stalled session is not
+continuing its own unit; it is not producing at all). **A turn/message
+count is NOT a trigger** — a long task's turns are not a stall (a
+"message" is an assistant TURN; monitor by artifact and cadence, never by
+a counter). The only countable trigger is the **orchestrator's own**
+re-briefs of the SAME task, capped at two.
 
 **Why re-tasking a stalled session fails — the measured evidence.** A
 session ran **7 hours / 351 messages** and produced **no artifact** on a

@@ -100,7 +100,7 @@ preflight arm, K-wave 2 cone R4 — the former `charly/check_image_preflight.go`
 is DELETED).
 
 This invariant — "deploy fetches NOTHING speculative" — is codified
-as a project-rulebook Key Rule (`AGENTS.md` / `CLAUDE.md`) and enforced at the type level: the
+as a project-rulebook Key Rule (`AGENTS.md`) and enforced at the type level: the
 `LocalSpec` Go struct has no `Images` field, so the surface is
 unreachable from any new code. Migration: `charly migrate`
 (idempotent; rewrites legacy `image:` blocks under `local.<name>`

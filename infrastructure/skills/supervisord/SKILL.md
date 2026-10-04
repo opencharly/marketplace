@@ -33,7 +33,7 @@ This layer declares no `require: python`. supervisord's runtime is
 pure system-Python (the `supervisor` RPM brings `/usr/bin/python3`
 as its own dependency), so it needs no `python` charly-layer → `pixi`
 charly-layer → conda-forge Python env (~500 MB). See the project rulebook
-"Key Rules" (`AGENTS.md` / `CLAUDE.md`) → *"Don't declare defensive deps"* for the general rule.
+"Key Rules" (`AGENTS.md`) → *"Don't declare defensive deps"* for the general rule.
 
 **Arch note:** the `pac: [supervisor]` section is required so that
 Arch-based images with `build: [pac]` actually install supervisord.

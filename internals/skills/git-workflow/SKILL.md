@@ -221,8 +221,8 @@ Inside the umbrella checkout the umbrella `AGENTS.md` governs (rule 7: read the
 subrepo's own rulebook before touching it; `charly/AGENTS.md` owns R0–R10 inside
 `charly/`). The umbrella's own commands — never an ad-hoc substitute — are:
 `charly task sync` (policy-B pin bump), `charly task verify` (the full pinning gate — there is
-NO CI gate), `charly task hooks` (install the per-commit gate), `charly task harness` (config
-parity), `charly task map`. Hard rules there: **never edit inside a submodule** (change
+NO CI gate), `charly task hooks` (install the per-commit gate),
+`charly task map`. Hard rules there: **never edit inside a submodule** (change
 lands by PR to the owning repo; the umbrella only records gitlinks), run submodule
 git through `git -C <absolute-path>` from the umbrella root, no worktrees inside
 submodules, pin only MERGED refs, and bound every command's output (SIGPIPE is

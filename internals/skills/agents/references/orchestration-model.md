@@ -168,7 +168,13 @@ catalog).
 ## The responsibility matrix — who owns what
 
 **Orchestrator** (the persistent main session, ×1, most-capable model):
-- Owns: architectural integrity (every placement judged against the
+- Owns: the ENTIRE PR SURFACE — creates every PR, runs every push (a
+  SINGLE push after it has FULLY validated the change AND the PR body
+  itself), reads every `charly/pr-validator` verdict IN FULL (every block,
+  every comment disposition), and ensures EVERY finding is fixed before the
+  next push (all findings in ONE commit; never a partial fix; never a push at
+  the block limit). Sub-agents may commit freely; only the orchestrator
+  pushes. Also owns: architectural integrity (every placement judged against the
   end-state; breaches corrected at once); the plan/contract and all scope
   rulings (every STOP-and-ask terminates here); independent
   RDD-verification of every teammate decision (bidirectional — never
@@ -190,11 +196,22 @@ catalog).
 
 **Implementation teammate** (×N cost-scaled, one per independent cutover,
 one worktree each):
-- Owns: its one cutover end-to-end — design within the contract,
+- Owns: its ONE task end-to-end — design within the contract,
   implementation, unit gates (build/test/lint/gofmt/cue-gen-repro), short
   foreground checks (`charly box validate` / `charly check box`), R5
-  sweeps, ADE plans, CHANGELOGs, authoring its PRs, fix-rounds in-place on
-  CHANGES-REQUESTED, handoff packages when context runs short.
+  sweeps, ADE plans, CHANGELOGs, **reading `charly/pr-validator`'s results
+  IN FULL and fixing EVERY finding in ONE commit — that IS the worker's
+  job**, handoff packages when context runs short. It COMMITS freely in its
+  worktree (many commits fine).
+- Briefed with: exactly ONE task, **fully planned by the orchestrator as it
+  would plan for itself** — the exact files, edits, commands, evidence and
+  acceptance, with the **relevant skill content EMBEDDED** (read by the
+  orchestrator, not merely referenced). A brief that leaves ANY decision to
+  the worker is an orchestrator DEFECT and is not dispatched. **One task per
+  agent — never several PRs/findings in one brief.**
+- Never: creates a PR; pushes; writes a PR body; decides a merge;
+  coordinates with other sessions. It hands the worktree back with a precise
+  report — the orchestrator validates, pushes, and gates the next push.
 - Delegates: mechanical bulk to transient sub-agents it briefs and reviews
   (never rubber-stamps).
 - Never: runs a full `charly check run` / any bed roster (the
@@ -215,8 +232,8 @@ one worktree each):
 - Owns: one bounded, file-disjoint unit (relocation batch / survey / spike /
   golden harness) and its own unit verification; returns verbatim results
   to its spawner.
-- Never: full beds; commits/pushes/PRs; scope decisions; work beyond its
-  brief.
+- Never: full beds; PUSHES or PRs (it may commit in its own worktree);
+  scope decisions; work beyond its brief.
 
 **Design reserve** (a former implementer kept addressable for keystone
 questions):
