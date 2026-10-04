@@ -36,7 +36,7 @@ Mixing those concerns into the shared `tailscale` candy would either
 break bootc consumers (with build-time errors from missing daemon
 socket) or require a target-aware conditional inside the shared candy
 — exactly the kind of `<name>-host` polymorphism that the project rulebook
-"Init-system polymorphism" rule (`AGENTS.md` / `CLAUDE.md`) forbids.
+"Init-system polymorphism" rule (`AGENTS.md`) forbids.
 
 `tailscale-up` is the runtime-config sibling: it depends on `tailscale`,
 self-gates on `systemctl is-active tailscaled`, and only fires when

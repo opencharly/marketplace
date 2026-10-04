@@ -76,6 +76,45 @@ charly config githubrunner -e RUNNER_ORG=myorg -e RUNNER_TOKEN="$TOKEN"
 charly remove githubrunner -e RUNNER_TOKEN=$(gh api -X POST /orgs/myorg/actions/runners/remove-token --jq .token)
 ```
 
+## Org-runner routing: a queued job is almost never an agent problem
+
+A job that shows `labels: ["<your-label>"]`, `status: queued`, `runner_name: ""`
+while the runner reads `online` + `busy: false` is a ROUTING failure, not a
+runner failure — the runner has nothing to execute. Work the causes in order:
+
+1. **The runner group does not allow public repos (the silent one).** An org
+   runner in a group whose `allows_public_repositories` is `false` is INVISIBLE
+   to every public repo in the org, so their jobs queue forever with no error
+   anywhere. Check and fix with a REAL boolean (the `-f` flag sends the string
+   `"true"`, which the API rejects as `"true" is not a boolean` — use `--input`):
+
+   ```bash
+   gh api /orgs/<org>/actions/runner-groups --jq '.runner_groups[]|{id,name,allows_public_repositories,visibility}'
+   echo '{"allows_public_repositories": true}' > rg.json
+   gh api -X PATCH /orgs/<org>/actions/runner-groups/<id> --input rg.json
+   ```
+
+2. **`labels` mismatch.** The runner must carry every label `runs-on` names.
+   Compare `gh api /orgs/<org>/actions/runners --jq '.runners[0].labels'` against
+   the job's `labels` (a reusable workflow may resolve a `vars.` label you forgot
+   to set, e.g. `vars.REVIEW_RUNNER_LABEL`).
+
+3. **A stale broker session.** After a container restart the listener can log
+   `A session for this runner already exists` / `TaskAgentSessionConflictException`
+   and retry on a 30s loop without taking jobs, while still reporting `online`.
+   A full clean cycle clears it — `charly remove` (deregisters) then
+   `charly config` + `charly start` — not just a restart.
+
+Confirm the fix by watching the job, not the runner: a picked-up job flips to
+`in_progress` with `runner_name` set, and the workflow's steps then appear.
+
+## `gh` must be present for a review/gate runner
+
+A runner whose job is to execute `gh`-driven workflows (the org `pr-validator`
+runs `gh api` / `gh pr comment` / `gh pr merge`) needs the `gh` CLI in its
+image — compose `/charly-tools:gh` (it is not part of the base toolchain). A
+runner without it fails the workflow at its first `gh` call.
+
 ## Used In Boxes
 
 - `/charly-distros:githubrunner`

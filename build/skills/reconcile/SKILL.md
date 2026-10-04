@@ -26,7 +26,7 @@ default mode is idempotent; `--remote` is not, because its target is whatever th
 remote's newest tag is at the moment of the call — see "`--remote` targets whatever
 is newest NOW" below before reaching for that flag.
 
-The **zero-warnings R10 gate** (the project rulebook R1 (`AGENTS.md` / `CLAUDE.md`)) makes this load-bearing: a change
+The **zero-warnings R10 gate** (the project rulebook R1 (`AGENTS.md`)) makes this load-bearing: a change
 that introduces a version mismatch is not landable until `charly box reconcile`
 clears the warning.
 

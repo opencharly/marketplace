@@ -84,15 +84,19 @@ command; the worker discovers the value at run time. Full rule and the measured
 `.github#141` evidence: `references/program-discipline.md` ("Volatile facts are
 DISCOVERED, never baked into a brief").
 
-## The harness-adapter CONFIG mechanism (layer-charly-internals#49)
+## The harness-config LOCATION (umbrella-only; layer-charly-internals#49)
 
-Harness adaptation lives in the **per-harness config at the repo root**, never in
-the rulebook: a shared, byte-identical core of gate scripts (drift-checked by
-`charly task harness`) plus deliberate per-harness forks and a clone-level git hook
-installed with `charly task hooks`. The two halves coexist by classification - each
-surface is identical-by-design, umbrella-only, or deliberately-forked - so a shared
-file is never copied into a fork and a fork is never silently re-synced. This skill
-documents the mechanism; the rulebooks stay harness-neutral.
+ALL harness config lives in the **umbrella root** (`opencharly/opencharly`) and
+NOWHERE else: `.claude/`, `.opencode/`, `.codex/`, `.pi/`, `.reasonix/`, and
+`opencode.json`. No submodule or sibling repo — `.github`, a `distro-*`/`layer-*`/
+`pod-*`/`plugin-*` repo, or `charly/` — carries a copy, and there is **no parity
+gate**: the former `charly task harness` (which compared umbrella↔`charly/`
+byte-identical files) is DELETED. Sessions root at the umbrella (umbrella
+`AGENTS.md` rule 4), and harness config resolves from the SESSION'S project root, so
+config anywhere else would bind a situation that cannot legally occur — **one root,
+one config home**. A rulebook (`AGENTS.md`) is NOT harness config and stays in its
+own repo. The clone-level git hook is installed per clone with `charly task hooks`.
+This skill documents the mechanism; the rulebooks stay harness-neutral.
 
 ## A plugin resolves DIFFERENT PIECES FROM DIFFERENT REFS — verify the pin its BACKEND resolves from (R1 2026-09-29)
 
@@ -103,6 +107,47 @@ A plugin is not one artifact and does not resolve from one ref. Its **code** may
 **Remedy.** Identify the submodule / ref the backend script resolves from; compare the pinned gitlink (or `@github` ref) against the commit that merged the script; then advance the pin the sanctioned way — `charly task sync` for an umbrella gitlink, or a refs-list bump + `charly marketplace generate` for the marketplace corpus — never a hand-pin and never a checkout into the submodule.
 
 **Concrete case.** In one session `coord_comment` failed while `coord_watch` worked. Both are registered by the SAME plugin, loaded from the workspace — but `coord_comment` shells out to `marketplace/scripts/coord.sh` while `coord_watch` shells out to `marketplace/scripts/gh_watch.sh`. `gh_watch.sh` was already in the pinned `marketplace` gitlink; `coord.sh` had merged LATER and the gitlink had not advanced, so the tool reported "coord.sh not found — sync the marketplace pin". The failure was a stale `marketplace` gitlink, not a defect in the plugin that bound the script.
+
+## Monitoring AND controlling agents in OpenCode (the `agent_progress` + `agent_control` tools)
+
+In OpenCode the orchestrator does not guess at a subagent's health — it reads the
+TRANSCRIPT and, when needed, controls the session. The `.opencode/plugins/agent-progress.ts`
+plugin registers TWO native tools: **`agent_progress`** (monitor) and **`agent_control`**
+(control). Both are pure TypeScript (the `coord.ts` directive: no `.sh`, no `marketplace` pin).
+
+**A "message" is an ASSISTANT TURN, never a stall signal.** `session_message` rows with
+`type='assistant'` are turns; counting them penalises an agent for WORKING. A **high turn
+count is NOT a stall** — the monitor shows the count and never keys a verdict on it.
+
+**The four verdicts (artifact / cadence / loop / idle).** `agent_progress` reports, per
+session: turns, span, last-turn/last-event age, the tool mix, the last action (the
+text/reasoning snippet + the last tool + its input), artifact hints (`owner/repo#N`,
+`gh pr merge`, `merged`, `v…` tags, `pushed`), and a verdict:
+- **WORKING** — recent turns + steady tool cadence (give it room);
+- **IDLE** — no turns past `windowMin` (default 15) AND no artifact;
+- **LOOP** — the same tool+input repeated (no artifact change) — the pathology;
+- **DONE** — a final report (`finish=stop`) with no pending action.
+
+Diagnose from the transcript (`session_message`, `type='assistant'`). **Rotate/take over
+ONLY on** >2 orchestrator re-briefs of the SAME task, idle-past-window with no artifact, or
+a loop — **never on turn count** (see the project rulebook's subagent-lifecycle section).
+
+**Stop = `interrupt` / `delete`, then CONFIRM it stopped.** `agent_control` exposes
+`list` (enumerate sessions + verdicts), `interrupt` (stop a running session WITHOUT
+deleting it — `ctx.session.interrupt({sessionID, continue:false})`), `delete`
+(`opencode session delete` — the session AND its child sessions), `wait` (bounded block
+until idle), and `confirm_stopped` (re-read the transcript and ASSERT no new turns — the
+"CONFIRM it stopped" rule). `interrupt`/`delete`/`wait` require an EXPLICIT session id
+(never `all`) and report what they stopped, so a session another slug owns is never
+silently killed. **A rotation is STOP + spawn:** stop the predecessor (interrupt, or
+delete if it is dead weight) and confirm no new turns BEFORE spawning the successor — an
+announced-but-unperformed rotation leaves two agents on one scope.
+
+**In OpenCode the control primitives are first-class** (`ctx.session.interrupt` /
+`ctx.session.wait`; `opencode session delete`; the API equivalents
+`POST /api/session/{id}/interrupt`, `DELETE /api/session/{id}`,
+`POST /api/experimental/session/{id}/wait`). Never claim "opencode cannot stop a
+subagent" — it can; an unverified assumption here is the same failure the RCA rule forbids.
 
 ## Todo ledger & interruption safety
 

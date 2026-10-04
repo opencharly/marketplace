@@ -17,10 +17,7 @@ path for umbrella work, never an ad-hoc substitute.
   gate** for this; `charly task verify` IS the gate. Run it on the final tree and
   paste the output (R7: a green `git status` proves nothing).
 - **`charly task hooks`**: install the per-commit gate once per clone (sets
-  `core.hooksPath hooks`); policy B + harness parity then run on every commit.
-- **`charly task harness`**: the root harness
-  config mirrors the source repo's; keep it in sync, never fork it silently
-  (AGENTS.md rule 8).
+  `core.hooksPath hooks`); policy B then runs on every commit.
 - **`charly task map`**: list every submodule with its pin and sync state.
 - **`charly task skills`** → `scripts/sync-dispatcher.sh`: splice the generated R0
   dispatcher from the pinned marketplace into `AGENTS.md`.

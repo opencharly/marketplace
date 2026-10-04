@@ -45,20 +45,57 @@ validator looks quiet but is working. The progress signal is a **COMPLETED
 WORKFLOW RUN** (default `charly/pr-validator`) — the B2b.1 rule, which this
 watcher family merely operationalizes.
 
-### Single instance, and the API budget
+### One watcher, one poll per minute, and the API budget
 
-Two hazards of a standing watch, both handled by the tools:
+Four rules, all enforced by the tools — plus the numbers that motivate them:
 
-- **Stacking.** A per-args **lockfile** (flock on a key hashed from the exact
-  args, plus a holder PID) means repeated arms NEVER stack: a foreground arm
-  **takes over** a live peer (or a detached successor) cleanly, displacing it
-  before it acquires. Exactly one watcher per identical invocation runs.
-- **Rate limits.** The pollers share the account's **5000/hr** core budget.
-  Before each poll the watcher reads the remaining quota from the FREE
-  `/rate_limit` endpoint; below `WATCH_RATE_MIN` (default 200) it **backs off**
-  (4x the interval, capped) and logs `RATE-LIMIT`, instead of hammering into
-  the observed HTTP-403 wall that killed watchers. Never raise the poll rate to
-  "catch up" — back off.
+- **ONE watcher per session.** Do not run several watchers on one scope; the
+  single-instance lock makes a re-arm take over a live peer, so extra arms are
+  never an extra watch — they are churn. Arm the ONE watcher whose wake you
+  actually act on.
+- **A 60-second poll FLOOR (`POLL_FLOOR=60`).** Every watcher defaults to 60s
+  and REFUSES a sub-60s `--interval` at parse time (exit 5). Tests that must run
+  fast opt in explicitly with `ALLOW_FAST_POLL=1`; it is never a production
+  setting. Budget it explicitly: **a `gh_watch.sh` at a 20s cadence over N items
+  was a budget incident** — see the measured numbers below.
+- **Prefer terminal-outcome events.** Arm `gh_watch.sh --events merged,closed`
+  (the default, plus `stall`), NOT `comment`/`verdict`. Outcome events fire once
+  at the end of a wait; per-verdict/per-comment polling wakes you on every
+  iteration of an actively-working owner and multiplies the budget. Add
+  `comment`/`verdict` ONLY for a wait that genuinely needs them.
+- **Never stack `--auto-rearm` watchers.** One `--auto-rearm` watch per scope is
+  the design; two identical arms do not double the coverage — the lock displaces
+  the first. A successor keeps the WATCH alive; the agent's re-arm keeps
+  NOTIFICATIONS alive.
+
+**The measured budget.** The account shares a **5000 calls/hr** core budget
+(plus a separate GraphQL points budget, also 5000/hr). MEASURED 2026-09-28:
+`gh_watch.sh`'s `snapshot()` issued **6 REST calls per ITEM per poll** (a
+`/pulls` type probe, `/issues` state, `/pulls` merged, `/issues/comments`, a
+per-item `gh run list`, and `/issues` updated_at). Over **5 items** that is
+**30 calls per poll**: at `gh_watch.sh`'s own old 30s default (2 polls/min)
+that is 6 × 5 × 2 = **3600/hr — 72% of the budget for ONE watcher** — and at
+the then-reachable 20s cadence (the old floor was 1s; `pr_watch_many.sh`
+defaulted to 20s) it is 6 × 5 × 3 = **5400/hr, OVER budget**. Repeated
+fast/stacked polls produced **HTTP 403** and dead watchers.
+
+The tools now make that arithmetic safe:
+
+- **`gh_watch.sh` polls in ONE GraphQL request for the whole item list.**
+  MEASURED with a call-counting `gh` wrapper, 6 items over TWO rounds (seed
+  + one poll): **73 gh invocations (old) → 3 (new)**. The old 73 reconciles
+  with the 6-per-item rate: (73 − 1 free `/rate_limit`) ÷ (6 items × 2
+  rounds) = 6/item/poll. The new 3 are 2 GraphQL requests (seed + poll) plus
+  1 FREE `/rate_limit` read — so the billable constant is **1 request per
+  poll for N items, independent of N**, and a 60s watch is **~60 requests/hr
+  for the whole list** whatever N is.
+- **Rate-limit discipline.** Before each poll the FREE `/rate_limit` endpoint is
+  read; below `WATCH_RATE_MIN` (default 200) the watcher **backs off**
+  (`--interval × WATCH_RATE_BACKOFF_FACTOR`, default 2, capped 600s) and logs
+  `RATE-LIMIT`. A genuine **exhaustion is a HARD ABORT**: any rate-limit signal
+  (HTTP **403/429**, a zero remaining quota, or a GraphQL **`RATE_LIMIT`** error)
+  prints a `FATAL` naming the reset time and exits **non-zero** — a rate limit is
+  a STOP condition, never a retry. Never raise the poll rate to "catch up".
 
 ### Which watcher to arm
 

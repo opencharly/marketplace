@@ -20,7 +20,7 @@ and a profile's plugins.
 
 ## Command tree
 
-- `charly dsh status --box <name> [--instance <name>]` — dsh version + web UI health in the box.
+- `charly dsh status --box <name> [--instance <name>]` — dsh version + web UI health in the box (the web UI probe reads the launch token from `$DSH_HOME/web-token`).
 - `charly dsh profile list --box <name> [--instance <name>]` — profiles under `$DSH_HOME/profiles`.
 - `charly dsh plugin list --box <name> [--instance <name>] --profile <name>` — a profile's plugins (default profile: `web`).
 
@@ -40,9 +40,15 @@ provider runs dsh commands INSIDE the venue via `cc.Exec()`
 carries the dsh binary + $DSH_HOME layout). Methods:
 
 - `dsh: version` — `dsh --version` in the venue (build + deploy context).
-- `dsh: web-running` — probe `http://127.0.0.1:3080/` in-box via curl
-  (deploy context; skips under `charly check box` — no running
-  service on a disposable `podman run --rm`).
+- `dsh: web-running` — read the launch token from
+  `$DSH_HOME/web-token` (persisted there by the dsh candy's
+  entrypoint on service start) and probe
+  `http://127.0.0.1:3080/?token=<token>` in-box via curl.
+  dsh-web-app >= 0.1.5-rc.x authenticates every request — a tokenless
+  `GET /` returns 401 — so a missing token file fails the probe with a
+  clear error rather than silently probing tokenless. Deploy context;
+  skips under `charly check box` — no running service on a disposable
+  `podman run --rm`.
 - `dsh: profile-list` — list profiles under `$DSH_HOME/profiles` (build + deploy context).
 - `dsh: plugin-list` — list plugins for a profile (`profile: <name>`,
   default `web`) via `dsh plugin --profile <name> list` (build + deploy context).
