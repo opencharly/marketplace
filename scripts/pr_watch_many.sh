@@ -193,7 +193,22 @@ if [ "${#PAIRS[@]}" -gt 0 ]; then
     rp="$(result_path "$repo" "$pr")"
     # 9>&- is ESSENTIAL: the per-PR watcher is LONG-LIVED — if it inherited our flock fd
     # (fd 9) it would hold the lock after we exit, blocking our successor.
-    ( "$WATCH" "$repo" "$pr" --interval "$INTERVAL" --timeout "$TIMEOUT" >/dev/null 2>&1
+    #
+    # The watcher runs in the BACKGROUND of the subshell, not the foreground, so the subshell
+    # can WAIT on it and FORWARD our teardown signal. Without the forward, cleanup() kills the
+    # subshell and the watcher — its CHILD — survives as an orphan reparented to systemd
+    # --user: the pid recorded in PIDS is the subshell's, `wait` waits on subshells, and no
+    # exit path of this script (the first-wake exit, the --all exit, the timeout exit, the
+    # TERM/INT trap) ever reaches the watcher. Measured, twice, on the same PR
+    # (opencharly/marketplace#417). The forward also makes the pid in PIDS the correct
+    # LIVENESS proxy: the subshell is alive exactly while its watcher runs, which is what
+    # any_pr_alive asserts.
+    ( "$WATCH" "$repo" "$pr" --interval "$INTERVAL" --timeout "$TIMEOUT" >/dev/null 2>&1 &
+      wp=$!
+      # TERM carries teardown (our INT path re-raises as `exit 143`, so cleanup always sends
+      # TERM); INT is set alongside it for the direct-signal case.
+      trap 'kill "$wp" 2>/dev/null; exit 143' TERM INT
+      wait "$wp"
       code=$?
       printf '%s|%s|%s\n' "$code" "$repo" "$pr" > "$rp.tmp"
       mv "$rp.tmp" "$rp" ) 9>&- &
