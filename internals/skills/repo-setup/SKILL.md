@@ -55,8 +55,9 @@ NEW repository.
    modules (`sdk`, `spec`, `plugin-gh`) get the Go-module `v0.<YYYYDDD>.<HHMM>`
    form instead.
 4. A body-only fix after the head was pushed needs NO empty commit: re-run the
-   failed run MANUALLY with `gh run rerun <run-id>` (a re-run updates the same check
-   run in place). The org-wide `rerun` label sweep was RETIRED.
+   failed run MANUALLY with `gh api -X POST repos/<owner>/<repo>/actions/runs/<run-id>/rerun`
+   (not `gh run rerun`, which 404s on the org-required workflow; the re-run's newer
+   check run supersedes the failure). The org-wide `rerun` label sweep was RETIRED.
 
 ## Setting up a NEW repository (checklist)
 
