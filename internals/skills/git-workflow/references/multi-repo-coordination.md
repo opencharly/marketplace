@@ -273,7 +273,7 @@ after ALL of:
 
 1. **A coordination comment posted on the scope FIRST** — an ownership
    board, or a `BLOCKS`/`STATUS` addressed to the owner, asking them to
-   reply `OWNING — ETA` or `HANDING OVER — <reason>`. **No comment, no
+   reply with their status or `HANDING OVER — <reason>`. **No comment, no
    takeover, ever.**
 2. **The window elapsing** with **no answer from the original session AND
    no progress** (the progress signal above). **The window is 60 minutes**
@@ -412,7 +412,7 @@ have been closed.
      run on the current head within the working window. Leave it.
    - **stalled** — none of the above. Start the formal takeover (B2b).
 3. **Act, then arm — never hand-poll.** Close the superseded. For each stalled PR
-   post the ownership-board comment (`OWNING — ETA <when>` / `HANDING OVER —
+   post the ownership-board comment (`OWNING` or `STATUS` / `HANDING OVER —
    <reason>`) and arm `gh_watch.sh --events comment,stall <item>` so the reply OR
    the window's end wakes you (`references/watch-and-wake.md`); after the window
    with no reply, `TAKING OVER — authority: window-expired` (B2b). Treat a
