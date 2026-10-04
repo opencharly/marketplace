@@ -14,7 +14,7 @@ description: |-
 | Property | Value |
 |----------|-------|
 | Install files | `charly.yml` (binary fetch + symlinks via a `run:` plan step) |
-| Pinned version | `v1.31.11+k3s1` (edit `K3S_VERSION` in `charly.yml` vars to cut over) |
+| Pinned version | `v1.37.0+k3s1` (edit `K3S_VERSION` in `charly.yml` vars to cut over) |
 
 ## What this candy does
 

@@ -31,10 +31,12 @@ guessing.
   legal children beside the kind key are sub-ENTITY members, and ONLY under a
   deployable kind (pod/vm/kubernetes/local/android/group) — a candy nests NO members,
   so any second key under a candy entity is an error.
-- **`version:` is MANDATORY** — a CalVer `YYYY.DDD.HHMM`. `charly box validate`
-  hard-errors when absent. Bump it when the layer's content changes (it is
-  the per-entity identity that drives cross-repo resolution and the
-  consuming image's `ai.opencharly.version` label).
+- **No authored `version:`.** A per-entity `version:` was deleted by the
+  schema-versioning removal cutover and the candy schema is CLOSED, so a candy
+  carrying one fails closed-CUE at load (`charly migrate` strips it). The
+  per-entity identity the loader uses is the candy's **git tag**, which it assigns
+  to `CandyModel.Version` (`sdk/loaderkit/scan_orchestrate.go`; arbiter
+  `sdk/loaderkit/candy_version.go`), emitted as `ai.opencharly.candy_version`.
 - **`description:` and a `plan:` with ≥1 deterministic `check:` step are
   MANDATORY** (the ADE gate) — `charly box validate` hard-errors otherwise.
 

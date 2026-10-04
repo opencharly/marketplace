@@ -26,8 +26,8 @@ source of truth"). The recipe:
    `spec/spec/charly_names.go` (`type BoxConfig = Box`) instead.
 3. **Regenerate: `charly task cue-gen`** in the spec repo (the base schema's own
    `kind:task`). It runs `cue exp gengotypes` into `spec/spec/cue_types_gen.go`, the companion
-   `spec/internal/schemagen` into `spec/spec/vocab_gen.go` + `spec/spec/version_gen.go`,
-   and the principled yaml-tag retag transform (both over the `spec/schemaconcat`
+   `spec/internal/schemagen` into `spec/spec/vocab_gen.go`, and the
+   principled yaml-tag retag transform (both over the `spec/schemaconcat`
    concatenation). NEVER hand-edit the generated files (they carry the
    `Code generated … DO NOT EDIT` banner).
    `TestGenReproducible` (`spec/spec/gen_repro_test.go`) fails if committed ≠ fresh.
@@ -55,20 +55,16 @@ source of truth"). The recipe:
    (reusing the shared defs in `_common.cue`) + a one-line `cue_kind_<kind>.go`
    `registerCueKind` registration + a corpus-test entry
    (`cue_kinds_corpus_test.go`).
-6. **Schema-version bump ONLY on an authored WIRE-key change.** Only if the
-   change alters an authored WIRE key (the YAML users write) is it a FORMAT
-   change: then it is CROSS-REPO — bump `#SchemaVersion` in
-   `spec/schema/version.cue`, run `charly task cue-gen` (which regenerates the
-   `SchemaVersion`/`SchemaFloor` consts in `spec/spec/version_gen.go` that
-   `kit.LatestSchemaVersion()` parses), land + tag the spec repo, then in the
-   superproject bump the `github.com/opencharly/spec` require version
-   (charly/go.mod + every lockstep go.mod — the canonical-go.mod gate asserts
-   one shared pin; `charly task mods-tidy` re-syncs the go.sum files) and append the
-   matching entry to the
-   declarative migration table (`candy/plugin-migrate/migrations.cue` — the TABLE lives in
-   the compiled-in `command:migrate` plugin) per `/charly-build:migrate`. A pure
-   Go-identifier change via `@go()` is NOT a format change (wire key preserved) —
-   do NOT bump the schema version.
+6. **A schema change ships its migration-table entry.** Only if the change alters an authored
+   WIRE key (the YAML users write) is it a FORMAT change: then it is CROSS-REPO — land + tag
+   the spec repo, then in the superproject bump the `github.com/opencharly/spec` require
+   version (charly/go.mod + every lockstep go.mod — the canonical-go.mod gate asserts one
+   shared pin; `charly task mods-tidy` re-syncs the go.sum files) and append the matching
+   entry to the declarative migration table (`candy/plugin-migrate/migrations.cue` — the
+   TABLE lives in the compiled-in `command:migrate` plugin) per `/charly-build:migrate`.
+   There is no `#SchemaVersion` / `version:` to bump: the table is an ordered, version-free
+   list, and each entry is idempotent. A pure Go-identifier change via `@go()` is NOT a
+   format change (wire key preserved) — no entry is needed.
 7. **Guards (all must pass):** `cd charly && go test ./...` (reproducibility +
    bijection + corpus + closedness + embedded-defaults via
    `TestEmbeddedDefaults_SchemaConformance`) +

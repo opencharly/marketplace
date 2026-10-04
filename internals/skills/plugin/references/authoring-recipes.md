@@ -291,6 +291,16 @@ placements, ZERO authoring change.
 - PERF: a compiled-in pb CANDY dispatches through the pb `Invoke` envelope IN-PROCESS (no socket) via
   `inprocProvider`, whereas a HOST-COUPLED KIT candy (next section) uses its typed fast path
   (`RunVerb`/`DecodeNode`, no envelope). The pb-candy path pays the JSON envelope but not the gRPC transport.
+- TESTING a compiled-in candy against an UNMERGED checkout: it resolves from the module proxy at its pinned
+  require, so a stock binary runs the PUBLISHED candy and no bed can fail on your edit.
+  `scripts/bootstrap-charly.sh --dev-plugin <candy-name>=<repo-checkout>` (repeatable) makes `pluginsgen`
+  read that repo from the checkout instead and emits a SEPARATE `go.work.dev` selected only under an
+  explicit `GOWORK=` (the committed `go.work`/`go.work.sum` stay byte-identical; a later build WITHOUT the
+  flag deletes it, and `--install` is refused). It validates the name is in `compiled_plugins:` and that
+  `candy/<name>/go.mod` declares module `github.com/opencharly/<name>/candy/<name>`. Then prove the changed
+  path EXECUTED — `go version -m` (`(devel)` vs the module-proxy tag) is necessary but not sufficient; a
+  symbol-set difference over `go tool nm` beats an anchored `grep`, which misses every method. Standard 8
+  of the `check` skill's `beds-and-r10` reference carries the full rule.
 
 ## Authoring a HOST-COUPLED check-verb candy (the kit — dual-placement via the reverse channel)
 

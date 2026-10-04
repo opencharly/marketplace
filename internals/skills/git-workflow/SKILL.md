@@ -65,22 +65,29 @@ nothing pushed yet. The correct order:
 If you must move the head again (a real fix), the body is stale again — repeat 1–4
 in ONE batch: edit the body, then push.
 
-**A body-only fix after a pushed head: re-run the gate MANUALLY with `gh run rerun
-<run-id>`; an empty re-freeze commit is the alternative.** A body edit does NOT
+**A body-only fix after a pushed head: re-run the failed gate MANUALLY through the
+REST API; an empty re-freeze commit is the alternative.** A body edit does NOT
 re-run the required workflow (the ruleset `workflows` rule fires only on `opened`/
 `synchronize`/`reopened` and ignores `types` — MEASURED and confirmed by the GitHub
 docs, "Troubleshooting rules"), so the fix is applied by explicitly re-running the
-failed run: `gh run rerun <run-id>` (find it with `gh run list --repo <r> --json
-databaseId,headSha,conclusion`). A re-run reuses the SAME `GITHUB_SHA` and updates
-THAT run's `validate / validate` check run IN PLACE — no duplicate same-name check
-run — so it clears the POISON state (a completed prior FAILURE on that head) and
-re-reads the corrected body. Because it preserves the head SHA it is the cheaper
-choice.
+failed run: `gh api -X POST repos/<owner>/<repo>/actions/runs/<run-id>/rerun` (find
+the run with `gh run list --repo <r> --json databaseId,headSha,conclusion`). Do NOT
+use `gh run rerun`: the required workflow is defined in `opencharly/.github`, and gh
+(measured on 2.100.0) resolves the run's workflow against the TARGET repo, gets
+`HTTP 404 … /actions/workflows/<id>`, and exits 1 without re-running anything
+(`gh run view`/`watch` fail the same way; `gh run list` works). The re-run is a new
+ATTEMPT on the SAME head SHA with a NEW same-name check run; the merge gate reads the
+newest check run per name, so a passing re-run supersedes the failure and the
+corrected body is re-read — MEASURED on opencharly/docs#142 (head `041625863`):
+`check-runs?filter=all` lists `110609410070 failure` and `110611257957 success`,
+`filter=latest` only the success, and the PR merged. Because it keeps the head SHA it
+is the cheaper choice.
 
 **There is no automatic `rerun`-label channel any more.** The org-wide `rerun` label
 plus scheduled sweep was RETIRED: a label can be added for ANY reason — including a
-comment — and the sweep re-ran the gate without a body change. `gh run rerun
-<run-id>` is the ONE body-fix path now. An empty re-freeze commit (`git commit --allow-empty -m "docs:
+comment — and the sweep re-ran the gate without a body change. The REST re-run
+(`gh api -X POST repos/<owner>/<repo>/actions/runs/<run-id>/rerun`) is the ONE
+body-fix path now. An empty re-freeze commit (`git commit --allow-empty -m "docs:
 re-freeze …"`) ALSO re-fires the required gate: the ruleset `workflows` rule acts on
 the push-driven `synchronize` type, so the push mints a NEW head SHA and a fresh
 `validate / validate` run on it (the old head's checks no longer apply). It is
@@ -95,7 +102,7 @@ nothing on the PR. Measured on opencharly/plugin-vm#39 (head `c9457a9`): the sam
 dispatch without `--ref` produced no head check; carrying the branch ref --
 `--ref feat/deploy-shape-override` -- it registered the green check on the branch head.
 But a `gh workflow run` mints a NEW run (a new same-name check run on the head) and
-can re-poison the rollup; prefer `gh run rerun <run-id>`.
+can re-poison the rollup; prefer the REST re-run of the failed run.
 
 **There is NO self-heal.** The reusable workflow sets a `head_ref` output but
 never consumes it (`grep -c 'steps.pr.outputs'` in
@@ -109,12 +116,15 @@ A branch protection rule requires ALL same-name `validate / validate` check runs
 the head to pass, so a COMPLETED earlier FAILURE keeps the PR `BLOCKED` even after a
 later SUCCESS of the same name — it reads like a verdict BLOCK but is not. Two runs
 on ONE head produce two such check runs; a `gh workflow run` re-dispatch on the same
-head mints another and can keep the PR stuck. **The capability-free remedy is
-`gh run rerun <run-id>` on the failed run**: a workflow re-run reuses the SAME
-`GITHUB_SHA`/`GITHUB_REF` and updates THAT run's check run in place — no duplicate is
-minted (GitHub's own "Re-running workflows and jobs" contract). Find the failed run
-with `gh run list --repo <r> --json databaseId,headSha,conclusion,attempt` and re-run
-the one whose `headSha` is the PR head. This is `actions: write`-free and needs no
+head mints another and can keep the PR stuck. **The capability-free remedy is a
+REST re-run of the failed run** (`gh api -X POST
+repos/<owner>/<repo>/actions/runs/<run-id>/rerun` — not `gh run rerun`, which 404s on
+the org-required workflow): the re-run is a new ATTEMPT of that same run on the SAME
+`GITHUB_SHA`, and its newer check run supersedes the failure in the newest-per-name
+view the merge gate reads (measured on opencharly/docs#142, see "THE BODY-BEFORE-PUSH
+RULE"). Find the failed run with `gh run list --repo <r> --json
+databaseId,headSha,conclusion,attempt` and re-run the one whose `headSha` is the PR
+head. This is `actions: write`-free and needs no
 new SHA. The per-PR concurrency dedupe lives in the ONE org required workflow
 (`org-wide-pr-validator-required.yml`), not a per-repo dispatcher. Full mechanics and
 the dedupe YAML:
@@ -189,7 +199,7 @@ commit — never re-dispatch the same head. Detail: the reference + the script h
 - **Zero warnings is part of R10** (project rulebook R1). A version-mismatch warning clears with `charly box reconcile`; any other warning gets `/charly-internals:root-cause-analyzer` then a real fix — "warning" is never an accepted end state.
 - **Atomic on `main`, never on `feat/`.** The org-wide `charly/pr-validator` workflow's PASS enables GitHub native auto-merge (squash), which folds the author's change and any review-round fix commits into one commit on `main`; the `feat/` branch may freely accumulate fix commits across review rounds. The merge-time CalVer tag and the `CHANGELOG/<CalVer>.md` entry (written from the PR body — the PR body IS the changelog) are created after merge by the org-wide `tag-on-merge` workflow (see "CalVer" in `references/validator-and-calver.md`). Two separate cutovers must never share one PR.
 - **Update the PR; never close-and-recreate** (except for work that will not land at all — a disproven premise, an abandoned approach). When a review demands changes, append a commit and push it fast-forward — the check resets and the validator re-runs. This is what makes the no-force-push rule livable: because `main` gets a squash, a branch carrying five fix commits still lands as one. **If the PR is AUTO-CLOSED after too many failed validation rounds (or the operator closes it) and the work is carried forward in a NEW PR, you MUST post a comment on the OLD (closed) PR that references the new one (its number/URL) and states what it supersedes** — a closed PR is a durable public record that must point to where the work continued.
-- **FINISH THE BODY BEFORE THE PUSH.** The validator validates the PR — the diff at the branch head and the body — each time it runs, and fetches the PR live. The org REQUIRED workflow fires only on the default push-driven types (`opened`/`synchronize`/`reopened`) and IGNORES `on.types` (MEASURED); because the head SHA is content-addressed and therefore known BEFORE the push (`git rev-parse HEAD`), write the body first: commit → compute head/diff-stats → write the WHOLE body (footer last) → push. A body-only fix after the push needs no empty commit — re-run the gate MANUALLY with **`gh run rerun <run-id>`** on the failed run (find it with `gh run list --repo <r> --json databaseId,headSha,conclusion`; a re-run reuses the same `GITHUB_SHA` and updates the SAME check run in place — no duplicate, clears POISON). An empty re-freeze commit ALSO re-fires the gate (the ruleset `workflows` rule acts on the push-driven `synchronize` type) but mints a NEW head SHA — equally valid, just re-key the body to it. Full mechanics: "THE BODY-BEFORE-PUSH RULE" above. Corollary: a PR whose diff is EMPTY because the base already contains the change (you branched from a stale snapshot) is a no-op — close it rather than re-pushing (the validator flags it as body-truthfulness violation: body describes files the diff does not carry). Always `git fetch origin main` + diff against CURRENT main before opening or finalizing a PR.
+- **FINISH THE BODY BEFORE THE PUSH.** The validator validates the PR — the diff at the branch head and the body — each time it runs, and fetches the PR live. The org REQUIRED workflow fires only on the default push-driven types (`opened`/`synchronize`/`reopened`) and IGNORES `on.types` (MEASURED); because the head SHA is content-addressed and therefore known BEFORE the push (`git rev-parse HEAD`), write the body first: commit → compute head/diff-stats → write the WHOLE body (footer last) → push. A body-only fix after the push needs no empty commit — re-run the gate MANUALLY with the REST call **`gh api -X POST repos/<owner>/<repo>/actions/runs/<run-id>/rerun`** on the failed run (find it with `gh run list --repo <r> --json databaseId,headSha,conclusion`; `gh run rerun` 404s on the org-required workflow and re-runs nothing; the re-run is a new attempt on the same `GITHUB_SHA` whose newer check run supersedes the failure — measured on opencharly/docs#142). An empty re-freeze commit ALSO re-fires the gate (the ruleset `workflows` rule acts on the push-driven `synchronize` type) but mints a NEW head SHA — equally valid, just re-key the body to it. Full mechanics: "THE BODY-BEFORE-PUSH RULE" above. Corollary: a PR whose diff is EMPTY because the base already contains the change (you branched from a stale snapshot) is a no-op — close it rather than re-pushing (the validator flags it as body-truthfulness violation: body describes files the diff does not carry). Always `git fetch origin main` + diff against CURRENT main before opening or finalizing a PR.
 - **BEFORE ANY UPDATE PUSH: ALWAYS read the PR's current comments + validation AND ALWAYS write/update the PR body.** Before ANY push that updates an existing PR — a fix commit, a body edit, or `gh pr update-branch` — do BOTH, in THIS order: (a) read the PR's LIVE state — `gh pr view <n> --repo <r> --json comments,reviews` + `gh pr checks <n> --repo <r>` (or the sanctioned `marketplace/scripts/pr_state_watch.sh`: the latest `charly/pr-validator` verdict/validation result and EVERY new comment/review) AND the latest comments/state of every ISSUE this PR closes or relates to (`gh issue view <N> --comments`) — and ACT on each one: answer it in-thread, claim/hand-off on the issue, or change the pushed state to satisfy it); then (b) write the WHOLE updated body for the head you are about to publish (footer last). The validator re-reviews the diff + body + the FULL live thread on every run, so pushing with a stale read OR a stale body re-reviews the wrong state and can re-ship a defect an existing comment already named. A hook/classifier block is never reshaped-and-retried (B5).
 - **Search existing issues/PRs before starting; file ONE proper issue if none; claim it before branching.** Before any non-trivial work — and before filing anything — search the whole org (`gh search issues <terms>` / `gh search prs <terms>` / `gh issue list -S <terms>`) and ADD to the existing issue/PR thread rather than creating a duplicate. If none exists, file ONE proper issue (specific title, the problem, the evidence, the intended scope) and reference it from the PR (`Closes #N` / `relates to #N`). The issue is the coordination point: check its owner (assignee / claim comment / status label) and CLAIM it (comment + assign) BEFORE you create a branch; if another session already owns it, coordinate on the thread instead of opening a competing PR. **Every issue resolved by a PR MUST be closed by an agent once that PR merges** (with a comment linking the merge); never leave a resolved issue open. Full protocol: B2b.
 - **Identity is in the footers; authority is in the comment verb.** On a triggered scope — two or more agents on one issue/PR, OR a blocking dependency (any `BLOCKS`/`UNBLOCKS` in play) — EVERY agent-authored comment and PR body carries the two-line footer in ONE canonical order, **`Agent:` FIRST and `Assisted-by:` LAST** (a PR body thereby also satisfies the validator's "`Assisted-by` FINAL line" requirement), and a coordination comment OPENS with a label from the CLOSED set — `CLAIM` · `OWNING` · `HANDING OVER` · `TAKING OVER` · `BLOCKS` · `UNBLOCKS` · `STATUS` · `RESOLVED`. Both are optional for a solo agent on an uncontended PR; the slug is NEVER appended to `Assisted-by`. Because same-account sessions are indistinguishable by comment author, the SLUG is authoritative for COORDINATION IDENTITY (who is doing the work), not the GitHub author: the LATEST `OWNING` (or `TAKING OVER`) for a scope wins, and you MUST NOT push to another slug's claimed branch/PR without a `HANDING OVER` addressed to you, a `TAKING OVER` naming your `authority:`, or operator sign-off. **The sign-off authority is a SEPARATE axis and is ACCOUNT-gated** — a maintainer sign-off is valid ONLY when the comment is posted by a maintainer-set account (`atrawog`/`aitrawog`), verified by the author label (`by @<login>`), never the prose; the two rules do not conflict (the slug governs WHO, the account governs the sign-off's VALIDITY). **Progress is a COMPLETED `charly/pr-validator` run, never session activity; takeover is comment-FIRST over a 60-minute FLOOR window; the auto-close carry-forward touches FOUR surfaces (closed PR, successor body, the issue, ownership transfer); and there is no R10 class exemption for a library/schema change.** An agent NEVER impersonates the operator. Full mechanics + rendered examples: B2b "agent identity and the coordination verb grammar".
@@ -239,17 +249,19 @@ ignored — `grep` floods on `Broken pipe`). Full detail:
 | Evidence discipline — provenance vs plausibility of a pasted gate, the three freshness surfaces (head / body / pasted output), positive-vs-negative claim decay, sweeping for claims a fix invalidated, the merged-tree gate for a `BEHIND` PR, source-and-regeneration as one cross-repo cutover, submodule pointers reverted by a non-conflicting merge, and why status-absence on a known head proves nothing | `references/evidence-and-freshness.md` |
 | Umbrella mechanics — the ~400-submodule view, policy B, `charly task sync`/`verify`/`hooks`/`harness`, the no-edit-in-submodule rule, pin discipline | `references/umbrella-mechanics.md` |
 | Watch-and-wake — the self-sustaining watcher family (`--auto-rearm`, the single-instance lock, rate-limit backoff) and the arm → wake → act → re-arm runbook | `marketplace/scripts/pr_state_watch.sh`, `marketplace/scripts/pr_watch_many.sh`, `marketplace/scripts/gh_watch.sh` (run one — never hand-roll a poll) + `references/watch-and-wake.md` |
-| The pre-validator self-audit — the five BLOCK classes detectable before the first push, the nine-step preflight that removes them, and the delegating-parent duties | `references/pre-validator-self-audit.md` |
+| The pre-validator self-audit — the six BLOCK classes detectable before the first push, the nine-step preflight that removes them, and the delegating-parent duties | `references/pre-validator-self-audit.md` |
 
 ## The pre-validator self-audit — one pass before the first push
 
-Before the first push, run the **pre-validator self-audit**: a short, five-class
+Before the first push, run the **pre-validator self-audit**: a short, six-class
 preflight that catches EVERY block cause a `charly/pr-validator` run would
 otherwise return. MEASURED (umbrella #286): across 9 docs PRs landed in one
 session, 6 first pushes blocked and 17 validator runs were spent; every block fell
-into one of five diff-derivable classes, and the one PR that passed first try had
-run this pass. The full checklist — the five classes, the nine steps, and the
-delegating-parent duties — lives in `references/pre-validator-self-audit.md`.
+into one of five diff-derivable classes (a SIXTH was measured later by
+opencharly/marketplace#404, against two more first-push BLOCKs), and the one PR that
+passed first try had run this pass. The full checklist — the six classes, the nine
+steps, and the delegating-parent duties — lives in
+`references/pre-validator-self-audit.md`.
 A parent that spawns a worker MUST embed it in the brief (see
 `/charly-internals:agents`), and the worker MUST run it before its first push.
 
@@ -351,7 +363,7 @@ catalog, and the takeover it feeds: `references/watch-and-wake.md`.
   automation (required workflow, native auto-merge, tag-on-merge CalVer), and the
   new-repo setup checklist.
 - `/charly-internals:cutover-policy` — one-phase, atomic-commit, R10-at-the-end.
-- `/charly-build:migrate` — `version:` ↔ tag coupling, per-merge tags, push order.
+- `/charly-build:migrate` — the version-free migration table, per-merge tags, push order.
 - `/charly-build:reconcile` — cross-repo `@github` pin alignment used by B6.
 - `/charly-check:check` — the check-coverage gate (R10) every change must satisfy.
 - `/charly-internals:root-cause-analyzer` — run on any FAIL before re-trying.

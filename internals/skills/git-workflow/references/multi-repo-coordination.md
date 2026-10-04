@@ -17,8 +17,8 @@ merges + tags):
    module version — e.g. superproject `v2026.185.0751` ⇄ sdk `v0.2026185.751`) —
    whenever the cutover touched sdk content;
 1. each `box/<distro>` submodule — PR → auto-merge + tag-on-merge tags (it has `charly.yml`);
-2. `plugins` — PR → auto-merge **+ tag-on-merge tags `v<YYYY.DDD.HHMM>`** (no `charly.yml`,
-   so no schema `version:` bump — but the tag marks the merge, same as every repo);
+2. `plugins` — PR → auto-merge **+ tag-on-merge tags `v<YYYY.DDD.HHMM>`** (it carries no `charly.yml`; the
+   tag marks the merge, same as every repo);
 3. the superproject — stage the now-MERGED submodule pointers (a touched sdk:
    adopt the tagged sdk release as the new shared pinned require in every
    module — `charly task mods-tidy` re-syncs go.sum and the canonical-go.mod gate

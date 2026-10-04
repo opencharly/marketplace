@@ -587,7 +587,7 @@ in how `charly check run` actually behaves:
   two.
 - **Pre-warm the shared base once.** Same-base beds (e.g. two `cachyos`
   images) share cached base layers in podman storage, and the
-  content-derived `EffectiveVersion` keeps the base `FROM`-SHA stable so
+  source-derived `ai.opencharly.candy_version` keeps the base `FROM`-SHA stable so
   cache misses don't cascade. Build the base (or the first same-base bed)
   once before fan-out → every sibling bed's build is incremental,
   rebuilding only changed layers.

@@ -20,7 +20,7 @@
 | `charly docs` / the opencharly.ai site / the opencharly/docs repo / Starlight/Astro / `candy/plugin-docs` (runtime plugin) or `candy/docs-site` | `/charly-build:docs` |
 | `charly box build` / `charly box generate` / Containerfile | `/charly-build:generate` |
 | `charly box load` / delivering an image into a pod's NESTED podman store / nested-podman-socket / the container twin of `charly vm cp-box` | `/charly-build:load` |
-| `charly migrate` / schema migration / legacy → latest CalVer / CalVer schema version | `/charly-build:migrate` |
+| `charly migrate` / schema migration / legacy config shape / migration table / adding a migration step | `/charly-build:migrate` |
 | `charly box reconcile` / cross-repo `@github` pin alignment / candy-version-mismatch cleanup | `/charly-build:reconcile` |
 | Secret management / `charly secrets` / Secret Service / GPG `.secrets` | `/charly-build:secrets` |
 | `charly box validate` / schema error | `/charly-build:validate` |

@@ -567,6 +567,49 @@ These are the standards referenced in the project rulebook's AI attribution tier
    than inferring it from a PASS. Same failure family as invoking a stale
    `/usr/bin/charly`: "the binary under test must be the one invoked" applies to
    every binary in the chain.
+
+   **The compiled-in mirror of this standard.** The remedy above is stated for an
+   OUT-OF-PROCESS verb and does not generalise: a candy named in charly's
+   `compiled_plugins:` is emitted by `pluginsgen` as a `registerCompiledPlugin(...)`
+   call and resolved as a `require` pin, so the plugin is LINKED INTO `bin/charly` —
+   and no environment variable re-points a linked symbol. `CHARLY_PLUGIN_DIR` is read
+   only by the out-of-process loader (`charly/plugin_loader.go`) and is never
+   consulted for a compiled-in plugin; `CHARLY_REPO_OVERRIDE` re-points the candy
+   RESOLVER and the local plugin source, not the Go module graph. A bed run on a
+   stock binary therefore cannot fail on an unmerged compiled-in plugin AT ALL — the
+   same "proves nothing about your rebuild" failure this standard exists to catch,
+   and harder to notice, because the plugin genuinely is in the binary and the run
+   genuinely is a bed run.
+
+   The sanctioned override is
+   `scripts/bootstrap-charly.sh --dev-plugin <candy-name>=<repo-checkout>`
+   (repeatable). `pluginsgen` re-points its ENTIRE read of that repo at the local
+   checkout and emits a SEPARATE `go.work.dev` selected only by an explicit `GOWORK=`,
+   so the committed `go.work`/`go.work.sum` stay byte-identical (a workspace's sum
+   file is keyed to its own path, so a dev build's lock lands in `go.work.dev.sum`);
+   a later run WITHOUT the flag deletes `go.work.dev`, so a stale dev workspace can
+   never resolve a local tree for a plain build. The build prints a `DEV BUILD`
+   banner on stderr and refuses `--install`. Before compilation the generator
+   validates both halves: the name must appear in `compiled_plugins:`, and the
+   checkout's `candy/<candy-name>/go.mod` must declare module
+   `github.com/opencharly/<candy-name>/candy/<candy-name>` — the path the generated
+   registration imports.
+
+   Then assert the changed path EXECUTED rather than inferring it from a PASS — the
+   discipline above, against two traps that have each shipped a false green:
+
+   - `go version -m <binary>` reports the plugin's module as `(devel)` in a
+     `--dev-plugin` build and as the module-proxy tag in a release build. That is the
+     cheap discriminator between the two binaries, and it is necessary but NOT
+     sufficient: it proves the module GRAPH, not that the changed arm ran.
+   - Set-difference the two binaries' plugin symbol tables (`go tool nm`) — never
+     `grep` for the changed name with a package-anchored pattern (`<pkg>.<name>`).
+     A method's symbol carries its receiver between the package and the name —
+     `<pkg>.(*T).Method`, e.g.
+     `github.com/opencharly/plugin-check/candy/plugin-check.(*bedRunState).snapshotStep`
+     — so an anchored pattern matches every plain function and no method at all: a
+     change confined to method bodies reads as absent, and a real regression reads
+     as clean. (An unanchored `<pkg>` grep does find them — the trap is the anchor.)
 9. **Verify runtime deps are installed via package management** (R9) — on the host: `charly doctor` (dependency status), or the host package manager directly (`rpm -q <pkg>` / `pacman -Q <pkg>` — host packages are not charly-managed resources, so the package manager IS their interface); inside a container: `charly cmd <box> 'rpm -q <pkg>'`. Manual installs do not count — they won't survive a fresh install on a synced host. Every runtime dep must live in `setup.sh` + the charly candy's `packaging:` section (`candy/charly/charly.yml`).
 10. **Leave the target healthy, not paused/errored** — the final `charly status` (and `charly check libvirt info <vm>` for a VM) is healthy. If the target is in a broken state during exploration, `charly update` it back to the committed config before continuing — never layer experiments on broken state.
 11. **Re-verify on a fresh rebuild after committing the source-level fix** (R10) — `charly update <disposable-target>` one more time from clean, with the new source applied. Run standards 1–10 again against this fresh rebuild. **This is the acceptance gate.** A fix that works on a hand-patched target but not on a fresh rebuild is a regression waiting for the next unrelated rebuild to wipe your patch. Paste both the exploratory-pass output and the fresh-rebuild-pass output into the conversation — the user sees both.

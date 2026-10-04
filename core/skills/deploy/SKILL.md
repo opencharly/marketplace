@@ -601,14 +601,13 @@ Source: `sdk/deploykit/tunnel_resolve.go` (resolution + the shared `schemeTarget
 
 ### Legacy-schema rejection
 
-The per-host config is compact node-form: top-level name-first `<name>: {<substrate-kind>: <full body>}` entries (the substrate-kind being `pod`/`vm`/`kubernetes`/`local`/`android`/`group`, its value carrying the deploy config INLINE, projected internally into the `FleetConfig.Fleet` map; the only named children are member sub-entities), preceded by a `version:` stamp and an optional `provides:` directive. `LoadFleetConfig` reads it through the unified node-form loader (`LoadUnified` → `ProjectFleetConfig`). A host still on a legacy root shape — the obsolete `image:`/`images:` root key, or the legacy `deploy.yml` filename — is detected and fails loud, so a misparse can never silently drop a `volume:` entry with `type: encrypted` — the encrypted-volume load is `LoadEncryptedVolume` (sdk/deploykit/enc_probe.go) — and quietly void the encryption guarantee; the failure points at `charly migrate`.
+The per-host config is compact node-form: top-level name-first `<name>: {<substrate-kind>: <full body>}` entries (the substrate-kind being `pod`/`vm`/`kubernetes`/`local`/`android`/`group`, its value carrying the deploy config INLINE, projected internally into the `FleetConfig.Fleet` map; the only named children are member sub-entities), with an optional top-level `provides:` directive. `LoadFleetConfig` reads it through the unified node-form loader (`LoadUnified` → `ProjectFleetConfig`). A host still on a legacy root shape — the obsolete `image:`/`images:` root key, or the legacy `deploy.yml` filename — is detected and fails loud, so a misparse can never silently drop a `volume:` entry with `type: encrypted` — the encrypted-volume load is `LoadEncryptedVolume` (sdk/deploykit/enc_probe.go) — and quietly void the encryption guarantee; the failure points at `charly migrate`.
 
-`charly status` surfaces this as a non-fatal warning (graceful degradation falls back to image-label-driven display); the strictly-charly.yml-driven verbs (`charly fleet show`, `charly config status`, `charly start`) hard-fail. Run `charly migrate` to convert in place — it backs the original up to `<file>.bak.<unix-ts>` and rewrites to the latest schema. See `/charly-build:migrate` "charly migrate".
+`charly status` surfaces this as a non-fatal warning (graceful degradation falls back to image-label-driven display); the strictly-charly.yml-driven verbs (`charly fleet show`, `charly config status`, `charly start`) hard-fail. Run `charly migrate` to convert in place — it writes a rollback copy under the gitignored `<project>/.charly/backups/` tree and rewrites to the current schema. See `/charly-build:migrate` "charly migrate".
 
 ### Structure
 
 ```yaml
-version: 2026.186.2323
 my-app:
   pod:
     image: my-app

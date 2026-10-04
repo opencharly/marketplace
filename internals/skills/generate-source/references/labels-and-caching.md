@@ -53,15 +53,20 @@ content. If the SHA is the same as a cached build's parent (because
 the upstream image's content is unchanged), the whole rest of the
 build cache-hits. A CalVer bump on an unchanged upstream is free.
 
-The `ai.opencharly.version` LABEL baked into each image is likewise NOT a
-per-build timestamp — it's the content-derived `EffectiveVersion` (the image's
-dedicated `version:`, else the highest layer `version:` across the chain; computed
-by `deploykit.ComputeEffectiveVersions` (`sdk/deploykit/effective_version.go`), called from
-`candy/plugin-build/resolve.go`'s build-engine resolve — the former `charly/effective_version.go`
-wrapper and the DELETED `charly/generate.go`'s `NewGenerator` are gone, K-wave 2). It is STABLE across
-builds when no layer changed, so it does not shift the image's config → SHA and
-therefore does not cascade cache-misses to children via `FROM`. Only a real
-content change (a bumped layer `version:`) moves it.
+The former `ai.opencharly.version` LABEL is **no longer emitted**: the
+schema-versioning removal cutover deleted the authored `version:`, so
+`sdk/deploykit/write_labels.go` drops the label and charly has no emitter left. The
+surviving per-candy identity is `ai.opencharly.candy_version`, read from
+`layer.GetVersion()` (`CandyModel.Version`), which the loader sets from the candy's
+**git tag** (`sdk/loaderkit/scan_orchestrate.go` assigns `winner.GitTag`; the arbiter
+is `sdk/loaderkit/candy_version.go`) — a source-derived value, STABLE across builds
+when no layer changed, so it does not shift the image's config → SHA and therefore
+does not cascade cache-misses to children via `FROM`. The local-image resolver still
+READS `ai.opencharly.version` as its primary ordering key (`spec/container/
+local_image_coneb.go`), but the label is absent on a locally-composed image, so
+ordering falls through to the `:<calver>` build tag. `EffectiveVersion` survives
+only as a documented, never-populated wire field (`schema/resolvedbox.cue`: the
+highest candy git tag across the chain, else the base image's version).
 
 Cache-miss only happens when something in the build input genuinely
 changes: the parent image's content (different SHA resolved by the
@@ -75,7 +80,7 @@ Built images embed runtime metadata as labels (prefix: `ai.opencharly.`), making
 
 | Label | Type | Example |
 |-------|------|---------|
-| `ai.opencharly.version` | string | content-derived `EffectiveVersion` (the image's dedicated `version:`, else the highest layer `version:` across the chain — NOT the per-build tag), e.g. `"2026.144.1443"`. Resolution prefers this label over the tag (`sdk/kit/local_image.go`, moved from `charly/local_image.go` in P12a); also the "is this an charly box?" presence sentinel read by `ExtractMetadata` |
+| `ai.opencharly.candy_version` | string | the candy's source-derived version — its GIT TAG (`sdk/loaderkit/scan_orchestrate.go`), e.g. `"2026.144.1443"` |
 | `ai.opencharly.box` | string | `"openclaw"` |
 | `ai.opencharly.registry` | string | `"ghcr.io/opencharly"` (omitted if empty) |
 | `ai.opencharly.bootc` | string | `"true"` (omitted if false) |
