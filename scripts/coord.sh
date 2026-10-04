@@ -24,6 +24,14 @@
 #   <VERB>        one of CLAIM OWNING HANDING OVER TAKING OVER BLOCKS UNBLOCKS
 #                 STATUS RESOLVED. Case-insensitive; `-`, `_` and runs of spaces
 #                 all normalise to the canonical spaced upper-case label.
+#
+#                 <VERB> IS ONE ARGUMENT. Write a two-word verb with `_` or `-`
+#                 (one word, so no quoting is needed), or QUOTE the spaced form.
+#                 Left unquoted, the shell splits it and `OVER` is read as the
+#                 TARGET, so the repo ref lands as an unexpected argument:
+#                   coord.sh taking_over    owner/repo#123    # OK
+#                   coord.sh "TAKING OVER"  owner/repo#123    # OK
+#                   coord.sh TAKING OVER    owner/repo#123    # FAILS, see below
 #   <owner/repo#num>
 #                 also accepts `owner/repo/pull/num`, `owner/repo/issues/num`, and
 #                 a full `https://github.com/owner/repo/(pull|issues)/num` URL.
@@ -79,7 +87,22 @@ assign=0 dry=0 literal=0
 positional() {
   if [ -z "$verb" ]; then verb=$1
   elif [ -z "$target" ]; then target=$1
-  else die "unexpected argument: $1"; fi
+  else
+    # A two-word verb written with a SPACE and left unquoted lands here: the verb
+    # slot took its first word, the target slot took the second (`OVER`), and the
+    # repo ref is the leftover argument. Name THAT — the old message blamed the
+    # repo ref the caller actually typed, which points at the wrong half of the
+    # command line and sends them looking for a quoting bug in the target.
+    local up w
+    up=$(printf '%s' "$verb" | tr '[:lower:]' '[:upper:]' | tr '_-' '  ' | tr -s ' ')
+    for w in "${VERBS[@]}"; do
+      case "$w" in
+        *" "*) [ "${w%% *}" = "$up" ] && \
+          die "unexpected argument: $1 — '$verb' begins the two-word verb '$w', which is ONE argument: coord.sh \"$w\" <owner/repo#num> (or write it as ${w%% *}_${w#* }, which needs no quoting)" ;;
+      esac
+    done
+    die "unexpected argument: $1"
+  fi
 }
 
 while [ "$#" -gt 0 ]; do
