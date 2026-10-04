@@ -52,8 +52,8 @@ charly docs generate \
 
 ## What it emits
 
-The generator owns six top-level entries — `index.md`, `grievances.md`, `vision.md`,
-`liberation.md`, `reference/` and `recipes/` — and rewrites them wholesale each run, so a deleted
+The generator owns seven top-level entries — `index.md`, `grievances.md`, `vision.md`,
+`liberation.md`, `soul.md`, `reference/` and `recipes/` — and rewrites them wholesale each run, so a deleted
 source entity disappears from the site instead of lingering as an orphan page. (The table below
 expands `reference/` into its sub-trees plus the single file `reference/providers.md`, so it
 runs to many rows.) What stays hand-authored is the teaching narrative this repository has no
@@ -78,6 +78,7 @@ not the page.**
 | `grievances.md` | `GRIEVANCES.md`, H1 dropped, repo-relative links rewritten for a web reader |
 | `vision.md` | `VISION.md`, H1 dropped, repo-relative links rewritten for a web reader |
 | `liberation.md` | `LIBERATION.md`, H1 dropped, repo-relative links rewritten — the deliberate easter-egg page, entered last in the sidebar as "Liberation" |
+| `soul.md` | `SOUL.md`, H1 dropped, published verbatim — the identity of charly and every charly agent; self-contained, so there are no repo-relative links to rewrite |
 | `reference/cli/` | one page per `command:` provider word |
 | `reference/candy/` | every defined candy: packages, services, and its `plan:` as an acceptance spec |
 | `reference/box/` | every defined box |
