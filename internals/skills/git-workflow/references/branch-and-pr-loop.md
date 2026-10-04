@@ -263,6 +263,21 @@ rulebook's "never by hook regexes".
   local; `git fetch --prune` drops remote-tracking refs deleted upstream. **Only
   ever delete branches confirmed `--merged`**; never `-D` an unmerged/abandoned
   branch without operator confirmation — it may hold unlanded work.
+- **The mechanical reaper — `charly task prune`.** The per-session close-out
+  above is PROSE an agent self-enforces, and it is NOT executed when a session is
+  auto-closed at the validator's block threshold, when a fix lands on a NEW
+  branch/PR superseding an abandoned one, or when a session simply ends — so
+  worktrees and branches accumulate without bound (measured: 108 worktrees and
+  ~900 local branches on one umbrella checkout). `charly task prune` (umbrella
+  `verb:prune`, plugin-task) is the ONE mechanical control that contract lacked: it
+  collects merged-upstream session worktrees + branches across the umbrella root
+  AND every submodule. It is **fail-safe by construction** — a branch is pruned
+  only when its merge is PROVEN (tip is an ancestor of `origin/main`, OR its PR is
+  MERGED and its tip is contained in the merged head — the squash-merge case git
+  ancestry alone cannot see); a branch carrying unmerged commits BEYOND a merged
+  head is never touched, and a worktree with modified tracked files is skipped. If
+  `gh` is unavailable (no auth/offline) it prunes strictly LESS. `MODE=report`
+  (default) is a DRY RUN; `MODE=prune` performs it. Run it from the umbrella root.
 - **Worktree hygiene — the per-session lifecycle (create → work → land →
   remove).** Every session that commits/branches/pushes works in its OWN
   worktree under `.claude/worktrees/<slug>/`, branched off fresh `origin/main`
@@ -329,4 +344,10 @@ checkouts stay DETACHED at their recorded gitlinks.
    checkout main` / `git -C <sub> reset --hard origin/main` to "catch up" (that
    dirties the umbrella and fails `verify`). Setting up a NEW repo is
    `/charly-internals:repo-setup`.
+8. **Reap what the per-session steps missed:** run `charly task prune` (a dry run;
+   `MODE=prune` performs it). Steps 2/3 are the ONE session that remembers to run
+   them — an auto-closed, superseded, or simply-ended session never does, and
+   nothing else swept the leftovers until this verb existed. It reaps the merged
+   worktrees + branches across the umbrella and every submodule, proven-merged
+   only (see B4 "The mechanical reaper").
 

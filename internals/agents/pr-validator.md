@@ -658,7 +658,7 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
       NOT regenerated in the SAME commit — FAILS.
     - b. **No hand-edited generated files.** Every file carrying the
       `Code generated … DO NOT EDIT` banner — `spec/spec/cue_types_gen.go`,
-      `spec/spec/vocab_gen.go`, `spec/spec/version_gen.go`, every plugin's
+      `spec/spec/vocab_gen.go`, every plugin's
       `params/cue_types_gen.go`, `charly/plugins_generated.go`, the proto
       `*.pb.go` — is REGENERATED, never hand-touched. If the diff changes a
       generated file, a SOURCE change (`schema/*.cue`, `compiled_plugins:`,
@@ -1213,8 +1213,7 @@ author, whose stamps collide and mis-order across concurrent PRs):
    (e.g. `v0.2026192.0733`) is INVALID — it makes every consumer's `go.mod`
    unparseable in module mode — so this stripping is mandatory, not cosmetic.
    `plugins` and `docs` ARE tagged, with the same `v<YYYY.DDD.HHMM>` form as
-   every non-sdk repo (they carry no `charly.yml`, so no schema `version:` bump —
-   but the tag still marks the merge).
+   every non-sdk repo (they carry no `charly.yml`; the tag marks the merge).
 3. **Write the CHANGELOG from the PR body after the merge.** tag-on-merge creates
    `CHANGELOG/$VER.md` on `main` from the merged PR's title + body (the PR body IS
    the changelog; the author staged no CHANGELOG file), using a bot token (GitHub
@@ -1222,9 +1221,9 @@ author, whose stamps collide and mis-order across concurrent PRs):
    CHANGELOG path on protected `main`:
    - verify the landed entry's H1 byte-equals `# $VER — <title>` — a mismatch
      means the entry carries an author's guess: rewrite it on `main`'s new head, add-only;
-   - if the PR bumped the schema, re-stamp `#SchemaVersion`
-     (`spec/schema/version.cue`) + `version:` + the `candy/plugin-migrate/migrations.cue`
-     entry to be strictly greater than the CURRENT `main` HEAD's schema version;
+   - if the PR changed the schema, confirm its `candy/plugin-migrate/migrations.cue`
+     entry landed WITH it — there is no `#SchemaVersion` / `version:` to
+     re-stamp (the table is version-free; `charly migrate` strips any leftover);
    - any other embedded release-version string.
 4. **The squash merge keeps `main` linear.** Native auto-merge's squash produces
    exactly ONE commit on `main` no matter how many fix commits the review rounds

@@ -10,7 +10,11 @@ first push. A BLOCK cycle costs a full `charly/pr-validator` run plus a
 re-review; a pre-push self-audit removes it. The one PR that PASSed first try
 had done this pass; the ones that did not, blocked.
 
-## The five classes (root causes)
+A SIXTH class was measured later, by opencharly/marketplace#404, on two more
+first-push BLOCKs — `opencharly/distro-fedora#79` and `opencharly/docs#142` —
+both body-only, and neither covered by classes 1-5.
+
+## The six classes (root causes)
 
 1. **Body claims the diff does not carry** (body-truthfulness): a pasted command
    output that cannot reproduce (a sweep returning `(none)` while a
@@ -26,6 +30,14 @@ had done this pass; the ones that did not, blocked.
    routed to a named batch.
 5. **Split cutover (B15/R2)**: content removed from surface A in this PR while
    its replacement home on surface B is deferred.
+6. **The asserted-check overclaim (universal / negative quantifier)**: a claim
+   of COMPLETENESS stated as fact — "only occurrence in the repo", "every URL
+   checked", "no other file uses it", "the lists match `…`" — with no pasted
+   command and its output behind it. Measured pair: `distro-fedora#79` (a
+   repo-wide "only occurrence" with no command at all) and `docs#142` ("every
+   URL checked", two configured endpoints missing). A completeness claim IS a
+   check: paste the command that proves it, or drop the claim — never leave a
+   quantifier standing on the author's confidence.
 
 ## The preflight (run BEFORE the first push)
 
@@ -40,6 +52,14 @@ had done this pass; the ones that did not, blocked.
    placeholders. Show every filter/pathspec. If a known survivor exists (a
    deliberately deferred reference), name it — never imply the sweep is
    complete when it is not.
+   **3b. Re-read the WHOLE edited unit, not just the hunk.** A claim can
+   contradict the change inside the very text you edited: `distro-fedora#79`
+   was fixing a candy description while the description still said "injected
+   init" and "neither composed candy" — the fix and its contradiction shipped
+   together. Read the complete paragraph / string / template you touched, then
+   read its siblings (the other `description:`s in the same file) for the same
+   phrase. `docs#142` is the same failure one level up: a completeness claim
+   ("every URL checked") that two lines of the changed file already refuted.
 4. Account for EVERY applicable rule (the repo's numbered rules AND R1–R10)
    with a one-line `HOW` or `N/A — <reason>`; never a bare `N/A.`
 5. NEVER surface a failure you cannot own. Either fix it (including the coupled
@@ -66,6 +86,31 @@ had done this pass; the ones that did not, blocked.
    read every verdict IN FULL, fix ALL blocks in ONE commit, and push a NEW
    commit — never re-dispatch the same head, never push again while at the
    auto-close block limit.
+
+## The mechanical half — `scripts/pr_body_lint.py`
+
+The classes that need no judgment are checked by a TOOL, not by eye.
+`marketplace/scripts/pr_body_lint.py` fails closed (exit 1) before the push on:
+a missing required section (`## Summary`, `## How tested`, `## Rulebook
+compliance`, `## Change classification`); a trailer that is not the LAST line (or
+an `Agent:` line not directly preceding it); a rule with no answer, or a bare
+`N/A` with no reason (class 3); an asserted check with no LATER fenced block
+carrying a `$ ` command (class 6); a pasted head SHA that is not `git rev-parse
+HEAD` (class 1); and any ellipsis character inside a fence. Run it on the body
+file BEFORE the push:
+
+```
+python3 scripts/pr_body_lint.py <body.md> --repo <worktree>
+```
+
+The rule ids required in `## Rulebook compliance` default to R0-R10; a repo with
+its own numbered rules passes `--rules R0,R1,R2,R3,R4,R4a,R5,R6,R7,R7a,R8,R9,R10`.
+Exit 0 is clean, exit 1 is a finding to fix before the push.
+
+It removes the classes that need no judgment; whether the evidence is
+SUFFICIENT stays the validator's call. A body-only BLOCK that survives a clean
+lint run is a judgment failure, not a lint failure — which is exactly why step
+3b is not optional.
 
 ## For the delegating parent
 
