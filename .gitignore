@@ -11,3 +11,9 @@ Thumbs.db
 # Syncthing conflict copies — per-machine, ephemeral, resolved by hand; never versioned.
 *.sync-conflict-*
 bin/
+
+# Python bytecode from this repo's own scripts/ (`pr_body_lint.py`, `squash_body.py`, …).
+# Running any of them locally otherwise leaves the tree dirty, which `verify` treats as a
+# failure — a self-inflicted one, with no tracked file to explain it (marketplace#412).
+__pycache__/
+*.pyc
