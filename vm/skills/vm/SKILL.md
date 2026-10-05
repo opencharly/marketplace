@@ -20,7 +20,7 @@ description: |-
   my-produce: { vm: { from: my-base-vm, disposable: true } }
   ```
   and keys EVERY verb to that deploy's domain with `--domain my-produce` (`vm create`, `vm stop`, `vm snapshot create`, `vm destroy`, and — for the bake — `vm bake --domain my-produce`). `charly vm bake --domain <deploy>` also sets the create's non-destructive `--keep-disk`, because a golden captured on the domain BACKS ONTO the domain's disk: recreating that disk would drop the golden's backing and the bake would boot an empty overlay. A bed that instead destroys the shared entity (or a domain it was not handed as `disposable: true`) is a B17 violation — authorization is derived from the destroyed TARGET, never from the bed's own name or its `lifecycle:` tag.
-- **`charly update <vm-entity-name>`** does NOT gate on `disposable:` — an explicit invocation rebuilds ANY target (destroy→create the domain, reuse the qcow2 disk unless `--build`, then re-apply the deploy's layers via the shared `fleet add` path). For a non-disposable, non-ephemeral target it prints a one-line transparency note (`noteUpdateDisposability`) and proceeds. The `disposable: true` flag stays load-bearing as the authorization for UNATTENDED autonomous destroy + rebuild (the project rulebook R10 (`AGENTS.md`)) and the check-runner's unattended fresh rebuild, NOT as an `charly update` capability check. See `/charly-internals:disposable` and `/charly-core:charly-update`.
+- **`charly update <vm-entity-name>`** does NOT gate on `disposable:` — an explicit invocation rebuilds ANY target (destroy→create the domain, reuse the qcow2 disk unless `--build`, then re-apply the deploy's layers via the shared `deploy add` path). For a non-disposable, non-ephemeral target it prints a one-line transparency note (`noteUpdateDisposability`) and proceeds. The `disposable: true` flag stays load-bearing as the authorization for UNATTENDED autonomous destroy + rebuild (the project rulebook R10 (`AGENTS.md`)) and the check-runner's unattended fresh rebuild, NOT as an `charly update` capability check. See `/charly-internals:disposable` and `/charly-core:charly-update`.
 
 ## Overview
 
@@ -103,7 +103,7 @@ To pass a physical GPU through to a VM and (e.g.) run a CUDA container inside it
 3. **In-guest driver** — a passthrough guest needs the actual kernel module, not
    just the userspace container toolkit. Apply a kernel-driver layer (it
    blacklists the in-tree driver, regenerates the initramfs, and declares
-   `reboot: true` so `charly fleet add vm:<name>` reboots the guest and waits for it
+   `reboot: true` so `charly deploy add vm:<name>` reboots the guest and waits for it
    to return). The `nvidia`-toolkit layer + `nvidia-ctk cdi generate` then makes
    the GPU available to containers via CDI (`--device nvidia.com/gpu=all`).
 
@@ -280,7 +280,7 @@ arch:
                                                    # Note also that #DistroID (14 ids, omarchy included) and the embedded `distro:` BUILD vocabulary are
                                                    # different sets, and the gap is SILENT: `buildVmSyntheticBox` resolves this field against
                                                    # the build vocabulary and on a miss leaves `img.Pkg` unset, so candy installation compiles
-                                                   # ZERO package steps while `fleet add` reports success. A schema-valid id is therefore not
+                                                   # ZERO package steps while `deploy add` reports success. A schema-valid id is therefore not
                                                    # automatically a resolvable one.
                                                    # Use a bare id: `ResolveDistro` strips at `:` but the cloud-init
                                                    # dispatches compare exactly, so `debian:13` yields `openssh`. (That sentence is about the
@@ -548,12 +548,12 @@ per-deploy domain.
 
 ```bash
 charly vm create arch
-charly fleet add vm:arch ripgrep         # apply ripgrep layer over SSH
-charly fleet add vm:arch fedora-coder --add-candy team-extras
-charly fleet del vm:arch                 # reverse all applied layers
+charly deploy add vm:arch ripgrep         # apply ripgrep layer over SSH
+charly deploy add vm:arch fedora-coder --add-candy team-extras
+charly deploy del vm:arch                 # reverse all applied layers
 ```
 
-See `/charly-core:deploy` "vm: target" for the `charly fleet add vm:<name>` surface and `/charly-internals:vm-deploy-target` for the executor model.
+See `/charly-core:deploy` "vm: target" for the `charly deploy add vm:<name>` surface and `/charly-internals:vm-deploy-target` for the executor model.
 
 ### Debug VM boot issues
 
@@ -645,12 +645,12 @@ no such VM "charly-definitely-not-a-vm-xyz": no libvirt domain and no qemu state
 exit=1
 ```
 
-### `charly fleet add vm:<vm> <localpkg-candy>` exits 0 WITHOUT installing
+### `charly deploy add vm:<vm> <localpkg-candy>` exits 0 WITHOUT installing
 
 A candy carrying a `local_pkg` block (the `charly` toolchain) needs the package
 built via the `charly generate-packages` plugin (nFPM) from local source, which
 only the check-bed runner does (it sets `--dev-local-pkg` automatically — see
-`/charly-check:check`). A bare `charly fleet add
+`/charly-check:check`). A bare `charly deploy add
 vm:<vm> charly` returns **rc=0** and prints:
 
 ```
@@ -692,7 +692,7 @@ Expected. The agent needs a `virtio-serial` channel that charly's QEMU backend d
 - `/charly-internals:ovmf` — UEFI firmware path resolution; per-VM NVRAM; bios-skips-loader sentinel
 - `/charly-internals:cutover-policy` — hard cutover policy
 - `/charly-build:migrate` — `charly migrate` legacy conversion
-- `/charly-core:deploy` — `charly fleet add vm:<name> <ref>` in-guest layer application
+- `/charly-core:deploy` — `charly deploy add vm:<name> <ref>` in-guest layer application
 - `/charly-build:pull` — fetch container images into local storage (prereq for bootc VM builds)
 - `/charly-build:build` — building container images before VM disk builds
 - `/charly-image:layer` — `libvirt.snippets:` field in charly.yml
@@ -704,6 +704,6 @@ Expected. The agent needs a `virtio-serial` channel that charly's QEMU backend d
 
 **MUST be invoked** when the task involves virtual machines, charly vm commands, kind:vm entities, cloud_image vs bootc source types, libvirt/QEMU backends, BIOS vs UEFI firmware choice, or VM lifecycle management. Invoke this skill BEFORE reading source code or launching Explore agents.
 
-**Workflow position:** Standalone workflow. VM management is separate from container lifecycle, but `charly fleet add vm:<name>` bridges into the shared InstallPlan + deploy-target machinery.
+**Workflow position:** Standalone workflow. VM management is separate from container lifecycle, but `charly deploy add vm:<name>` bridges into the shared InstallPlan + deploy-target machinery.
 
 Live-deploy verification: see /charly-check:check (the 11 Testing Standards) and /charly-internals:disposable.

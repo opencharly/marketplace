@@ -8,7 +8,7 @@ description: |-
 
 # disposable — explicit opt-in for autonomous destroy + rebuild
 
-`FleetNode.Disposable` is the sole source of truth for disposability: the
+`DeployNode.Disposable` is the sole source of truth for disposability: the
 field on a deployment entry (e.g. `disposable: true` on a deploy node,
 including a check bed) is what the unified dispatcher reads. The project ↔ per-machine
 overlay merge preserves it explicitly (project-set OR overlay-set → true,
@@ -91,9 +91,9 @@ contract rather than weakening it. "Must be destroyed when not
 needed" can only be honored if "may be destroyed" is also true.
 
 Specifically:
-- `LoadFleetConfig` auto-promotes `Disposable=true` when an entry
+- `LoadDeployConfig` auto-promotes `Disposable=true` when an entry
   carries `ephemeral: ...`.
-- `FleetNode.IsDisposable()` returns `Disposable || IsEphemeral()`
+- `DeployNode.IsDisposable()` returns `Disposable || IsEphemeral()`
   so every consumer (including `charly update`) treats ephemerals as
   authorized.
 - Authoring `disposable: false` together with `ephemeral: ...` is
@@ -107,7 +107,7 @@ Specifically:
 - `ephemeral: true` (or block form) says "this resource MUST be
   destroyed autonomously when no longer needed" — a requirement,
   enforced by the check-runner / Gherkin (ADE) step keywords / TTL transient
-  timer registered in `charly fleet add`.
+  timer registered in `charly deploy add`.
 
 The implication arrow is one-way. Disposable resources are not
 necessarily ephemeral; ephemeral resources are always disposable.
@@ -259,7 +259,7 @@ Resolves `<name>` as either a kind:vm entity (vm.yml) or a deploys entry
 target it prints a one-line transparency note
 (`noteUpdateDisposability` in `candy/plugin-pod/pod_cmd.go`) and
 proceeds. Sequence: destroy → rebuild → restart, ending in the shared
-`charly fleet add <node>` layer re-apply for every live substrate (so a
+`charly deploy add <node>` layer re-apply for every live substrate (so a
 config change — a newly-added layer or nested pod — takes effect on the
 rebuilt target). `disposable: true` stays load-bearing as the
 authorization for the **UNATTENDED autonomous** destroy + rebuild (the project rulebook
@@ -298,10 +298,10 @@ What this skill uniquely adds: the exploratory-vs-acceptance distinction. Mid-fl
 
 ## Opting a deploy in
 
-For containers, pass `--disposable` to `charly fleet add`:
+For containers, pass `--disposable` to `charly deploy add`:
 
 ```bash
-charly fleet add my-test fedora-test --disposable --lifecycle test
+charly deploy add my-test fedora-test --disposable --lifecycle test
 ```
 
 This writes both fields to the charly.yml entry (flags can also be
@@ -405,7 +405,7 @@ on shared hosts.
   `lifecycle:` fields.
 - `/charly-vm:arch-cloud-vm` — canonical worked example.
 - `/charly-core:deploy` — `--disposable` / `--lifecycle` flags on
-  `charly fleet add`.
+  `charly deploy add`.
 - `/charly:rebuild` — the rebuild verb command reference (not yet
   authored — currently living in this skill).
 

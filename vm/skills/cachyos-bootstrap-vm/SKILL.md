@@ -42,7 +42,7 @@ the embedded `distro: cachyos` build vocabulary baked into the `charly` binary
 disposable: true}`), so `charly -C box/cachyos check run check-cachyos-vm`
 runs the full R10 sequence unattended (the equivalent `charly update
 check-cachyos-vm` rebuild also works, since the deploy is folded into the
-Fleet map).
+Deploy map).
 
 `check-cachyos-gpu-vm` is the **full KDE GPU workstation** bed — it mirrors the
 operator `cachyos-gpu` workstation's dual-desktop config and is the acceptance gate
@@ -55,7 +55,7 @@ guest mid-deploy so the open module loads on a clean boot and the boot-time
 `nvidia-ctk cdi generate` writes `/etc/cdi/nvidia.yaml`), then the vm deploy plugin's
 `OpPostApply` host-builds `selkies-kde-nvidia`, `charly vm cp-box
 --rootless`s it into the guest user's podman as `localhost/charly-selkies-kde:latest`,
-and runs the guest's own project-free `charly fleet from-box
+and runs the guest's own project-free `charly deploy from-box
 localhost/charly-selkies-kde:latest selkies-kde` — a PERSISTENT in-guest `--user`
 quadlet (GPU device auto-detected; `loginctl enable-linger` so it survives the
 guest reboot the fresh-rebuild leg recreates). Deploy-scope checks run in-guest over

@@ -88,7 +88,7 @@ steps. The deploy applies host packages + configs only. There is no
 Test-bed image preflight is the **check entry point's** job, not the
 deploy's. When `charly check run --on-host <name>` resolves to a host
 target, the runner walks the bed's plan steps, collects each step's
-venue (derived from its position in the fleet tree — the per-step `pod:`
+venue (derived from its position in the deploy tree — the per-step `pod:`
 field is RETIRED and authoring it is a closed-schema rejection) plus the
 bed's target image, and ensures each
 image is present in local podman storage (LocalImageExists →
