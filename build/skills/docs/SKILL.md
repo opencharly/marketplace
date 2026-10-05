@@ -12,6 +12,35 @@ description: |-
 **opencharly.ai** from the sources that already exist in this repository. It is served by
 `candy/plugin-docs`.
 
+## R4a — documentation never routes around a defect
+
+The rulebook states R4a as a mandate (umbrella `AGENTS.md`, "Ground-truth rules
+R1–R10"); this is its operationalization for every page this skill renders and every
+hand-authored page beside it.
+
+- **Fix the product first.** When documented behaviour and the code disagree, establish
+  which side holds the INTENT, then fix the code BEFORE touching the prose. Editing docs
+  to match a bug is forbidden; so is editing them to avoid one.
+- **The tells of a routed-around defect:** a `git clone`, a `cd`, or a `-C` standing in
+  for a flag that should work; an "except on…" caveat; a "known limitation" note in place
+  of a fix. Each describes the defect instead of removing it — and makes it permanent by
+  making it look intended.
+- **Binary-only reader.** Every command a reader is told to run MUST work with nothing but
+  the `charly` binary installed — no clone, no `cd`, no pre-existing project, no unnamed
+  companion tool. Write every page for a reader who installed `charly` as a native package
+  with NO charly checkout on the machine: no `task` target, no `./bin/charly`, no
+  repo-relative path, no verb supplied by a candy that exists only in this repository.
+  `--repo <owner>/<repo>` reads a published project without a clone;
+  `charly box new project <dir>` starts a local one.
+- **The one exception is the INSTALL page**, where the reader obtains charly: it leads
+  with the native package and scopes the checkout to working ON charly. A
+  repository-maintenance command is named as maintenance this project performs, never as
+  a step the reader runs.
+- **Anywhere else, needing more than the binary is a PRODUCT DEFECT** — the missing
+  capability is the bug, and the fix belongs in `charly`. If that fix is genuinely out of
+  scope, file it with its root cause and let the page say nothing rather than something
+  false: silence is recoverable, a documented workaround is taught.
+
 ## Placement: a RUNTIME plugin, deliberately
 
 `plugin-docs` is **not** listed in `charly/charly.yml`'s `compiled_plugins:`. A dev-time
