@@ -159,7 +159,7 @@ with no transformation — the output cannot malform by construction, so a schem
 would be validation theater:
 
 - **runtime config** `~/.config/charly/config.yml` (`SaveRuntimeConfig` — pure `yaml.Marshal(*RuntimeConfig)`).
-- **deploy-state** `~/.config/charly/charly.yml` (`SaveFleetConfig`) — additionally, project config is already CUE-validated on LOAD (ingress).
+- **deploy-state** `~/.config/charly/charly.yml` (`SaveDeployConfig`) — additionally, project config is already CUE-validated on LOAD (ingress).
 
 ## Caveats
 

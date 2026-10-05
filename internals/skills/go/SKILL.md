@@ -107,7 +107,7 @@ bin/charly box inspect <image>
 
 ### Intermediate image cache invalidation
 
-`charly box build` auto-generates intermediate images (e.g., `ghcr.io/opencharly/charly-fedora-2-dbus-nodejs`) that fleet the `charly` layer plus common layers for cache reuse across many downstream images. These intermediates are aggressively podman-cached. Updating `bin/charly` does invalidate the COPY step inside the intermediate, but if the intermediate tag already exists locally, `charly box build` may reuse it without re-running the build chain. To force a fresh binary propagation after a `bin/charly` rebuild:
+`charly box build` auto-generates intermediate images (e.g., `ghcr.io/opencharly/charly-fedora-2-dbus-nodejs`) that aggregate the `charly` layer plus common layers for cache reuse across many downstream images. These intermediates are aggressively podman-cached. Updating `bin/charly` does invalidate the COPY step inside the intermediate, but if the intermediate tag already exists locally, `charly box build` may reuse it without re-running the build chain. To force a fresh binary propagation after a `bin/charly` rebuild:
 
 ```bash
 charly clean --invalidate 'charly-fedora-2*'
@@ -152,7 +152,7 @@ environmental, not code defects. On such a host:
   stdout`, blaming architecture, libraries, or permissions — none of which is the
   cause. The visible failure is a downstream assertion, e.g.
   `TestExternalStructKind_StructuralDecode` reporting `structural plugin kind not
-  folded into uf.Fleet; have fleet keys []`.
+  folded into uf.Deploy; have deploy keys []`.
 
 - **`CHARLY_PLUGIN_DIR` prepends; `CHARLY_PLUGIN_ONLY=1` is what excludes.** A word
   is **BAKED** when a provider binary for it sits in `/usr/lib/charly/plugins/`
@@ -232,12 +232,12 @@ environmental, not code defects. On such a host:
 
 - `.claude/hooks/pre-commit-gate.sh` (the staged-Go-lint discipline backstop) redirects
   its own lint temp dirs to `~/.cache/charly-gate-lint/` and creates the TMPDIR/GOTMPDIR
-  subdirs, so it is unaffected by the cap wherever it runs. Note it is NOT wired in
-  Claude Code — `.claude/settings.json` wires no `PreToolUse` hooks, so under Claude
-  Code the script fires on nothing and nothing runs it automatically. It stays live in
-  the other harnesses that invoke it (`.reasonix/settings.json`, and `~/.kimi-code/config.toml`
-  which delegates to `.claude/hooks/`). Running Go work under Claude Code, apply the two
-  bullets above yourself.
+  subdirs, so it is unaffected by the cap wherever it runs. It is wired as a
+  `PreToolUse(Bash)` hook in every harness that roots here — `.claude/settings.json`
+  (Claude Code, since umbrella `5e485a8`), `.reasonix/settings.json`, and
+  `~/.kimi-code/config.toml` which delegates to `.claude/hooks/` — so under Claude Code
+  the staged-Go-lint smoke runs automatically at commit time (the two bullets above
+  still apply for anything the hook does not cover).
 - **Cumulative /tmp usage cap — the Bash tool's output capture dies.** Beyond the
   per-command cap, the sandbox also caps TOTAL /tmp usage (observed at ~80% of the
   tmpfs). When /tmp fills to that point, the Bash tool's output capture fails: every

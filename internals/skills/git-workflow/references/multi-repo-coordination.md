@@ -117,7 +117,7 @@ actually in this binary".
 
 ## B2b — cross-session coordination: the PR comment is the channel
 
-Sessions are independent and OWN their artifacts (umbrella rule 9): a branch,
+Sessions are independent and OWN their artifacts (umbrella `AGENTS.md`, "Session-scoped ownership"): a branch,
 worktree, file, or PR you did not create is another session's, and you never
 edit, revert, reformat, stage, or commit it — not even to "clean up" or unblock
 yourself.
@@ -301,6 +301,19 @@ for the same issue/scope, ALL FOUR are mandatory:
 4. Ownership transfer: a slug that claimed the predecessor but not the
    successor must `HANDING OVER` (or be named in the successor's body); a
    silent drop is not allowed.
+
+**A multi-repo cutover's middle producer is NOT auto-closable without a
+successor.** When a PR is the PRODUCER leg of an acknowledged multi-repo
+relocation/cutover (a sibling consumer's landability waits on it), the
+auto-close at the block limit must not silently drop it: the successor PR
+(or the owning issue, with the leg re-driven) MUST exist — or the auto-close
+is refused/deferred — so the cutover is never left with a deleted producer
+and no replacement. The consumer leg names the producer and `BLOCKS` on it;
+the producer's successor is opened before the producer's thread is abandoned.
+**Field evidence:** the umbrella add PR (the replacement leg of the
+narrative relocation) auto-closed at the block limit with **no successor**,
+while its consumer `charly#791` had already merged the deletion — leaving
+the content in no repository's `main` (opencharly/opencharly#356).
 
 **Never push to a PR at the block limit** — a push that yields another
 verdict at the limit auto-closes it. Land **ALL** findings in **ONE**

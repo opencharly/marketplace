@@ -99,7 +99,7 @@ inherited from the moved majority; a validator REJECTS a remainder whose only ju
 stays-core header, demanding call-chain evidence first; and the orchestrator audits every stays-claim
 against this boundary law with that evidence, never rubber-stamping the header. Precedent:
 the former `charly/host_build_deploy_add.go` (the `deploy-add` HostBuild seam, DELETED, K-wave 2)
-documented that the `charly fleet add` CLI moved to `command:fleet`
+documented that the `charly deploy add` CLI moved to `command:deploy`
 (candy/plugin-fleet, P13) while the deploy KERNEL it drives "STAYS CORE" on exactly this "cannot cross
 the process boundary" claim — overruled as a boundary-law violation (the deploy-dispatch kernel is
 tracked K-wave residue, not permanent core). Full three-role breakdown: `/charly-internals:agents`

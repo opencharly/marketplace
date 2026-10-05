@@ -17,10 +17,23 @@ how to update them.
 
 ## Skill Dispatchers
 
-`AGENTS.md` is the single, complete, harness-neutral rulebook: every
-harness reads it directly, and the trigger → skill dispatcher lives there.
+The umbrella `AGENTS.md` is the single, harness-neutral rulebook: every
+harness reads it directly, and the trigger → skill dispatcher lives in its
+Part I ("R0. Skills first"). A subrepo's `AGENTS.md` carries only that repo's
+extra rows (e.g. `charly/AGENTS.md`'s "R0 for the core"), never a copy.
 When multiple triggers apply, load all matching skills before acting.
 Full index: `marketplace/README.md`.
+
+**How the umbrella table is maintained.** It is a HAND-CURATED, compact subset
+of the generated dispatcher (`marketplace/DISPATCHER.md`, emitted by
+`charly marketplace generate` from each skill entity's `triggers:` — one row per
+trigger; that file is the authority for the full set). Compact means ONE row per
+trigger with every skill it selects in one cell, never one row per skill. Being
+prose, the table lives OUTSIDE the `BEGIN/END GENERATED SKILL DISPATCHER`
+markers, so `charly task skills` (`scripts/sync-dispatcher.sh`) is a no-op until a
+consumer adds the markers; then it splices the full generated fragment in place.
+To add, rename, or remove a skill, update the row in the same PR and keep every
+ref resolving to `marketplace/<family>/skills/<skill>/SKILL.md`.
 
 ## The corpus must actually LOAD — audit delivery, not just content
 
@@ -254,7 +267,7 @@ A skill is either a single `SKILL.md`, or an entry `SKILL.md` plus sibling `refe
 | Image composition, deployment, verification | per-pod plugin or `/charly-distros:<name>` / `/charly-infrastructure:<name>` for base images |
 | Skill disambiguation (which skill to use) | the active harness root rulebook's R0 Skill Dispatcher |
 | Detailed operational patterns | Relevant `/charly-core:*` / `/charly-build:*` / `/charly-check:*` / `/charly-automation:*` / kind-plugin skill |
-| Hard rule / gate / mandate (the WHAT and the MUST) | each harness root rulebook, with equivalent policy and an owning-skill pointer |
+| Hard rule / gate / mandate (the WHAT and the MUST) | the umbrella `AGENTS.md` when org-wide, a subrepo's `AGENTS.md` when specific to that repo — stated ONCE, with an owning-skill pointer |
 | Operationalization / matrix / catalog / worked example (the HOW) | The ONE owning skill (see the Authoritative-copy registry below) |
 | Version history / past changes / renames / cutover narration | the repo's `CHANGELOG/` (per-CalVer `<YYYY.DDD.HHMM>.md`) — never the project rulebook or a skill |
 | Long-term thesis / vision / aspiration ("why & where it's going") | `VISION.md` (repo root) — never restating command usage, architecture, or history |
@@ -293,7 +306,7 @@ poles — the user overview and the history.
   harness or a harness-specific file. Harness mechanics live in the per-harness
   config or skill.
 
-The umbrella rulebook's rule 11 ("Todo ledger & interruption safety") is a
+The umbrella rulebook's "Ledger and interruption safety" rule is a
 worked example of the split: the rulebook states the MUST and names the owning
 skill, and the sibling `/charly-internals:agents` owns the ledger procedure
 (see `/charly-internals:agents`, "Todo ledger & interruption safety").
@@ -324,7 +337,7 @@ language.
 | Landing mechanics (branch loop, the two-step PR + `pr-validator` merge/tag, CalVer-generated-at-merge, branch protection, multi-repo order) | `/charly-internals:git-workflow` |
 | Agent/workflow/team primitives, hooks doctrine | `/charly-internals:agents` |
 | Kernel/plugin doctrine (core = kernel; every capability a plugin candy), the two authoring shapes, placement, the three-lane transport doctrine, the seams catalog, **the kernel/plugin boundary law** (E/M/B/D/R) + the incomplete-seam mandate | `/charly-internals:plugin` |
-| Skill Dispatcher, RDD/ADE/SDD mandates, acceptance checklist, attribution tiers, Documentation-only change class anchor, Key Rules index | harness root rulebook (`AGENTS.md`) |
+| Skill Dispatcher, RDD/ADE/SDD mandates, R1–R10, acceptance checklist, attribution tiers, Documentation-only change class anchor, Key Rules index | the umbrella `AGENTS.md`, Part I (`charly/AGENTS.md` carries only the charly-core rules: core dispatcher rows, the kernel/plugin boundary law, the core SDD pipeline, R9 + the core Go gate) |
 
 A registry owner may hold its canonical text in a `references/<file>.md` split file rather than the top-level `SKILL.md` body (see "Progressive disclosure" above) — the row still names the SKILL as sole owner regardless of which file inside it carries the detail.
 
@@ -339,8 +352,10 @@ swept in the same commit as any rename or removal (R5):
 - the 2 hooks in `.claude/hooks/` (`pre-commit-gate.sh`, `pre-push-gate.sh` — deterministic
   command-mechanics gates only; there is no reminder-hook layer),
 - the agents in `marketplace/internals/agents/*.md`,
-- the 9 per-directory signpost `AGENTS.md` files (`charly/`, `candy/`,
-  `marketplace/`, `docs/`, each `box/<distro>`),
+- `charly/AGENTS.md` (the charly-core rules; it points at the umbrella `AGENTS.md`
+  for every org-wide section and must never restate one),
+- the per-directory signpost `AGENTS.md` files (`candy/`, `marketplace/`, `docs/`,
+  each `box/<distro>`),
 - the workflows in `.claude/workflows/*.js`,
 - every SKILL.md that quotes a section name (grep before assuming).
 

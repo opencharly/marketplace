@@ -38,7 +38,7 @@ Step routing inside the walk (`kit.WalkPlans`):
 Because `{{.Home}}` is resolved against the GUEST home host-side (the served
 executor's `ResolveHome` targets the guest), the plugin ships no substrate
 payload. It returns a `DeployReply` carrying the combined teardown ops the host
-records in the install ledger and replays at `charly fleet del`
+records in the install ledger and replays at `charly deploy del`
 (record-and-replay).
 
 ## `pluginDeployTarget` — the generic adapter (S3b)
@@ -135,7 +135,7 @@ Core provides ONLY the residual pieces the plugin genuinely cannot do:
   registration with panic-vs-warning classification (RCA #5) that must run
   host-side. The former `charly/host_build_ephemeral_register.go` + the generic
   `"ephemeral-register"` HostBuild seam are DELETED (K-wave 2); the plugin
-  (`plugin-deploy-vm/candy/plugin-deploy-vm/lifecycle.go`) Invokes `command:fleet`'s
+  (`plugin-deploy-vm/candy/plugin-deploy-vm/lifecycle.go`) Invokes `command:deploy`'s
   `OpEphemeralRegister` DIRECTLY over the peer reverse channel as its FIRST
   action, matching the deleted host-side hook's own ordering.
 - **The `lifecyclePostTeardownHook`** is DELETED (K-wave 2 — zero refs; only an
@@ -157,21 +157,21 @@ Each Op:
 
 | Op | What it does |
 |---|---|
-| `OpPrepareVenue` | The full venue preflight, run BEFORE the walk. `vmPrepareVenue` resolves its OWN `spec.LifecyclePrepareInput` (via `vmEntityForPrepare` + `sdk/loaderkit.ResolveVmEntityViaExecutor` — see above), first Invoking `command:fleet`'s `OpEphemeralRegister` DIRECTLY over the peer reverse channel (the former `"ephemeral-register"` HostBuild seam is DELETED, K-wave 2); writes the managed ssh-config Host stanza (`kit.WriteVmSshStanza` + `kit.EnsureSshConfigInclude`), auto-boots the domain via `HostBuild("cli")`, waits (`kit.WaitForSSH` / `WaitForCloudInit` / `WaitForPackageLock`), `kit.EnsureCharlyInGuest`, then returns the guest-`SSHExecutor` `VenueDescriptor` (`candy/plugin-fleet`'s `lifecycleInvoke` re-materializes + serves it) and the `VmDeployState` patch (`saveDeployState` persists it). |
+| `OpPrepareVenue` | The full venue preflight, run BEFORE the walk. `vmPrepareVenue` resolves its OWN `spec.LifecyclePrepareInput` (via `vmEntityForPrepare` + `sdk/loaderkit.ResolveVmEntityViaExecutor` — see above), first Invoking `command:deploy`'s `OpEphemeralRegister` DIRECTLY over the peer reverse channel (the former `"ephemeral-register"` HostBuild seam is DELETED, K-wave 2); writes the managed ssh-config Host stanza (`kit.WriteVmSshStanza` + `kit.EnsureSshConfigInclude`), auto-boots the domain via `HostBuild("cli")`, waits (`kit.WaitForSSH` / `WaitForCloudInit` / `WaitForPackageLock`), `kit.EnsureCharlyInGuest`, then returns the guest-`SSHExecutor` `VenueDescriptor` (`candy/plugin-fleet`'s `lifecycleInvoke` re-materializes + serves it) and the `VmDeployState` patch (`saveDeployState` persists it). |
 | `OpArtifactKey` | Keys candy artifacts (+ the k3s `ClusterProfile`) under `vm:<entity>`, NOT the deploy name — one k3s cluster per VM is reached by several beds, so its profile lands under the shared `vm-<entity>` name the `cluster:` refs use. |
 | `OpPostApply` | Deploys nested `target: pod` children as persistent in-guest quadlets over the served guest executor, AFTER the walk (so the VM's own candies + any kernel-driver reboot are already applied). Add only; skipped under `--node-only`. |
 | `OpTeardownExecutor` | Returns the guest-`SSHExecutor` `VenueDescriptor` (against the managed alias, no boot) the recorded `ReverseOps` replay over IN THE GUEST. |
 | `OpPostTeardown` | Removes the managed ssh-config stanza (`kit.RemoveVmSshStanza`) and ships the charly.yml entry keys to strip in `PostTeardownReply.RemoveEntries`; the ephemeral-lifecycle teardown is plugin-side (`vmPostTeardown` / `OpEphemeralTeardown` — the former core `lifecyclePostTeardownHook` is DELETED, K-wave 2). |
-| `OpStart` / `OpStop` / `OpStatus` / `OpLogs` / `OpShell` / `OpRebuild` | Drive the `charly vm` family via `HostBuild("cli")`. `OpRebuild` does `charly vm destroy` + `build` + `create` + `start` + `charly fleet add <name>` (re-applying the deploy's candies to the fresh guest via the shared layer-apply primitive, R3) — the path `charly update <vm-bed>` routes through. |
+| `OpStart` / `OpStop` / `OpStatus` / `OpLogs` / `OpShell` / `OpRebuild` | Drive the `charly vm` family via `HostBuild("cli")`. `OpRebuild` does `charly vm destroy` + `build` + `create` + `start` + `charly deploy add <name>` (re-applying the deploy's candies to the fresh guest via the shared layer-apply primitive, R3) — the path `charly update <vm-bed>` routes through. |
 
 ## Implementation notes
 
 - The `pod` substrate is EXTERNAL (`deploy:pod`, candy/plugin-deploy-pod); the pod overlay render MOVED to the candy (P11c — `candy/plugin-deploy-pod/overlay.go`, via `deploykit.OCITarget`), and `charly/build_overlay.go` is now the host-side prep+resolve M-seam the candy reaches over `HostBuild("overlay")`. Its teardown record is keyed HOST-SIDE by `computeDeployID(name)` like every external deploy (the in-proc pod was record-free).
 - `vmNameFromDeployName` strips the `vm:` prefix. `vmEntityForPrepare` (`plugin-deploy-vm/candy/plugin-deploy-vm/lifecycle.go`, ported verbatim from the DELETED `charly/vm_lifecycle_preresolve.go`'s `vmEntityForAdd` — FINAL/K5 unit 6a, M4b) resolves the `kind:vm` entity from a deploy node: the node's `vm:` cross-ref (`node.From`) wins, then a legacy `vm:<entity>` prefix, then the leaf of a nested dotted path.
 - `UnifiedDeployTarget` / `LifecycleTarget` interfaces (`spec/spec/deploy_target_unified.go`, the kind-agnostic contract — the option types repoint to the CUE-sourced `spec.DeployTargetDispatch*` wire types) + the `ResolveTarget` dispatcher (`charly/unified_targets.go`) provide the full lifecycle contract (`Add` / `Del` / `Update` / `Start` / `Stop` / `Status` / `Logs` / `Shell` / `Rebuild` — `Test` DELETED, #55 W3 B3 remainder: zero real callers anywhere in the tree). `ResolveTarget` returns a `pluginDeployTarget` (S3b) for every externalized substrate (local/vm/pod/kubernetes/android — all five).
-- Disposability is read per-`spec.Deploy` via `Deploy.IsDisposable()` (`spec/spec/charly_methods.go` — `disposable: true`, or ephemeral); it is NOT a `VmSpec` field. The disposability-as-authorization gate is NOT applied in the `charly update` path — `charly update <vm>` rebuilds on explicit invocation regardless (it only NOTES non-disposability, never refuses). `pluginDeployTarget.Rebuild` dispatches via `candy/plugin-fleet`'s `Invoke(OpDeployDispatch)` to the plugin's `OpRebuild` (over `HostBuild("cli")`), which recreates the domain THEN re-applies the deploy node's layers via the shared `charly fleet add <node>` path — the same layer-apply primitive the local/pod Rebuild use (R3).
+- Disposability is read per-`spec.Deploy` via `Deploy.IsDisposable()` (`spec/spec/charly_methods.go` — `disposable: true`, or ephemeral); it is NOT a `VmSpec` field. The disposability-as-authorization gate is NOT applied in the `charly update` path — `charly update <vm>` rebuilds on explicit invocation regardless (it only NOTES non-disposability, never refuses). `pluginDeployTarget.Rebuild` dispatches via `candy/plugin-fleet`'s `Invoke(OpDeployDispatch)` to the plugin's `OpRebuild` (over `HostBuild("cli")`), which recreates the domain THEN re-applies the deploy node's layers via the shared `charly deploy add <node>` path — the same layer-apply primitive the local/pod Rebuild use (R3).
 
-The `vm` substrate brings `charly fleet add vm:<name>` online: the same
+The `vm` substrate brings `charly deploy add vm:<name>` online: the same
 `InstallPlan` IR that drives pod builds and host deploys runs **inside a VM**
 over SSH. Shell bodies that a `local:` deploy would exec via local `sudo bash -s`
 are instead exec'd via `ssh guest 'sudo bash -s'` through the guest
@@ -219,7 +219,7 @@ inside the plugin** — the DELETED `lifecyclePrepareHook`/`vmLifecyclePrepare`
 (`charly/vm_lifecycle_preresolve.go`) is gone; `plugin-deploy-vm/candy/plugin-deploy-vm/lifecycle.go`'s
 `vmPrepareVenue` now does it all, BEFORE the walk:
 
-0. **Register the ephemeral Add-time side effect** — Invokes `command:fleet`'s
+0. **Register the ephemeral Add-time side effect** — Invokes `command:deploy`'s
    `OpEphemeralRegister` DIRECTLY over the peer reverse channel FIRST (a
    panic-safe systemd transient-timer registration the plugin cannot do itself,
    RCA #5; the former `HostBuild("ephemeral-register")` seam is DELETED, K-wave 2),
@@ -324,7 +324,7 @@ cannot disagree about which store they are addressing):
   --device nvidia.com/gpu=all` consumer that needs `/dev/nvidia*` via root.
 - **`--rootless`** → the SSH user's ROOTLESS podman (`podman`, no sudo; the tag
   runs via `RunUser`, not `RunSystem`). This is what the plugin's `OpPostApply`
-  nested-pod deploy uses: the nested pod comes up via the guest user's own `charly fleet from-box`
+  nested-pod deploy uses: the nested pod comes up via the guest user's own `charly deploy from-box`
   (a `--user` quadlet) which reads the USER's storage, so the image MUST land
   there — a root-loaded image would be invisible to it.
 
@@ -343,7 +343,7 @@ boot-time `nvidia-ctk cdi generate`, are already applied). For each child it:
    auto-starts at boot and survives reboot), then `export
    XDG_RUNTIME_DIR=/run/user/$(id -u)` (so `systemctl --user` reaches the
    lingering user bus over the non-login SSH session), then the guest's own
-   project-free `charly fleet from-box localhost/charly-<childKey>:latest
+   project-free `charly deploy from-box localhost/charly-<childKey>:latest
    <childKey>` — which generates + starts the quadlet from the image's baked OCI
    labels (ports, services, GPU device auto-detected in the guest; rootless GPU
    via CDI — `/dev/nvidia*` are world-rw and the CDI spec is world-readable).
@@ -375,15 +375,15 @@ type VmDeployState struct {
 }
 ```
 
-Persisted in `~/.config/charly/charly.yml` as the `vm_state:` field on the VM's deploy entry (`FleetNode.VmState`). On a deploy the plugin returns the `VmDeployState` patch from `OpPrepareVenue`, and `candy/plugin-fleet`'s lifecycle dispatch (S3b) persists it via the generic `saveDeployState` (extended with `VmState` / `VmCrossRef`). Each `charly vm build` / `charly vm create` / `charly fleet add vm:<name>` iteration updates the relevant fields. `charly fleet del vm:<name>` preserves the state (so re-adding picks up InstanceID etc.) unless `--purge` is passed.
+Persisted in `~/.config/charly/charly.yml` as the `vm_state:` field on the VM's deploy entry (`DeployNode.VmState`). On a deploy the plugin returns the `VmDeployState` patch from `OpPrepareVenue`, and `candy/plugin-fleet`'s lifecycle dispatch (S3b) persists it via the generic `saveDeployState` (extended with `VmState` / `VmCrossRef`). Each `charly vm build` / `charly vm create` / `charly deploy add vm:<name>` iteration updates the relevant fields. `charly deploy del vm:<name>` preserves the state (so re-adding picks up InstanceID etc.) unless `--purge` is passed.
 
 ## SSH key idempotency
 
 `GenerateSSHKeypair` (`spec/sshx/ssh_keypair.go` — the former `charly/vm_backend_lifecycle.go` is DELETED, K-wave 2) checks for `<vmStateDir>/id_ed25519.pub` before creating. Rebuilding a VM doesn't regenerate the keypair. First `charly vm build` writes the keypair; subsequent calls leave it untouched — so iterated rebuilds keep a stable pubkey and SSH stays valid.
 
-## CLI dispatch: fleet add → ResolveTarget → pluginDeployTarget
+## CLI dispatch: deploy add → ResolveTarget → pluginDeployTarget
 
-`charly fleet add vm:<name>` resolves via `fleet_add_cmd.go::dispatchNode` →
+`charly deploy add vm:<name>` resolves via `deploy_add_cmd.go::dispatchNode` →
 `ResolveTarget` → `pluginDeployTarget` (S3b) when the deploy node is a `vm:`
 substrate (or the deploy name starts with `vm:`). `pluginDeployTarget.Add`
 dispatches via `candy/plugin-fleet`'s `Invoke(OpDeployDispatch)` to the plugin's
@@ -393,11 +393,11 @@ boots the domain + returns the guest executor — then Invokes `deploy:vm` to wa
 the plans inside the guest:
 
 ```
-charly fleet add vm:arch ripgrep           # apply ripgrep layer in the guest
-charly fleet add vm:arch fedora-coder \    # apply full fedora-coder layer set
+charly deploy add vm:arch ripgrep           # apply ripgrep layer in the guest
+charly deploy add vm:arch fedora-coder \    # apply full fedora-coder layer set
     --add-candy team-extras \
     --add-candy github.com/team/configs/candy/sshkeys
-charly fleet del vm:arch                   # reverse all applied layers in the guest
+charly deploy del vm:arch                   # reverse all applied layers in the guest
 ```
 
 Prereq: the VM is auto-booted by the plugin's `OpPrepareVenue` if not already reachable
@@ -415,7 +415,7 @@ When the VM's network uses libvirt user-mode + `<backend type='passt'/>` + `<por
 - `/charly-internals:vm-spec` — VmSpec consumed by the vm deploy plugin's host prepare hook
 - `/charly-internals:libvirt-renderer` — renders domain XML; portForward + passt backend
 - `/charly-internals:cloud-init-renderer` — `kit.EnsureCharlyInGuest` (runs in the plugin's `OpPrepareVenue`)
-- `/charly-core:deploy` — `charly fleet add vm:<name>` command + charly.yml schema
+- `/charly-core:deploy` — `charly deploy add vm:<name>` command + charly.yml schema
 - `/charly-local:local-deploy` — the sibling external substrate (`deploy:local` via `candy/plugin-deploy-local`); same `kit.WalkPlans` + ReverseOps model
 - `/charly-vm:vm` — VM lifecycle; creates the venue the vm deploy runs against
 - `/charly-vm:arch-cloud-vm` — canonical worked example — VmDeployState persistence; ssh_key idempotency live-test

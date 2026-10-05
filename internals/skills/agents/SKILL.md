@@ -92,11 +92,25 @@ NOWHERE else: `.claude/`, `.opencode/`, `.codex/`, `.pi/`, `.reasonix/`, and
 `pod-*`/`plugin-*` repo, or `charly/` — carries a copy, and there is **no parity
 gate**: the former `charly task harness` (which compared umbrella↔`charly/`
 byte-identical files) is DELETED. Sessions root at the umbrella (umbrella
-`AGENTS.md` rule 4), and harness config resolves from the SESSION'S project root, so
+`AGENTS.md`, "Sessions root at the umbrella"), and harness config resolves from the SESSION'S project root, so
 config anywhere else would bind a situation that cannot legally occur — **one root,
 one config home**. A rulebook (`AGENTS.md`) is NOT harness config and stays in its
 own repo. The clone-level git hook is installed per clone with `charly task hooks`.
 This skill documents the mechanism; the rulebooks stay harness-neutral.
+
+**The harness-config gate.** `scripts/check-harness-config.mjs` (umbrella root) audits
+the harness-config surfaces themselves: each still parses and stays wired (the
+PreToolUse hooks block, the plugin set, the permission arms, the DeepWiki MCP entry,
+the SOUL.md injection), and `--self-test` mutates each surface to prove every check
+can fail. Like the clone-level hook it guards MECHANICS only; attribution, change
+class, and rulebook compliance are judged once by the fresh `pr-validator` at merge.
+
+**DeepWiki (architecture questions).** Every harness declares the `deepwiki` remote
+MCP server (`https://mcp.deepwiki.com/mcp`: `.mcp.json`, `opencode.json`,
+`.codex/config.toml`). Where a grep cannot answer *how* a repo is put together, ask
+it (`read_wiki_structure`, `read_wiki_contents`, `ask_wiki_question`) about the
+repo's GitHub name instead of guessing — and treat the answer as a pointer to read,
+never as truth: when the wiki and the code disagree, the code wins.
 
 ## A plugin resolves DIFFERENT PIECES FROM DIFFERENT REFS — verify the pin its BACKEND resolves from (R1 2026-09-29)
 
@@ -169,7 +183,7 @@ as durable. Full procedure and the harness-binding detail:
   operation, ensure the ledger reflects it, so a later interruption resumes
   from STATE, not memory.
 
-The umbrella rulebook states this as rule 11 (`AGENTS.md`, "Todo ledger &
+The umbrella rulebook states this as a Part II rule (`AGENTS.md`, "Ledger and
 interruption safety") and points here for the detail. Where this guidance
 itself belongs is owned by the sibling `/charly-internals:skills` ("Where
 guidance belongs"): mandate in `AGENTS.md`, detail in the skill.
