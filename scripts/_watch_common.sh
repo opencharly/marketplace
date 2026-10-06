@@ -269,12 +269,19 @@ watch_sleep() {
 # watch. The holder's PID is recorded so a foreground arm can TAKE OVER a detached
 # successor (or a stale duplicate) cleanly.
 
-# watch_key <script> <args...> — a stable, short key for one watcher invocation.
+# watch_key <script> <args...> — a stable, short key for one LOGICAL watcher invocation.
+#
+# The key deliberately does NOT include the script's DIRECTORY. A session rooted at the
+# umbrella and one rooted in a worktree resolve the SAME script at different paths, and
+# their locks live in the SAME runtime dir — so hashing the full argv0 gave ONE scope TWO
+# locks across checkouts (opencharly/marketplace#423, measured in opencharly#408). Keying
+# on the BASENAME + args keeps distinct scripts distinct while making one scope one lock
+# from anywhere.
 watch_key() {
-  local s
-  if command -v sha1sum >/dev/null 2>&1; then s="$(printf '%s' "$*" | sha1sum)"
-  elif command -v md5sum >/dev/null 2>&1; then s="$(printf '%s' "$*" | md5sum)"
-  else s="$(printf '%s' "$*" | cksum)"; fi
+  local s base="${1##*/}"; shift 2>/dev/null || true
+  if command -v sha1sum >/dev/null 2>&1; then s="$(printf '%s' "$base $*" | sha1sum)"
+  elif command -v md5sum >/dev/null 2>&1; then s="$(printf '%s' "$base $*" | md5sum)"
+  else s="$(printf '%s' "$base $*" | cksum)"; fi
   printf '%s' "${s%% *}"
 }
 

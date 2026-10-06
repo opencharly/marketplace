@@ -793,6 +793,19 @@ eq "rate-limit: healthy quota polls and fires normally" "$?" 0
 reset_calls
 unset ALLOW_FAST_POLL WATCH_SLEEP_HOOK WATCH_RATE_HOOK WATCH_RATE_MIN WATCH_RATE_BACKOFF_FACTOR
 
+# ── watch_key: one scope, ONE lock across checkouts (opencharly/marketplace#423) ──
+# The lock lives in a SHARED runtime dir, so the key must not depend on the script's
+# directory — else a worktree-rooted session and an umbrella-rooted one double-lock.
+k_umb="$( . "$HERE/_watch_common.sh"; watch_key /home/op/opencharly/marketplace/scripts/gh_watch.sh opencharly/x#1 )"
+k_wt="$( . "$HERE/_watch_common.sh"; watch_key /home/op/opencharly/.worktrees/s/marketplace/scripts/gh_watch.sh opencharly/x#1 )"
+eq "watch_key: same scope across checkouts yields ONE key" "$k_wt" "$k_umb"
+k_other="$( . "$HERE/_watch_common.sh"; watch_key /home/op/opencharly/marketplace/scripts/pr_state_watch.sh opencharly/x#1 )"
+if [ "$k_other" != "$k_umb" ]; then
+  ok "watch_key: a different script keeps a distinct key"
+else
+  bad "watch_key distinct-script" "pr_state_watch shares gh_watch's key"
+fi
+
 echo
 if [ "$FAILS" -eq 0 ]; then
   echo "PASS — all watcher-family assertions passed"
