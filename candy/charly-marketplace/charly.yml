@@ -14,7 +14,7 @@ charly-marketplace:
             # here ('@github.com/opencharly/charly:vTAG') was not a candy node and
             # resolved to unknown candy "github.com/opencharly/charly" - silently in
             # this repo, but as a hard validation error in every consumer of the list.
-            - '@github.com/opencharly/pod-charly-hooks:v2026.279.0031'
+            - '@github.com/opencharly/pod-charly-hooks:v2026.279.0656'
             - '@github.com/opencharly/eval-omarchy:v2026.274.2144'
             # The distro-* image families own their OS/base skills (relocated from the
             # layer-charly-distros concept aggregator — this pin is the corpus source for

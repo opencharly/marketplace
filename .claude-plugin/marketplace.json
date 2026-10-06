@@ -4,7 +4,6 @@
     "name": "opencharly"
   },
   "description": "Claude Code, Codex, and Kimi plugins for OpenCharly — The agentic DevOps tool for you and your agents: runtime commands, schema authoring, contributor internals, and deployable image families.",
-  "version": "2026.272.0616",
   "plugins": [
     {
       "name": "charly-agent",

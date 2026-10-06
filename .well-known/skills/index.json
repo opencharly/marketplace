@@ -4,29 +4,25 @@
       "name": "a11y-tools",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "adb",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "agent",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "agent-forwarding",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "agents",
@@ -37,309 +33,265 @@
         "references/orchestration-model.md",
         "references/parallel-bed-testing.md",
         "references/program-discipline.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "agentteams",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "agentteams-cli",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "airflow-layer",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "alias",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "android",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "android-sdk",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "android-test-apps",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "appium",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "arch",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "arch-aur-test",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "arch-builder",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "arch-cloud-vm",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "arch-coder",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "arch-pac-test",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "arch-test",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "asciinema",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "authoring",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "blogwatcher",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "bpf",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "build",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "build-toolchain",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "cache",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "cachyos",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "cachyos-bootstrap-vm",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "cachyos-extras",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "cachyos-pacstrap",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "cachyos-pacstrap-builder",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "camsnap",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "candy",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "capabilities",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "cardwire",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "cdp",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "charly",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "charly-arch",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "charly-cachyos",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "charly-config",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "charly-doctor",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "charly-fedora",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "charly-mcp",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "charly-mcp-cmd",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "charly-status",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "charly-update",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "charly-version",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "check",
@@ -350,443 +302,380 @@
         "references/cross-deployment-probing.md",
         "references/live-probe-verbs.md",
         "references/verb-catalog.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "check-k8s",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "check-kubevirt",
       "files": [
         "SKILL.md",
         "references/live-probe-verbs.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "check-sway-browser-vnc",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "chrome",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "chrome-devtools-mcp",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "chrome-sway",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "claude-code",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "clawhub",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "clean",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "cloud-init",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "cloud-init-renderer",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "cmd",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "codex",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "comfyui",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "comfyui-layer",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "console-automation",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "container-nesting",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "cp",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "crabbox",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "crabbox-coordinator",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "crabbox-deploy",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "cua",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "cuda",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "cue",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "cutover-policy",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "dbus",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "dbus-layer",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "debian",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "debian-builder",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "debian-coder",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "debian-debootstrap",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "debian-debootstrap-builder",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "debian-debootstrap-vm",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "debug-tools-layer",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "deploy",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "desktop-fonts",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "desktop-media",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "dev-tools",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "devops-tools",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "direnv",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "disposable",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "docker-ce",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "docs",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "docs-site",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "dsh",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "dsh-cli",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "egress",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "enc",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "fastfetch",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "feature",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "fedora",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "fedora-builder",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "fedora-coder",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "fedora-nonfree",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "fedora-test",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "ffmpeg",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "filebrowser",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "filebrowser-layer",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "fonts-extended",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "forgecode",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "gemini",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "generate",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "generate-source",
@@ -795,22 +684,19 @@
         "references/labels-and-caching.md",
         "references/multistage-and-intermediates.md",
         "references/task-emission.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "gh",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "gifgrep",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "git-workflow",
@@ -823,36 +709,31 @@
         "references/evidence-and-freshness.md",
         "references/watch-and-wake.md",
         "references/pre-validator-self-audit.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "github-actions",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "github-runner",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "githubrunner",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "gnupg",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "go",
@@ -861,176 +742,151 @@
         "references/implementation-insights.md",
         "references/schema-change-recipe.md",
         "references/source-map.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "go-quality",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "gocryptfs",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "gogcli",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "golang",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "google-cloud",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "google-cloud-npm",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "goplaces",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "grafana-tools",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "helm",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "herdr",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "herdr-box",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "hermes",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "hermes-full-layer",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "hermes-layer",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "hermes-playwright",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "hermes-playwright-layer",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "heroic",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "himalaya",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "image",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "immich",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "immich-layer",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "immich-ml",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "immich-ml-layer",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "inspect",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "install-plan",
@@ -1039,596 +895,511 @@
         "references/deploy-targets.md",
         "references/emit-opts-and-testing.md",
         "references/step-kinds.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "jetkvm",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "jupyter",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "jupyter-layer",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "jupyter-mcp",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "jupyter-ml",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "jupyter-ml-layer",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "jupyter-ml-notebook",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "k3s",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "k3s-agent",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "k3s-server",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "kde-selkies",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "kde-shell",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "keepassxc",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "keepassxc-keyring",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "kimi",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "kind",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "kubernetes",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "kubernetes-layer",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "kubevirt",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "kubevirt-operator",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "labwc",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "language-runtimes",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "layer",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "layer-nerdctl",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "libnotify",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "libvirt",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "libvirt-renderer",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "list",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "llama-cpp",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "load",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "local-deploy",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "local-infra",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "local-spec",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "logs",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "maplibre-versatiles-styler",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "maputnik-layer",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "marimo-layer",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "marimo-mcp",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "marketplace",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "mcporter",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "merge",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "migrate",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "mise",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "nano-pdf",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "nested-podman-socket",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "new",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "nodejs",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "notebook-finetuning",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "notebook-llm-on-supercomputers",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "notebook-ollama",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "notebook-openrouter",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "notebook-osm",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "notebook-templates",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "nvidia",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "nvidia-layer",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "ollama",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "ollama-cli",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "ollama-layer",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "omarchy",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "omarchy-base",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "omarchy-cstream",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "omarchy-eval",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "omarchy-eval-cold-reader",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "omarchy-eval-oracle",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "omarchy-shell",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "omarchy-vm",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "openclaw",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "openclaw-deploy",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "openclaw-desktop",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "openclaw-full",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "openclaw-full-layer",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "openclaw-full-ml-layer",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "openclaw-layer",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "openwebui",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "openwebui-layer",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "oracle",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "ordercli",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "osm-tools-layer",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "ovmf",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "pavucontrol",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "pipeline",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "pipewire",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "pixi",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "playwright-layer",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "plugin",
@@ -1637,855 +1408,733 @@
         "references/authoring-recipes.md",
         "references/boundary-law.md",
         "references/cue-schema-contract.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "plugin-nerdctl",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "pmtiles-viewer",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "pod",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "postgresql",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "pre-commit",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "pull",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "punktfunk",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "punktfunk-host",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "python",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "python-ml",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "python-ml-layer",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "qdrant",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "qdrant-cli",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "qemu-guest-agent",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "quickshell",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "reconcile",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "record",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "redis",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "remove",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "repo-setup",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "restart",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "review",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "ripgrep",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "rocm",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "root-cause-analyzer",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "rpmfusion",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "rust",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "sag",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "secrets",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "selkies",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "selkies-core",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "selkies-desktop-layer",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "selkies-kde",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "selkies-kde-desktop",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "selkies-kde-nvidia",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "selkies-labwc",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "selkies-labwc-nvidia",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "service",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "settings",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "shell",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "sherpa-onnx",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "shortbread",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "sidecar",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "skills",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "socat",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "songsee",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "spice",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "sqlite",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "ssh",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "ssh-client",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "sshd",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "start",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "steam",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "stop",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "strict-policy",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "summarize",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "supervisord",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "sway",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "sway-browser-ecovoyage",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "sway-browser-vnc",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "sway-desktop",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "sway-desktop-vnc",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "swaync",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "tailscale",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "tailscale-up",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "testapi",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "thunar",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "tmux",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "tmux-layer",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "traefik",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "transcode",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "tui",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "tutorial-shell",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "typst",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "ubuntu",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "ubuntu-builder",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "ubuntu-coder",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "ubuntu-debootstrap",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "ubuntu-debootstrap-builder",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "ubuntu-debootstrap-vm",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "udev",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "unsloth",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "unsloth-studio",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "unsloth-studio-layer",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "uv",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "validate",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "valkey",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "valkey-test",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "vectorchord",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "versa",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "versatiles",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "versatiles-fonts",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "versatiles-frontend",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "versatiles-style",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "virtualization",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "vm",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "vm-deploy-target",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "vm-spec",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "vms-catalog",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "vnc",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "volume",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "vscode",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "wacli",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "waybar",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "waybar-labwc",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "wayvnc",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "wf-recorder",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "whisper",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "wl",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "wl-overlay",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "wl-overlay-layer",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "wl-record-pixelflux",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "wl-screenshot-grim",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "wl-screenshot-pixelflux",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "wl-tools",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "workspace-mount",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "xdg-portal",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "xfce4-terminal",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "xterm",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "xurl",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     },
     {
       "name": "yay",
       "files": [
         "SKILL.md"
-      ],
-      "version": "2026.272.0616"
+      ]
     }
   ]
 }
