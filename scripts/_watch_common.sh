@@ -279,9 +279,10 @@ watch_sleep() {
 # from anywhere.
 watch_key() {
   local s base="${1##*/}"; shift 2>/dev/null || true
-  if command -v sha1sum >/dev/null 2>&1; then s="$(printf '%s' "$base $*" | sha1sum)"
-  elif command -v md5sum >/dev/null 2>&1; then s="$(printf '%s' "$base $*" | md5sum)"
-  else s="$(printf '%s' "$base $*" | cksum)"; fi
+  local rest=""; [ "$#" -gt 0 ] && rest=" $*"
+  if command -v sha1sum >/dev/null 2>&1; then s="$(printf '%s' "$base$rest" | sha1sum)"
+  elif command -v md5sum >/dev/null 2>&1; then s="$(printf '%s' "$base$rest" | md5sum)"
+  else s="$(printf '%s' "$base$rest" | cksum)"; fi
   printf '%s' "${s%% *}"
 }
 

@@ -805,6 +805,12 @@ if [ "$k_other" != "$k_umb" ]; then
 else
   bad "watch_key distinct-script" "pr_state_watch shares gh_watch's key"
 fi
+# A bare single-arg caller (no path, no extra args) must hash EXACTLY as before:
+# `printf '%s' "hung-lock-test"` — no trailing separator (the separator is only added
+# when args remain). Non-vacuous: the pre-fix "$base $*" form appended a trailing space.
+k_bare="$( . "$HERE/_watch_common.sh"; watch_key hung-lock-test )"
+k_old="$(printf '%s' 'hung-lock-test' | sha1sum | cut -d' ' -f1)"
+eq "watch_key: a bare single-arg caller is byte-compatible" "$k_bare" "$k_old"
 
 echo
 if [ "$FAILS" -eq 0 ]; then
