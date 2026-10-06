@@ -1,0 +1,22 @@
+{
+  "name": "charly-kubevirt",
+  "description": "Schema authoring for the `kubevirt:` deploy substrate (the 7th) — `kind: kubevirt` templates and `kubevirt:`/`target: kubevirt` deploys, the VirtualMachine CR lifecycle (DataVolume, runStrategy, VMI Ready + AgentConnected, managed `virtctl port-forward`), the out-of-process `kubevirt:` check verb, and the pinned KubeVirt + CDI platform install.",
+  "author": {
+    "name": "opencharly"
+  },
+  "repository": "https://github.com/opencharly/marketplace",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "OpenCharly Kubevirt",
+    "shortDescription": "Schema authoring for the `kubevirt:` deploy substrate (the 7th) — `kind: kubevirt` templates and `kubevirt:`/`target: kubevirt` deploys, the VirtualMachine CR lifecycle (DataVolume, runStrategy, VMI Ready + AgentConnected, managed `virtctl port-forward`), the out-of-process `kubevirt:` check verb, and the pinned KubeVirt + CDI platform install.",
+    "longDescription": "Schema authoring for the `kubevirt:` deploy substrate (the 7th) — `kind: kubevirt` templates and `kubevirt:`/`target: kubevirt` deploys, the VirtualMachine CR lifecycle (DataVolume, runStrategy, VMI Ready + AgentConnected, managed `virtctl port-forward`), the out-of-process `kubevirt:` check verb, and the pinned KubeVirt + CDI platform install.",
+    "developerName": "opencharly",
+    "category": "kind",
+    "capabilities": [
+      "Instructions"
+    ],
+    "defaultPrompt": [
+      "Use OpenCharly Kubevirt for this OpenCharly task."
+    ]
+  }
+}

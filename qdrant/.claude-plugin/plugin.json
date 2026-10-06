@@ -1,0 +1,17 @@
+{
+  "name": "charly-qdrant",
+  "description": "Self-contained skills for the Qdrant vector-search service family: the pinned static-musl service candy (REST 6333 / gRPC 6334, persistent storage, admin API-key auth from the credential store) and the `charly qdrant` management CLI plus the declarative `qdrant:` check verb.",
+  "author": {
+    "name": "opencharly"
+  },
+  "homepage": "https://github.com/opencharly/charly",
+  "repository": "https://github.com/opencharly/marketplace",
+  "license": "MIT",
+  "keywords": [
+    "charly",
+    "qdrant",
+    "vector",
+    "search",
+    "database"
+  ]
+}

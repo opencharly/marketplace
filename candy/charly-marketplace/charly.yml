@@ -14,7 +14,7 @@ charly-marketplace:
             # here ('@github.com/opencharly/charly:vTAG') was not a candy node and
             # resolved to unknown candy "github.com/opencharly/charly" - silently in
             # this repo, but as a hard validation error in every consumer of the list.
-            - '@github.com/opencharly/pod-charly-hooks:v2026.272.0616'
+            - '@github.com/opencharly/pod-charly-hooks:v2026.279.0656'
             - '@github.com/opencharly/eval-omarchy:v2026.274.2144'
             # The distro-* image families own their OS/base skills (relocated from the
             # layer-charly-distros concept aggregator — this pin is the corpus source for
@@ -182,7 +182,7 @@ charly-marketplace:
             - '@github.com/opencharly/pod-immich:v2026.274.0650'
             - '@github.com/opencharly/pod-jupyter:v2026.274.0350'
             - '@github.com/opencharly/vm-k3s-agent:v2026.274.0655'
-            - '@github.com/opencharly/vm-k3s-server:v2026.273.2350'
+            - '@github.com/opencharly/vm-k3s-server:v2026.278.2001'
             - '@github.com/opencharly/pod-kde-selkies:v2026.274.1033'
             - '@github.com/opencharly/layer-language-runtimes:v2026.273.1816'
             - '@github.com/opencharly/layer-python-ml:v2026.274.0754'
@@ -232,6 +232,16 @@ charly-marketplace:
             - '@github.com/opencharly/layer-crabbox:v2026.274.0609'
             - '@github.com/opencharly/pod-crabbox:v2026.274.0652'
             - '@github.com/opencharly/plugin-crabbox/candy/plugin-crabbox:v2026.272.0026'
+            # R0 coverage wave (opencharly/opencharly#382): three repos own `skill:`
+            # entities that carry `triggers:` but were never pinned, so the emitter
+            # never saw them and their skills were absent from the corpus entirely —
+            # the dispatcher therefore carried no row for any of them. Pinning is the
+            # whole fix: `charly marketplace generate` emits one row per
+            # `triggers:`-bearing `type: skill` entity of a PINNED repo. See the
+            # umbrella gate `scripts/check-harness-config.mjs` check 12.
+            - '@github.com/opencharly/layer-qdrant:v2026.274.0645'
+            - '@github.com/opencharly/plugin-qdrant/candy/plugin-qdrant:v2026.279.0719'
+            - '@github.com/opencharly/plugin-kubevirt/candy/plugin-kubevirt:v2026.278.1620'
             # the nerdctl integration (plan/nerdctl-integration.md): the layer that
             # installs the nerdctl stack + the out-of-tree engine:nerdctl plugin,
             # each owning its harness skill.
