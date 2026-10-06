@@ -293,6 +293,18 @@
       "category": "kind"
     },
     {
+      "name": "charly-kubevirt",
+      "source": {
+        "source": "local",
+        "path": "./kubevirt"
+      },
+      "policy": {
+        "installation": "INSTALLED_BY_DEFAULT",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "kind"
+    },
+    {
       "name": "charly-languages",
       "source": {
         "source": "local",
@@ -393,6 +405,18 @@
       "source": {
         "source": "local",
         "path": "./punktfunk"
+      },
+      "policy": {
+        "installation": "INSTALLED_BY_DEFAULT",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "images"
+    },
+    {
+      "name": "charly-qdrant",
+      "source": {
+        "source": "local",
+        "path": "./qdrant"
       },
       "policy": {
         "installation": "INSTALLED_BY_DEFAULT",

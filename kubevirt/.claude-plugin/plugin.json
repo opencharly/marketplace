@@ -1,0 +1,17 @@
+{
+  "name": "charly-kubevirt",
+  "description": "Schema authoring for the `kubevirt:` deploy substrate (the 7th) — `kind: kubevirt` templates and `kubevirt:`/`target: kubevirt` deploys, the VirtualMachine CR lifecycle (DataVolume, runStrategy, VMI Ready + AgentConnected, managed `virtctl port-forward`), the out-of-process `kubevirt:` check verb, and the pinned KubeVirt + CDI platform install.",
+  "author": {
+    "name": "opencharly"
+  },
+  "homepage": "https://github.com/opencharly/charly",
+  "repository": "https://github.com/opencharly/marketplace",
+  "license": "MIT",
+  "keywords": [
+    "charly",
+    "kubevirt",
+    "k8s",
+    "virtualmachine",
+    "cdi"
+  ]
+}
