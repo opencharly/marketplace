@@ -14,8 +14,8 @@ charly-marketplace:
             # here ('@github.com/opencharly/charly:vTAG') was not a candy node and
             # resolved to unknown candy "github.com/opencharly/charly" - silently in
             # this repo, but as a hard validation error in every consumer of the list.
-            - '@github.com/opencharly/pod-charly-hooks:v2026.272.0616'
-            - '@github.com/opencharly/eval-omarchy:v2026.277.2043'
+            - '@github.com/opencharly/pod-charly-hooks:v2026.279.0656'
+            - '@github.com/opencharly/eval-omarchy:v2026.274.2144'
             # The distro-* image families own their OS/base skills (relocated from the
             # layer-charly-distros concept aggregator — this pin is the corpus source for
             # them). distro-arch is the first pinned; the rest follow in the same wave.
@@ -30,24 +30,24 @@ charly-marketplace:
             # The candies extracted out of charly/candy/ by the de-submodule cutover's
             # Phase D (opencharly/charly#451). Before this, their skills reached the corpus
             # only through the --root charly checkout at the CI pin below.
-            - '@github.com/opencharly/layer-charly-internals:v2026.278.1118'
-            - '@github.com/opencharly/layer-charly-internals-extra:v2026.276.0040'
-            - '@github.com/opencharly/layer-charly-build:v2026.277.1529'
-            - '@github.com/opencharly/layer-charly-check:v2026.278.1043'
+            - '@github.com/opencharly/layer-charly-internals:v2026.280.1147'
+            - '@github.com/opencharly/layer-charly-internals-extra:v2026.278.1506'
+            - '@github.com/opencharly/layer-charly-build:v2026.278.1828'
+            - '@github.com/opencharly/layer-charly-check:v2026.277.1722'
             - '@github.com/opencharly/plugin-wl/candy/plugin-wl:v2026.272.0438'
             - '@github.com/opencharly/plugin-quickshell/candy/plugin-quickshell:v2026.272.0445'
             # Serving-plugin command skills (2026-09-17 coverage campaign).
             - '@github.com/opencharly/plugin-cache/candy/plugin-cache:v2026.271.2314'
             - '@github.com/opencharly/plugin-pod/candy/plugin-pod:v2026.274.0652'
-            - '@github.com/opencharly/plugin-review/candy/plugin-review:v2026.278.0219'
+            - '@github.com/opencharly/plugin-review/candy/plugin-review:v2026.277.1758'
             - '@github.com/opencharly/plugin-agent/candy/plugin-agent:v2026.271.2242'
             - '@github.com/opencharly/plugin-candy/candy/plugin-candy:v2026.271.2318'
             - '@github.com/opencharly/plugin-cardwire/candy/plugin-cardwire:v2026.271.2322'
             - '@github.com/opencharly/plugin-bpf/candy/plugin-bpf:v2026.271.2243'
             - '@github.com/opencharly/plugin-feature/candy/plugin-feature:v2026.272.0145'
-            - '@github.com/opencharly/plugin-pipeline/candy/plugin-pipeline:v2026.277.2104'
+            - '@github.com/opencharly/plugin-pipeline/candy/plugin-pipeline:v2026.272.0332'
             - '@github.com/opencharly/plugin-authoring/candy/plugin-authoring:v2026.271.2244'
-            - '@github.com/opencharly/layer-charly-kubernetes:v2026.278.0942'
+            - '@github.com/opencharly/layer-charly-kubernetes:v2026.271.2217'
             - '@github.com/opencharly/layer-kind:v2026.274.0645'
             - '@github.com/opencharly/layer-charly-image:v2026.271.2156'
             - '@github.com/opencharly/layer-charly-immich:v2026.271.2156'
@@ -89,7 +89,7 @@ charly-marketplace:
             - '@github.com/opencharly/layer-grafana-tools:v2026.272.0139'
             - '@github.com/opencharly/layer-rocm:v2026.272.0429'
             - '@github.com/opencharly/layer-rpmfusion:v2026.272.0429'
-            - '@github.com/opencharly/layer-asciinema:v2026.278.1124'
+            - '@github.com/opencharly/layer-asciinema:v2026.273.1825'
             - '@github.com/opencharly/layer-jupyter-mcp:v2026.272.0222'
             - '@github.com/opencharly/layer-rust:v2026.272.0519'
             - '@github.com/opencharly/layer-blogwatcher:v2026.274.0628'
@@ -99,7 +99,7 @@ charly-marketplace:
             - '@github.com/opencharly/layer-sherpa-onnx:v2026.272.0445'
             - '@github.com/opencharly/layer-camsnap:v2026.274.0609'
             - '@github.com/opencharly/layer-shortbread:v2026.274.0643'
-            - '@github.com/opencharly/pod-charly-core:v2026.278.1003'
+            - '@github.com/opencharly/pod-charly-core:v2026.276.0038'
             - '@github.com/opencharly/layer-kde-shell:v2026.274.0753'
             - '@github.com/opencharly/layer-charly-distros:v2026.271.2154'
             - '@github.com/opencharly/layer-omarchy-base:v2026.272.0437'
@@ -110,7 +110,7 @@ charly-marketplace:
             - '@github.com/opencharly/layer-kimi:v2026.274.0610'
             - '@github.com/opencharly/layer-charly-languages:v2026.271.2219'
             - '@github.com/opencharly/layer-ssh-client:v2026.272.0430'
-            - '@github.com/opencharly/layer-charly-local:v2026.278.0946'
+            - '@github.com/opencharly/layer-charly-local:v2026.271.2218'
             - '@github.com/opencharly/pod-labwc:v2026.274.0811'
             - '@github.com/opencharly/pod-sshd:v2026.272.0324'
             - '@github.com/opencharly/layer-libnotify:v2026.274.0749'
@@ -119,17 +119,17 @@ charly-marketplace:
             - '@github.com/opencharly/pod-swaync:v2026.274.0806'
             - '@github.com/opencharly/layer-maplibre-versatiles-styler:v2026.274.0641'
             - '@github.com/opencharly/layer-tailscale:v2026.272.0409'
-            - '@github.com/opencharly/layer-charly-pod:v2026.278.1001'
+            - '@github.com/opencharly/layer-charly-pod:v2026.271.2233'
             - '@github.com/opencharly/pod-testapi:v2026.274.0637'
             - '@github.com/opencharly/layer-charly-tools:v2026.271.2241'
             - '@github.com/opencharly/pod-traefik:v2026.274.0627'
             - '@github.com/opencharly/pod-charly-versa:v2026.272.0034'
-            - '@github.com/opencharly/vm-charly-vm:v2026.278.1049'
+            - '@github.com/opencharly/vm-charly-vm:v2026.272.0646'
             - '@github.com/opencharly/layer-typst:v2026.272.0407'
             - '@github.com/opencharly/layer-mcporter:v2026.274.0639'
             - '@github.com/opencharly/layer-unsloth:v2026.272.0419'
             - '@github.com/opencharly/layer-nano-pdf:v2026.274.0633'
-            - '@github.com/opencharly/layer-uv:v2026.278.1102'
+            - '@github.com/opencharly/layer-uv:v2026.272.0409'
             - '@github.com/opencharly/pod-valkey:v2026.272.0326'
             - '@github.com/opencharly/layer-notebook-llm-on-supercomputers:v2026.272.0441'
             - '@github.com/opencharly/pod-versatiles:v2026.274.0718'
@@ -162,7 +162,7 @@ charly-marketplace:
             - '@github.com/opencharly/pod-comfyui:v2026.274.0700'
             - '@github.com/opencharly/layer-wl-tools:v2026.272.0511'
             - '@github.com/opencharly/layer-cue:v2026.272.0014'
-            - '@github.com/opencharly/layer-direnv:v2026.278.1148'
+            - '@github.com/opencharly/layer-direnv:v2026.272.0057'
             - '@github.com/opencharly/layer-desktop-fonts:v2026.272.0015'
             - '@github.com/opencharly/layer-dev-tools:v2026.272.0100'
             - '@github.com/opencharly/layer-devops-tools:v2026.274.0631'
@@ -182,12 +182,12 @@ charly-marketplace:
             - '@github.com/opencharly/pod-immich:v2026.274.0650'
             - '@github.com/opencharly/pod-jupyter:v2026.274.0350'
             - '@github.com/opencharly/vm-k3s-agent:v2026.274.0655'
-            - '@github.com/opencharly/vm-k3s-server:v2026.273.2350'
+            - '@github.com/opencharly/vm-k3s-server:v2026.278.2001'
             - '@github.com/opencharly/pod-kde-selkies:v2026.274.1033'
             - '@github.com/opencharly/layer-language-runtimes:v2026.273.1816'
             - '@github.com/opencharly/layer-python-ml:v2026.274.0754'
             - '@github.com/opencharly/pod-selkies-core:v2026.274.1034'
-            - '@github.com/opencharly/layer-tailscale-up:v2026.278.1142'
+            - '@github.com/opencharly/layer-tailscale-up:v2026.274.0624'
             - '@github.com/opencharly/pod-unsloth-studio:v2026.274.0809'
             - '@github.com/opencharly/pod-waybar-labwc:v2026.274.1035'
             - '@github.com/opencharly/layer-charly-filebrowser:v2026.271.2154'
@@ -199,7 +199,7 @@ charly-marketplace:
             - '@github.com/opencharly/pod-openwebui:v2026.274.0629'
             - '@github.com/opencharly/layer-selkies-kde-desktop:v2026.274.1343'
             - '@github.com/opencharly/layer-vectorchord:v2026.273.1836'
-            - '@github.com/opencharly/layer-charly-openwebui:v2026.278.0935'
+            - '@github.com/opencharly/layer-charly-openwebui:v2026.271.2234'
             - '@github.com/opencharly/layer-charly-selkies:v2026.271.2235'
             - '@github.com/opencharly/layer-container-nesting:v2026.271.2309'
             - '@github.com/opencharly/layer-hermes-playwright:v2026.274.0758'
@@ -232,6 +232,16 @@ charly-marketplace:
             - '@github.com/opencharly/layer-crabbox:v2026.274.0609'
             - '@github.com/opencharly/pod-crabbox:v2026.274.0652'
             - '@github.com/opencharly/plugin-crabbox/candy/plugin-crabbox:v2026.272.0026'
+            # R0 coverage wave (opencharly/opencharly#382): three repos own `skill:`
+            # entities that carry `triggers:` but were never pinned, so the emitter
+            # never saw them and their skills were absent from the corpus entirely —
+            # the dispatcher therefore carried no row for any of them. Pinning is the
+            # whole fix: `charly marketplace generate` emits one row per
+            # `triggers:`-bearing `type: skill` entity of a PINNED repo. See the
+            # umbrella gate `scripts/check-harness-config.mjs` check 12.
+            - '@github.com/opencharly/layer-qdrant:v2026.274.0645'
+            - '@github.com/opencharly/plugin-qdrant/candy/plugin-qdrant:v2026.279.0719'
+            - '@github.com/opencharly/plugin-kubevirt/candy/plugin-kubevirt:v2026.278.1620'
             # the nerdctl integration (plan/nerdctl-integration.md): the layer that
             # installs the nerdctl stack + the out-of-tree engine:nerdctl plugin,
             # each owning its harness skill.

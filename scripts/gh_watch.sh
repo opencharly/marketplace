@@ -49,7 +49,7 @@
 #
 # OPTIONS / ENV
 #   --events LIST     comma list from the set above   (env EVENTS,   default merged,closed,stall)
-#   --interval SEC    poll cadence, seconds           (env INTERVAL, default 60; FLOOR 60)
+#   --interval SEC    poll cadence, seconds           (env INTERVAL, default 300; FLOOR 300)
 #   --stallmin MIN    stall window, minutes           (env STALL_MIN, default 60; >= 0)
 #   --workflow NAME   validator run name              (env WF,       default charly/pr-validator)
 #   --timeout SEC     overall deadline; 0 = none      (env TIMEOUT,  default 0)
@@ -58,20 +58,21 @@
 #   --no-rearm        one-shot: exit on the event, the agent re-arms (env AUTO_REARM=0)
 #   -h, --help        print this help and exit 0
 #
-# ONE WATCHER PER SESSION, ONE POLL PER MINUTE. --interval is a FLOOR of 60 seconds
-#   (POLL_FLOOR): a sub-60s value is REFUSED at parse time (exit 5), so no silent
-#   sub-floor polling ever ships. Tests that must run fast opt in explicitly with
-#   ALLOW_FAST_POLL=1 (and --interval < 60); it is never a production setting.
+# ONE WATCHER PER SESSION, ONE POLL PER FIVE MINUTES. --interval is a FLOOR of 300
+#   seconds (POLL_FLOOR): a sub-300s value is REFUSED at parse time (exit 5), so no
+#   silent sub-floor polling ever ships. Tests that must run fast opt in explicitly
+#   with ALLOW_FAST_POLL=1 (and --interval < 300); it is never a production setting.
 #
 # WHY THE FLOOR — the measured budget. MEASURED 2026-09-28: the account's shared core
 #   budget is 5000 calls/hr. This script's snapshot() issued 6 REST calls PER ITEM PER
 #   POLL and over 5 items that is 30 calls/poll: at its own old 30s default (2 polls/
 #   min) 3600/hr (72% of the budget for ONE watcher), and at a then-reachable 20s
 #   cadence 5400/hr (OVER budget). Repeated fast/stacked polls produced HTTP 403s.
-#   Now: the default is 60s, and the WHOLE item list is polled in ONE GraphQL request
+#   Now: the default is 300s, and the WHOLE item list is polled in ONE GraphQL request
 #   (see the batched-poll comment) — MEASURED at 6 items, seed + poll: 3 gh
 #   invocations (2 GraphQL + 1 FREE /rate_limit). The billable constant is ONE
-#   request per poll for N items, so a 60s watch is ~60 requests/hr regardless of N.
+#   request per poll for N items, so the new budget is about 1 poll per 5 minutes:
+#   a 300s watch is ~12 requests/hr regardless of N.
 #
 # RATE-LIMIT GUARD. Before each poll the FREE `/rate_limit` endpoint is read; below
 #   WATCH_RATE_MIN (default 200) the watcher backs off (interval × WATCH_RATE_BACKOFF_FACTOR,
@@ -101,7 +102,7 @@ SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ORIG_ARGS=("$@")
 ARGV0="$SELF_DIR/$(basename "${BASH_SOURCE[0]}")"
 
-INTERVAL="${INTERVAL:-60}"
+INTERVAL="${INTERVAL:-300}"
 STALL_MIN="${STALL_MIN:-60}"
 EVENTS="${EVENTS:-merged,closed,stall}"
 WF="${WF:-charly/pr-validator}"
@@ -127,7 +128,7 @@ while [ $# -gt 0 ]; do
 done
 
 numeric() { watch_is_uint "$1"; }
-# ONE poll per minute (POLL_FLOOR); sub-floor is refused unless ALLOW_FAST_POLL=1 (tests).
+# ONE poll per five minutes (POLL_FLOOR); sub-floor is refused unless ALLOW_FAST_POLL=1 (tests).
 INTERVAL="$(watch_interval gh_watch "$INTERVAL" "--interval")" || exit 5
 numeric "$STALL_MIN" || { echo "gh_watch: --stallmin must be an integer >= 0, got '$STALL_MIN'" >&2; exit 5; }
 numeric "$TIMEOUT" || { echo "gh_watch: --timeout must be an integer >= 0, got '$TIMEOUT'" >&2; exit 5; }

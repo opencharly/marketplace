@@ -311,6 +311,13 @@
       ]
     },
     {
+      "name": "check-kubevirt",
+      "files": [
+        "SKILL.md",
+        "references/live-probe-verbs.md"
+      ]
+    },
+    {
       "name": "check-sway-browser-vnc",
       "files": [
         "SKILL.md"
@@ -999,6 +1006,18 @@
       ]
     },
     {
+      "name": "kubevirt",
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "kubevirt-operator",
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
       "name": "labwc",
       "files": [
         "SKILL.md"
@@ -1453,6 +1472,18 @@
     },
     {
       "name": "python-ml-layer",
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "qdrant",
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "qdrant-cli",
       "files": [
         "SKILL.md"
       ]

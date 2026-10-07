@@ -7,14 +7,14 @@
 # Run: ./scripts/watch_family_test.sh
 #
 # Tests that must poll fast opt in explicitly with ALLOW_FAST_POLL=1 (the committed
-# defaults are 60s and the floor refuses sub-60s without this escape hatch).
+# defaults are 300s and the floor refuses sub-300s without this escape hatch).
 set -uo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
-# Fast polling is a TEST-ONLY explicit opt-in (the committed default is 60s). Set it
+# Fast polling is a TEST-ONLY explicit opt-in (the committed default is 300s). Set it
 # for the WHOLE suite; the floor's own refusal is asserted in a SUBSHELL with it unset.
 export ALLOW_FAST_POLL=1
 
@@ -121,24 +121,24 @@ watch_has x 'a,b'   && bad "watch_has rejects x in a,b"   "false positive" || ok
 watch_usage "$HERE/pr_watch_many.sh" | head -1 | grep -q '^pr_watch_many.sh' \
   && ok "watch_usage emits the header" || bad "watch_usage" "no header line"
 
-# 2b ── the poll floor: sub-60 is refused unless ALLOW_FAST_POLL=1 (tests only)
-eq "POLL_FLOOR is 60" "$POLL_FLOOR" 60
+# 2b ── the poll floor: sub-300 is refused unless ALLOW_FAST_POLL=1 (tests only)
+eq "POLL_FLOOR is 300" "$POLL_FLOOR" 300
 ( unset ALLOW_FAST_POLL; watch_interval x 5 "--interval" >/dev/null 2>&1 ) \
   && bad "watch_interval refuses sub-floor without ALLOW_FAST_POLL" "accepted 5" \
   || ok "watch_interval refuses sub-floor without ALLOW_FAST_POLL"
-eq "watch_interval accepts the floor (60)" "$(watch_interval x 60 "--interval")" 60
+eq "watch_interval accepts the floor (300)" "$(watch_interval x 300 "--interval")" 300
 eq "watch_interval accepts ALLOW_FAST_POLL sub-floor" "$(watch_interval x 5 "--interval")" 5
 ( unset ALLOW_FAST_POLL; watch_interval x abc "--interval" >/dev/null 2>&1 ) \
   && bad "watch_interval rejects a non-integer" "accepted abc" \
   || ok "watch_interval rejects a non-integer"
 
-# 2c ── committed defaults are 60s (no test leak into the shipped default) and the
-#       floor is enforced end to end (a sub-60 --interval exits 5 without the hatch).
-eq "gh_watch default interval is 60"      "$(grep -m1 '^INTERVAL="' "$HERE/gh_watch.sh" | grep -o ':-[0-9]*' | tr -d ':-')" 60
-eq "pr_watch_many default interval is 60" "$(grep -m1 '^INTERVAL='  "$HERE/pr_watch_many.sh" | grep -o '[0-9]*')" 60
-eq "pr_state_watch default interval is 60" "$(grep -m1 '^INTERVAL="' "$HERE/pr_state_watch.sh" | grep -o ':-[0-9]*' | tr -d ':-')" 60
+# 2c ── committed defaults are 300s (no test leak into the shipped default) and the
+#       floor is enforced end to end (a sub-300 --interval exits 5 without the hatch).
+eq "gh_watch default interval is 300"      "$(grep -m1 '^INTERVAL="' "$HERE/gh_watch.sh" | grep -o ':-[0-9]*' | tr -d ':-')" 300
+eq "pr_watch_many default interval is 300" "$(grep -m1 '^INTERVAL='  "$HERE/pr_watch_many.sh" | grep -o '[0-9]*')" 300
+eq "pr_state_watch default interval is 300" "$(grep -m1 '^INTERVAL="' "$HERE/pr_state_watch.sh" | grep -o ':-[0-9]*' | tr -d ':-')" 300
 ( unset ALLOW_FAST_POLL; "$HERE/gh_watch.sh" --events merged --interval 5 --timeout 1 opencharly/x#1 >/dev/null 2>&1 )
-eq "gh_watch: sub-60 --interval refused (exit 5) without ALLOW_FAST_POLL" "$?" 5
+eq "gh_watch: sub-300 --interval refused (exit 5) without ALLOW_FAST_POLL" "$?" 5
 
 # 2d ── the rate-limit HARD ABORT: a RATE_LIMIT body exits 7, never a retry. MEASURED
 #       trap the predicate covers: `gh api graphql` exits 0 while the body carries it.
@@ -792,6 +792,25 @@ rm -f "$SLEEP_LOG"; export WATCH_RATE_HOOK="$WORK/rate-ok.sh"; reset_calls; seed
 eq "rate-limit: healthy quota polls and fires normally" "$?" 0
 reset_calls
 unset ALLOW_FAST_POLL WATCH_SLEEP_HOOK WATCH_RATE_HOOK WATCH_RATE_MIN WATCH_RATE_BACKOFF_FACTOR
+
+# ── watch_key: one scope, ONE lock across checkouts (opencharly/marketplace#423) ──
+# The lock lives in a SHARED runtime dir, so the key must not depend on the script's
+# directory — else a worktree-rooted session and an umbrella-rooted one double-lock.
+k_umb="$( . "$HERE/_watch_common.sh"; watch_key /home/op/opencharly/marketplace/scripts/gh_watch.sh opencharly/x#1 )"
+k_wt="$( . "$HERE/_watch_common.sh"; watch_key /home/op/opencharly/.worktrees/s/marketplace/scripts/gh_watch.sh opencharly/x#1 )"
+eq "watch_key: same scope across checkouts yields ONE key" "$k_wt" "$k_umb"
+k_other="$( . "$HERE/_watch_common.sh"; watch_key /home/op/opencharly/marketplace/scripts/pr_state_watch.sh opencharly/x#1 )"
+if [ "$k_other" != "$k_umb" ]; then
+  ok "watch_key: a different script keeps a distinct key"
+else
+  bad "watch_key distinct-script" "pr_state_watch shares gh_watch's key"
+fi
+# A bare single-arg caller (no path, no extra args) must hash EXACTLY as before:
+# `printf '%s' "hung-lock-test"` — no trailing separator (the separator is only added
+# when args remain). Non-vacuous: the pre-fix "$base $*" form appended a trailing space.
+k_bare="$( . "$HERE/_watch_common.sh"; watch_key hung-lock-test )"
+k_old="$(printf '%s' 'hung-lock-test' | sha1sum | cut -d' ' -f1)"
+eq "watch_key: a bare single-arg caller is byte-compatible" "$k_bare" "$k_old"
 
 echo
 if [ "$FAILS" -eq 0 ]; then

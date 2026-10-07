@@ -454,6 +454,25 @@
       "category": "kind"
     },
     {
+      "name": "charly-kubevirt",
+      "source": "./kubevirt",
+      "description": "Schema authoring for the `kubevirt:` deploy substrate (the 7th) — `kind: kubevirt` templates and `kubevirt:`/`target: kubevirt` deploys, the VirtualMachine CR lifecycle (DataVolume, runStrategy, VMI Ready + AgentConnected, managed `virtctl port-forward`), the out-of-process `kubevirt:` check verb, and the pinned KubeVirt + CDI platform install.",
+      "author": {
+        "name": "opencharly"
+      },
+      "homepage": "https://github.com/opencharly/charly",
+      "repository": "https://github.com/opencharly/marketplace",
+      "license": "MIT",
+      "keywords": [
+        "charly",
+        "kubevirt",
+        "k8s",
+        "virtualmachine",
+        "cdi"
+      ],
+      "category": "kind"
+    },
+    {
       "name": "charly-languages",
       "source": "./languages",
       "description": "Programming language runtimes and package managers — python, python-ml, pixi (others like golang/rust/nodejs live in `charly-coder`).",
@@ -614,6 +633,25 @@
         "streaming",
         "moonlight",
         "sway"
+      ],
+      "category": "images"
+    },
+    {
+      "name": "charly-qdrant",
+      "source": "./qdrant",
+      "description": "Self-contained skills for the Qdrant vector-search service family: the pinned static-musl service candy (REST 6333 / gRPC 6334, persistent storage, admin API-key auth from the credential store) and the `charly qdrant` management CLI plus the declarative `qdrant:` check verb.",
+      "author": {
+        "name": "opencharly"
+      },
+      "homepage": "https://github.com/opencharly/charly",
+      "repository": "https://github.com/opencharly/marketplace",
+      "license": "MIT",
+      "keywords": [
+        "charly",
+        "qdrant",
+        "vector",
+        "search",
+        "database"
       ],
       "category": "images"
     },

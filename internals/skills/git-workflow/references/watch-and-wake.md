@@ -45,7 +45,7 @@ validator looks quiet but is working. The progress signal is a **COMPLETED
 WORKFLOW RUN** (default `charly/pr-validator`) — the B2b.1 rule, which this
 watcher family merely operationalizes.
 
-### One watcher, one poll per minute, and the API budget
+### One watcher, one poll per five minutes, and the API budget
 
 Four rules, all enforced by the tools — plus the numbers that motivate them:
 
@@ -53,8 +53,8 @@ Four rules, all enforced by the tools — plus the numbers that motivate them:
   single-instance lock makes a re-arm take over a live peer, so extra arms are
   never an extra watch — they are churn. Arm the ONE watcher whose wake you
   actually act on.
-- **A 60-second poll FLOOR (`POLL_FLOOR=60`).** Every watcher defaults to 60s
-  and REFUSES a sub-60s `--interval` at parse time (exit 5). Tests that must run
+- **A 300-second poll FLOOR (`POLL_FLOOR=300`).** Every watcher defaults to 300s
+  and REFUSES a sub-300s `--interval` at parse time (exit 5). Tests that must run
   fast opt in explicitly with `ALLOW_FAST_POLL=1`; it is never a production
   setting. Budget it explicitly: **a `gh_watch.sh` at a 20s cadence over N items
   was a budget incident** — see the measured numbers below.

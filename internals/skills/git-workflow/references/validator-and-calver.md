@@ -5,6 +5,23 @@
 The PR path is the sole landing path for everyone — write-access holders and
 outside contributors alike. There is no direct-merge fast path.
 
+**The post-execution sequence** (the rulebook's "Landing and proof" mandate, in order):
+
+1. After the final gate, recheck the complete diff, manifest, gitlinks, changelogs,
+   attribution, worktree state, and retained evidence.
+2. Commit on a `feat/` branch at the confidence the proof supports, push without
+   force, and open ONE PR with a structured body supplied by `--body-file`.
+3. A fresh, independent `pr-validator` reloads protected policy, binds the exact base
+   and head, personally runs the derived gate, and posts its durable verdict before
+   any gated action.
+4. Only PASS posts `charly/pr-validator`, arms native auto-merge (squash) on the bound
+   head, and lets `tag-on-merge` mint the merge-time CalVer tag; branch and worktree
+   cleanup follow (orchestrator-owned in the orchestrator+teammates model, the owning
+   session's own otherwise). A changed head, a warning, an anomaly, or a live
+   unfinished bed revokes PASS.
+5. After `main` advances, update every interacting PR (`gh pr update-branch`) and run
+   a risk-proportional delta gate; never guess across divergent submodule lineage.
+
 ### Validator handoff is parent-owned and complete
 
 **Before spawning every fresh `pr-validator` round, the parent/orchestrator supplies a

@@ -3,32 +3,44 @@
 ## Umbrella mechanics (the ~400-submodule view)
 
 When the work happens in the umbrella checkout itself — pin bumps, gitlinks,
-the aggregate view — the umbrella `AGENTS.md` is the governing rulebook.
-Rule 7: read the SUBREPO's own rulebook before touching it; `charly/AGENTS.md`
-owns R0–R10 inside `charly/`. The umbrella's own commands are the sanctioned
+the aggregate view — the umbrella `AGENTS.md` governs: Part I is the org-wide
+rulebook, Part II the umbrella rules. A subrepo's own `AGENTS.md` adds
+repo-specific rules on top (read it before touching that repo; `charly/AGENTS.md`
+carries the charly-core rules). The umbrella's own commands are the sanctioned
 path for umbrella work, never an ad-hoc substitute.
 
 ### The umbrella task surface (each a `kind: task` in the root charly.yml)
 
-- **`charly task sync`**: bump every submodule pin per policy B (preview only —
-  it does not commit or open a PR).
-- **`charly task verify`**: the FULL pinning gate on demand — every pin, including
-  the remote branch audit. There is **no CI
-  gate** for this; `charly task verify` IS the gate. Run it on the final tree and
-  paste the output (R7: a green `git status` proves nothing).
-- **`charly task hooks`**: install the per-commit gate once per clone (sets
-  `core.hooksPath hooks`); policy B then runs on every commit.
-- **`charly task map`**: list every submodule with its pin and sync state.
-- **`charly task skills`** → `scripts/sync-dispatcher.sh`: splice the generated R0
-  dispatcher from the pinned marketplace into `AGENTS.md`.
+These are maintenance the umbrella project performs on itself, run from the
+umbrella root; `charly task list` enumerates them, and the umbrella README's
+"Maintenance commands" table is the user-facing copy.
+
+| command | purpose |
+|---|---|
+| `charly task map` | list every submodule with its pin and sync state |
+| `charly task sync` | bump pins per Policy B (preview only; does not commit or open a PR) |
+| `charly task hooks` | install `hooks/pre-commit` for this clone (once; sets `core.hooksPath hooks`) |
+| `charly task verify` | the FULL pinning audit on demand — there is **no CI gate**; this IS the gate. Run it on the final tree and paste the output (R7: a green `git status` proves nothing) |
+| `charly task org-map` | verify the README org-map tables against `.gitmodules` |
+| `charly task skills` | `scripts/sync-dispatcher.sh`: splice the generated R0 dispatcher into `AGENTS.md` (no-op while the table is hand-curated outside the markers) |
+| `charly task policy-b` | assert Policy B — every `distro-*` gitlink equals charly's own `box/*` gitlink |
+| `charly task pins` | the Policy-B pin operation over the `distro-*` set (mode via param) |
+| `charly task self-test` | self-test the committed CI body/pin-evidence builders + the dispatcher splice |
+| `charly task omarchy-agents` | gate the committed omarchy PR-eval pi agents (tracked + parseable) |
+| `charly task pi-forks` | sync the opencharly pi-plugin forks from their upstreams (requires `gh` auth) |
+| `charly task prune` | reap merged-upstream session worktrees + branches (`MODE=report` is a dry run) |
 
 ### Policy B (the pinning contract)
 
-`distro-*` must equal charly's OWN gitlinks. `sdk` and `spec` are NOT
-charly-pinned submodules — they resolve from the Go proxy at pinned `go.mod`
-requires (their de-submodule cutovers). `marketplace` and `docs` are submodules
-pinned to their own default-branch HEAD, like every other non-pinned repo. If
-charly's pinning changed, the fix is `charly task sync` + a PR — never a hand-pin.
+The umbrella records a commit per submodule and checks it out DETACHED and clean —
+exactly what `charly task verify` asserts. `distro-*` must equal charly's OWN
+gitlinks. `sdk` and `spec` are recorded as gitlinks too, but charly no longer pins
+them — its builds resolve them from the Go proxy at pinned `go.mod` requires.
+`marketplace`, `docs`, and every `plugin-*` repo are recorded at their own
+default-branch HEAD. Pin only MERGED refs (default branches or gitlinks charly
+records), never a PR branch; a dangling pin is a failure. If pinning changed, the
+fix is `charly task sync` + a PR — never a hand-pin or a branch checkout to
+"catch up".
 
 ### Umbrella rules that change how you commit here
 
@@ -38,15 +50,15 @@ charly's pinning changed, the fix is `charly task sync` + a PR — never a hand-
   `spec`, `plugin-vm`, `plugin-migrate` each on its OWN branch + PR; the
   umbrella's gitlinks are bumped afterwards by `charly task sync`.
 - **Run submodule git through `git -C <absolute-path>` from the umbrella
-  root** (rule 2). Never root a worker in a submodule, never `git add -A` from
-  one, and never assume a submodule moved after an umbrella `git pull`.
-- **No worktrees inside submodules** (rule 4). The per-session linked-worktree
-  pattern belongs to the `charly` checkout, not here.
-- **Pin discipline:** pin only MERGED refs (default branches or gitlinks
-  charly records); never a PR branch. `charly task verify` treats a dangling pin as a
-  failure.
-- **No nested `go.work`** (rule 3): `charly/` carries its own; the umbrella
-  root must have none. All Go builds happen inside `charly/`.
+  root.** Never root a worker in a submodule, never `git add -A` from one, and
+  never assume a submodule moved after an umbrella `git pull`.
+- **Edit in a session worktree, never in the tracked checkout.** Each repo a
+  session edits gets its own linked worktree at
+  `<umbrella>/.worktrees/<slug>/<repo>/`, branched off fresh `origin/main`; the
+  tracked submodule checkout stays at its gitlink, so `verify` keeps passing
+  (B8 covers removal after merge).
+- **No nested `go.work`:** `charly/` carries its own; the umbrella root must have
+  none. All Go builds happen inside `charly/`.
 - **Command hygiene (umbrella-scale):** SIGPIPE is ignored here, so an
   unbounded `grep … | head` floods the output with `Broken pipe` lines. Bound
   every command — `grep -m N`, or redirect to a file and read it bounded.
@@ -56,4 +68,4 @@ charly's pinning changed, the fix is `charly task sync` + a PR — never a hand-
 A consumer that pins a producer's artifact (`@github` candy ref, a `spec`/`sdk`
 require, a submodule gitlink) lands AFTER the producer merges + tags. Producer
 PR → merge → tag → consumer pin bump. The umbrella's gitlink bump is the last
-hop, via `charly task sync`. Never bump a consumer to a PR branch (rule 5).
+hop, via `charly task sync`. Never bump a consumer to a PR branch.

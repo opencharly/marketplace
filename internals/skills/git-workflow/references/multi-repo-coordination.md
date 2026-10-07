@@ -117,7 +117,7 @@ actually in this binary".
 
 ## B2b — cross-session coordination: the PR comment is the channel
 
-Sessions are independent and OWN their artifacts (umbrella rule 9): a branch,
+Sessions are independent and OWN their artifacts (umbrella `AGENTS.md`, "Session-scoped ownership"): a branch,
 worktree, file, or PR you did not create is another session's, and you never
 edit, revert, reformat, stage, or commit it — not even to "clean up" or unblock
 yourself.

@@ -82,6 +82,9 @@
 | the `kube:` check verb / Kubernetes cluster probing from a candy/box plan (out-of-process plugin; nodes, pods, ingress, wait-ready, storageclass, addons, apply/delete, raw resource GETs) | `/charly-kubernetes:check-k8s` |
 | `step:helm-release` / `verb:helm` / installing a Helm chart from a candy plan / the `helm_charts:` deploy field and its kustomize `helmCharts:` emission / the `--enable-helm` apply path | `/charly-kubernetes:helm` |
 | kind (Kubernetes-in-Docker) / kindcluster deploy / local Kubernetes-in-Docker / a kind cluster on docker-podman-nerdctl / KIND_EXPERIMENTAL_PROVIDER / composing the kind candy | `/charly-kubernetes:kind` |
+| the `kubevirt:` check verb / probing a running KubeVirt cluster from a candy/box plan (vm / vmi / wait-ready / guest-info / migration / snapshot / datavolume) | `/charly-kubevirt:check-kubevirt` |
+| KubeVirt / `kind: kubevirt` / a `kubevirt:` or `target: kubevirt` deploy / `deploy:kubevirt` / running a charly VM on a Kubernetes cluster / `charly kubevirt` CLI (build/create/start/stop/restart/destroy/console/ssh/snapshot/migrate/gpu/status) / the VirtualMachine CR lifecycle | `/charly-kubevirt:kubevirt` |
+| installing KubeVirt + CDI on a cluster / `candy/kubevirt-operator` / the kubevirt platform leg of a check bed | `/charly-kubevirt:kubevirt-operator` |
 | CachyOS images / `cachyos*` / `charly-cachyos` workstation profile / `box/cachyos` submodule | `/charly-local:charly-cachyos` |
 | local-target deploy / `target: local` / `host: local` (default) / SSH-host deploys / `user:` / `ssh_arg:` / Managed `~/.config/charly/ssh_config` fragment / `charly vm create` writes Host stanza | `/charly-local:local-deploy` |
 | Editing `local.yml` / authoring `kind: local` templates | `/charly-local:local-spec` |
@@ -90,6 +93,8 @@
 | `charly restart` / restart a deployment / cycle a container | `/charly-pod-verbs:restart` |
 | `charly volume` / list a deployment's volumes / reset a volume / wipe sidecar state / podman volume | `/charly-pod-verbs:volume` |
 | punktfunk / game streaming host / Moonlight-compatible host / `punktfunk-host` units | `/charly-punktfunk:punktfunk-host` |
+| qdrant server / vector search / the qdrant candy (`candy/qdrant`) / the qdrant pod / the `qdrant:` check verb / `charly qdrant` CLI / REST 6333 / gRPC 6334 / QDRANT__SERVICE__API_KEY | `/charly-qdrant:qdrant` |
+| `charly qdrant` CLI (collections / points / snapshots / health / version) / the `qdrant:` check verb / the check-qdrant-pod bed / the qdrant box | `/charly-qdrant:qdrant-cli` |
 | `charly review` / review a PR / PR verdict | `/charly-review:review` |
 | `charly docs` / the opencharly.ai site / the opencharly/docs repo / `candy/docs-site` / the check-docs bed / Starlight/Astro | `/charly-tools:docs-site` |
 | CachyOS images / `cachyos*` / `charly-cachyos` workstation profile / `box/cachyos` submodule | `/charly-vm:cachyos-bootstrap-vm` |

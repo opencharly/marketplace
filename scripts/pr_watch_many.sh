@@ -33,7 +33,7 @@
 #   --repos LIST      repos to watch for validator runs, comma-separated. Default:
 #                     the repos named by the PR pairs, deduped. In repo-only mode
 #                     (no PR pairs) signals 0 and 2 are inactive.
-#   --interval SEC    poll cadence, seconds (default 60; FLOOR 60 — sub-floor is
+#   --interval SEC    poll cadence, seconds (default 300; FLOOR 300 — sub-floor is
 #                     refused, tests only via ALLOW_FAST_POLL=1).
 #   --timeout SEC     overall deadline, seconds; 0 disables (default 7200).
 #   --stallmin MIN    stall window, minutes; 0 disables signal 2 (default 0).
@@ -72,7 +72,7 @@ WATCH="$SELF_DIR/pr_state_watch.sh"
 ORIG_ARGS=("$@")
 ARGV0="$SELF_DIR/$(basename "${BASH_SOURCE[0]}")"
 
-INTERVAL=60
+INTERVAL=300
 TIMEOUT=7200
 STALLMIN=0
 VALIDATOR="${PR_WATCH_VALIDATOR:-charly/pr-validator}"
@@ -102,7 +102,7 @@ while [ $# -gt 0 ]; do
 done
 
 # --- validation (fail loud, never a silent default) ------------------------
-# ONE poll per minute (POLL_FLOOR); sub-floor is refused unless ALLOW_FAST_POLL=1 (tests).
+# ONE poll per five minutes (POLL_FLOOR); sub-floor is refused unless ALLOW_FAST_POLL=1 (tests).
 INTERVAL="$(watch_interval pr_watch_many "$INTERVAL" "--interval")" || exit 5
 watch_is_uint "$TIMEOUT"  || { echo "pr_watch_many: --timeout must be an integer >= 0, got '$TIMEOUT'" >&2; exit 5; }
 watch_is_uint "$STALLMIN" || { echo "pr_watch_many: --stallmin must be an integer >= 0, got '$STALLMIN'" >&2; exit 5; }
