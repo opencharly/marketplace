@@ -22,7 +22,10 @@ description: |-
 
 ## Packages (`distro.arch`, all in the official core/extra repos)
 
-- Toolchain: `jq`, `git`, `go`, `cloud-guest-utils`, `cosign`
+- Toolchain: `jq`, `git`, `go`, `cloud-guest-utils`, `cosign`, `inetutils`
+  (`inetutils` is `hostname(1)`'s only Arch provider — charly's own venue tests
+  run `hostname` to prove a peer executed host-locally, and without the binary
+  they fail with exit 127; see **CI job tool surface** below)
 - Cross-arch CI: `qemu-user-static`, `qemu-user-static-binfmt` (aarch64 binfmt)
 - .NET runtime deps for the runner binary (its `installdependencies.sh` has no
   Arch branch): `icu`, `krb5`, `openssl`, `libunwind`, `lttng-ust` (NOT `zlib` —
@@ -35,6 +38,25 @@ description: |-
   cutover — the `charly generate-packages` plugin + the per-distro repos build the
   packages now.)
 
+- **CI job tool surface** — the pool is org-wide, so a job must find whatever the
+  org's workflows actually call. Every entry below carries a `package:` check in
+  the candy's own `plan:`, so a tool that is declared but not installed fails the
+  image build rather than a job at 02:00: `tree`, `shellcheck`, `shfmt`,
+  `actionlint`, `golangci-lint` (so a job can lint without its own `go install`;
+  the packaged build measured 2.14.0, and it is not what CI's gate uses — that
+  installs its own pinned `@v2.13.2` each run, so the image cannot decide a CI
+  lint verdict), `nodejs`, `npm`, `python-pip`, `uv`, `cmake`, `unzip`, `zip`,
+  `7zip`, `wget`, `rsync`, `yq`, `ripgrep`, `moreutils`, `bc`, `less`, `lsof`,
+  `strace`, `openbsd-netcat`, `bind`.
+  Deliberately **absent**, as decisions rather than omissions: `docker` (16 refs
+  exist, all `docker run --rm -v …` distro package builds on hosted runners — a
+  podman shim is not docker, and quietly swapping the two in CI trades a loud
+  failure for a silent wrong one, R4); `rust`/`cargo` (6 refs, in repos not on the
+  pool); a JDK and the cloud CLIs (zero refs org-wide); and passwordless `sudo`
+  (8 workflow files use `sudo`, all in distro repos building packages on hosted
+  runners — NOPASSWD root inside a long-lived container that runs org PRs would
+  widen an escape path for a convenience nothing on the pool asks for).
+
 `podman`/`buildah`/`skopeo`/`crun`/`fuse-overlayfs` are provided by the
 `container-nesting` dependency (not redeclared here — R3).
 
@@ -45,7 +67,32 @@ description: |-
 | `RUNNER_ORG` | `env_accept` (plaintext identifier; supplied at deploy) |
 | `RUNNER_TOKEN` | `secret_accept` (credential-store-backed; never in charly.yml/quadlet) |
 | `RUNNER_WORK_DIR` | `${HOME}/actions-runner/_work` |
-| `RUNNER_GROUP` | `Default` |
+| `RUNNER_LABELS` | `env_accept` — the labels a job's `runs-on:` selects on; the hook defaults to `opencharly` |
+| `LANG` | `C.UTF-8` (fixed) — see **Locale** below |
+| `TZ` | `UTC` (fixed) — deterministic log timestamps |
+
+**Locale.** The base image generates none: `locale -a` lists only `C`, `C.utf8`
+and `POSIX`, and with `LANG` unset a non-login process is in the POSIX locale, so
+`locale charmap` reports `ANSI_X3.4-1968` (ASCII). `LANG=C.UTF-8` is set in the
+candy's `env:`; glibc has `C.UTF-8` built in, so no locale needs generating. The
+base image's `/etc/locale.conf` also names `C.UTF-8`, but that reaches only
+login/PAM sessions, and both a charly `check` and a job process are neither — the
+`env:` declaration is the one that applies, which is why the `plan:` assertion
+(`locale charmap` under `context: runtime`) genuinely fails without it. It is a
+claim about the locale the tools see, not about Python: CPython >= 3.7 coerces the
+C locale itself and reports `utf-8` either way. Note that
+the `TZ` check asserts the *variable* (`printenv TZ`), not `date +%Z`: the image's
+`/etc/localtime` is already UTC, so `date +%Z` would pass either way and prove
+nothing.
+
+**Runner version.** `RUNNER_VERSION` seeds the initial download — it is **not a
+pin**. The actions runner self-updates on its own schedule, and because
+`~/actions-runner` is a persistent volume that update survives an image rebuild:
+measured on the live fleet, `bin` symlinks to `bin.2.337.0` while the deployed image
+declares `2.334.0` (and `bin.2.334.0` is still on disk beside it). `--disableupdate`
+is deliberately **not** set, so the fleet stays inside GitHub's supported runner
+range without anyone bumping the value; the cost is that the declared number
+describes a fresh volume, not a running one.
 
 The runner installs under `${HOME}/actions-runner` and runs as uid 1000. The
 ghcr.io pull-through mirror (`127.0.0.1:5000`) config is written to the user

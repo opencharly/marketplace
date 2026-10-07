@@ -58,7 +58,7 @@ beside it.
 
 ## The compact node form (name-first, one kind key)
 
-Every charly.yml is self-describing. A candy flattens to a top-level `<name>:` key (the entity NAME) with EXACTLY ONE kind key — `candy:` — whose value is the COMPLETE body: scalars, every collection (`package`, `env`, `service`, `volume`, …) inline, and the operational steps as an ordered UNNAMED list under `plan:`. A step that needs a stable name for reports/overlays carries an `id:` field. This name-first shape is globally addressable, so candy files stay fleet-mergeable — stack the top-level keys (or concatenate with `---` separators) to form a single file containing many candies. (The only other children an entity may carry are sub-ENTITY members, and only under a deployable kind — see `/charly-core:deploy`; a candy nests no members.)
+Every charly.yml is self-describing. A candy flattens to a top-level `<name>:` key (the entity NAME) with EXACTLY ONE kind key — `candy:` — whose value is the COMPLETE body: scalars, every collection (`package`, `env`, `service`, `volume`, …) inline, and the operational steps as an ordered UNNAMED list under `plan:`. A step that needs a stable name for reports/overlays carries an `id:` field. This name-first shape is globally addressable, so candy files stay deploy-mergeable — stack the top-level keys (or concatenate with `---` separators) to form a single file containing many candies. (The only other children an entity may carry are sub-ENTITY members, and only under a deployable kind — see `/charly-core:deploy`; a candy nests no members.)
 
 ```yaml
 # candy/chrome/charly.yml
@@ -678,6 +678,8 @@ my-app:
 
 **`env:` vs `var:`:** `env:` is container **runtime** environment (emitted as `ENV` and persists into the running container). `var:` is **build-time** substitution for `${VAR}` references inside the candy's `run:`/`check:` steps — also emitted as `ENV` so BuildKit can substitute in COPY paths, but conceptually scoped to the candy's install. There's no hard rule against using `env:` for both purposes, but keeping them separate makes intent clearer.
 
+**`env:` on a MACHINE venue (`target: local` / `target: vm`).** On the pod/container path `env:` becomes a container `ENV`, visible to every process. On a machine venue there is no such process-wide environment: charly writes each candy's `env:` to `~/.config/opencharly/env.d/<candy>.env` and sources it from a managed block in the shell init. Since a NON-interactive command (`ssh <box> <cmd>`, a deploy `run:`/`check:`, or a `command:` check probe) never reads `~/.bashrc`, charly prefixes every non-interactive machine-venue command with a preamble that sources the venue user's own env.d — so a candy's `env:` reaches the SAME places the container `ENV` would (charly#814). Two consequences for authoring: (a) a `check:` that asserts a candy's `env:` (e.g. `command: printenv MY_VAR`) now works identically on a pod and on a VM/local venue; (b) the preamble runs at USER scope only — a `sudo` (root) step does not source the user's env.d, because `sudo` resets `HOME` and a candy's `env:` is the deploying user's, not root's.
+
 **`env:` is a MAP, not a list — everywhere** (candies, boxes, AND deploys). The parser decodes it as `map[string]string`, not `[]string`. Authoring it as `- KEY=value` fails with `cannot unmarshal !!seq into map[string]string` at `charly box validate`. Always use map form:
 
 ```yaml
@@ -1236,7 +1238,7 @@ candies coexist in one rc file:
 # opencharly:end <layer>
 ```
 
-`charly fleet del` strips just the candy's fence pair from the rc file
+`charly deploy del` strips just the candy's fence pair from the rc file
 (without touching unrelated content). Fish always uses a per-candy
 drop-in file (`conf.d/` is auto-sourced — no fence needed).
 
@@ -1289,7 +1291,7 @@ by the single idempotent `charly migrate` — see `/charly-build:migrate`.
 
 ## Cross-kind name reuse
 
-A candy is a top-level **name-first** node, so within a single document the top-level node names are **globally unique**. Cross-FILE name reuse across SEPARATE discovered files IS still permitted: the same identifier (e.g. `charly-cachyos`) MAY exist as a layer at `candy/charly-cachyos/charly.yml` AND an image at `box/charly-cachyos/charly.yml` simultaneously — both are `candy:` nodes (the image carries `base:`/`from:`; there is no `box:` KIND), routed to distinct internal maps (`uf.Candy` vs `uf.Box`). Verbs disambiguate by command context. When `charly fleet add <name>` resolves a ref where both an image AND a layer with that name exist, the image wins (image-first precedence); use `--add-candy <name>` to explicitly select the layer for an overlay. See the project rulebook "cross-FILE cross-kind reuse is fine, but a single document's top-level node names are GLOBALLY UNIQUE" and `/charly-core:deploy`.
+A candy is a top-level **name-first** node, so within a single document the top-level node names are **globally unique**. Cross-FILE name reuse across SEPARATE discovered files IS still permitted: the same identifier (e.g. `charly-cachyos`) MAY exist as a layer at `candy/charly-cachyos/charly.yml` AND an image at `box/charly-cachyos/charly.yml` simultaneously — both are `candy:` nodes (the image carries `base:`/`from:`; there is no `box:` KIND), routed to distinct internal maps (`uf.Candy` vs `uf.Box`). Verbs disambiguate by command context. When `charly deploy add <name>` resolves a ref where both an image AND a layer with that name exist, the image wins (image-first precedence); use `--add-candy <name>` to explicitly select the layer for an overlay. See the project rulebook "cross-FILE cross-kind reuse is fine, but a single document's top-level node names are GLOBALLY UNIQUE" and `/charly-core:deploy`.
 
 ---
 

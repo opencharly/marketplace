@@ -40,7 +40,7 @@
 | Fedora images / `fedora*` / `box/fedora` submodule (incl. the GPU base `nvidia` / `python-ml` + `sway-browser-vnc`) | `/charly-coder:fedora-coder` |
 | Ubuntu images / `ubuntu*` / `box/ubuntu` submodule | `/charly-coder:ubuntu-coder` |
 | `charly clean` / build-artifact retention / `keep_images` / `keep_check_runs` / image-tag pruning / `.check` run cleanup | `/charly-core:clean` |
-| `charly fleet add/del` / pod or container deploys / `kind: android` device / `target: android` deploy / `apk:` package format in candies / installing Android apps declaratively / remote-or-emulator adb endpoint / nested `pod → android` / Disposable-flag semantics / `disposable: true` authorization / preemptible-flag / `requires_exclusive:` / `charly preempt` / exclusive host-resource arbitration (GPU passthrough contention) | `/charly-core:deploy` |
+| `charly deploy add/del` / pod or container deploys / `kind: android` device / `target: android` deploy / `apk:` package format in candies / installing Android apps declaratively / remote-or-emulator adb endpoint / nested `pod → android` / Disposable-flag semantics / `disposable: true` authorization / preemptible-flag / `requires_exclusive:` / `charly preempt` / exclusive host-resource arbitration (GPU passthrough contention) | `/charly-core:deploy` |
 | CachyOS images / `cachyos*` / `charly-cachyos` workstation profile / `box/cachyos` submodule | `/charly-distros:cachyos` |
 | Fedora images / `fedora*` / `box/fedora` submodule (incl. the GPU base `nvidia` / `python-ml` + `sway-browser-vnc`) | `/charly-distros:charly-fedora` |
 | Debian images / `debian*` / `box/debian` submodule | `/charly-distros:debian` |
@@ -97,6 +97,9 @@
 | `charly qdrant` CLI (collections / points / snapshots / health / version) / the `qdrant:` check verb / the check-qdrant-pod bed / the qdrant box | `/charly-qdrant:qdrant-cli` |
 | `charly review` / review a PR / PR verdict | `/charly-review:review` |
 | `charly docs` / the opencharly.ai site / the opencharly/docs repo / `candy/docs-site` / the check-docs bed / Starlight/Astro | `/charly-tools:docs-site` |
+| The dsh / DeepSeek Harness CLI or web UI, the `dsh` / `dsh-web` candies, `~/.dsh`, the dsh web UI's launch-token + Host/Origin trust fence, `--trusted-host`, exposing dsh web over Tailscale (`tailscale serve`), or `charly dsh status` web health | `/charly-tools:dsh` |
+| `charly dsh` (status / profile list / plugin list) against a running deepseek-harness deployment, the compiled-in command:dsh plugin, or the `dsh:` check verb | `/charly-tools:dsh-cli` |
+| The dsh-TUI / dsh-tui terminal UI plugin (`@deepseek-harness-tui/dsh-tui`), the `dsh-tui` / `dst` launcher, the `dsh-tui` dsh profile, `DSH_TUI_NO_LAUNCHPAD`, the terminal:tmux channel, or the check-dsh-tui-pod bed | `/charly-tools:dsh-tui` |
 | CachyOS images / `cachyos*` / `charly-cachyos` workstation profile / `box/cachyos` submodule | `/charly-vm:cachyos-bootstrap-vm` |
 | Debian images / `debian*` / `box/debian` submodule | `/charly-vm:debian-debootstrap-vm` |
 | omarchy VMs / `omarchy-vm` / `charly-omarchy` / `source.kind: iso` / unattended archinstall | `/charly-vm:omarchy-vm` |

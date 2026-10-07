@@ -76,7 +76,7 @@ resolves the `cluster:` profile to a concrete kubeconfig context via the generic
 4. None given → current-context of the default kubeconfig (matches
    `kubectl` with no flags).
 
-`charly fleet add vm:k3s-srv` (or any deploy whose layers include
+`charly deploy add vm:k3s-srv` (or any deploy whose layers include
 `k3s-server`) provisions a cluster whose kubeconfig is merged into the
 default kubeconfig under a context named after the deploy (the plugin-side
 `k3s-post-provision` finalization dispatched by `candy/plugin-fleet`'s
@@ -262,7 +262,7 @@ all were removed when the verb was externalized.
   run), the plan-step vocabulary, and how the provider registry dispatches
   declarative verbs.
 - `/charly-kubernetes:kubernetes` — deploying images to a Kubernetes cluster
-  (`kind: kubernetes` cluster templates, Kustomize generation, `charly fleet`).
+  (`kind: kubernetes` cluster templates, Kustomize generation, `charly deploy`).
 - `/charly-internals:plugin` — the Provider model and the out-of-process
   plugin dispatch the `kube:` verb rides on.
 - `/charly-infrastructure:k3s` — the k3s-server / k3s-agent candies whose

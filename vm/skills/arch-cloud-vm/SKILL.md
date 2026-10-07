@@ -39,7 +39,7 @@ This skill is the **decision log** for every non-obvious choice in the entry —
 | Video model | `virtio-gpu` | Modern default for Linux guests (Finding B, secondary) |
 | SPICE listener | `type: socket` (UNIX, auto-path) | Enables zero-config remote GUI via `qemu+ssh://` (see "Connecting from a remote workstation" below). virt-manager and `remote-viewer` auto-forward UNIX sockets through libvirt RPC fd-passing; TCP-loopback listeners are never auto-tunneled. No TCP port bound. |
 
-Disposability is **not** a field on the VM entity — the `check-arch-vm` fleet carries `disposable: true` (LOAD-BEARING), which authorizes the unattended destroy + rebuild + restart driven by `charly check run check-arch-vm` (and the equivalent `charly update check-arch-vm`, since the fleet is folded into the Fleet map). See `/charly-internals:disposable`.
+Disposability is **not** a field on the VM entity — the `check-arch-vm` deploy carries `disposable: true` (LOAD-BEARING), which authorizes the unattended destroy + rebuild + restart driven by `charly check run check-arch-vm` (and the equivalent `charly update check-arch-vm`, since the deploy is folded into the Deploy map). See `/charly-internals:disposable`.
 
 ## Disposable verification target
 
@@ -85,7 +85,7 @@ arch:
                               # Note also that #DistroID (14 ids, omarchy included) and the embedded `distro:` BUILD vocabulary are
                               # different sets, and the gap is SILENT: `buildVmSyntheticBox` resolves this field against
                               # the build vocabulary and on a miss leaves `img.Pkg` unset, so candy installation compiles
-                              # ZERO package steps while `fleet add` reports success. A schema-valid id is therefore not
+                              # ZERO package steps while `deploy add` reports success. A schema-valid id is therefore not
                               # automatically a resolvable one.
                               # Use a bare id: `ResolveDistro` strips at `:` but the cloud-init
                               # dispatches compare exactly, so `debian:13` yields `openssh`. (That sentence is about the
@@ -386,7 +386,7 @@ Pass: `active` + version printed.
 - `/charly-vm:vms-catalog` — VmSpec authoring reference (schema, source.kind, adopt pattern)
 - `/charly-vm:vm` — VM lifecycle commands + BIOS/UEFI decision matrix + video model choice (disposability lives on the `disposable: true` deploy)
 - `/charly-build:migrate` — `charly migrate` legacy conversion
-- `/charly-core:deploy` — `charly fleet add vm:arch <layer>` for in-guest layer application
+- `/charly-core:deploy` — `charly deploy add vm:arch <layer>` for in-guest layer application
 - `/charly-internals:vm-spec` — Go types and validation rules
 - `/charly-internals:libvirt-renderer` — `<backend type='passt'/>` for portForward, virtio-gpu video model
 - `/charly-internals:cloud-init-renderer` — `composeUsers` adopt-merge, seed ISO, `charly_install.strategy: auto`

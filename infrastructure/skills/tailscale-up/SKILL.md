@@ -179,7 +179,7 @@ A proper auto-rename would require the Tailscale REST API
 (`PATCH https://api.tailscale.com/api/v2/device/{id}/name`) plus an
 operator-managed PAT or OAuth secret — significant credential-
 management scope. If a future need arises for fully-automated rename
-(fleet provisioning, CI runners), that's the right path; today's
+(deploy provisioning, CI runners), that's the right path; today's
 manual remediation covers the actual single-host case.
 
 ## Bring-up flow for a fresh CachyOS host
@@ -188,7 +188,7 @@ manual remediation covers the actual single-host case.
 # 1. Apply the charly-cachyos template — installs everything, including
 #    tailscale (daemon enabled) + tailscale-up (operator/hostname
 #    setters armed for next-time-up state changes).
-charly fleet add charly-cachyos
+charly deploy add charly-cachyos
 
 # 2. Authenticate the daemon via the user's tailnet (browser SSO):
 sudo tailscale up
@@ -199,10 +199,10 @@ tailscale status | head -2
 
 # 4. Optional re-apply (idempotent) to confirm the runtime task takes
 #    effect now that the daemon is logged in:
-charly fleet add charly-cachyos
+charly deploy add charly-cachyos
 ```
 
-Subsequent `charly fleet add charly-cachyos` invocations re-run the runtime
+Subsequent `charly deploy add charly-cachyos` invocations re-run the runtime
 task and re-confirm the operator + hostname state. Hostname changes
 (`sudo hostnamectl set-hostname new-name`) propagate to the tailnet
 on the next deploy.

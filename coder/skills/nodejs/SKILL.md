@@ -42,6 +42,29 @@ binary on `/usr/local/bin` is on the default system PATH for every user (incl.
 root — Immich runs its pnpm build as root). Immich and other pnpm consumers use
 this pnpm to drive their build.
 
+### The pin and a consumer's `allowBuilds` KEY FORM are a COUPLED PAIR
+
+pnpm >= 10 blocks a dependency's build/install scripts unless it is allowlisted,
+and for a **git-specifier** dependency the KEY FORM of that allowlist entry is
+version-coupled: the two forms fail on each other's pin, so no single form works
+at both. MEASURED in the real build image (Fedora 43, node 22.22.2) against
+pod-dsh's `dsh-web` profile — `opencharly/layer-nodejs#5`:
+
+| `allowBuilds` key form | pnpm `10.33.4` | pnpm `10.34.6` |
+|---|---|---|
+| bare name — `"@perrylink/dsh-github": true` | PASS | `ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED` |
+| fully-qualified URL key — `"@perrylink/dsh-github@https://codeload.github.com/<owner>/<repo>/.git": true` | `ERR_PNPM_INVALID_VERSION_UNION` | PASS |
+
+A wrong pair hard-fails the consumer's profile install at IMAGE BUILD time. So
+`PNPM_VERSION`, `PNPM_ALLOWBUILDS_GIT_KEY_FORM` and the two PROBED_* constants move
+together, and the candy's own
+`check: the pinned pnpm version's allowBuilds git-key form matches the recorded measurement`
+makes a bump that forgets them RED instead of a hard-failed consumer build. Only the
+two probed versions are accepted: a bump to any other pin must RE-MEASURE the form and
+record it. (pod-dsh vendored its git-hosted plugins as prebuilt `file:` tarballs in
+pod-dsh#28, so no git dep remains there today — the rule still binds any consumer
+that pins one.)
+
 ## Usage
 
 ```yaml
