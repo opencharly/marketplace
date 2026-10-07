@@ -94,7 +94,7 @@ Host mappings auto-allocate at deploy and resolve as `${HOST_PORT:<port>}`.
 
 ### Pod substrate
 
-`charly box build agentteams` then `charly fleet add` / `charly start` — or
+`charly box build agentteams` then `charly deploy add` / `charly start` — or
 run the disposable bed end to end:
 
 ```

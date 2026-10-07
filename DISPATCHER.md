@@ -97,6 +97,9 @@
 | `charly qdrant` CLI (collections / points / snapshots / health / version) / the `qdrant:` check verb / the check-qdrant-pod bed / the qdrant box | `/charly-qdrant:qdrant-cli` |
 | `charly review` / review a PR / PR verdict | `/charly-review:review` |
 | `charly docs` / the opencharly.ai site / the opencharly/docs repo / `candy/docs-site` / the check-docs bed / Starlight/Astro | `/charly-tools:docs-site` |
+| The dsh / DeepSeek Harness CLI or web UI, the `dsh` / `dsh-web` candies, `~/.dsh`, the dsh web UI's launch-token + Host/Origin trust fence, `--trusted-host`, exposing dsh web over Tailscale (`tailscale serve`), or `charly dsh status` web health | `/charly-tools:dsh` |
+| `charly dsh` (status / profile list / plugin list) against a running deepseek-harness deployment, the compiled-in command:dsh plugin, or the `dsh:` check verb | `/charly-tools:dsh-cli` |
+| The dsh-TUI / dsh-tui terminal UI plugin (`@deepseek-harness-tui/dsh-tui`), the `dsh-tui` / `dst` launcher, the `dsh-tui` dsh profile, `DSH_TUI_NO_LAUNCHPAD`, the terminal:tmux channel, or the check-dsh-tui-pod bed | `/charly-tools:dsh-tui` |
 | CachyOS images / `cachyos*` / `charly-cachyos` workstation profile / `box/cachyos` submodule | `/charly-vm:cachyos-bootstrap-vm` |
 | Debian images / `debian*` / `box/debian` submodule | `/charly-vm:debian-debootstrap-vm` |
 | omarchy VMs / `omarchy-vm` / `charly-omarchy` / `source.kind: iso` / unattended archinstall | `/charly-vm:omarchy-vm` |

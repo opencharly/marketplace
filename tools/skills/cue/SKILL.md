@@ -54,7 +54,7 @@ evaluates CUE — a non-functional binary fails the check.
 ## Install on a dev host
 
 ```bash
-charly fleet add cue cue --target local   # installs /usr/local/bin/cue on this host
+charly deploy add cue cue --target local   # installs /usr/local/bin/cue on this host
 ```
 
 …then the offline vendoring pipeline (see `/charly-internals:egress`) can run.

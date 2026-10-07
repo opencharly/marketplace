@@ -42,11 +42,17 @@ carries the dsh binary + $DSH_HOME layout). Methods:
 - `dsh: version` — `dsh --version` in the venue (build + deploy context).
 - `dsh: web-running` — read the launch token from
   `$DSH_HOME/web-token` (persisted there by the dsh candy's
-  entrypoint on service start) and probe
-  `http://127.0.0.1:3080/?token=<token>` in-box via curl.
-  dsh-web-app >= 0.1.5-rc.x authenticates every request — a tokenless
-  `GET /` returns 401 — so a missing token file fails the probe with a
-  clear error rather than silently probing tokenless. Deploy context;
+  entrypoint on service start), exchange it on
+  `http://127.0.0.1:3080/?token=<token>`, then exercise an `/api/*`
+  call with the resulting cookie. dsh web authenticates at TWO layers:
+  the launch token (a tokenless `GET /` returns 401) AND a Host/Origin
+  browser-trust fence every `/api/*` call passes before authentication.
+  The probe asserts both, so it proves the app's API surface actually
+  answers and not merely that `/` responds. A reverse-proxy deployment
+  must additionally start `dsh web --trusted-host <host:port>` — a
+  host-side requirement this IN-BOX probe (always dialing 127.0.0.1)
+  cannot itself observe. A missing token file fails the probe with a
+  clear error rather than a silent tokenless probe. Deploy context;
   skips under `charly check box` — no running service on a disposable
   `podman run --rm`.
 - `dsh: profile-list` — list profiles under `$DSH_HOME/profiles` (build + deploy context).

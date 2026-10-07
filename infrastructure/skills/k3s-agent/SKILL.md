@@ -59,7 +59,7 @@ k3s-ag1:
 ```
 
 ```bash
-charly fleet add vm:k3s-ag1
+charly deploy add vm:k3s-ag1
 ```
 
 The agent registers; a server-side `kube: wait-nodes` check step confirms the

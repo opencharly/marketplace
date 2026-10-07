@@ -39,7 +39,21 @@ repo's `candy/` (resolved via its `discover:` block):
 `gnupg`, `keepassxc`, `keepassxc-keyring`, `tailscale`, `tailscale-up`,
 `build-toolchain`, `golang`, `rust`, `nodejs`, `uv`, `claude-code`, `codex`,
 `gemini`, `oracle`, `forgecode`, `devops-tools`, `docker-ce`, `kubernetes`,
-`vscode`, `ghostty`, `chrome`, `nvidia`, `charly`.
+`vscode`, `ghostty`, `chrome`, `nvidia`, `charly`, and the DeepSeek Harness
+family — `pod-dsh/candy/dsh` (the `dsh` CLI) and `pod-dsh/candy/dsh-tui`
+(the dsh-TUI plugin; its candy ships the `ollama-cloud` LLM route as
+`~/.dsh/cordis.patch.yml`).
+
+The dsh **web** GUI is deliberately NOT composed here: the `dsh-web`
+candy is a container service (supervisord + socat on container port
+3081), which does not suit a host workstation. On a host the web UI is a
+user-scope systemd unit exposed with `tailscale serve --bg --https=3080
+http://127.0.0.1:3080` (a 1:1 port map — dsh does not occupy 443; the
+tailscale-up candy arms the operator permission); see `/charly-tools:dsh`.
+The web UI has TWO independent auth layers — the launch token on `/` and
+a Host/Origin browser-trust fence on `/api/*` — so a proxy that presents a
+non-loopback Host must start `dsh web` with `--trusted-host <host>:3080`,
+or `/` loads while every `/api/*` call returns 403.
 
 ## Key fields
 
@@ -55,6 +69,11 @@ repo's `candy/` (resolved via its `discover:` block):
 - `passwordless-sudo-host` — `sudo -n true` (wheel-nopasswd candy must have run)
 - `nvidia-ctk-present` — `command -v nvidia-ctk`
 - `nvidia-cdi-spec` — `/etc/cdi/nvidia.yaml` exists
+- `dsh-cli-installed` — `~/.npm-global/bin/dsh` and `dsh-tui` are executable
+- `dsh-version` — `dsh --version` prints a semantic version
+- `dsh-tui-profile-installed` — `~/.dsh/profiles/dsh-tui/package.json` exists
+- `dsh-tui-version` — `dsh-tui version` reports the launcher/profile version
+- `dsh-ollama-route-installed` — `~/.dsh/cordis.patch.yml` declares the `ollama-cloud` route
 
 Both `nvidia-*` probes gate on an active host NVIDIA driver
 (`[ -e /dev/nvidiactl ] || nvidia-smi`) and pass with an N/A note on a
@@ -75,7 +94,7 @@ the root's own locals are. See `/charly-internals:go` "Remote-layer resolver".)
 - `/charly-local:local-spec` — `kind: local` template authoring reference
 - `/charly-local:local-deploy` — the `target: local` deployment surface
 - `/charly-distros:cachyos` — the CachyOS base of the same family
-- `/charly-core:deploy` — fleet entry semantics (globally-unique names within a document: the `charly-cachyos` fleet deploys the suffixed `charly-cachyos-app` `kind: local` template)
+- `/charly-core:deploy` — deploy entry semantics (globally-unique names within a document: the `charly-cachyos` deploy ships the suffixed `charly-cachyos-app` `kind: local` template)
 
 ## When to Use This Skill
 

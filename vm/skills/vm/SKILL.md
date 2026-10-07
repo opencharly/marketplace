@@ -597,6 +597,31 @@ When `firmware: uefi-insecure` or `firmware: uefi-secure`, each VM gets its own 
 
 Cloud-init `packages: [spice-vdagent]` pulls GTK3 + X11 (~200 MB download, ~1 GB installed). Running at 2 GiB RAM stalls cloud-init. **Check host inventory (`free -h`, `nproc`) before sizing** — give the VM what it needs (8 GiB + 4 cpus for a desktop-class workload is reasonable on a 16-core / 61 GiB host). See `/charly-vm:arch-cloud-vm` Finding C for the live-test bisect.
 
+### Rootless podman cannot run the privileged VM builder — set `engine.rootful=sudo`
+
+On a host whose default engine is **rootless podman**, `charly vm build` fails
+inside the privileged bootstrap builder (pacstrap / debootstrap) with:
+
+```
+mount: /target/sys: permission denied.
+==> ERROR: failed to setup chroot /target
+```
+
+The cause is the user NAMESPACE, not sysfs itself: `--privileged` in a rootless
+container has no `CAP_SYS_ADMIN` equivalent for arbitrary bind mounts, so
+pacstrap's `mount --rbind` of the locked `/sys` is denied. The remedy is one
+setting — `sudo podman` runs the builder in the host namespace and bypasses it:
+
+```bash
+charly settings set engine.rootful sudo
+```
+
+Symptom without it is exactly the `mount: /target/sys: permission denied` line
+above (the build gets through the image tag, then dies at the chroot). The
+SDK's `buildkit/privileged_runner.go` carries this rationale in a code comment;
+the rootful ↔ rootless storage split this setting also causes is documented in
+the next section.
+
 ### Rootful ↔ rootless podman storage split (bootc)
 
 Under `engine.rootful=sudo`, `charly vm build` invokes `sudo podman` which reads from `/var/lib/containers/storage`, not your rootless storage. After every `charly box build`, refresh:
