@@ -50,10 +50,10 @@ SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 REPO=""
 PR=""
-# --interval defaults to 60 and is a FLOOR of 60 seconds (POLL_FLOOR, from
-# _watch_common.sh): a sub-60s value is REFUSED (exit 5) so no silent sub-floor
+# --interval defaults to 300 and is a FLOOR of 300 seconds (POLL_FLOOR, from
+# _watch_common.sh): a sub-300s value is REFUSED (exit 5) so no silent sub-floor
 # polling ever ships. Tests that must run fast opt in via ALLOW_FAST_POLL=1.
-INTERVAL="${PR_STATE_INTERVAL:-60}"
+INTERVAL="${PR_STATE_INTERVAL:-300}"
 TIMEOUT=900
 
 usage() {
@@ -63,7 +63,7 @@ pr_state_watch.sh — poll a PR and STOP the instant it reaches a terminal state
 Usage:
   pr_state_watch.sh <owner>/<repo> <pr-number> [--interval SECONDS] [--timeout SECONDS]
 
---interval defaults to 60 and is a FLOOR of 60 seconds (POLL_FLOOR): a sub-60s value
+--interval defaults to 300 and is a FLOOR of 300 seconds (POLL_FLOOR): a sub-300s value
 is REFUSED (exit 5) so no silent sub-floor polling ever ships. Tests that must run
 fast opt in explicitly with ALLOW_FAST_POLL=1; it is never a production setting.
 
@@ -107,7 +107,7 @@ done
 case "$PR" in ''|*[!0-9]*) echo "pr_state_watch: <pr-number> must be numeric, got '$PR'" >&2; exit 5 ;; esac
 command -v gh >/dev/null 2>&1 || { echo "pr_state_watch: gh not found" >&2; exit 5; }
 
-# --interval is validated against the 60s POLL_FLOOR (refuse sub-floor unless
+# --interval is validated against the 300s POLL_FLOOR (refuse sub-floor unless
 # ALLOW_FAST_POLL=1 — tests only).
 INTERVAL="$(watch_interval pr_state_watch "$INTERVAL" "--interval")" \
   || { usage >&2; exit 5; }
