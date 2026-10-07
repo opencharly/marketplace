@@ -7,14 +7,14 @@
 # Run: ./scripts/watch_family_test.sh
 #
 # Tests that must poll fast opt in explicitly with ALLOW_FAST_POLL=1 (the committed
-# defaults are 60s and the floor refuses sub-60s without this escape hatch).
+# defaults are 300s and the floor refuses sub-300s without this escape hatch).
 set -uo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
-# Fast polling is a TEST-ONLY explicit opt-in (the committed default is 60s). Set it
+# Fast polling is a TEST-ONLY explicit opt-in (the committed default is 300s). Set it
 # for the WHOLE suite; the floor's own refusal is asserted in a SUBSHELL with it unset.
 export ALLOW_FAST_POLL=1
 
@@ -121,24 +121,24 @@ watch_has x 'a,b'   && bad "watch_has rejects x in a,b"   "false positive" || ok
 watch_usage "$HERE/pr_watch_many.sh" | head -1 | grep -q '^pr_watch_many.sh' \
   && ok "watch_usage emits the header" || bad "watch_usage" "no header line"
 
-# 2b ── the poll floor: sub-60 is refused unless ALLOW_FAST_POLL=1 (tests only)
-eq "POLL_FLOOR is 60" "$POLL_FLOOR" 60
+# 2b ── the poll floor: sub-300 is refused unless ALLOW_FAST_POLL=1 (tests only)
+eq "POLL_FLOOR is 300" "$POLL_FLOOR" 300
 ( unset ALLOW_FAST_POLL; watch_interval x 5 "--interval" >/dev/null 2>&1 ) \
   && bad "watch_interval refuses sub-floor without ALLOW_FAST_POLL" "accepted 5" \
   || ok "watch_interval refuses sub-floor without ALLOW_FAST_POLL"
-eq "watch_interval accepts the floor (60)" "$(watch_interval x 60 "--interval")" 60
+eq "watch_interval accepts the floor (300)" "$(watch_interval x 300 "--interval")" 300
 eq "watch_interval accepts ALLOW_FAST_POLL sub-floor" "$(watch_interval x 5 "--interval")" 5
 ( unset ALLOW_FAST_POLL; watch_interval x abc "--interval" >/dev/null 2>&1 ) \
   && bad "watch_interval rejects a non-integer" "accepted abc" \
   || ok "watch_interval rejects a non-integer"
 
-# 2c ── committed defaults are 60s (no test leak into the shipped default) and the
-#       floor is enforced end to end (a sub-60 --interval exits 5 without the hatch).
-eq "gh_watch default interval is 60"      "$(grep -m1 '^INTERVAL="' "$HERE/gh_watch.sh" | grep -o ':-[0-9]*' | tr -d ':-')" 60
-eq "pr_watch_many default interval is 60" "$(grep -m1 '^INTERVAL='  "$HERE/pr_watch_many.sh" | grep -o '[0-9]*')" 60
-eq "pr_state_watch default interval is 60" "$(grep -m1 '^INTERVAL="' "$HERE/pr_state_watch.sh" | grep -o ':-[0-9]*' | tr -d ':-')" 60
+# 2c ── committed defaults are 300s (no test leak into the shipped default) and the
+#       floor is enforced end to end (a sub-300 --interval exits 5 without the hatch).
+eq "gh_watch default interval is 300"      "$(grep -m1 '^INTERVAL="' "$HERE/gh_watch.sh" | grep -o ':-[0-9]*' | tr -d ':-')" 300
+eq "pr_watch_many default interval is 300" "$(grep -m1 '^INTERVAL='  "$HERE/pr_watch_many.sh" | grep -o '[0-9]*')" 300
+eq "pr_state_watch default interval is 300" "$(grep -m1 '^INTERVAL="' "$HERE/pr_state_watch.sh" | grep -o ':-[0-9]*' | tr -d ':-')" 300
 ( unset ALLOW_FAST_POLL; "$HERE/gh_watch.sh" --events merged --interval 5 --timeout 1 opencharly/x#1 >/dev/null 2>&1 )
-eq "gh_watch: sub-60 --interval refused (exit 5) without ALLOW_FAST_POLL" "$?" 5
+eq "gh_watch: sub-300 --interval refused (exit 5) without ALLOW_FAST_POLL" "$?" 5
 
 # 2d ── the rate-limit HARD ABORT: a RATE_LIMIT body exits 7, never a retry. MEASURED
 #       trap the predicate covers: `gh api graphql` exits 0 while the body carries it.

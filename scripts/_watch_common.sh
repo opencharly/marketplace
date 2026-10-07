@@ -56,16 +56,16 @@ watch_is_uint() { case "$1" in ''|*[!0-9]*) return 1 ;; *) return 0 ;; esac; }
 watch_has() { case ",$2," in *",$1,"*) return 0 ;; *) return 1 ;; esac; }
 
 # ── the poll floor ────────────────────────────────────────────────────────────
-# ONE watcher, at most one poll per minute. MEASURED (2026-09-28): the pre-floor
+# ONE watcher, at most one poll per five minutes. MEASURED (2026-09-28): the pre-floor
 # defaults were 30s gh_watch / 20s pr_watch_many / 15s pr_state_watch with a
 # minimum of 1s, and gh_watch's snapshot() issued 6 REST calls per item per poll.
 # Over 5 items that is 30 calls/poll: at its own 30s default 3600/hr (72% of the
 # shared 5000/hr budget for ONE watcher), and at a reachable 20s cadence 5400/hr
-# (OVER budget) — repeated HTTP 403 and dead watchers. So the default is 60s AND a
-# hard floor of 60s rejects faster cadences at argument parse time, so no silent
+# (OVER budget) — repeated HTTP 403 and dead watchers. So the default is 300s AND a
+# hard floor of 300s rejects faster cadences at argument parse time, so no silent
 # sub-floor polling ever ships. Tests that must run fast opt in LOUDLY and
 # explicitly via ALLOW_FAST_POLL=1 (never a committed default).
-POLL_FLOOR=60
+POLL_FLOOR=300
 
 # watch_interval <label> <interval> <raw-source> — validate an interval against the
 # floor and print the accepted value on stdout (call as `X="$(watch_interval …)" || exit 5`).
@@ -76,13 +76,13 @@ POLL_FLOOR=60
 watch_interval() {
   local label="$1" iv="$2" source="$3"
   # Always require >= 1 second (a 0-second interval busy-loops); the floor then
-  # raises that to 60 unless ALLOW_FAST_POLL=1.
+  # raises that to 300 unless ALLOW_FAST_POLL=1.
   if ! watch_is_uint "$iv" || [ "$iv" -lt 1 ]; then
     echo "$label: $source must be an integer >= 1, got '$iv'" >&2
     return 1
   fi
   if [ "$iv" -lt "$POLL_FLOOR" ] && [ "${ALLOW_FAST_POLL:-0}" != "1" ]; then
-    echo "$label: $source must be >= $POLL_FLOOR seconds (one poll per minute — the shared API budget)," >&2
+    echo "$label: $source must be >= $POLL_FLOOR seconds (one poll per five minutes — the shared API budget)," >&2
     echo "  got '$iv'. Fast polling is reserved for tests: set ALLOW_FAST_POLL=1 to override." >&2
     return 1
   fi
@@ -141,7 +141,7 @@ watch_run_latest() {
 # does not count it against the primary limit), so it is safe to read every poll.
 # The guard reads that endpoint BEFORE each poll; below $WATCH_RATE_MIN (default
 # 200) it MULTIPLIES the interval by $WATCH_RATE_BACKOFF_FACTOR (default 2, capped
-# at $WATCH_RATE_MAX_SLEEP=600s) and skips the poll entirely. The floor (60s) alone
+# at $WATCH_RATE_MAX_SLEEP=600s) and skips the poll entirely. The floor (300s) alone
 # bounds the steady-state draw; the guard is the second line that turns a shared
 # budget into a soft back-off instead of a 403 wall.
 
