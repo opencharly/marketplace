@@ -35,6 +35,30 @@ consumer adds the markers; then it splices the full generated fragment in place.
 To add, rename, or remove a skill, update the row in the same PR and keep every
 ref resolving to `marketplace/<family>/skills/<skill>/SKILL.md`.
 
+## Adding a `triggers:` is a CONFIG change — and its proof is the emitted row
+
+A skill entity's `triggers:` is not prose: `emit_dispatcher.go` consumes it to emit
+exactly one `DISPATCHER.md` row per triggers-bearing skill (`if s.Type == "agent" ||
+len(s.Triggers) == 0 { continue }`). A change that only adds `triggers:` to a skill
+entity therefore alters a GENERATED artifact — it is a **config** change, and the
+`documentation reviewed` attribution tier does not apply to it.
+
+The gate is the generated artifact, not a structure check. `charly box validate`
+proves the YAML parses; it does NOT prove the routing the change exists to add, and
+A1/R10 forbid deferring the effect to the nightly refresh bot. Run the corpus's own
+generator and paste the emitted rows:
+
+```bash
+charly marketplace generate --root <root> --out <out>
+grep -n '<family>:<skill>' <out>/DISPATCHER.md
+```
+
+When the owning repo's marketplace pin is OLDER than the branch (the common case for
+an unmerged skill change), the live corpus cannot see the change at all — and
+`CHARLY_REPO_OVERRIDE` cannot substitute a directly-pinned repo (the separate defect
+opencharly/opencharly#387). Generate from a MINIMAL root carrying the exact changed
+skill entities plus the real family registry, and paste the rows.
+
 ## The corpus must actually LOAD — audit delivery, not just content
 
 A skill that never reaches the agent is indistinguishable from one that was
