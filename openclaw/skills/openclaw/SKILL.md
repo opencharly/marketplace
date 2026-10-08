@@ -10,7 +10,7 @@ description: |-
 
 # openclaw
 
-Headless OpenClaw AI gateway (OpenClaw 2.0, npm openclaw@2026.8.x) — no desktop, no browser, just the gateway service.
+Headless OpenClaw AI gateway (OpenClaw 2.0, npm openclaw@2026.9.8) — no desktop, no browser, just the gateway service.
 
 ## Box Properties
 

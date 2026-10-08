@@ -106,7 +106,6 @@ encoding (zero CPU overhead).
 - `/charly-selkies:selkies-desktop-layer` — the labwc desktop metalayer this box is the GPU build of
 - `selkies-labwc` (in this same `opencharly/distro-cachyos` submodule) — the CPU-encoding labwc sibling
 - `selkies-kde-nvidia` — the KDE-Plasma GPU sibling (same `cachyos.nvidia` base + CUDA arch-builder)
-- `/charly-openclaw:openclaw-desktop` — the CachyOS/CPU all-in-one: this streaming desktop stack + the openclaw-full gateway + AI CLIs + a CPU ollama + the full charly toolchain (charly + container-nesting + golang + gh). Use it if you want to build boxes / start nested pods / launch VMs from inside the browser-accessible desktop.
 - `/charly-distros:cachyos` — the CachyOS base image family (owns this box's submodule)
 
 ## Related Commands

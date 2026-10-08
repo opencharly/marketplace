@@ -177,7 +177,6 @@ bed name against the live tree before launching it.
 | `check-jupyter-pod` / `check-jupyter-ml-pod` | pod | `image: jupyter` / `image: jupyter-ml` | jupyter-mcp regression coverage; jupyter-ml spacy/quarto + GPU MCP probes |
 | `check-versa-pod` | pod | `image: versa` | versa OSM analytics + vector-tile + marimo MCP |
 | `check-android-emulator-pod` | pod | `image: android-emulator` | Android 14 emulator (/dev/kvm) + adb/appium |
-| `check-openclaw-pod` / `check-openclaw-full-pod` / `check-openclaw-desktop-pod` | pod | `image: openclaw*` | minimal / maximal / streamed-desktop headless gateway |
 | `check-cachyos-gpu-vm` / `check-selkies-labwc-nvidia-vm` / `check-selkies-kde-nvidia-vm` | vm | `from: cachyos-gpu-vm` | VFIO GPU-passthrough + nested selkies NVENC streaming (`requires_exclusive: [nvidia-gpu]` — serialized) |
 | `check-arch-pacstrap-vm` / `check-arch-vm` / `check-cachyos-vm` / `check-debian-debootstrap-vm` / `check-ubuntu-debootstrap-vm` / `check-fedora-vm` | vm | `from: <distro>-vm` | the distro bootstrap-VM beds (pacstrap / debootstrap) |
 | `check-cross-pod-cdp` / `check-cross-vm-http` / `check-cross-local-http` / `check-cross-local-driver` | pod/vm/local | — | cross-deployment probing (pod→pod, host→pod/VM) |
@@ -250,7 +249,7 @@ construction.
 `check-pod` ~110s idle but **842s measured under a concurrent roster** (one build →
 deploy → check → fresh-update → teardown cycle covering all four mechanisms) ·
 `check-local-vm` ~45s · `check-sidecar-pod` ~180–290s · `check-k3s-vm` ~5–7 min ·
-`check-openclaw-full-pod` ~1414s · the heavy feature beds
+the heavy feature beds
 (`check-sway-browser-vnc-pod` ~2477s ≈ 41 min incl. image build) longer.
 
 **These are load-dependent, and the idle figures mislead.** A bed's own newest
