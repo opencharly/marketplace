@@ -12,9 +12,9 @@ description: |-
 
 # githubrunner
 
-Self-hosted GitHub Actions runner on **CachyOS**, fully rootless. Shares the
-rootless nested-container posture with `/charly-openclaw:openclaw-desktop` (uid=1000,
-no caps, `unmask=/proc/*` via `/charly-distros:container-nesting`).
+Self-hosted GitHub Actions runner on **CachyOS**, fully rootless. Its rootless
+nested-container posture is uid=1000, no caps, `unmask=/proc/*` via
+`/charly-distros:container-nesting`.
 
 ## Box Properties
 
@@ -127,7 +127,6 @@ charly remove githubrunner -e RUNNER_TOKEN=<remove-token>
 ## Related Boxes
 
 - `/charly-distros:cachyos` — the CachyOS base (parent, via the `cachyos` namespace)
-- `/charly-openclaw:openclaw-desktop` — same rootless container-nesting posture (uid 1000, no caps)
 - `/charly-distros:charly-fedora`, `/charly-coder:charly-arch` — the charly-toolchain siblings (root path, box-level full-hammer security)
 
 ## Related Commands
