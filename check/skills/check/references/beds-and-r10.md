@@ -296,10 +296,15 @@ use `--if-exists`, which is idempotent and still cleans managed metadata. Confir
 identity with `charly vm list`; see `/charly-vm:vm` "`charly vm destroy` — the DEPLOY name keys the
 domain" and `/charly-internals:agents` "The binding rule".
 
-Final target and member teardown are recorded acceptance steps. In particular, a targetless group
-records `cleanup-members`; a failed members-down operation fails the bed rather than leaving cleanup
-to inference from a later host inventory. The group fresh-rebuild transition likewise records and
-requires `rebuild-members-down` before bringing the members back up.
+Final target and member teardown happen on the SUCCESS tail as recorded acceptance steps (a
+targetless group records `cleanup-members`), **and** on every unwinding failure path through the
+bed runner's ONE venue-teardown owner: a failed run disposes of its deployed target and its members
+unless retention was explicitly requested (`--keep-on-failure`, `--keep`/`--keep-venue`,
+`keep_venue:`, or the root's `ephemeral.keep_on_failure:`). On the success path a failed
+members-down operation fails the bed; on the failure path it is reported as a warning so the
+original step error survives. The SIGNAL path cannot tear down at all (nothing unwinds), so
+`charly check stop` names the scoped destroy verb instead. The group fresh-rebuild transition
+likewise records and requires `rebuild-members-down` before bringing the members back up.
 
 ### Golden snapshots: stop the keeper after capture
 

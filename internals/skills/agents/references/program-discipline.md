@@ -201,3 +201,55 @@ expressed as discovery steps.
   align.
 - `references/hooks-and-lifecycle.md` — delegation, teammate context
   lifecycle, agent lifecycle hygiene.
+
+## The goal round budget (R1 2026-10-08)
+
+A goal's round budget is the `maxGoalRounds` given at creation, and the
+harness's own default is sane — **do not shrink it by reflex.**
+*Measured from the DSH source:* `dsh-goal`'s
+`Config.defaultMaxGoalRounds` is **256**, and `dsh-goal-round-driver`
+blocks **hard** the moment `roundsStarted >= maxGoalRounds`
+(`{code: "round-limit"}`, phase `blocked`, goal **disarmed**) with **no
+warning phase**. There is no project-level patch file, so the only knobs
+are the per-goal parameter and the host profile's default.
+
+*RCA (measured 2026-10-08):* a 76-issue, multi-cluster campaign was
+created with `max_goal_rounds: 40` — 6.4x BELOW the default — for an
+objective needing roughly 150-250 owner turns. It hit `round-limit` and
+**disarmed mid-flight with the operator never asked.** The cap was
+mis-sized by the agent, and no rule required asking before it ran out;
+the work survived only because the ledger and hand-over were current.
+
+- **Size the cap to the work.** One owner turn per PR per verdict
+  round, plus one bed per runtime change. Never below the harness
+  default without a stated reason.
+- **Ask before the cap, do not narrate an ending.** Once a goal passes
+  ~80% of its budget with work remaining, STOP and ask the operator how
+  to proceed, with options — the driver's only signal is the hard block,
+  so the ask is the agent's duty (umbrella `AGENTS.md` Part II rule 10).
+
+## Wait with the watchers, never with rounds (R1 2026-10-08)
+
+Goal rounds are a **budget, not a clock**. When the remaining work is
+dominated by EXTERNAL latency — a validator run, a bed run, another
+session's merge — polling rounds for it burns the budget on nothing.
+*Measured:* a validator window of 2-10 minutes spanned several goal
+rounds while the environment clock advanced **8 seconds in one round**.
+
+- Arm the org's own watcher as a **background job**: the harness
+  notifies the session when a background command finishes, so the
+  watcher's exit IS the wake. Its events are `merged`, `closed`,
+  `stall`, `verdict` and `comment`; a DELTA fire arms its own successor,
+  a STATE fire is terminal. **The watcher is not yet reachable from the
+  `charly` binary alone** — today it lives in the org's marketplace
+  checkout, so naming that path here would prescribe a checkout-relative
+  recipe, which B9/R4a forbid. The portable `charly` command it needs is
+  filed as `opencharly/charly#837`; document whichever form that row
+  lands.
+- **One watcher per scope.** A DELTA fire (`verdict`/`comment`) arms its
+  own successor; a STATE fire (`merged`/`closed`/`stall`) is terminal and
+  must not be re-armed. Re-arm the *harness job* to keep receiving
+  notifications, and include **every** item you are blocked on — an
+  un-watched dependency is the one that arrives late.
+- Never hand-roll a poll loop; respect the poll floor and the
+  single-instance lock.
