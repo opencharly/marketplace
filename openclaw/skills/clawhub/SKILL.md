@@ -29,11 +29,9 @@ my-box:
 
 ## Used In Boxes
 
-- `openclaw-full` (via `openclaw-full` metalayer)
 
 ## Related Candies
 - `/charly-coder:nodejs` — Required Node.js runtime parent dependency
-- `/charly-openclaw:openclaw-full` — Metalayer bundling clawhub with codex/gemini/claude-code
 - `/charly-openclaw:openclaw` — OpenClaw gateway service that consumes installed skills
 
 ## Related Commands

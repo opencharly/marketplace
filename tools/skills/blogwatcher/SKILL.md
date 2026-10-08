@@ -35,11 +35,8 @@ my-box:
 
 ## Used In Boxes
 
-- `openclaw-full` (via `openclaw-full` metalayer)
-
 ## Related Candies
 - `/charly-coder:golang` — Required Go runtime parent dependency
-- `/charly-openclaw:openclaw-full` — Metalayer that bundles blogwatcher with other AI/agent CLIs
 
 ## Related Commands
 - `/charly-build:build` — Builds the candy (Go install via a `run:` step)
