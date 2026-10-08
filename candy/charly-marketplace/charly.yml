@@ -22,7 +22,7 @@ charly-marketplace:
             - '@github.com/opencharly/distro-arch:v2026.274.1256'
             # The remaining distro-* image families own their OS/base skills too
             # (same wave as distro-arch).
-            - '@github.com/opencharly/distro-fedora:v2026.279.1511'
+            - '@github.com/opencharly/distro-fedora:v2026.281.1250'
             - '@github.com/opencharly/distro-cachyos:v2026.281.1001'
             - '@github.com/opencharly/distro-omarchy:v2026.274.2118'
             - '@github.com/opencharly/distro-debian:v2026.279.1448'
