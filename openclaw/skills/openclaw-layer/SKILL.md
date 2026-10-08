@@ -21,7 +21,7 @@ description: |-
 | Aliases | `openclaw` -> `openclaw` |
 | Service | `openclaw` (supervisord) |
 | Install files | `package.json` |
-| Home repo | `opencharly/openclaw` (`candy/openclaw`) |
+| Home repo | `opencharly/layer-openclaw` (`candy/openclaw`) |
 
 ## Environment Variables
 

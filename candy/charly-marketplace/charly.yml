@@ -141,7 +141,7 @@ charly-marketplace:
             - '@github.com/opencharly/pod-ollama:v2026.274.0620'
             - '@github.com/opencharly/pod-virtualization:v2026.272.0326'
             - '@github.com/opencharly/layer-vscode:v2026.272.0410'
-            - '@github.com/opencharly/layer-openclaw:v2026.281.1009'
+            - '@github.com/opencharly/layer-openclaw:v2026.281.1057'
             - '@github.com/opencharly/layer-oracle:v2026.274.0649'
             - '@github.com/opencharly/layer-wacli:v2026.274.0639'
             - '@github.com/opencharly/layer-ordercli:v2026.274.0618'

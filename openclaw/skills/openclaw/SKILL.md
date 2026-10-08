@@ -22,7 +22,7 @@ Headless OpenClaw AI gateway (OpenClaw 2.0, npm openclaw@2026.9.8) — no deskto
 | Platforms | linux/amd64 |
 | Ports | 18789 |
 | Registry | ghcr.io/opencharly |
-| Home repo | `opencharly/openclaw` (`box/openclaw`) |
+| Home repo | `opencharly/layer-openclaw` (`box/openclaw`) |
 
 ## Full Candy Stack
 
