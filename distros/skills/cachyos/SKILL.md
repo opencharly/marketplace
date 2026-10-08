@@ -43,7 +43,7 @@ from the submodule: `charly -C box/cachyos box build cachyos` (or
 
 ## main → cachyos coupling
 
-The `cachyos` base and its derived boxes — `versa`, the `openclaw-*` family,
+The `cachyos` base and its derived boxes — `versa`,
 `githubrunner`, `android-emulator`, `charly-selftest`, and the `selkies-*` GPU
 desktops — all live in the **`opencharly/distro-cachyos`** submodule, discovered as
 `box/<name>/charly.yml` boxes. The main repo imports that submodule under the
