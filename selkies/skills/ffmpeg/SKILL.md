@@ -37,7 +37,6 @@ All candies that need ffmpeg should declare it as a dependency rather than indep
 
 ## Used In Boxes
 
-- `openclaw-full` (via `openclaw-full` metalayer)
 - `hermes` (via `hermes` candy `require: ffmpeg`)
 - `hermes-playwright` (via `hermes` candy `require: ffmpeg`)
 - `immich` (via `immich` candy `require: ffmpeg`)

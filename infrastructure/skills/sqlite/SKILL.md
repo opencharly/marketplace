@@ -33,11 +33,9 @@ my-box:
 
 ## Used In Boxes
 
-- `openclaw-full` (via `openclaw-full` metalayer)
 
 ## Related Candies
 - `/charly-coder:dev-tools` -- common dev CLI bundle that pairs with sqlite
-- `/charly-openclaw:openclaw-full` -- parent metalayer that bundles sqlite
 
 ## Related Commands
 - `/charly-core:shell` -- run sqlite3 inside the container
