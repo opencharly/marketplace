@@ -35,12 +35,10 @@ my-box:
 
 ## Used In Boxes
 
-- `openclaw-full` (via `openclaw-full` metalayer)
 
 ## Related Candies
 - `/charly-coder:golang` — required Go toolchain dependency
-- `/charly-openclaw:openclaw-full` — metalayer that includes gifgrep
-- `/charly-tools:goplaces` — sibling Go-based CLI in openclaw-full
+- `/charly-tools:goplaces` — sibling Go-based CLI
 
 ## Related Commands
 - `/charly-build:build` — compiles gifgrep via the Go builder during image build

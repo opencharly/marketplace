@@ -28,11 +28,9 @@ my-box:
 
 ## Used In Boxes
 
-- `openclaw-full` (via `openclaw-full` metalayer)
 
 ## Related Candies
 - `/charly-coder:nodejs` — runtime dependency
-- `/charly-openclaw:openclaw-full` — metalayer that bundles xurl
 - `/charly-hermes:hermes` — companion social/messaging agent
 
 ## Related Commands

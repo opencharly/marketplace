@@ -259,7 +259,6 @@ Drops on deb: `gvisor-tap-vsock`, `podman-machine` (not packaged; VM-mode networ
 
 ## Used In Boxes
 
-- `/charly-openclaw:openclaw-desktop` — rootless VM host inside a streaming desktop
 - `/charly-distros:charly-fedora` — root VM host (same daemons, uid 0)
 - `/charly-coder:charly-arch` — Arch counterpart
 - `/charly-coder:debian-coder`, `/charly-coder:ubuntu-coder` — deb-based consumers (via the `charly` candy)

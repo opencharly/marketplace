@@ -22,6 +22,7 @@ description: |-
 |----------|-------|
 | `SHERPA_ONNX_RUNTIME_DIR` | `~/.local/share/sherpa-onnx/runtime` |
 | `SHERPA_ONNX_MODEL_DIR` | `~/.local/share/sherpa-onnx/models` |
+| `SHERPA_ONNX_VITS_DATA_DIR` | `~/.local/share/sherpa-onnx/models/vits-piper-en_US-lessac-high/espeak-ng-data` |
 
 ## Usage
 
@@ -32,6 +33,25 @@ my-box:
     base: fedora
     candy: [sherpa-onnx]
 ```
+
+## Synthesise Speech
+
+The baked `vits-piper-en_US-lessac-high` voice synthesises offline. Every option
+takes the `=` form, and `--vits-data-dir` is required: the piper voice speaks
+espeak-ng phonemes, so leaving it empty exits 255 with `Not a model using
+characters as modeling unit`. The candy exports that data dir, so the invocation
+below works with nothing but the installed runtime:
+
+```bash
+~/.local/share/sherpa-onnx/runtime/bin/sherpa-onnx-offline-tts \
+  --vits-model=$SHERPA_ONNX_MODEL_DIR/vits-piper-en_US-lessac-high/en_US-lessac-high.onnx \
+  --vits-tokens=$SHERPA_ONNX_MODEL_DIR/vits-piper-en_US-lessac-high/tokens.txt \
+  --vits-data-dir=$SHERPA_ONNX_VITS_DATA_DIR \
+  --output-filename=/tmp/out.wav "hello"
+```
+
+The candy's `plan:` runs that same invocation as a `check:`, so a voice that
+cannot synthesise fails the plan instead of passing every check.
 
 ## Used In Boxes
 

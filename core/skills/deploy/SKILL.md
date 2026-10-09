@@ -1162,7 +1162,7 @@ webapp:                            # an operator deploy + a companion member
   a hard load error) and carry **no `.`** (same rules as nested-member keys + bed
   names); the author keeps member **host ports disjoint** (the loader does not check
   ports — port absence, i.e. auto-allocation, avoids fixed-port collisions).
-- **One shared lifecycle (R3).** `BringUpMembers` / `TearDownMembers` (`sdk/deploykit/deploy_members.go`)
+- **One shared lifecycle (R2).** `BringUpMembers` / `TearDownMembers` (`sdk/deploykit/deploy_members.go`)
   bring members up after the owner and tear them down with it, by shelling out to the
   SAME verbs — a pod member via `charly config` + `charly start` (+ readiness wait), a
   non-pod member via `charly deploy add` / `charly deploy del`. Wired into `charly deploy add` /

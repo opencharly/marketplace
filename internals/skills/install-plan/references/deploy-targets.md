@@ -146,8 +146,8 @@ bed/deploy that uses an external deploy SUBSTRATE word is recognized at config-P
 byte-gated, additive declaration pre-scan (`plugin_prescan.go`) before the provider connects; `charly
 check live` / `charly check <verb>` route an external deploy host-side via the shared
 `checkLocalTarget` classifier (`check_venue.go`) — the host-venue path the externalized `local:`
-substrate itself takes (R3). The wire types (`InstallPlanView`, `DeployVenue`, `DeployReply`,
+substrate itself takes (R2). The wire types (`InstallPlanView`, `DeployVenue`, `DeployReply`,
 `ReverseOp`, `ReverseOpPluginScript`, `DeployTargetDispatchRequest`, `DeployTargetDispatchReply`) are
 CUE-sourced at `spec/schema/deploy.cue` / `spec/schema/seam.cue`, generated into `spec/spec/cue_types_gen.go`
-— SDK-importable so an out-of-tree deploy plugin constructs the same structs (R3).
+— SDK-importable so an out-of-tree deploy plugin constructs the same structs (R2).
 

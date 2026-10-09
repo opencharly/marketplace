@@ -47,8 +47,8 @@ must become true before it can be collected, and the wave that delivers
 that enabler. No wave closes while it holds an unregistered IOU, and the
 next wave's plan is built from the register, not from memory — nothing
 deferred is silently dropped and every "later" has a named owner. (This is
-the whole-program form of R2's no-follow-up-someday: a deferral is legal
-only as a registered, wave-owned entry.)
+the whole-program form of R1's fix-it-or-file-it: a deferral is legal
+only as a registered, wave-owned entry — the program's filed issue.)
 
 **Companion instrument — per-merge measurement.** At every merge the
 orchestrator measures the program's tracked metric (LOC for a relocation
@@ -177,7 +177,7 @@ discovery command instead of the value.
 (2026-09-27T14:08Z) DELETED the per-repo `deploy.yml` gate from ~376 repos
 mid-campaign, replacing it with the org reusable `candy-validate.yml`. Every
 brief that said "paste the repo's `deploy.yml` gate" then instructed a
-falsity: the worker either pastes a nonexistent gate (B10/R1
+falsity: the worker either pastes a nonexistent gate (R5/R1
 body-truthfulness BLOCK) or, correctly, stops (wasted dispatch). Hardcoded
 `deploy.yml`/pin facts also made waves 1–3's already-merged docs reference a
 deleted file — now R1 issue `opencharly/opencharly#293`.
@@ -243,7 +243,7 @@ rounds while the environment clock advanced **8 seconds in one round**.
   a STATE fire is terminal. **The watcher is not yet reachable from the
   `charly` binary alone** — today it lives in the org's marketplace
   checkout, so naming that path here would prescribe a checkout-relative
-  recipe, which B9/R4a forbid. The portable `charly` command it needs is
+  recipe, which R4 forbids. The portable `charly` command it needs is
   filed as `opencharly/charly#837`; document whichever form that row
   lands.
 - **One watcher per scope.** A DELTA fire (`verdict`/`comment`) arms its

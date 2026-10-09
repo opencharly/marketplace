@@ -60,8 +60,7 @@ Resolved OCI security label:
 | `devices` | `[/dev/fuse, /dev/net/tun]` (from `/charly-distros:container-nesting`) |
 | `privileged` | `false` |
 
-See `/charly-openclaw:openclaw-desktop` (streaming-desktop sibling) and
-`/charly-coder:fedora-coder` (kitchen-sink dev sibling) for other boxes
+See `/charly-coder:fedora-coder` (kitchen-sink dev sibling) for another box
 sharing this posture, and `/charly-distros:container-nesting` for the
 kernel `mount_too_revealing()` RCA.
 
@@ -171,7 +170,6 @@ and scripts per distro.
 - `/charly-distros:fedora` — parent base image
 - `/charly-coder:charly-arch` — Arch counterpart, same layers, same rootless posture
 - `/charly-coder:fedora-coder` — kitchen-sink dev sibling (adds coding CLIs + DevOps)
-- `/charly-openclaw:openclaw-desktop` — streaming-desktop counterpart (charly toolchain + browser-accessible Wayland); shares the rootless-first posture
 - `/charly-distros:githubrunner` — self-hosted GitHub Actions runner; same uid=1000 posture
 
 ## Related Commands

@@ -20,6 +20,7 @@ The root-cause-analyzer is an **enforcer agent** at `marketplace/internals/agent
 - A warning or error message appears in output
 - A check step fails or times out
 - A validator reports an anomaly
+- **A validation failure on your own PR**: a `charly/pr-validator` BLOCK or `INCONCLUSIVE`, a red CI check, or an auto-close. Each is an anomaly in YOUR process, not just in the code. The RCA runs BEFORE the fix, its step 4 names the **missed control** (why your own pre-push gate did not catch it), and the root fix goes into that control as well as into the code. Post the RCA summary in the round's PR comment (the project rulebook "Before every update push: read everything, fix everything").
 - Documentation, a skill, or a comment diverges from observed reality
 - Any unexpected behavior that cannot be immediately explained
 
@@ -34,7 +35,7 @@ The agent runs an 8-step root cause analysis process:
 5. **Assess blast radius** — what else is affected
 6. **Determine root cause** — the fundamental issue, not a symptom
 7. **Propose root fix** — a fix that prevents recurrence
-8. **Document the finding** — record the RCA result
+8. **Document the finding** — record the RCA result, then CLASSIFY it (the project rulebook R1, *fix it or file it*). A **blocking** finding (this change introduces it, this change's gate is red or warns because of it, or this change's claim is false without the fix; unsure → blocking) is fixed in this change. A **non-blocking**, genuinely separable finding is FILED: add the RCA to an existing issue, or file ONE in the owning repo, and list it under the PR body's `## Filed issues`. See `/charly-internals:strict-policy` "R1, applied. Fix it or file it".
 
 ## Failure-signature enumeration and measurement discipline
 

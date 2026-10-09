@@ -62,7 +62,7 @@ come up when embedding scripts and JSON into a Containerfile:
 | Helper | Purpose | Used by |
 |--------|---------|---------|
 | `spec.ShellQuote(s)` | Standard `'...'` quoting with `'\''` escape for embedded single quotes. | `EmitDownload` (the command and `t.Env` values), `EmitCmd` (`t.Env` values), `writeJSONLabel` (LABEL JSON values containing `awk '{…}'` etc.) |
-| `BuildStepShellDashC()` / `BuildStepShellHeredoc()` | The build-step shell prefix: probes for bash and falls back to POSIX `sh`, so a busybox base stays buildable. One helper per emit shape (R3). | `EmitDownload` (`-c` form), `EmitCmd` (heredoc form) |
+| `BuildStepShellDashC()` / `BuildStepShellHeredoc()` | The build-step shell prefix: probes for bash and falls back to POSIX `sh`, so a busybox base stays buildable. One helper per emit shape (R2). | `EmitDownload` (`-c` form), `EmitCmd` (heredoc form) |
 
 **How a multi-line `cmd:` body survives podman's parser**: a plain
 `sh -c '<body>'` with embedded real newlines gets cut off by podman's

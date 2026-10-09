@@ -227,7 +227,7 @@ charly's core binary.
     PLUGIN-SIDE `hostConfigResolveVmState` → `sdk/loaderkit.ResolveVmStateViaExecutor`
     read (the config-resolve HostBuild seam is DELETED, K-wave 2 cone R2 bank D —
     the SAME read `candy/plugin-vm`'s own `hostConfigResolve` + `candy/plugin-deploy-vm`'s
-    `resolvePriorVmState` use, R3 — a FIX-ROUND regression fix: a direct
+    `resolvePriorVmState` use, R2 — a FIX-ROUND regression fix: a direct
     `deploykit.LoadDeployConfigForRead` call from this out-of-process plugin
     silently found nothing every time, since `deploykit.DeployStateHost` is
     wired only by charly-core's own `init()`), then calls `mergeKubeconfig`

@@ -527,7 +527,7 @@
     {
       "name": "charly-openclaw",
       "source": "./openclaw",
-      "description": "Self-contained skills for the openclaw image family (CachyOS base): the headless openclaw gateway and the maximal non-browser openclaw-full.",
+      "description": "Self-contained skills for the openclaw image family (CachyOS base): the headless openclaw gateway.",
       "author": {
         "name": "opencharly"
       },

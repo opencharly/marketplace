@@ -59,6 +59,37 @@ NEW repository.
    (not `gh run rerun`, which 404s on the org-required workflow; the re-run's newer
    check run supersedes the failure). The org-wide `rerun` label sweep was RETIRED.
 
+## Step 0 — choose the class and the name (do this BEFORE step 1)
+
+The repo name is not a free choice: it carries the **class**, and the class
+decides what the repo may hold. Settle the class first, then the name, then run
+the checklist below.
+
+1. **What is the entity?** A candy or image, a VM, a plugin, a service bundle, a
+   packaging repo, a distro family, or a whole product family — the KIND axis.
+2. **Which family does it belong to** (`openclaw`, `selkies`, `agentteams`, …)?
+   The family word is also the skill namespace (`/charly-<family>:<skill>`) and
+   the corpus directory.
+3. **Which repo owns it?** One canonical owner per behaviour (the rulebook's R2);
+   every other repo *references* it by `@github.com/<owner>/<repo>:<vX.Y.Z>` or a
+   namespace import.
+4. **Name it by its class.** Bare names are for core/contract (`charly`, `sdk`,
+   `spec`, `marketplace`, `docs`) and appliances **only**. Everything else carries
+   its prefix — `distro-`, `charly-`/`pkg-`, `layer-`, `plugin-`, `pod-`, `vm-` —
+   and a **product family is a `layer-<family>` repo** (`layer-agentteams` is the
+   canonical example, `layer-openclaw` follows it). A family is never a bare name.
+
+The full class → name → "may hold" mapping is the umbrella `README.md`
+("The org map"), verified by `charly task org-map`; the rule itself
+is in the umbrella `AGENTS.md` ("Repo classes and naming"). Do not copy either
+table into this skill: they are the canonical surfaces, and a copy drifts.
+
+Worked counter-example, because it happened: a product family was created as a
+bare `openclaw`. It held a box, a candy, a disposable bed and two skills — a
+`layer-<family>` shape — so the name did not fit its class and the repo was
+renamed to `layer-openclaw`. A bare name holding anything beyond core/contract or
+an appliance is the defect this step exists to catch.
+
 ## Setting up a NEW repository (checklist)
 
 1. Create `opencharly/<name>` (non-fork; it must end up on default branch `main`).

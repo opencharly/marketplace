@@ -169,24 +169,21 @@ dsh --profile web --port 13080 --no-open   # a failed plugin prints "N entries d
 | Auto review | `dsh-experimental-auto-review` | ✅ | ❌ |
 | Automation tasks | `dsh-experimental-schedule-bundle` | ✅ | ❌ |
 | Voice input | `dsh-experimental-voice-input-bundle` | ✅ (needs a model) | ❌ |
-| GitHub (community) | `@perrylink/dsh-github` | ✅ | ❌ |
 | git-worktree (community) | `dsh-git-worktree` | ✅ | ❌ |
-| workspace-enhancement (community) | `dsh-workspace-enhancement` | ✅ | ❌ |
 | OpenCharly (native) | `dsh-opencharly` | ✅ | ❌ |
 
-The `dsh-web` profile ships **ten** bundles: `dsh-base`, `dsh-web-app`,
-the four experimental features, the three community plugins
-(`@perrylink/dsh-github`, `dsh-git-worktree`,
-`dsh-workspace-enhancement`), and the native `dsh-opencharly` plugin.
-All four plugins are VENDORED PREBUILT as tarballs under
+The `dsh-web` profile ships **eight** bundles: `dsh-base`, `dsh-web-app`,
+the four experimental features, the community `dsh-git-worktree`
+plugin, and the native `dsh-opencharly` plugin.
+Both plugins are VENDORED PREBUILT as tarballs under
 `candy/dsh-web/web-profile/vendor-tgz/` and consumed as `file:` deps, so
 the profile install resolves them OFFLINE (no codeload fetch, no
 per-dep npm-install bootstrap — the flake `pod-dsh#26` recorded).
 Each tarball's source repo+commit and SHA-256 are recorded in
-`vendor-tgz/README.md`, with the four hashes in
+`vendor-tgz/README.md`, with the two hashes in
 `vendor-tgz/SHA256SUMS` (verified in the volume by the bed).
-`dsh-opencharly` is server-only (no browser client); the others ship a
-`lib/client.js` browser half. All are installed at image BUILD time
+`dsh-opencharly` is server-only (no browser client); the other ships a
+`lib/client.js` browser half. Both are installed at image BUILD time
 into `~/.local/share/dsh/profile-home` and seeded into the `dsh` volume
 by the entrypoint — because profile bundles resolve from
 `$DSH_HOME/profiles/web/node_modules`, which the named volume shadows.
@@ -217,7 +214,7 @@ by the entrypoint — because profile bundles resolve from
 
 The `dsh-web` candy **stages the enabled profile** into the `dsh`
 volume at deploy time (a `data:` entry → `$DSH_HOME/profiles/web`), so
-a freshly deployed pod has all ten bundles composed without any
+a freshly deployed pod has all eight bundles composed without any
 in-UI toggling. The `dsh-tui` candy keeps its profile at base + the
 plugin. This is composition, not activation: the web UI's own boot
 proves they activate (a failed one prints `N entries did not

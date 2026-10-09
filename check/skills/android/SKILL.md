@@ -25,7 +25,7 @@ This sits ABOVE the device-interaction verbs: the `adb:` (`/charly-check:adb`)
 and `appium:` (`/charly-check:appium`) declarative check verbs drive a running
 device; `kind: android` + `target: android` declaratively describe a device and
 the apps installed on it. The install machinery is shared — see "One installer
-(R3)".
+(R2)".
 
 ## `kind: android` — the device
 
@@ -129,7 +129,7 @@ so `charly deploy add --node-only` brings the pod up first and the children depl
 afterwards by dotted path; `charly check run <bed>` automates this (deploy pod →
 config → start → deploy nested children → check-live).
 
-## One installer + one plugin (R3 / F1)
+## One installer + one plugin (R2 / F1)
 
 candy/plugin-adb owns ALL Android device interaction — the `adb:` check verb,
 the `deploy:android` substrate, AND the goadb-backed `charly status` probe — so

@@ -14,15 +14,15 @@ R1–R5 in the project rulebook (`AGENTS.md`) are the **engineering-discipline g
 
 This skill is the operational reference for R1–R5. Each section below restates the rule, lists what it forbids precisely, lists what it permits, explains why it matters, and notes how it interacts with the other rules. The rules exist because these specific failure modes actually happened — see `CHANGELOG/` for the commit-referenced incidents that motivated each one.
 
-A violation of any R1–R5 rule (or any of R6–R10, or the "Prioritize Clean Architecture Above All Else" section in the project rulebook) FORBIDS commit. There is no "downgrade tier and ship anyway" path. The agent fixes the violation in the same working tree and re-runs all verification, OR escalates to the operator and STOPS. No commit ships at any tier with a known violation. See the project rulebook "AI Attribution" section.
+A violation of any R1–R5 rule (or any of R6–R10, or the "Prioritize Clean Architecture Above All Else" section in the project rulebook) FORBIDS the push. Local commits before the first push are free (the project rulebook "Commit, push, land"), but nothing with a known violation is ever pushed, at any tier. There is no "downgrade tier and ship anyway" path. The agent fixes the violation in the same working tree and re-runs all verification, OR escalates to the operator and STOPS. See the project rulebook "AI Attribution" section.
 
-## R0x. Gate-before-push + no re-run against a root-caused defect (R1 2026-09-07)
+## Gate before push + no re-run against a root-caused defect (R1; the project rulebook "Commit, push, land")
 
 **Every push to a PR must pass the local gates FIRST** — `gofmt -l` empty, `go build`, `go vet`, and the touched packages' `go test` — verified from the committed tree, not from a dirty state. Pushing a head that was never gated locally and letting CI fail is an R1 violation (measured: four consecutive ci failures — two on a stale local worktree `replace` in go.mod that CI cannot resolve, two on `gofmt -l` flagging an unformatted file). The validator is not a debugging loop: push the head you have already proven green locally.
 
-**Never re-run a bed/command against a defect you have already root-caused** — re-running cannot change a root-caused defect (measured: 11 full android bed runs against an unimplemented candy-dirs wire gap, all red, before the fix was actually implemented). If the RCA names a fix, IMPLEMENT the fix (in-repo PR, unit-tested, gated) and then run once. Re-running the same command expecting a different result, or parking a root-caused blocker in a "named batch" while re-running, is the forbidden circle.
+**Never re-run a bed/command against a defect you have already root-caused** — re-running cannot change a root-caused defect (measured: 11 full android bed runs against an unimplemented candy-dirs wire gap, all red, before the fix was actually implemented). If the RCA names a fix, IMPLEMENT the fix (in-repo PR, unit-tested, gated) and then run once. Re-running the same command expecting a different result, or parking a root-caused blocker in a filed issue while re-running, is the forbidden circle.
 
-**A required gate (R10 bed proof) is never deferred** — not to a "named thematic batch", not to a "follow-up commit", not "to be proven later". The bed composes the UNRELEASED plugin from the local build (`go.mod replace` / `CHARLY_PLUGIN_DIR` + charly rebuilt at the branch — the proven recipe); if that is mechanically impossible, STOP and escalate. Validator rejection of a deferred gate ("Deferring a required gate is not the same as B6 routing") is a STOP, not a reword prompt.
+**A required gate (R10 bed proof) is never deferred** — not to a filed issue, not to a "follow-up commit", not "to be proven later". R1's *file it* path is for a separable NON-blocking finding; the change's own gate is always blocking. The bed composes the UNRELEASED plugin from the local build (`go.mod replace` / `CHARLY_PLUGIN_DIR` + charly rebuilt at the branch — the proven recipe); if that is mechanically impossible, STOP and escalate. Validator rejection of a deferred gate ("deferring a required gate is not R1's file-it path") is a STOP, not a reword prompt.
 
 ## R1. RCA on every failure — no transient-flake classification
 
@@ -30,7 +30,7 @@ A violation of any R1–R5 rule (or any of R6–R10, or the "Prioritize Clean Ar
 
 **A warning is a failure for R1 purposes.** It triggers the analyzer like any failure; the zero-warnings landing gate — a surviving warning is an R10 failure, never an accepted end state — is operationalized in `/charly-internals:git-workflow` ("Zero warnings").
 
-**Documentation divergence is a failure for R1 purposes.** Any divergence between a doc, skill, or code comment and observed reality — discovered by ANY means (a bed run, a code reading, an agent, a human report), not only via an RDD bed-contradiction or an R5 deleted-identifier — triggers the analyzer like any failure; "it's just a doc, I'll note it" / "the code is what matters" are confessions, not defences. Its remediation is a TRANSITIVE sweep: fix not just the file where it surfaced but EVERY other doc/skill/comment carrying the same false/outdated/misleading claim (claim-keyed — the generalization of R5's identifier-keyed grep self-test). The sweep binds to the cutover's OWN new prose too: a CHANGELOG entry, PR description, or commit message drafted in THIS SAME cutover can just as easily reintroduce a false claim, and being newly authored — never pre-existing — is not an exemption. The fix for the changed surface and its sibling-set is BLOCKING — it lands in the current cutover (a tree carrying a false claim is not "correct" by R2's own test); a genuinely-unrelated divergence is RCA'd immediately too, joining its thematic batch cutover (R2 — the Cutover Sizing Law). The two narrower cases — RDD's "when the bed contradicts the doc, the DOC IS STALE" and R5's deleted-identifier sweep — are special cases of this rule. When the remediation is itself documentation-only (`*.md`, comment-only edits, or a submodule pointer bump to an all-documentation submodule commit), it is gated by the non-runtime standards rather than a bed and ships at the `documentation reviewed` tier — the Documentation-only change class (the project rulebook R10 + "AI Attribution").
+**Documentation divergence is a failure for R1 purposes.** Any divergence between a doc, skill, or code comment and observed reality — discovered by ANY means (a bed run, a code reading, an agent, a human report), not only via an RDD bed-contradiction or an R5 deleted-identifier — triggers the analyzer like any failure; "it's just a doc, I'll note it" / "the code is what matters" are confessions, not defences. Its remediation is a TRANSITIVE sweep: fix not just the file where it surfaced but EVERY other doc/skill/comment carrying the same false/outdated/misleading claim (claim-keyed — the generalization of R5's identifier-keyed grep self-test). The sweep binds to the cutover's OWN new prose too: a CHANGELOG entry, PR description, or commit message drafted in THIS SAME cutover can just as easily reintroduce a false claim, and being newly authored — never pre-existing — is not an exemption. The fix for the changed surface and its sibling-set is BLOCKING — it lands in the current cutover (a tree carrying a false claim is not "correct" by R2's own test); a genuinely-unrelated divergence is RCA'd immediately too, and FILED (R1 *fix it or file it*: an existing issue gets the evidence, otherwise ONE new issue in the owning repo, listed under the PR body's `## Filed issues`). The two narrower cases — RDD's "when the bed contradicts the doc, the DOC IS STALE" and R5's deleted-identifier sweep — are special cases of this rule. When the remediation is itself documentation-only (`*.md`, comment-only edits, or a submodule pointer bump to an all-documentation submodule commit), it is gated by the non-runtime standards rather than a bed and ships at the `documentation reviewed` tier — the Documentation-only change class (the project rulebook R10 + "AI Attribution").
 
 **Forbidden first responses.** "probably a flake" / "rerun and see" / "transient" / "intermittent" / "works on retry" / "environmental" / "let me try once more" / "maybe the network was slow" / "let me clear the cache and re-run". These are confessions, not defences. Each is a way of avoiding the analysis the rule mandates.
 
@@ -40,7 +40,7 @@ A violation of any R1–R5 rule (or any of R6–R10, or the "Prioritize Clean Ar
 
 **Why it matters.** Failures that look transient often aren't. A test that fails 1-in-N times because of a race condition will fail 1-in-(N/scale) times under load — pretending the failure is "flaky" hides the race instead of fixing it. R1 forces the investigation early, when the symptoms are simple, before the bug accumulates obscuring complications.
 
-**Interaction with other rules.** R1 is the first response to ANY failure surfaced by any other rule's verification step. R7 (mandatory end-to-end gate) produces failures that R1 must investigate. R8 (generated-artifact invariants) produces failures that R1 must investigate. R10 (disposable + fresh-rebuild) produces failures that R1 must investigate. R1 is also the first response to a self-detected anomaly mid-session — including during planning, exploration, or normal coding.
+**Interaction with other rules.** R1 is the first response to ANY failure surfaced by any other rule's verification step. R7 (mandatory end-to-end gate) produces failures that R1 must investigate. R7's emitted-artifact validation produces failures that R1 must investigate. R10 (disposable + fresh-rebuild) produces failures that R1 must investigate. R1 is also the first response to a self-detected anomaly mid-session — including during planning, exploration, or normal coding.
 
 ## RDD. Risk Driven Development — prove the highest-risk unknowns EARLY (the proactive twin of R1)
 
@@ -52,7 +52,7 @@ A violation of any R1–R5 rule (or any of R6–R10, or the "Prioritize Clean Ar
 |---|---|---|
 | "Roughly what does candy X do?" (orientation) | Low, recoverable | Skill lookup (R0) — no bed |
 | "Candy X behaves EXACTLY as documented, and my plan depends on it" | High | Validate on a live bed — the skill may be stale |
-| "The code does X, so my change is safe" | High | Run it — code has bugs; the emitted artifact / live run is the arbiter (R8/R9) |
+| "The code does X, so my change is safe" | High | Run it — code has bugs; the emitted artifact / live run is the arbiter (R7/R9) |
 | "These candies, at their latest versions, compose & run together" | High (no skill can certify) | Build + deploy + `charly check` EARLY |
 
 **RDD prevents three failure modes:** (1) a wrong high-risk assumption baked into the design — every task built on it inherits the defect when reality differs from the stale doc or buggy code; (2) unnecessary caution / over-engineering — guards, fallbacks, or pinned-back versions added against a danger a real check would have disproven; (3) erroneous root-cause analysis — diagnosing from speculation or a stale doc / code reading instead of a real bed run.
@@ -79,7 +79,7 @@ A violation of any R1–R5 rule (or any of R6–R10, or the "Prioritize Clean Ar
 
 **Forbidden internal-voice triggers.** "I'll note this in memory so I don't forget" (about an UNVERIFIED claim) / "the code looks like it does X, save that" (without running it) / "this probably races, memorialize it" (without proving the race's scope). Each writes an unproven claim that outlives the session.
 
-**When a recalled memory and the live system disagree, the LIVE SYSTEM WINS.** Correct or delete the memory in the SAME change that discovers the divergence (R1/R2 — a tree carrying a false claim is not "correct"). Deleting a wrong memory is as load-bearing as fixing a stale skill.
+**When a recalled memory and the live system disagree, the LIVE SYSTEM WINS.** Correct or delete the memory in the SAME change that discovers the divergence (R1 — a tree carrying a false claim is not "correct", so the fix is blocking). Deleting a wrong memory is as load-bearing as fixing a stale skill.
 
 **Worked example — the over-broad `.build/` memory.** A memory asserted "concurrent `charly check run` from one repo dir race on `.build/`". A code reading (`/charly-internals:generate-source`: `.build/<box>` is per-image; `/charly-internals:agents`: no global build lock) narrows that to "race only for two builds of the *same box* in the *same working dir*" — distinct-image / distinct-project-dir builds are isolated. The original memory claimed MORE than any bed ever proved, so it over-warned and shaped a plan defensively. The fix: prove the narrowed claim on a bed (the concurrency experiment), THEN rewrite the memory to exactly what the bed showed — not before.
 
@@ -89,42 +89,59 @@ A violation of any R1–R5 rule (or any of R6–R10, or the "Prioritize Clean Ar
 
 **Risk — and the keyword choice — are author decisions, not afterthoughts.** A behaviour that can be checked mechanically (a file exists, a port answers, an MCP tool is listed) MUST be a `check:` step — deterministic, reproducible, free. Reserve the `agent-check:` step for genuinely free-form behaviour a verb can't express ("the chart looks populated", "the page recovered gracefully"). Authoring an `agent-check:` step where a deterministic `check:` would do is the over-engineering twin of an unvalidated assumption — it trades a free, reliable check for a slow, costly, non-deterministic agent call.
 
-**Forbidden internal-voice triggers.** "the check passed, no need to look at the evidence" / "the grader is non-deterministic so I'll just rerun until it's green" (that's R1/R4 — investigate, don't reroll) / "I'll mark every step `agent-check:` and let the agent figure it out" (over-uses the grader; use a `check:` verb) / "an unparseable grader output is probably a pass" (NEVER — unparseable / timed-out / launch-failed is a FAIL) / "I'll bake a failing step as a TODO" (a baked step must PASS — a known-failing one poisons every `charly check run`).
+**Forbidden internal-voice triggers.** "the check passed, no need to look at the evidence" / "the grader is non-deterministic so I'll just rerun until it's green" (that's R1/R3 — investigate, don't reroll) / "I'll mark every step `agent-check:` and let the agent figure it out" (over-uses the grader; use a `check:` verb) / "an unparseable grader output is probably a pass" (NEVER — unparseable / timed-out / launch-failed is a FAIL) / "I'll bake a failing step as a TODO" (a baked step must PASS — a known-failing one poisons every `charly check run`).
 
-**What is permitted / required.** Using `check:` steps for the measurable; the `agent-check:` grader for the genuinely free-form, with its evidence inspected; `charly feature pending` to find the agent-graded steps; `--no-agent` for a deterministic-only CI run (`agent-check:` steps report `unbound`, visibly, never silently green). A plan authored on a candy covers every box that composes it — author ONCE on the behaviour's provider, never per-box (R3).
+**What is permitted / required.** Using `check:` steps for the measurable; the `agent-check:` grader for the genuinely free-form, with its evidence inspected; `charly feature pending` to find the agent-graded steps; `--no-agent` for a deterministic-only CI run (`agent-check:` steps report `unbound`, visibly, never silently green). A plan authored on a candy covers every box that composes it — author ONCE on the behaviour's provider, never per-box (R2).
 
 **Why it matters.** "Done" without an executable definition of correct behaviour is the ambiguity ADE removes; a prose step that documents intent but verifies nothing is prose that never runs — binding it to a `check:` verb or the agent grader (an `agent-check:` step) makes it executable. And a plan on the CANDY, not the box, keeps one behaviour's acceptance in one place.
 
 **Interaction with other rules.** ADE is the acceptance/intent layer of the same *never trust, verify* family: RDD proves the risky ASSUMPTIONS before the edit, ADE specifies WHAT correct behaviour is, R10 proves it on a fresh rebuild. It is a co-equal pillar and a MANDATORY gate for candies: every candy MUST author a non-empty `description:` string AND a `plan:` with ≥1 `check:` step — `charly box validate` hard-errors otherwise — and the baked plan runs and must pass. (Authoring is required; running the live AGENT GRADER via `charly check feature run` stays opt-in.) The grader runs inside the secured, disposable box (candyboxing). Each harness root rulebook contains the matching "Agent Driven Evaluation (ADE)" mandate; the how-to + the worked example live in `/charly-check:check`.
 
-## R2. No "pre-existing" / "out of scope" / "unrelated" / "follow-up PR" classifications
+## R1, applied. Fix it or file it — no silent "pre-existing" / "out of scope" deferral
 
-**The rule (AGENTS.md R2).** Every issue surfaced during the active cutover is fixed in the same working tree, or escalated for explicit re-scoping — never classified "pre-existing" / "unrelated" / "out of scope" / "follow-up PR" / "tracked separately" / "we'll get to it later".
+**The rule (AGENTS.md R1).** After the RCA, every finding is classified, and the class decides the ONE legal path. A **blocking** finding is fixed in this change, whoever caused it. A **non-blocking** finding is **filed**. Nothing is silently dropped, parked, or labelled away. The classes are never "pre-existing", "unrelated", "out of scope", "follow-up PR", "tracked separately", or "later". Those words, without an issue number, ARE the violation.
 
-**Forbidden phrasings.** "this was already failing before my change" / "unrelated to this PR" / "out of scope for this cutover" / "I'll file a follow-up issue" / "this is tracked separately" / "we can address that later" / "noted but not required for this commit" / "intentionally deferred to keep the diff focused".
+**The discriminator.** *Would shipping this change WITHOUT the fix leave the tree correct and the change's claim true?*
+- If **no**, it is **blocking**. That includes a finding this change introduces, any warning in this change's gate, and any false claim on the changed surface or its sibling set.
+- If **yes**, and the finding is genuinely separable, it is **non-blocking**.
+- If **unsure**, it is **blocking**.
 
-**Forbidden-excuse catalog — the difficulty-, size-, and priority-based sibling set.** Distinct from the deferral phrasings above, these use difficulty, size, or self-assigned "priority" to justify not doing (or scope-cutting) the work — equally forbidden. None ever justifies skipping, shrinking, deferring, keeping-as-is, re-scoping, or reverting already-working code; they are inputs to finding the HOW (RDD/a spike — a support tool, never an excuse), and a genuine scope-change is STOP-and-ask, never a unilateral cut. The full catalog (every forbidden phrasing, the decompose-vs-batch discriminator, the honesty-dressing variants) is owned by `/charly-internals:cutover-policy` "No exception clause" — this skill defers to it rather than keeping a second copy. The same rule governs architecture placement: the kernel/plugin boundary law places by kind-agnostic mechanism, never by difficulty (`/charly-internals:plugin` "The kernel/plugin boundary law").
+**Objective test for "separable":** this change's OWN R10 (check-coverage + fresh-rebuild) passes and proves its claim WITHOUT the fix. A fix that would alter this change's R10 result or coverage gate is blocking. Mislabeling a blocking finding "non-blocking" to ship faster is the forbidden split, and so is carving the change's own scope into two cutovers.
 
-**What is permitted — classify BLOCKING vs NON-BLOCKING first.** A **blocking** issue (the current change is incorrect, incomplete, or unsafe without it) is, by DEFAULT, **fixed in the same working tree** — you do not ask permission to fix what it found:
+**Forbidden phrasings.** "this was already failing before my change" / "unrelated to this PR" / "out of scope for this cutover" / "I'll file a follow-up" (with no issue number) / "this is tracked separately" (with no issue number) / "we can address that later" / "noted but not required for this commit" / "intentionally deferred to keep the diff focused".
 
-1. **Fix in the same working tree** (the default). Same commit as the active cutover; same atomic change; proved under the CURRENT cutover's R10.
-2. **Escalate to the operator — only when the blocking issue is itself a genuine crossroad** you cannot resolve from the request, code, skills, or sensible defaults. A genuine crossroad is one of: a design choice with material trade-offs; a hard-to-reverse or outward-facing action without standing authorization; a contradiction between the plan and the project rulebook / a loaded skill; genuinely ambiguous requirements. The ask is explicit: "I encountered $X during this cutover. Per R2 I cannot defer it, and it is a decision I cannot make alone. Should I (a) fix it now in this same commit, (b) abort the active cutover and address $X first, or (c) explicitly re-scope?" The operator's response authorizes the path; silence does not. Escalation is the narrow crossroad exception, never the default — a blocking issue with a clear fix is just fixed.
+**Forbidden-excuse catalog — the difficulty-, size-, and priority-based sibling set.** Distinct from the deferral phrasings above, these use difficulty, size, or self-assigned "priority" to justify not doing the work, or to cut its scope. They are equally forbidden. None of them ever justifies skipping, shrinking, deferring, keeping-as-is, re-scoping, or reverting already-working code. They are inputs to finding the HOW: RDD, or a spike, which is a support tool and never an excuse. A genuine scope change means STOP and ask, never a unilateral cut. The full catalog lives in `/charly-internals:cutover-policy` "No exception clause": every forbidden phrasing, the decompose-vs-batch discriminator, and the honesty-dressing variants. This skill defers to it rather than keeping a second copy. The same rule governs architecture placement: the kernel/plugin boundary law places by kind-agnostic mechanism, never by difficulty (`/charly-internals:plugin` "The kernel/plugin boundary law").
 
-A **non-blocking** issue (the current change is correct AND complete without it, and it is genuinely separable from this change) takes a third path:
+**The paths.**
 
-3. **The NEXT THEMATIC BATCH CUTOVER — the batch IS the non-blocking issue's "immediate-next cutover"** (the Cutover Sizing Law: the project rulebook "Hard Cutover by Default" + `/charly-internals:cutover-policy` "Cutover sizing — the batch law"). Fixed right away — but landed as part of ONE large, theme-coherent batch with its OWN full R10; the batch is planned, owned, and begun the moment its first member surfaces, and a small non-blocking fix NEVER pays a solo landing ceremony (solo is reserved for blocking/urgent fixes and substantial coherent scopes). This is NOT the forbidden "follow-up / tracked separately / someday" deferral: a batch has an owner, a scope, and a start — an UNSCHEDULED fix (no batch, no owner) remains the forbidden deferral; there is no window of unverified brokenness on `main`, and no indefinite parking. The discriminator: *would shipping the current cutover WITHOUT this fix leave the tree correct and the cutover's claim true?* Yes → non-blocking (joins its thematic batch); No → blocking (paths 1–2); unsure → blocking. **Objective test for "separable":** the current cutover's OWN R10 (check-coverage + fresh-rebuild) passes and proves its claim WITHOUT the fix — the fix is neither exercised by nor changes the verdict of this cutover's test coverage; a fix that would alter this cutover's R10 result or check-coverage gate is BLOCKING. Mislabeling a blocking issue "non-blocking" to ship faster — or carving the current change's OWN scope into two cutovers — is the forbidden split; a genuinely separate concern getting its own cutover is not.
+1. **Blocking → fix in the same working tree** (the default). It goes in the same change, and is proved under this change's R10. You do not ask permission to fix what the work found.
+2. **Blocking, and itself a genuine crossroad → escalate to the operator.** This applies only to a decision you cannot resolve from the request, the code, the skills, or sensible defaults. That means one of:
+   - a design choice with material trade-offs;
+   - a hard-to-reverse or outward-facing action without standing authorization;
+   - a contradiction between the plan and the project rulebook or a loaded skill;
+   - genuinely ambiguous requirements.
 
-**Worked example — documentation divergence.** A doc/skill/comment found to diverge from reality runs through the SAME discriminator — no new rule (it is R1's "Documentation divergence is a failure for R1 purposes" applied here). A divergence on the surface this cutover changes — plus every sibling doc/skill/comment carrying the same claim — fails the test (shipping with a known-false doc on the changed surface leaves the tree NOT correct), so it is BLOCKING: fixed in this cutover's commit. A divergence you stumble on that is genuinely unrelated to this cutover's subject passes the test (this cutover's claim stays true and its R10 unaffected), so it joins the next thematic batch cutover (typically the docs/lessons batch) — RCA'd immediately, batch-scheduled immediately, never parked as "someday".
+   The ask is explicit. "I encountered $X during this cutover. It is blocking, and it is a decision I cannot make alone. Should I (a) fix it now in this same change, (b) abort the active cutover and address $X first, or (c) explicitly re-scope?" The operator's response authorizes the path; silence does not.
+3. **Non-blocking → file it.**
+   - Search the org first (`gh search issues <terms> --owner opencharly`). If an issue exists, add your evidence to it as a comment.
+   - Otherwise file ONE issue in the OWNING repo. Give it a specific title, the RCA (mechanism, missed control, blast radius, root fix), and the evidence.
+   - List every filed or updated issue under the PR body's `## Filed issues` section, as `<repo>#<n> — <one line>`.
 
-**Why the escape hatch is closed.** Deferring a surfaced test failure as "pre-existing, unrelated" leaves brokenness on `main` for the window between the deferral and the eventual fix — when fixing in place would have cost a few lines and 30 seconds of attention. R2 closes this escape hatch absolutely. (See `CHANGELOG/` for the incident that motivated this.)
+   Related filed issues may later land together, in ONE PR that shares one R10 story; that is the Cutover Sizing Law (`/charly-internals:cutover-policy`). A filed issue is the ONLY legal deferral. An unfiled "follow-up" stays forbidden.
 
-**Why it matters.** "Pre-existing" is the most common agent escape hatch — it lets the agent claim the work is complete while leaving brokenness in the tree. Every "pre-existing" deferral compounds: the next cutover finds two pre-existing issues, the third finds three, and the codebase entropy grows monotonically. R2 forces the agent to either pay the small fix-cost now OR escalate to the operator; it removes the silent third option of "leave it".
+**A finding raised ON your PR is never filed away.** A validator finding or a reviewer comment on the PR is fixed in the next round, or rebutted on the thread with evidence. R1's *file it* path is for findings YOU surface that are separable from the change. It is not a way to dismiss a review (the project rulebook "Before every update push: read everything, fix everything").
 
-**Interaction with other rules.** R2 covers both approved-plan phasing AND incidentally-surfaced issues mid-session: **no deferral, neither planned nor incidental.**
+**Worked example — documentation divergence.** A doc, skill, or comment found to diverge from reality runs through the SAME discriminator (it is R1's "Documentation divergence is a failure for R1 purposes").
+- A divergence on the surface this change touches, plus every sibling carrying the same claim, is **blocking**. Shipping a known-false doc on the changed surface leaves the tree NOT correct, so the fix goes in this change.
+- A divergence you stumble on that is genuinely unrelated to this change's subject is **non-blocking**. This change's claim stays true and its R10 is unaffected. It is RCA'd immediately and filed immediately, never parked as "someday".
 
-## R3. No code duplication; generic, reusable solutions over ad-hoc patches
+**Why the escape hatch is closed.** Deferring a surfaced failure as "pre-existing, unrelated" with nothing filed leaves brokenness on `main` with no owner and no record. The issue IS the record: it carries the RCA, it is searchable, and the next session claims it instead of rediscovering it. Every unfiled deferral compounds. The next cutover finds two silent issues, the third finds three, and codebase entropy grows monotonically.
 
-**The rule (AGENTS.md R3).** On the first surface where the same pattern, predicate, filter, transform, or guard appears in two places, refactor to one shared abstraction in the same working tree — applied to every surface it logically covers, not just the one that prompted the report.
+**Interaction with other rules.** This covers both approved-plan phasing AND issues surfaced incidentally mid-session. There is no unfiled deferral, planned or incidental. "Finish the whole cutover" (the project rulebook "Hard Cutover by Default") applies the same rule to the change's own scope: every in-scope occurrence and every sibling with the same mechanism lands, and only a genuinely separable finding is filed.
+
+## R2. No code duplication; generic, reusable solutions over ad-hoc patches
+
+**The rule (AGENTS.md R2).** On the first surface where the same pattern, predicate, filter, transform, or guard appears in two places, refactor to one shared abstraction in the same working tree — applied to every surface it logically covers, not just the one that prompted the report.
 
 **Forbidden patterns.** Sibling-layer naming (`<name>-host`, `<name>-pod`, `<name>-bootc` when they share content); parallel filter functions in adjacent files; per-call-site re-implementations of the same predicate; copy-pasted YAML stanzas across multiple charly.yml files; copy-pasted Go function bodies with one-token differences; "let me just patch this one consumer for now and unify later"; "the abstraction is unclear, so I'll duplicate for now and refactor when the pattern firms up".
 
@@ -132,13 +149,13 @@ A **non-blocking** issue (the current change is correct AND complete without it,
 
 **Why it bites.** Sibling-candy duplication (a `<name>-host` spawned for every host-vs-container difference instead of extending the one candy with init-system-aware logic) crystallizes into divergent surfaces that drift in their package lists, check probes, and service definitions — and the eventual unification deletes far more than the original duplicate. The canonical fix is ONE compile-time filter, not a per-call-site band-aid: when the same predicate appears on N targets, it collapses to one shared filter, applied to all N in the same commit. (See `CHANGELOG/` for the worked examples that motivated this.)
 
-**Why it matters.** Duplication has compounding cost. Two divergent copies become three, then four, then eight; each copy hides bugs the others fixed. The cost of the unification grows superlinearly with the number of copies. R3 enforces unification at copy-count = 2 — the cheapest possible moment.
+**Why it matters.** Duplication has compounding cost. Two divergent copies become three, then four, then eight; each copy hides bugs the others fixed. The cost of the unification grows superlinearly with the number of copies. R2 enforces unification at copy-count = 2 — the cheapest possible moment.
 
-**Interaction with other rules.** R3 is paired with the architectural-philosophy framing in the project rulebook "Prioritize Clean Architecture Above All Else" — no duplication on first surface, generic over ad-hoc, no workarounds, stated there as one binding mandate that mirrors R3 + R4 from the architectural angle. Both framings are binding.
+**Interaction with other rules.** R2 is paired with the architectural-philosophy framing in the project rulebook "Prioritize Clean Architecture Above All Else" — no duplication on first surface, generic over ad-hoc, no workarounds, stated there as one binding mandate that mirrors R2 + R3 from the architectural angle. Both framings are binding.
 
-## R4. No ad-hoc workarounds — sleep loops, retry-on-flake, magic-number tuning, "works on my machine" fixes are FORBIDDEN
+## R3. No ad-hoc workarounds — sleep loops, retry-on-flake, magic-number tuning, "works on my machine" fixes are FORBIDDEN
 
-**The rule (AGENTS.md R4).** Sleep loops, retry-on-flake, magic-number tuning, and environment-specific shims are forbidden; every fix applies cleanly across every supported environment.
+**The rule (AGENTS.md R3).** Sleep loops, retry-on-flake, magic-number tuning, and environment-specific shims are forbidden; every fix applies cleanly across every supported environment.
 
 **Forbidden patterns.** `sleep 5; retry` (race-condition cover-up); `for i in 1..3 do try; done` (retry loops disguising flake); hardcoded ports chosen because "8080 was busy" (port-allocation bug disguised as a config); environment-specific paths like `/Users/$USER/...` in shipped code; default-fallbacks that hide a missing config (silent fallback to a wrong value); "this is what worked when I tried it locally" (single-environment validation).
 
@@ -153,7 +170,7 @@ A **non-blocking** issue (the current change is correct AND complete without it,
 | Environment-specific path | Standard XDG/FHS path resolved at startup |
 | "Works on my machine" fix | Cross-environment validation before the fix ships |
 
-**The `charly` CLI is the ONLY operational interface (the project rulebook Key Rules).** Ad-hoc container/VM commands against charly-managed resources are R4 workarounds; every one has a `charly` verb:
+**The `charly` CLI is the ONLY operational interface (the project rulebook "Charly CLI discipline").** Ad-hoc container/VM commands against charly-managed resources are R3 workarounds; every one has a `charly` verb:
 
 | Ad-hoc command (FORBIDDEN on charly-managed resources) | The `charly` verb |
 |---|---|
@@ -177,13 +194,17 @@ A **non-blocking** issue (the current change is correct AND complete without it,
 | `virsh list/dumpxml/domstate/…` | `charly vm *` (lifecycle) / `charly check libvirt list/info/domain-xml/…` (introspection) |
 | stray-resource cleanup by hand | `charly reap-orphans` / `charly preempt restore` |
 
-A probe NO `charly` verb expresses is a charly GAP — close it via the sizing decision procedure (urgent → solo cutover; otherwise its thematic batch — R2, the Cutover Sizing Law), never with an ad-hoc command. The mandate governs what you RUN against charly-managed resources: DESCRIPTIVE mentions of the underlying machinery (how a collector or executor works internally) are not commands and stay, and host-level operations on non-charly-managed resources (the host package manager, enabling the host libvirt daemon) are out of scope.
+A probe NO `charly` verb expresses is a charly GAP — fix it in this change when it blocks; otherwise FILE it (R1 *fix it or file it*) — never work around it with an ad-hoc command. The mandate governs what you RUN against charly-managed resources: DESCRIPTIVE mentions of the underlying machinery (how a collector or executor works internally) are not commands and stay, and host-level operations on non-charly-managed resources (the host package manager, enabling the host libvirt daemon) are out of scope.
 
-**The rule is preventive.** R4 exists to forbid the patterns BEFORE they crystallize. Each forbidden pattern is the kind of "quick fix" that, once accepted, becomes tribal knowledge ("oh, that test always needs a sleep; that's just how it is"). R4 closes the door before the tribe forms.
+**The rule is preventive.** R3 exists to forbid the patterns BEFORE they crystallize. Each forbidden pattern is the kind of "quick fix" that, once accepted, becomes tribal knowledge ("oh, that test always needs a sleep; that's just how it is"). R3 closes the door before the tribe forms.
 
-**Why it matters.** "Temporary" fixes never get removed. Every sleep loop in the codebase was added with a "this is just for now" justification that was never revisited. R4 forbids the pattern at addition time, before the temporary becomes permanent.
+**Why it matters.** "Temporary" fixes never get removed. Every sleep loop in the codebase was added with a "this is just for now" justification that was never revisited. R3 forbids the pattern at addition time, before the temporary becomes permanent.
 
-**Interaction with other rules.** R4 is paired with R3 in the project rulebook "Prioritize Clean Architecture Above All Else" (the no-workarounds norm). R4 violations also typically violate R1 — the workaround is an attempt to dodge the failure rather than RCA it.
+**Interaction with other rules.** R3 is paired with R2 in the project rulebook "Prioritize Clean Architecture Above All Else" (the no-workarounds norm). R3 violations also typically violate R1 — the workaround is an attempt to dodge the failure rather than RCA it.
+
+## R4. Fix the product first — documentation never routes around a defect
+
+**The rule (AGENTS.md R4).** When a doc and the code disagree, first establish which side holds the intent. Then fix the PRODUCT before the prose. Editing docs to match a bug is forbidden, and so is editing them to avoid one. Every command a reader is told to run must work with nothing but the `charly` binary installed. Needing a checkout, `./bin/charly`, `task`, or a repo-relative path outside an INSTALL section is a product defect, and the fix belongs in `charly`. The full operationalization, including the binary-only command audit, is `/charly-build:docs`.
 
 ## R5. Hard cutover: deprecated path AND every stale reference deleted in the same change
 
@@ -199,7 +220,7 @@ A probe NO `charly` verb expresses is a charly GAP — close it via the sizing d
 
 **Why it matters.** Stale references confuse you. A code search for `qc` that returns matches in `charly.yml` suggests the deployment is still live; a search that returns matches only in `CHANGELOG/` suggests it was retired. R5's grep self-test enforces this distinction.
 
-**Interaction with other rules.** R5 covers stale references everywhere, not just the deleted artifact itself. R5 is the cleanup discipline that R3 enables — once you've refactored to the unified abstraction, R5 ensures every old reference points to the new one.
+**Interaction with other rules.** R5 covers stale references everywhere, not just the deleted artifact itself. R5 is the cleanup discipline that R2 enables — once you've refactored to the unified abstraction, R5 ensures every old reference points to the new one.
 
 ## How R1–R5 interact with R6–R10
 
@@ -209,9 +230,9 @@ R6–R9 are **artifact discipline** — what the produced artifact must be.
 
 R10 is **live-system discipline** — what the deployed-and-running system must do.
 
-The layers compose. A cutover that violates R3 (duplication) but passes R7 (end-to-end gate) is still a violation — the duplication is a future bug. A cutover that passes R3 but fails R10 (fresh-rebuild verification) is still a violation — the artifact failed live. The layers are AND-gated; **all** must pass. R5 is moreover a PRECONDITION of R10's acceptance run: every deprecated / transitional / dual-mode path is deleted BEFORE that run, so R10 exercises the transitional-free FINAL code — an acceptance run over a still-transitional tree proves nothing about what ships.
+The layers compose. A cutover that violates R2 (duplication) but passes R7 (end-to-end gate) is still a violation — the duplication is a future bug. A cutover that passes R2 but fails R10 (fresh-rebuild verification) is still a violation — the artifact failed live. The layers are AND-gated; **all** must pass. R5 is moreover a PRECONDITION of R10's acceptance run: every deprecated / transitional / dual-mode path is deleted BEFORE that run, so R10 exercises the transitional-free FINAL code — an acceptance run over a still-transitional tree proves nothing about what ships.
 
-Per the project rulebook "AI Attribution" section: a violation at any layer FORBIDS commit. The four-tier table describes the proof level the agent has when committing IS permitted; a known violation means committing is NOT permitted, regardless of tier. The agent fixes the violation or escalates to the operator — never both downgrade and ship.
+Per the project rulebook "AI Attribution" section: a violation at any layer FORBIDS the push. The five-tier table describes the proof level a pushed commit has earned. A known violation means nothing is pushed, regardless of tier. The agent fixes the violation or escalates to the operator — never both downgrade and ship.
 
 ## Cross-references
 
@@ -219,9 +240,9 @@ Per the project rulebook "AI Attribution" section: a violation at any layer FORB
 - `/charly-internals:root-cause-analyzer` agent — the R1 mandatory-invocation target. The agent's 8-step process is the only authorized first response to a failure.
 - `/charly-internals:disposable` — R10's verification target. Strict-policy R5 (cutover) cooperates with R10 (verification) to ensure the post-rename state is both clean and live.
 - `/charly-internals:skills` — the meta-skill for skill maintenance. R5's stale-reference sweep includes skill paragraphs; the skills meta-skill has a "When to Update Skills" row dedicated to R5 self-test failures.
-- The "Ground Truth Rules" in each harness root rulebook define R1–R10. Strict-policy operationalizes R1–R5 specifically.
-- the project rulebook "Prioritize Clean Architecture Above All Else" — the architectural-philosophy framing of R3 + R4. Both framings (procedural rules R3+R4 AND architectural-philosophy section) are binding.
-- the project rulebook "AI Attribution" — the no-commit-on-violation clause that gives R1–R5 their teeth. Any violation FORBIDS commit. No tier downgrade. No "ship at lower tier". Fix or escalate.
+- The project rulebook's "The ground-truth rules R1–R10" section (umbrella `AGENTS.md`) defines R1–R10. Strict-policy operationalizes R1–R5 specifically.
+- the project rulebook "Prioritize Clean Architecture Above All Else" — the architectural-philosophy framing of R2 + R3. Both framings (procedural rules R2+R3 AND architectural-philosophy section) are binding.
+- the project rulebook "AI Attribution" and "Commit, push, land" — the no-push-on-violation clause that gives R1–R5 their teeth. Any violation FORBIDS the push. No tier downgrade. No "ship at lower tier". Fix or escalate.
 
 ## When to Use This Skill
 
@@ -229,9 +250,9 @@ Per the project rulebook "AI Attribution" section: a violation at any layer FORB
 
 - A failure / error / anomaly / warning surfaces from any tool, at any time during a session. R1's RCA mandate fires immediately.
 - You are about to edit on a HIGH-RISK assumption — a layer composition, a newest-wins version bump, or anything a skill / the project rulebook / code merely *asserts* that the plan depends on. RDD's prove-it-on-a-bed-first mandate fires (never trust a doc or code reading for a high-risk call).
-- A pattern, predicate, or filter is about to land in a second place. R3's first-surface refactor mandate fires.
-- A sleep, retry, magic number, or environment-specific shim is tempting. R4's forbidden-patterns list fires.
+- A pattern, predicate, or filter is about to land in a second place. R2's first-surface refactor mandate fires.
+- A sleep, retry, magic number, or environment-specific shim is tempting. R3's forbidden-patterns list fires.
 - A cutover commit is about to ship. R5's grep self-test mandate fires.
-- An issue surfaces mid-session that "might be pre-existing" or "unrelated to my change". R2's no-deferral mandate fires.
+- An issue surfaces mid-session that "might be pre-existing" or "unrelated to my change". R1's fix-it-or-file-it mandate fires.
 
 The skill is also a useful read **before** starting a non-trivial cutover — both as a refresher and as a way to internalize the forbidden-internal-voice triggers in each rule's "Forbidden patterns" / "Forbidden phrasings" lists.

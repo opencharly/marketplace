@@ -111,7 +111,7 @@ pod-in-pod, cross-member `${HOST:…}` checks) — but they CANNOT ride `op.Para
 the plugin's CLOSED `#<Kind>Input` def, which the member subtree would violate. So the HOST pre-decodes the
 authored member children via the SAME `sdk/loaderkit.BuildDeployNode` recursion the builtin path uses,
 reached through the ProjectLoader seam (`loaderkit.BuildResourceMemberChildren` — ONE member-decode source of
-truth, R3) and threads the decoded subtree to
+truth, R2) and threads the decoded subtree to
 `OpLoad` via `op.Env` (`spec.StructuralKindLoadEnv{Members}`). The plugin decodes only its kind-specific scalar
 body from `op.Params` and ATTACHES the host-threaded members to its `spec.Deploy` reply — Members for a
 targetless kind (group), Children for a workload — so the reconstructed `uf.Deploy` entry is BYTE-EQUIVALENT to
@@ -198,11 +198,11 @@ See "Authoring an external COMMAND plugin" below.
   step** composed INSIDE a deploy (a `local:`/`vm:` target, where the install runs ON the target, not baked
   into an image) likewise EXECUTES at deploy: it lowers to an `ExternalPluginStep` IR node which the external
   `local:`/`vm:` deploy walk reaches as a host-engine step over `RunHostStep`, where the shared `invokeExternalStep`
-  dispatch (`charly/plugin_executor_reverse.go`, S4/R3) `Invoke(OpExecute)`s over the PLUGIN↔PLUGIN
+  dispatch (`charly/plugin_executor_reverse.go`, S4/R2) `Invoke(OpExecute)`s over the PLUGIN↔PLUGIN
   `InvokeProvider` leg (a nested reverse channel delegating to the SAME venue executor), so the plugin runs
   its deploy-context effect on the target and RETURNS its teardown `ReverseOp`s, which the host records to
   the ledger and replays at `charly deploy del` (record-and-replay, the SAME `spec.DeployReply` wire the
-  deploy-substrate dispatch uses — R3). Only an EXTERNAL provider is routed there (the `executorInvoker` discriminator,
+  deploy-substrate dispatch uses — R2). Only an EXTERNAL provider is routed there (the `executorInvoker` discriminator,
   satisfied SOLELY by the out-of-process `grpcProvider`); a builtin `ProvisionActor` verb keeps its in-proc
   shell path. So the verb/step class is external-capable at BOTH build (`OpEmit`, next bullet) AND deploy
   (`OpExecute`), placement-agnostic. Detail → `/charly-internals:install-plan` (the `pluginDeployTarget`

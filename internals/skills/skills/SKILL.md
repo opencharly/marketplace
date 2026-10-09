@@ -130,7 +130,7 @@ and fails outright on a project-scoped plugin.
 | New candy or box added | Create skill via `charly box new candy` scaffold or manual SKILL.md |
 | Bug fix changes behavior | Document the fix in affected skills |
 | Cross-skill behavior discovered | Update Cross-References in all affected skills |
-| A doc / skill / comment diverges from observed reality (discovered by ANY means — not only a bed or a deleted identifier) | Treat as an incident (R1): RCA it, then sweep EVERY sibling doc/skill/comment carrying the same false/outdated/misleading claim and fix them all in the current cutover (blocking, R2). The rows below are special cases of this |
+| A doc / skill / comment diverges from observed reality (discovered by ANY means — not only a bed or a deleted identifier) | Treat as an incident (R1): RCA it, then sweep EVERY sibling doc/skill/comment carrying the same false/outdated/misleading claim and fix them all in the current cutover (blocking, R1). The rows below are special cases of this |
 | A live bed contradicts a skill's claim (Risk Driven Development found it stale) | Fix the stale skill in the same change — RDD keeps the living docs honest; for a high-risk claim the running system is ground truth, not the doc |
 | Removed identifier still referenced in skill paragraph (R5 self-test failed) | Update / delete the paragraph in the same commit as the removal (R5) |
 | Project-rulebook heading / R-number / clause name changes (they are a public API) | Sweep every mirroring surface in the same commit — see "Mirroring surfaces" below (R5) |
@@ -361,7 +361,7 @@ language.
 | Landing mechanics (branch loop, the two-step PR + `pr-validator` merge/tag, CalVer-generated-at-merge, branch protection, multi-repo order) | `/charly-internals:git-workflow` |
 | Agent/workflow/team primitives, hooks doctrine | `/charly-internals:agents` |
 | Kernel/plugin doctrine (core = kernel; every capability a plugin candy), the two authoring shapes, placement, the three-lane transport doctrine, the seams catalog, **the kernel/plugin boundary law** (E/M/B/D/R) + the incomplete-seam mandate | `/charly-internals:plugin` |
-| Skill Dispatcher, RDD/ADE/SDD mandates, R1–R10, acceptance checklist, attribution tiers, Documentation-only change class anchor, Key Rules index | the umbrella `AGENTS.md`, Part I (`charly/AGENTS.md` carries only the charly-core rules: core dispatcher rows, the kernel/plugin boundary law, the core SDD pipeline, R9 + the core Go gate) |
+| Skill Dispatcher, RDD/ADE/SDD mandates, R1–R10, acceptance checklist, attribution tiers, Documentation-only change class anchor, "What the validator checks" table, "Commit, push, land" | the umbrella `AGENTS.md`, Part I (`charly/AGENTS.md` carries only the charly-core rules: core dispatcher rows, the kernel/plugin boundary law, the core SDD pipeline, R9 + the core Go gate) |
 
 A registry owner may hold its canonical text in a `references/<file>.md` split file rather than the top-level `SKILL.md` body (see "Progressive disclosure" above) — the row still names the SKILL as sole owner regardless of which file inside it carries the detail.
 
@@ -369,8 +369,8 @@ A registry owner may hold its canonical text in a `references/<file>.md` split f
 
 **The project rulebook's section headings, R-numbers, and named clauses ("flag-override
 clause", "gate by change class", "Documentation-only change class",
-"documentation reviewed" tier, "Acceptance checklist", "Post-Execution
-Policies", …) are a public API.** These surfaces reference them and MUST be
+"documentation reviewed" tier, "Acceptance checklist", "Commit, push,
+land", "What the validator checks", …) are a public API.** These surfaces reference them and MUST be
 swept in the same commit as any rename or removal (R5):
 
 - the 2 hooks in `.claude/hooks/` (`pre-commit-gate.sh`, `pre-push-gate.sh` — deterministic
