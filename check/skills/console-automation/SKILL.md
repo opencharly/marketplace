@@ -54,7 +54,7 @@ ECHOES the typed line, so waiting for the command text — or for the marker as 
 SUBSTRING — passes the instant the command is typed, BEFORE it runs, certifying
 completion that never happened. So the engine types `command; echo <opaque-marker>`
 and waits for a screen LINE whose trimmed text EQUALS the marker: only the shell's
-OWN output produces that. It is a condition poll, never a sleep (R4).
+OWN output produces that. It is a condition poll, never a sleep (R3).
 
 ## luks-unlock — the encrypted-install first boot
 
@@ -78,7 +78,7 @@ single anchors with explicit DATA:
   node id; the OBSERVED outcome selects the branch. No transition → `next:`.
 - **while loop** — a transition pointing BACK to an earlier node is a loop, bounded
   by `flow_max_loops` (per node) and `flow_max_steps` (whole flow). A condition
-  that never becomes true FAILS naming `max_loops` — the R4-safe "repeat until".
+  that never becomes true FAILS naming `max_loops` — the R3-safe "repeat until".
 
 A node action may be a raw input (`key`/`combo`/`text`) or a shell `command:`
 (run in the open terminal, output OCR-read). The flow validates WITHOUT a device.

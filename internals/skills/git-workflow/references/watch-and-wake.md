@@ -3,7 +3,7 @@
 ## Watch and wake — arm, wake, act, re-arm
 
 A landing that depends on other sessions' work is a WAIT, and a wait you poll by
-hand is the R4 band-aid. Arm ONE background watcher instead: it exits the instant
+hand is the R3 band-aid. Arm ONE background watcher instead: it exits the instant
 the event you care about fires, and the harness notifies the owning agent when a
 background command finishes — so **exiting IS the notification**.
 

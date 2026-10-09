@@ -28,7 +28,7 @@ my-dev:
 ## Used In Boxes
 
 - No enabled boxes use this candy yet — composition into the AI-CLI metalayers
-  (`hermes-full`, `openclaw-full`) and the coder boxes is the named
+  (`hermes-full`) and the coder boxes is the named
   `@github`-pin follow-up once the candy carries a published tag (see
   `/charly-build:reconcile`)
 

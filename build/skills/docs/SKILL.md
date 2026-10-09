@@ -12,9 +12,9 @@ description: |-
 **opencharly.ai** from the sources that already exist in this repository. It is served by
 `candy/plugin-docs`.
 
-## R4a — documentation never routes around a defect
+## R4 — documentation never routes around a defect
 
-The rulebook states R4a as a mandate (umbrella `AGENTS.md`, "Ground-truth rules
+The rulebook states R4 as a mandate (umbrella `AGENTS.md`, "The ground-truth rules
 R1–R10"); this is its operationalization for every page this skill renders and every
 hand-authored page beside it.
 
@@ -236,7 +236,7 @@ stylistic preference; the obvious surfaces are actively wrong for the purpose:
 - A plugin absent from `compiled_plugins:` still loads out-of-process when a plan references its
   word, so "in the binary" is not the same set as "exists".
 
-So discovery is not the walked trees alone: the catalog is ONE assembly (R3/R5,
+So discovery is not the walked trees alone: the catalog is ONE assembly (R2/R5,
 `assembleCatalog`) unioning three sets —
 
 1. the **walked closure** — remote-ref-aware (`candywalk.CollectEntitiesRemote`):
@@ -324,7 +324,7 @@ describe the bad shape rather than spelling it.
 
 The host renders every dynamic command word with a generic stub description, intercepts the
 depth-1 `--help` itself, and plugin-served help arrives in at least three mutually incompatible
-formats with no machine-readable dump. Parsing that would be the fragile shim R4 forbids. Every
+formats with no machine-readable dump. Parsing that would be the fragile shim R3 forbids. Every
 fact the site needs is already declared: `plugin.providers`, the per-plugin `schema/*.cue`, and
 each candy's `description:`.
 

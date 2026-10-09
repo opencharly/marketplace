@@ -308,7 +308,7 @@ The resolved OCI label then unions to
 `cap_add:[ALL] + security_opt:[unmask=/proc/*, label=disable, seccomp=unconfined]`,
 which matches their historical posture.
 
-Rootless boxes like `/charly-openclaw:openclaw-desktop` don't add a
+A rootless box that composes this candy adds no
 box-level `security:` block, so the resolved posture stays at
 `security_opt:[unmask=/proc/*]` only — zero capability escalation.
 
@@ -320,11 +320,11 @@ box-level `security:` block, so the resolved posture stays at
 
 ```yaml
 # charly.yml
-openclaw-desktop:
+my-rootless-box:
   base: cachyos.cachyos
   candy:
     - selkies-desktop
-    - openclaw-full
+
     - ollama
     - charly
     - container-nesting   # donates unmask + devices + config + env
@@ -336,7 +336,7 @@ openclaw-desktop:
 
 ```yaml
 # charly.yml
-charly-fedora:
+my-root-box:
   base: fedora
   uid: 0
   gid: 0
@@ -358,16 +358,16 @@ Both paths work; they just resolve to different OCI security labels.
 ## Verification
 
 ```bash
-# Rootless posture on openclaw-desktop
-charly box inspect openclaw-desktop | jq '.HostConfig? // .Config.Labels."ai.opencharly.security"'
+# Rootless posture on the box
+charly box inspect my-rootless-box | jq '.HostConfig? // .Config.Labels."ai.opencharly.security"'
 # → cap_add:[], security_opt:[unmask=/proc/*], devices:[/dev/fuse,/dev/net/tun]
 
 # Nested podman smoke (inside the running container)
-charly shell openclaw-desktop -c 'podman run --rm quay.io/libpod/alpine:latest true'
+charly shell my-rootless-box -c 'podman run --rm quay.io/libpod/alpine:latest true'
 # → exit 0, NO "mount proc to proc: Operation not permitted"
 
 # Diagnostic: inspect the OCI spec generated for a nested container
-charly shell openclaw-desktop -c '
+charly shell my-rootless-box -c '
   podman create --name t quay.io/libpod/alpine:latest /bin/true >/dev/null
   sf=$(find ~/.local/share/containers -name config.json -path "*/userdata/*" | head -1)
   jq ".linux.maskedPaths" "$sf"'
@@ -447,7 +447,6 @@ trigger (item 1), and keep such staging out of `/tmp`.
 
 ## Used In Boxes
 
-- `/charly-openclaw:openclaw-desktop` — rootless path; box-level adds nothing
 - `/charly-distros:charly-fedora` — root path; box-level adds `cap_add:[ALL] + security_opt:[label=disable, seccomp=unconfined]`
 - `/charly-coder:charly-arch` — same root path as charly-fedora
 - `/charly-distros:githubrunner` — same root path; doesn't compose the full charly toolchain but keeps nested podman for CI workloads
@@ -472,7 +471,7 @@ trigger (item 1), and keep such staging out of `/tmp`.
 - Authoring or debugging any candy/box that needs nested podman, buildah, or skopeo.
 - Chasing `mount_too_revealing` / `mount proc to proc: Operation not permitted` errors — this is the authoritative RCA.
 - Choosing between `--privileged`, `cap_add: ALL`, and `unmask=/proc/*` — this skill documents why the surgical `unmask` fix is the minimum-privilege path and the others are hammers.
-- Evaluating the security posture of `/charly-openclaw:openclaw-desktop`, `/charly-distros:charly-fedora`, `/charly-coder:charly-arch`, or `/charly-distros:githubrunner`.
+- Evaluating the security posture of `/charly-distros:charly-fedora`, `/charly-coder:charly-arch`, or `/charly-distros:githubrunner`.
 
 ## Related
 

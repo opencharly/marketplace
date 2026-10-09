@@ -147,7 +147,7 @@ helm-chart:
 
 Three things about that readiness step are deliberate. **The `/readyz`
 poll is bounded and condition-driven**, with an explicit deadline and a
-non-zero exit — it is a synchronization primitive, not an R4
+non-zero exit — it is a synchronization primitive, not an R3
 `sleep`-and-hope; a bare `sleep 60` in its place is the workaround the
 rule forbids. **Waiting on the node alone is not enough**: on a cold
 cluster `kubectl wait node` runs before the apiserver answers at all, so
@@ -161,7 +161,7 @@ runs in its own shell, so that export does not reach the
 chain. The candy hardcodes the k3s path because it is a k3s-guest bed
 fixture; a candy for another venue would not.
 
-Note the Agent Driven Evaluation (ADE) split (R3) — ADE is the
+Note the Agent Driven Evaluation (ADE) split (R2) — ADE is the
 spec-is-the-test discipline owned by `/charly-check:check`: the candy that
 installs the release also asserts it exists; the bed's own plan keeps only
 the deeper status/revision assertions.

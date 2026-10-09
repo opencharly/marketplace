@@ -77,7 +77,7 @@ These commands never shell out recursively through `charly cmd`/`charly shell` a
 - Control disconnect detaches when persistence permits. Initial reattachment and sequence recovery use a structured resynchronization snapshot.
 - Normal zero exit or explicit close verifies server cleanup. Nonzero exit, malformed stream, evidence overflow, or cleanup failure creates an incident and performs no automatic restart.
 - Recovery requires a completed RCA, except an explicit emergency abort that still records the unresolved incident.
-- Semantic readiness is driven by tmux control-output events. `waiting-for-prompt` and `prompt-ready` statuses make the boundary observable; no capture polling, sleeps, backoff, or timed retries — per R4, pace on observable state.
+- Semantic readiness is driven by tmux control-output events. `waiting-for-prompt` and `prompt-ready` statuses make the boundary observable; no capture polling, sleeps, backoff, or timed retries — per R3, pace on observable state.
 
 ## Terminal agents
 

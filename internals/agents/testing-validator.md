@@ -124,14 +124,15 @@ Go / YAML-schema / box/candy-config edit, no other runtime surface)
 has no R10 bed; its applicable standards are the non-runtime ones: adversarial
 consistency review, the R5 grep self-test, cross-reference validation, markdown
 integrity, and the command-safety gates. It earns
-`documentation reviewed` when ALL of them pass; the `syntax check only → do NOT
-commit` clause (a runtime-class rule) does not apply. The moment a cutover ALSO
+`documentation reviewed` when ALL of them pass; the `syntax check only → never
+pushed` clause (a runtime-class rule) does not apply. The moment a cutover ALSO
 touches code or config it is NOT docs-only — that surface's R10 gates it at a
 runtime tier, and the docs ride along in the same commit. The fresh validator,
 not the local hook, enforces that classification from the actual PR diff.
 
-A known rule violation FORBIDS commit at ANY tier — there is no "downgrade
-and ship" path. Fix in the same tree or escalate. See the project rulebook.
+A known rule violation FORBIDS the push at ANY tier — there is no "downgrade
+and ship" path. Fix in the same tree or escalate. See the project rulebook
+"Commit, push, land".
 
 ## Output Format
 

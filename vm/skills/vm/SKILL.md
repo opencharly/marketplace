@@ -19,7 +19,7 @@ description: |-
   # the DISPOSABLE DEPLOY the automation drives (create/snapshot/destroy it)
   my-produce: { vm: { from: my-base-vm, disposable: true } }
   ```
-  and keys EVERY verb to that deploy's domain with `--domain my-produce` (`vm create`, `vm stop`, `vm snapshot create`, `vm destroy`, and — for the bake — `vm bake --domain my-produce`). `charly vm bake --domain <deploy>` also sets the create's non-destructive `--keep-disk`, because a golden captured on the domain BACKS ONTO the domain's disk: recreating that disk would drop the golden's backing and the bake would boot an empty overlay. A bed that instead destroys the shared entity (or a domain it was not handed as `disposable: true`) is a B17 violation — authorization is derived from the destroyed TARGET, never from the bed's own name or its `lifecycle:` tag.
+  and keys EVERY verb to that deploy's domain with `--domain my-produce` (`vm create`, `vm stop`, `vm snapshot create`, `vm destroy`, and — for the bake — `vm bake --domain my-produce`). `charly vm bake --domain <deploy>` also sets the create's non-destructive `--keep-disk`, because a golden captured on the domain BACKS ONTO the domain's disk: recreating that disk would drop the golden's backing and the bake would boot an empty overlay. A bed that instead destroys the shared entity (or a domain it was not handed as `disposable: true`) is a DISP violation (the validator's disposable-only check) — authorization is derived from the destroyed TARGET, never from the bed's own name or its `lifecycle:` tag.
 - **`charly update <vm-entity-name>`** does NOT gate on `disposable:` — an explicit invocation rebuilds ANY target (destroy→create the domain, reuse the qcow2 disk unless `--build`, then re-apply the deploy's layers via the shared `deploy add` path). For a non-disposable, non-ephemeral target it prints a one-line transparency note (`noteUpdateDisposability`) and proceeds. The `disposable: true` flag stays load-bearing as the authorization for UNATTENDED autonomous destroy + rebuild (the project rulebook R10 (`AGENTS.md`)) and the check-runner's unattended fresh rebuild, NOT as an `charly update` capability check. See `/charly-internals:disposable` and `/charly-core:charly-update`.
 
 ## Overview
@@ -344,7 +344,7 @@ file: Cannot lock pid file: Resource temporarily unavailable`) and
 corrupted the VM's state — every `charly check run <vm-bed>`'s
 `update` step failed with this error, even running sequentially.
 The same `vmshared.QemuAlive` probe drives the `vm list` qemu
-state scan and the preempt arbiter's holder probe (R3, one
+state scan and the preempt arbiter's holder probe (R2, one
 liveness probe).
 
 **Socket path probing for libvirt ≥ 8.0**: modular libvirt splits into `virtqemud` / `virtnetworkd` / ... — the socket is `virtqemud-sock`, not `libvirt-sock`. `libvirtSessionSocket()` probes `virtqemud-sock` first, falls back to `libvirt-sock` on older setups. Symptom of a misprobe: `ConnectToURI(QEMUSession)` returns `End of file while reading data: Input/output error` — means the daemon isn't accepting on the socket you reached.
@@ -644,7 +644,7 @@ rm /tmp/bootc.tar
 charly vm build <name> --transport containers-storage
 ```
 
-`--transport containers-storage` forces `bootc install` to pull from the machine's local store. Worked example: `/charly-openclaw:openclaw-desktop` "Two-level nested-virtualization proof".
+`--transport containers-storage` forces `bootc install` to pull from the machine's local store.
 
 ### `charly vm destroy` — the DEPLOY name keys the domain (`--domain`) and missing targets are strict
 
@@ -721,7 +721,6 @@ Expected. The agent needs a `virtio-serial` channel that charly's QEMU backend d
 - `/charly-build:pull` — fetch container images into local storage (prereq for bootc VM builds)
 - `/charly-build:build` — building container images before VM disk builds
 - `/charly-image:layer` — `libvirt.snippets:` field in charly.yml
-- `/charly-openclaw:openclaw-desktop` — two-level nested-virtualization proof
 - `/charly-distros:cloud-init` — guest-side cloud-init package (complements host-side seed ISO rendering)
 - `/charly-distros:qemu-guest-agent` — virtio-serial channel
 

@@ -67,7 +67,7 @@ declared there is nothing to wire, so the assembled `/etc/supervisord.conf` hold
 
 **Co-residence is NOT checked here, on purpose.** Every composed candy's plan runs against *this*
 image, so ripgrep's probes and sshd's probes both passing already proves both landed. A box-level
-`command -v rg && command -v sshd` would duplicate them (R3), and it would pass for the wrong
+`command -v rg && command -v sshd` would duplicate them (R2), and it would pass for the wrong
 reason — testing the candies rather than the composition. The same applies to the bed, which
 carries no `plan:` of its own.
 

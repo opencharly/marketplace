@@ -124,7 +124,7 @@ A ~15-screen wizard as a chain of `check:` steps pays that per screen; the drive
 pays it once.
 
 The recipe is DATA, supplied by a `kind: jetkvm` device entity — the plugin is
-installer-agnostic (R3), so one plugin drives any text console. Example:
+installer-agnostic (R2), so one plugin drives any text console. Example:
 
 ```yaml
 omarchy-kvm:

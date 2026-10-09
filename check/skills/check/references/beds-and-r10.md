@@ -271,7 +271,7 @@ libvirt domain / emulator it spawns outlives a single turn. (1) **Launch it as a
 harness-tracked background task** (`run_in_background`) — never foreground (the
 Bash tool's `timeout`, 120s default / 600s max, kills the call mid-`vm-create`,
 orphaning the domain) and
-never a sleep/poll loop (the R4 bandaid). (2) **Let the completion notification
+never a sleep/poll loop (the R3 bandaid). (2) **Let the completion notification
 drive the next step** — the harness re-invokes the launching session when the run
 exits, so the launcher must survive to completion to be notified: the persistent
 main session does; an ephemeral sub-agent (returns synchronously) and an idle
@@ -458,7 +458,7 @@ explicit pin, so the guard never fires inside a bed.
 
 **Which verb/bed proves what (the project rulebook R7):** `charly check box` passes on
 zero-content stages too — it is not a substitute for the generated-artifact
-checks (R8). For the R10 gate, pick the disposable bed whose kind matches
+checks (R7). For the R10 gate, pick the disposable bed whose kind matches
 what you changed (`check-pod` for the combined box/candy/pod/deploy-target
 mechanism, `check-local`, `check-k3s-vm`, or a feature bed). `charly check run`
 on an `iterate:` bed is the multi-hour AI-iteration benchmark, never a quick
@@ -553,8 +553,8 @@ These are the standards referenced in the project rulebook's AI attribution tier
 0. **Prove every high-risk assumption before you edit (RDD — Risk Driven Development)** — the proactive bookend to Standard 11's fresh-rebuild gate. Low-risk orientation ("what does layer X do") is a skill lookup (R0, zero risk); every high-risk assumption — including any a skill or the code merely *asserts*, and above all whether this layer composition at its latest available versions builds / deploys / runs together — is proven on a `disposable: true` bed first (`charly check` it). Never accept docs or code as ground truth for a high-risk decision; if the bed disagrees with a skill, the skill is stale — fix it. Standard 0 (validate forward, riskiest-first) and Standard 11 (re-verify on a fresh rebuild) are the two ends of the same loop.
 
 1. **Build a real artifact** (R7) — `charly box build <image>` / `go build` / `charly vm build <vm>`. Not just `go test`. Not just `charly box generate`.
-2. **Verify the emitted artifact's content** (R8) — `grep -c supervisord-conf .build/<image>/Containerfile` for any image that uses supervisord; `charly check libvirt domain-xml <vm>` for a VM.
-3. **Verify critical OCI / capability labels post-build** (R8) — `charly box labels <ref> --format init` (or any `ai.opencharly.<key>` shorthand) prints the built ref's label and exits non-zero when absent; `charly box labels <ref>` lists the whole capability contract (`/charly-internals:capabilities`). Empty / missing label → the detection path silently returned nil → regression.
+2. **Verify the emitted artifact's content** (R7) — `grep -c supervisord-conf .build/<image>/Containerfile` for any image that uses supervisord; `charly check libvirt domain-xml <vm>` for a VM.
+3. **Verify critical OCI / capability labels post-build** (R7) — `charly box labels <ref> --format init` (or any `ai.opencharly.<key>` shorthand) prints the built ref's label and exits non-zero when absent; `charly box labels <ref>` lists the whole capability contract (`/charly-internals:capabilities`). Empty / missing label → the detection path silently returned nil → regression.
 4. **Deploy to a disposable target** (R10) — never experiment on a resource that doesn't carry `disposable: true`. If no suitable disposable target exists, create one first (`charly deploy add <name> <ref> --disposable` or mark a VM `disposable: true` in `charly.yml` and `charly vm create`). The setup is part of the task. On a disposable target: `charly update <name>` (unattended). On anything else: confirm with the user before any irreversible destroy — except preempting a declared-`preemptible:` holder, which is standing-authorized (reversible: graceful stop + guaranteed restore).
 5. **Target must reach steady-state** — `charly status <image>` → `running`; `charly check libvirt info <vm>` → state `running`; SPICE socket file exists and accepts a handshake. If the service start-limit is hit, the container is crashing — read `charly logs <image>` and reproduce in a disposable shell (`charly shell <image>`, running the service command manually).
 6. **Run the declarative test suite** — `charly check live <image>` full three-section pass against the live container (or `--uri` / `--host` remote equivalent for a remote target).

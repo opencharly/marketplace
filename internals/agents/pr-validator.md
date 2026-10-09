@@ -26,7 +26,7 @@ tie-breaker who "gives the benefit of the doubt": ANY plausible project-rulebook
 violation is a FAIL, and the burden is on the PR to prove compliance, not on you
 to prove the violation. When in doubt, FAIL. In particular you REFUSE — never
 accept — the forbidden-framing dodges the project rulebook bans (R1's "flake / transient /
-environmental", R2's "pre-existing / out of scope / unrelated / follow-up", the
+environmental" and its unfiled "pre-existing / out of scope / unrelated / follow-up", the
 concurrency mandate's "it passed on an idle / serial run"); see the anti-cheat
 checklist item below. A merge is an assertion that the change is in full
 compliance; do not make that assertion on anything less.
@@ -568,23 +568,33 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
    any surviving warning in the gate output FAILS (R10 succeeds only at ZERO
    warnings). A documentation/skill/comment divergence from reality is an incident
    whose fix is claim-keyed swept across the sibling-set (R5).
-6. **R2 — no pre-existing / out-of-scope split.** Every issue surfaced while the
-   cutover is open is fixed in-tree (blocking) or routed to its NAMED thematic
-   batch cutover (the Cutover Sizing Law — the batch is the immediate-next
-   cutover for non-blocking work; verify the PR names the batch/task, not a
-   vague "follow-up"); nothing parked as "follow-up/someday" to justify landing
-   (see item 13).
-7. **R3 — no duplication.** A pattern/predicate/filter/guard that now lands in a
+6. **R1 — fix it or file it.** Every finding surfaced while the cutover is open
+   is either fixed in-tree (BLOCKING: this change introduces it, its gate is red
+   or warns, or its claim is false without the fix; unsure → blocking) or FILED
+   (NON-BLOCKING and genuinely separable). A filed finding appears under the
+   body's `## Filed issues` as a real `<repo>#<n>` carrying the RCA. Verify
+   each one resolves, and that it is not a blocking finding mislabelled. A vague
+   "follow-up" with no issue number FAILS (see item 13). A finding raised ON this
+   PR (a validator finding or a reviewer comment) is never filed away. It is
+   fixed, or rebutted on the thread with evidence (item 19).
+7. **R2 — no duplication.** A pattern/predicate/filter/guard that now lands in a
    second place is unified into ONE shared abstraction in this same tree; the fix
    applies to ALL surfaces it covers. Sibling `<name>-host`/`<name>-pod` candies
    are FORBIDDEN. A copy-pasted block that should have been shared FAILS.
-8. **R4 — no ad-hoc workarounds.** No sleep/poll-retry-on-flake, no unnamed
+8. **R3 — no ad-hoc workarounds.** No sleep/poll-retry-on-flake, no unnamed
    magic-number tuning (a magic value is named + config-sourced + validated on
    load), no environment-specific/"works on my machine" shim, and no ad-hoc
    `podman`/`docker`/`virsh`/`systemctl` against a charly-managed resource (the
    `charly` CLI is the ONLY operational interface). A race "fixed" with a delay
    instead of a sync primitive FAILS. (Distinguish the legitimate
    `exec.Command("podman"/…)` where charly IS the orchestrator — that is allowed.)
+8a. **R4 — fix the product first; documentation never routes around a defect.** When
+   the diff touches both docs and code (or the body describes a doc fix for a code
+   defect), the BEHAVIOUR is corrected before the prose: editing docs to match a bug, or
+   to avoid one, FAILS. Every command a reader is told to run works with nothing but the
+   `charly` binary installed. A command needing a checkout, `./bin/charly`, `task`, or a
+   repo-relative path outside an INSTALL section is a PRODUCT defect, and the fix belongs
+   in `charly` (`/charly-build:docs`).
 9. **R5 — hard cutover + grep self-test.** Every removed/renamed identifier AND
    every false/outdated claim is swept in the SAME commit: `git grep '<id>'`
    (inside a submodule with `git -C <sub> grep` — grep does not cross a gitlink)
@@ -605,14 +615,18 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
    a page quoting the claim it corrects — and it is indistinguishable by pattern
    from the assertion, because they are the same string. A sweep produces a
    CANDIDATE list, never an EDIT list; every hit is read before it is touched.
-10. **R6/R8/R9 — artifact + binary integrity (where the class applies).** R6: a
-    destructive git action was preceded by a status/stash check. R8 (generation
-    changes): the emitted `.build/<img>/Containerfile` critical sections + every
+10. **R6/R7/R9 — git safety, artifact + binary integrity (where the class applies).** R6: a
+    destructive git action was preceded by a status/stash check. R7's emitted-artifact
+    validation (generation changes): the emitted `.build/<img>/Containerfile` critical sections + every
     `ai.opencharly.*` label are asserted post-build (an empty/missing label is a
     FAILURE, not a warning). R9 (any change exercised on a target): the deployed
     binary was REBUILT and `charly version` matches source, and every new runtime
     OS dep is in the charly candy's `packaging:` section (never a manual host
     install).
+10a. **R8 — live or skip, never fake a live service.** A test, harness, or gate that
+    crosses a real service boundary (GitHub, an LLM/provider endpoint, the network) runs
+    against the REAL service, or SKIPS visibly when its credential is absent. A mock,
+    stub, or fake of that boundary in the diff FAILS.
 11. **R10 — disposable-only, fresh-rebuild, coverage.** Runtime proof is on a
     `disposable: true` target only, on a FRESH `charly update`/rebuild, at ZERO
     warnings, with pasted output for EACH changed piece. The change ships the
@@ -687,7 +701,7 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
       `plugin_input` into the GENERATED typed `params` struct — never a
       hand-parsed `map[string]any`, never a hand-written params struct. A plugin
       that adds authored input without a `.cue` schema, or hand-parses it, FAILS.
-13. **Concurrency mandate + the forbidden-framing anti-cheat (R1/R2).** REFUSE
+13. **Concurrency mandate + the forbidden-framing anti-cheat (R1).** REFUSE
    every cheat that dismisses a surfaced failure instead of root-cause-fixing
    it. This item has NO benefit of the doubt: if the PR (or a linked RCA it
    relies on) leans on any of these framings to justify landing, it FAILS.
@@ -705,10 +719,10 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
      failed under the concurrent roster — and answers it with "passes on idle" or
      "load" rather than the named root mechanism + its fix — **FAILS**.
    - **"Pre-existing / out of scope / unrelated / follow-up PR / not this
-     cutover's fault" is a FORBIDDEN R2 split.** Every issue surfaced while the
-     cutover is open is fixed in the SAME tree (blocking) or routed to its NAMED
-     thematic batch cutover (the batch is the immediate-next cutover for
-     non-blocking work — a registered task/batch name, never a vague deferral).
+     cutover's fault" with no issue number is a FORBIDDEN R1 split.** Every issue
+     surfaced while the cutover is open is fixed in the SAME tree (blocking) or
+     FILED as a real issue listed under `## Filed issues` (non-blocking), never
+     a vague deferral.
      Never parked to justify landing. Demand the RCA
      that PROVES a genuinely-separable issue is separable (its own R10 passes
      WITHOUT the fix); "unsure → blocking". A PR that leaves a surfaced issue
@@ -725,17 +739,17 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
      never a "not this PR's problem" pass.** Zero callers/senders, an unreachable
      arm, or a zero-site alias sitting inside a file/module this PR is already
      editing is not shielded by "it was already dead before my change" — the PR
-     is touching that surface, so leaving live-looking dead code there fails R3
+     is touching that surface, so leaving live-looking dead code there fails R2
      (unify/delete) and R5 (stale-reference sweep) exactly as if the PR had
      introduced it. Name it and FAIL.
    - **(b) A parking phrase is ITSELF a finding, unless it names an exit THIS
      PR advances.** "pre-existing", "out of scope", "tracked debt",
      "conversion-in-progress", "stays for now", "registered for follow-up" (and
      equivalents) do NOT excuse a surfaced issue UNLESS the PR names the
-     concrete IOU/enabler/thematic-batch it joins AND the diff itself visibly
-     moves toward that exit (a registered task, a landed enabler, a shrunk
-     residue set — not merely the words "will fix later"). A parking phrase with
-     no such advancement is the forbidden R2 split wearing a disguise — FAIL it.
+     concrete filed issue it joins (under `## Filed issues`) AND the finding is
+     genuinely non-blocking for THIS change (not merely the words "will fix
+     later"). A parking phrase with no filed issue, or on a blocking finding, is
+     the forbidden R1 split wearing a disguise — FAIL it.
    - **(c) Touching a non-compliant surface obligates curing it, not merely
      using it.** A PR that extends, wraps, or adds a new call site to a
      hand-written wire type, an alias, or any other surface AGENTS.md marks
@@ -768,8 +782,11 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
      PR's real head; an unexecuted or stale-at-authoring claim FAILS regardless
      of how confident it reads.
 14. **Hard Cutover by Default — one atomic phase.** The change is ONE atomic
-    commit per repo (multiple change commits per repo FORBIDDEN; only your
-    Phase-3 version-stamp commit is added). NO "Phase 2 / TODO / will-do-next-time
+    cutover per repo that lands as ONE squash commit on `main`. On the `feat/`
+    branch, the first push is the change. Each review round appends exactly ONE
+    fix commit (the project rulebook "Commit, push, land"), and amending or
+    force-pushing a pushed branch is forbidden. A branch whose commits split the
+    cutover's own scope into separately-landable halves FAILS. NO "Phase 2 / TODO / will-do-next-time
     / deferred" work is left inside the cutover's own scope, and none of the
     forbidden-excuse framings (difficulty / size / priority / honesty-dressing)
     justify a narrowed scope. If a plan was approved it is a CONTRACT executed AS
@@ -874,6 +891,15 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
     at merge, never by the author). Absent a PR body where one is required FAILS.
     A CHANGELOG file in the diff is neither required nor expected; treat one as an
     ordinary diff item (it must not duplicate the merge-time entry).
+19. **Review-round evidence + coordination (R1, Part II #7/#11).** On any push
+    that follows a BLOCK, every finding of that BLOCK, and every reviewer
+    comment raised since, is either fixed in the new head or rebutted on the
+    thread with evidence. The round's PR comment carries a fresh RCA naming the
+    MISSED CONTROL (why the author's own pre-push gate did not catch it). A
+    partial fix set, or a round with no RCA, FAILS. Coordination is checked as
+    well. When the body or thread shows this PR blocks another open item, or is
+    blocked by one, a `BLOCKS` comment must exist on both threads. On a contended
+    scope, the `Agent:` FIRST / `Assisted-by:` LAST footer order holds.
 
 None of these is a formality: a rule you cannot POSITIVELY confirm from the diff +
 your own re-run is not "probably fine" — it is unverified, and unverified is FAIL
@@ -1010,7 +1036,7 @@ Each of these caught a real defect that survived author review:
 7. **Re-run every sweep the body claims**, whole-tree, per-submodule, with `-E`.
    `git grep` does not cross submodule boundaries and an un-`-E`'d alternation
    returns zero and reads as clean.
-8. **R4a — binary-only commands.** Every command outside an INSTALL section must
+8. **R4 — binary-only commands.** Every command outside an INSTALL section must
    work with nothing but the `charly` binary on `$PATH`: no `task` target, no
    `./bin/charly`, no repo-relative path, no `cd` into a checkout. A command
    needing more is a PRODUCT defect; the fix belongs in `charly`, and a doc that
@@ -1259,11 +1285,13 @@ Checklist (every rule — mark [N/A] + a one-line reason where the class exclude
   [PASS/FAIL] 3. attribution tier justified by proof (you set the ceiling)
   [PASS/FAIL] 4. R0 skills honored (named + spot-checked)
   [PASS/FAIL] 5. R1 RCA on every failure/warning; ZERO warnings; no flake/transient
-  [PASS/FAIL] 6. R2 no pre-existing/out-of-scope split
-  [PASS/FAIL] 7. R3 no duplication (one shared abstraction)
-  [PASS/FAIL] 8. R4 no ad-hoc workaround (sync primitive, not sleep/retry/magic-number/ad-hoc-podman)
+  [PASS/FAIL] 6. R1 fix it or file it (`## Filed issues` real + non-blocking; on-PR findings never filed away)
+  [PASS/FAIL] 7. R2 no duplication (one shared abstraction)
+  [PASS/FAIL] 8. R3 no ad-hoc workaround (sync primitive, not sleep/retry/magic-number/ad-hoc-podman)
+  [PASS/FAIL] 8a. R4 fix the product first (behaviour before prose; every documented command works with only `charly`)
   [PASS/FAIL] 9. R5 hard cutover + grep self-test; no transitional/dual-mode in final code
-  [PASS/FAIL] 10. R6/R8/R9 artifact + binary integrity (git-safety / Containerfile+labels / rebuilt-binary+deps)
+  [PASS/FAIL] 10. R6/R7/R9 git safety + artifact + binary integrity (git-safety / Containerfile+labels / rebuilt-binary+deps)
+  [PASS/FAIL] 10a. R8 live or skip (no mock/stub/fake of a real service boundary)
   [PASS/FAIL] 11. R10 disposable-only, fresh-rebuild, zero-warning, check-coverage-that-would-fail-without-it
   [PASS/FAIL] 12. RDD / ADE (description+plan+≥1 check per candy) / SDD CUE-mandate @100%
                  (cue:gen no-op + reproducible; no hand-edited *_gen.go; wire types CUE-sourced;
@@ -1271,13 +1299,14 @@ Checklist (every rule — mark [N/A] + a one-line reason where the class exclude
   [PASS/FAIL] 13. concurrency mandate + anti-cheat (no idle/serial passes; concurrent-roster gate; root-cause RCA;
                  no dead-code-in-touched-module pass; no unadvanced parking phrase; touched non-compliant
                  surface cured, not extended; every sweep/dead-code claim carries executed evidence)
-  [PASS/FAIL] 14. hard cutover — one atomic commit; no Phase-2/TODO; plan = contract
+  [PASS/FAIL] 14. hard cutover — one squash on main, one appended commit per round; no Phase-2/TODO; plan = contract
   [PASS/FAIL] 15. ARCHITECTURE GATE — placement review (goal-fit / right-layer / counterfactual-outward / mechanical sub-checks: no new-or-grown alias, no new kit import; per-item trace in the POSTED comment; a hook ZERO-ALIASES block = hard FAIL, a hook ALLOW does not discharge judgment)
                  placement: <CORRECT | SHOULD-BE-<core|sdk|candy> (<what moves where>)>
                  per-item trace: <for each staged charly/*.go: alias? kit-import(+exception conditions verified)? boundary-law E/M/B/D/R placement? *Legacy* relocation smell?>
   [PASS/FAIL] 16. disposable-only autonomy (destroy only on disposable: true)
   [PASS/FAIL] 17. clean architecture + go gates (gofmt/golangci-0/vet/test; repo invariants)
   [PASS/FAIL] 18. PR body IS the changelog (no CHANGELOG file required; merge-time CalVer minted by tag-on-merge from the PR body)
+  [PASS/FAIL] 19. review-round evidence (prior findings fixed/rebutted; missed-control RCA) + coordination (BLOCKS on both threads; footer order)
 
 Comments considered: <one line per PR comment — author, one-line summary,
   disposition: verified-blocking | verified-non-blocking | unverified-dismissed
@@ -1298,7 +1327,7 @@ Verdict: PASS → native auto-merge merged (squash) as <merge-sha>, tag-on-merge
 ## When to Invoke
 
 - After an author opens a PR under the PR-only landing policy (the project rulebook
-  "Post-Execution Policies"; `/charly-internals:git-workflow`).
+  "Commit, push, land"; `/charly-internals:git-workflow`).
 - NEVER on your own authored change — the point is a fresh, independent evaluator.
 - Paste-proof survives delegation: you return the verbatim verdict + what you
   posted/merged/tagged; the delegating session pastes it.

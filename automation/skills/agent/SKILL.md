@@ -78,7 +78,7 @@ Never retry an agent failure automatically. Record the incident, collect ordered
 
 - Expect phase/status events such as endpoint bootstrap, `waiting-for-prompt`, `prompt-ready`, running/reattached, settled, and exit.
 - Treat silence, malformed frames, EOF before ACK, cleanup failure, warnings, and unexpected duration as incidents.
-- Use no sleep, polling loop, backoff, or arbitrary timed retry — per the project rulebook R4. Synchronize on process, tmux control, gRPC, terminal, and context events.
+- Use no sleep, polling loop, backoff, or arbitrary timed retry — per the project rulebook R3. Synchronize on process, tmux control, gRPC, terminal, and context events.
 - Preserve stdout for structured command results and use stderr for provider/operation/target progress and actionable failures.
 - For implementation acceptance, run the complete unmodified disposable R10 bed with `charly check run <bed>` and use its per-step logs and summary.
 

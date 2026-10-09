@@ -19,7 +19,7 @@ steps to the agent grader.
 
 | Stage | Who | Command | What |
 |---|---|---|---|
-| **Specify** | you / an agent | hand-edit the candy's `plan:` list (or `charly box set candy.<name>.plan ...`) | Author the `description:` string + `plan:` steps on the CANDY that provides the behaviour (it bakes into every box that composes the candy — R3). |
+| **Specify** | you / an agent | hand-edit the candy's `plan:` list (or `charly box set candy.<name>.plan ...`) | Author the `description:` string + `plan:` steps on the CANDY that provides the behaviour (it bakes into every box that composes the candy — R2). |
 | **Bind** | author (implicit) | `charly feature pending <entity>` lists the agent-graded steps | Use a `check:` step (inline verb) → deterministic; use an `agent-check:` step (prose) → agent-graded. |
 | **Run** | you / CI | `charly box feature run <image>` / `charly check feature run <deployment>` | Execute the plan; per-step pass/fail + grader evidence. |
 | **Iterate** | you / an agent | edit + re-run, OR `charly check run <bed>` (an `iterate:` bed) | Drive red→green by hand, or let the plateau-bounded AI loop write the code until the `check:` steps pass. |
@@ -109,7 +109,7 @@ in P12a — core constructs `&AgentGrader{}` directly, so it lives in `kit`, rea
 core code), and `sdk/deploykit/description_collect.go` (`CollectDescriptions`; the former `charly/description_collect.go` is DELETED, K-wave 2) for the `charly feature
 list/pending/validate` surface. The `Runner.Grader` dispatch is `kit.RunPlan` (`sdk/kit/planrun.go`)
 directly — the former 1-line `charly/description_run.go` wrapper was dissolved in P12a.
-Target resolution is shared with the harness loop and `charly check box`/`live` (R3).
+Target resolution is shared with the harness loop and `charly check box`/`live` (R2).
 
 ## Authoring Gotchas (learned the hard way)
 
@@ -367,16 +367,16 @@ Worked example: `/charly-coder:sshd` ships exactly the `-u user --` pattern. Alt
 `charly check box` resolves its positional argument against local podman storage, not `charly.yml`. When the host has accumulated many CalVer tags for the same image (a normal consequence of iterative `charly box build` runs), the short form errors out:
 
 ```
-charly: error: ambiguous short name "openclaw-desktop" in local storage;
-           candidates: ghcr.io/opencharly/openclaw-desktop:latest,
-           ghcr.io/opencharly/openclaw-desktop:2026.109.1418,
+charly: error: ambiguous short name "my-box" in local storage;
+           candidates: ghcr.io/opencharly/my-box:latest,
+           ghcr.io/opencharly/my-box:<tag>,
            ... Re-run with a full ref.
 ```
 
 Use the fully-qualified registry ref:
 
 ```bash
-charly check box ghcr.io/opencharly/openclaw-desktop:latest
+charly check box ghcr.io/opencharly/my-box:latest
 ```
 
 This is different from `charly box inspect`, `charly box build`, and `charly check live` (the live-service runner), which key off `charly.yml` and accept short names unambiguously. Only the disposable-container runner has this restriction because it does not consult `charly.yml` at all.
@@ -445,7 +445,7 @@ minutes-long:
 The fix is authored, not code: `#Op` carries `timeout?: #Duration`, and
 `ProbeNeverHang` honours a longer authored value over the floor (the
 effective ceiling becomes `declared + 30s`). Declaring it is USING the
-mechanism's own parameter — not an R4 workaround:
+mechanism's own parameter — not an R3 workaround:
 
 ```yaml
 - check: dnf install charly installs the package

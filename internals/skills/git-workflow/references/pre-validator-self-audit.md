@@ -2,6 +2,11 @@
 
 # The pre-validator self-audit — one pass to avoid N BLOCK cycles
 
+The checklist the validator applies is the project rulebook's "What the
+validator checks" table: every check, the rule it enforces, and the skill
+section with its full criteria. The six classes below are the ones measured
+to cause first-push BLOCKs, and the preflight removes them before the push.
+
 ## Why (measured, umbrella #286)
 
 Across 9 docs PRs landed in one session, 6 FIRST pushes BLOCKed; 17 validator
@@ -25,10 +30,10 @@ both body-only, and neither covered by classes 1-5.
    `documentation reviewed` claimed while a non-`.md` code/config file changed.
 3. **A1 incomplete rule accounting**: only some rules answered; a bare `N/A.`
    with no reason.
-4. **Surfaced-failure parking (R2/B14b)**: a failing check pasted with
+4. **Surfaced-failure parking (R1, CONC)**: a failing check pasted with
    "pre-existing / unrelated / environmental" framing and neither fixed nor
-   routed to a named batch.
-5. **Split cutover (B15/R2)**: content removed from surface A in this PR while
+   filed as a real issue under `## Filed issues`.
+5. **Split cutover (HC)**: content removed from surface A in this PR while
    its replacement home on surface B is deferred.
 6. **The asserted-check overclaim (universal / negative quantifier)**: a claim
    of COMPLETENESS stated as fact — "only occurrence in the repo", "every URL
@@ -64,28 +69,35 @@ both body-only, and neither covered by classes 1-5.
    with a one-line `HOW` or `N/A — <reason>`; never a bare `N/A.`
 5. NEVER surface a failure you cannot own. Either fix it (including the coupled
    pin/migrate, not just the manifest) or omit it and paste only the repo's
-   authoritative gate. If it is genuinely separate, name the EXACT owning
-   batch/task id — "pre-existing/unrelated" with no exit is a BLOCK. The
+   authoritative gate. If it is genuinely separate (non-blocking), FILE it
+   and list the real `<repo>#<n>` under `## Filed issues` (R1) —
+   "pre-existing/unrelated" with no issue number is a BLOCK. The
    repo's authoritative gate must be **DISCOVERED** (its CURRENT workflow file
    under `.github/workflows/`, read from upstream — `gh api
    repos/<o>/<r>/contents/.github/workflows` / `git ls-remote`), never
    assumed from a brief or a memorized file name: `opencharly/.github#141`
    deleted the per-repo `deploy.yml` gate from ~376 repos, so a brief-baked
-   gate name is a falsity the body would carry (B10/R1).
+   gate name is a falsity the body would carry (R5/R1).
 6. One cutover = remove AND place in the SAME change. If the replacement home
-   does not exist yet, land the home first, or name a DISTINCT immediate-next
-   batch cutover with a stated non-blocking rationale (the pointer must not be
-   empty).
+   does not exist yet, land the home first (producer-first). Removing content
+   whose home is deferred is a split cutover and is blocking, never filed.
 7. Guardrail / validator-spec edits (a validator's own prompt, a
    `FORBIDDEN_*` list, a gate) are T4 self-modifying-security changes: they
    need a maintainer-account sign-off or must be split into their own
-   signed-off change. Never WEAKEN a marker without pasted proof; prefer
+   signed-off change. The sign-off is posted BEFORE the next push or re-run,
+   never after (B2b.1 "How and when a sign-off is made"). Never WEAKEN a marker without pasted proof; prefer
    strengthening.
 8. The PR title must match the diff.
 9. Arm the watcher (`marketplace/scripts/pr_state_watch.sh <owner>/<repo> <pr>`),
-   read every verdict IN FULL, fix ALL blocks in ONE commit, and push a NEW
-   commit — never re-dispatch the same head, never push again while at the
-   auto-close block limit.
+   and run the read-in-full gate before EVERY update push (the project
+   rulebook "Before every update push: read everything, fix everything"):
+   every new comment and the full verdict read IN FULL; EVERY finding fixed or
+   rebutted with evidence; a fresh RCA naming the missed control posted in the
+   round's comment; then ONE new commit and ONE push — never re-dispatch the
+   same head, never push again while at the auto-close block limit.
+10. List every issue R1 filed or updated under `## Filed issues`
+   (`<repo>#<n> — <one line>`), and post `STATUS` on your claimed thread
+   (the project rulebook Part II #11).
 
 ## The mechanical half — `scripts/pr_body_lint.py`
 
@@ -104,7 +116,7 @@ python3 scripts/pr_body_lint.py <body.md> --repo <worktree>
 ```
 
 The rule ids required in `## Rulebook compliance` default to R0-R10; a repo with
-its own numbered rules passes `--rules R0,R1,R2,R3,R4,R4a,R5,R6,R7,R7a,R8,R9,R10`.
+its own numbered rules passes `--rules R0,R1,R2,R3,R4,R5,R6,R7,R8,R9,R10`.
 Exit 0 is clean, exit 1 is a finding to fix before the push.
 
 It removes the classes that need no judgment; whether the evidence is

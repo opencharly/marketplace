@@ -114,7 +114,7 @@ A3-phase-2** replaced the `entityResolve`/`"deploy-entity-resolve"` HostBuild
 round trip with a direct plugin-side self-load —
 `sdk/loaderkit.ResolveVmEntityViaExecutor` (the SAME pattern
 `candy/plugin-kube/preresolve.go`'s `ResolveKubernetesEntityViaExecutor` call uses,
-R3) — to pull the `ResolvedVm`; the ssh port / state dir /
+R2) — to pull the `ResolvedVm`; the ssh port / state dir /
 prior `VmDeployState` are then resolved directly (pure `sdk/deploykit` +
 `sdk/kit` + `sdk/vmshared` — the plugin is co-located on the host, so no
 LoadUnified coupling is needed) into a `spec.LifecyclePrepareInput` the plugin
@@ -162,14 +162,14 @@ Each Op:
 | `OpPostApply` | Deploys nested `target: pod` children as persistent in-guest quadlets over the served guest executor, AFTER the walk (so the VM's own candies + any kernel-driver reboot are already applied). Add only; skipped under `--node-only`. |
 | `OpTeardownExecutor` | Returns the guest-`SSHExecutor` `VenueDescriptor` (against the managed alias, no boot) the recorded `ReverseOps` replay over IN THE GUEST. |
 | `OpPostTeardown` | Removes the managed ssh-config stanza (`kit.RemoveVmSshStanza`) and ships the charly.yml entry keys to strip in `PostTeardownReply.RemoveEntries`; the ephemeral-lifecycle teardown is plugin-side (`vmPostTeardown` / `OpEphemeralTeardown` — the former core `lifecyclePostTeardownHook` is DELETED, K-wave 2). |
-| `OpStart` / `OpStop` / `OpStatus` / `OpLogs` / `OpShell` / `OpRebuild` | Drive the `charly vm` family via `HostBuild("cli")`. `OpRebuild` does `charly vm destroy` + `build` + `create` + `start` + `charly deploy add <name>` (re-applying the deploy's candies to the fresh guest via the shared layer-apply primitive, R3) — the path `charly update <vm-bed>` routes through. |
+| `OpStart` / `OpStop` / `OpStatus` / `OpLogs` / `OpShell` / `OpRebuild` | Drive the `charly vm` family via `HostBuild("cli")`. `OpRebuild` does `charly vm destroy` + `build` + `create` + `start` + `charly deploy add <name>` (re-applying the deploy's candies to the fresh guest via the shared layer-apply primitive, R2) — the path `charly update <vm-bed>` routes through. |
 
 ## Implementation notes
 
 - The `pod` substrate is EXTERNAL (`deploy:pod`, candy/plugin-deploy-pod); the pod overlay render MOVED to the candy (P11c — `candy/plugin-deploy-pod/overlay.go`, via `deploykit.OCITarget`), and `charly/build_overlay.go` is now the host-side prep+resolve M-seam the candy reaches over `HostBuild("overlay")`. Its teardown record is keyed HOST-SIDE by `computeDeployID(name)` like every external deploy (the in-proc pod was record-free).
 - `vmNameFromDeployName` strips the `vm:` prefix. `vmEntityForPrepare` (`plugin-deploy-vm/candy/plugin-deploy-vm/lifecycle.go`, ported verbatim from the DELETED `charly/vm_lifecycle_preresolve.go`'s `vmEntityForAdd` — FINAL/K5 unit 6a, M4b) resolves the `kind:vm` entity from a deploy node: the node's `vm:` cross-ref (`node.From`) wins, then a legacy `vm:<entity>` prefix, then the leaf of a nested dotted path.
 - `UnifiedDeployTarget` / `LifecycleTarget` interfaces (`spec/spec/deploy_target_unified.go`, the kind-agnostic contract — the option types repoint to the CUE-sourced `spec.DeployTargetDispatch*` wire types) + the `ResolveTarget` dispatcher (`charly/unified_targets.go`) provide the full lifecycle contract (`Add` / `Del` / `Update` / `Start` / `Stop` / `Status` / `Logs` / `Shell` / `Rebuild` — `Test` DELETED, #55 W3 B3 remainder: zero real callers anywhere in the tree). `ResolveTarget` returns a `pluginDeployTarget` (S3b) for every externalized substrate (local/vm/pod/kubernetes/android — all five).
-- Disposability is read per-`spec.Deploy` via `Deploy.IsDisposable()` (`spec/spec/charly_methods.go` — `disposable: true`, or ephemeral); it is NOT a `VmSpec` field. The disposability-as-authorization gate is NOT applied in the `charly update` path — `charly update <vm>` rebuilds on explicit invocation regardless (it only NOTES non-disposability, never refuses). `pluginDeployTarget.Rebuild` dispatches via `candy/plugin-fleet`'s `Invoke(OpDeployDispatch)` to the plugin's `OpRebuild` (over `HostBuild("cli")`), which recreates the domain THEN re-applies the deploy node's layers via the shared `charly deploy add <node>` path — the same layer-apply primitive the local/pod Rebuild use (R3).
+- Disposability is read per-`spec.Deploy` via `Deploy.IsDisposable()` (`spec/spec/charly_methods.go` — `disposable: true`, or ephemeral); it is NOT a `VmSpec` field. The disposability-as-authorization gate is NOT applied in the `charly update` path — `charly update <vm>` rebuilds on explicit invocation regardless (it only NOTES non-disposability, never refuses). `pluginDeployTarget.Rebuild` dispatches via `candy/plugin-fleet`'s `Invoke(OpDeployDispatch)` to the plugin's `OpRebuild` (over `HostBuild("cli")`), which recreates the domain THEN re-applies the deploy node's layers via the shared `charly deploy add <node>` path — the same layer-apply primitive the local/pod Rebuild use (R2).
 
 The `vm` substrate brings `charly deploy add vm:<name>` online: the same
 `InstallPlan` IR that drives pod builds and host deploys runs **inside a VM**
@@ -229,7 +229,7 @@ inside the plugin** — the DELETED `lifecyclePrepareHook`/`vmLifecyclePrepare`
    leaf of a nested dotted path; `sdk/loaderkit.ResolveVmEntityViaExecutor`
    (K-wave W3a A3-phase-2, the SAME self-load pattern
    `candy/plugin-kube/preresolve.go`'s `ResolveKubernetesEntityViaExecutor` call
-   uses, R3) pulls the `ResolvedVm`; ssh port / state dir / prior
+   uses, R2) pulls the `ResolvedVm`; ssh port / state dir / prior
    `VmDeployState` are resolved directly (pure `sdk/deploykit` + `sdk/kit` +
    `sdk/vmshared` — the plugin is co-located on the host) into a
    `spec.LifecyclePrepareInput` the plugin builds and consumes ITSELF. The

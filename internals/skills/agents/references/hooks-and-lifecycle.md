@@ -493,6 +493,10 @@ push), a delegated report, or a compaction. The rule:
 - **One list, whole-picture.** The ledger is a single session-wide list; read
   it before acting and update it in place (the todo tool REPLACES the list,
   so re-state the items you are not changing).
+- **Coordination threads are ledger items.** Every issue or PR you `CLAIM`ed, and
+  every thread you posted `BLOCKS` on, stays in the ledger until you post its
+  `RESOLVED`/`UNBLOCKS`. That way an interrupted session resumes its reporting
+  duties (the project rulebook Part II #11; `/charly-internals:git-workflow` B2b).
 - **Long operations are ledger-first.** Before a long-running step, ensure
   the list names it, so a later interruption resumes from state, not memory.
 - **A watcher alert is an ADDITION.** An automated push adds an item; it

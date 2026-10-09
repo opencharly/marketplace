@@ -23,8 +23,12 @@ git worktree add .claude/worktrees/<slug> -b feat/<slug> origin/main
 
 # ... implement the whole cutover; run beds freely throughout to VERIFY
 #     (Risk Driven Development: prove high-risk assumptions on a bed first) ...
+# commit LOCALLY as often as you like — any honest tier, amend freely —
+# nothing is pushed yet (the project rulebook "Commit, push, land")
 
-# on R10 PASS, open the PR (do NOT merge):
+# run the change-class R10 gate on the COMMITTED tree you will push; on PASS,
+# reword the commit to the tier it EARNED, write the WHOLE body, then push and
+# open a READY PR (no draft PRs; never push at `syntax check only`). Do NOT merge:
 # the PR body IS the changelog — no CHANGELOG file is staged; the
 # org-wide tag-on-merge workflow writes CHANGELOG/<merge-time VER>.md
 # from the merged PR title + body after merge.
@@ -52,9 +56,10 @@ granted or denied authority merely by existing (see
 `marketplace/internals/agents/pr-validator.md` "Comment intake", never restated
 here). The author pastes the validator's verbatim verdict + the gate outcomes
 (paste-proof survives delegation). On FAIL the check stays RED and the PR is
-**UPDATED IN PLACE** → the author R1-RCAs, fixes in the same tree,
-APPENDS a fix commit, and pushes it fast-forward (the check resets) → the
-validator re-runs. **Never close a PR and open a replacement to carry a fix.**
+**UPDATED IN PLACE** → the author reads every new comment and the full verdict,
+runs a fresh R1 RCA that names the MISSED CONTROL, fixes EVERY finding in the same
+tree, APPENDS ONE fix commit, and pushes it fast-forward (the check resets) → the
+validator re-runs ("BEFORE ANY UPDATE PUSH"). **Never close a PR and open a replacement to carry a fix.**
 
 Because the merge is a SQUASH and `main` is protected linear, `main` gains exactly
 ONE commit per cutover — the author's change, any review-round fix commits, and the

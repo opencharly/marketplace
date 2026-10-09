@@ -159,7 +159,7 @@ generic `candy/plugin-fleet` `OpDeployDispatch` dispatch every substrate now sha
 existing seams a de-typing rides — no new seam is usually needed, only the consumer stops re-typing.
 
 **Every K-wave move is a generalization, not a mechanical relocation.** Moving a capability's call site
-into its owning plugin is R3 ("no duplication; generic, reusable solutions over ad-hoc patches") and
+into its owning plugin is R2 ("no duplication; generic, reusable solutions over ad-hoc patches") and
 Prioritize Clean Architecture applied to the migration itself (see the project rulebook — not restated here). In
 practice: reach for an EXISTING generic seam first (`HostBuild`, `InvokeProvider`, `OpResolve`/`OpEmit`,
 the substrate lifecycle/preresolve `InvokeProvider` legs, `OpDeployDispatch`) or build ONE generic, F11-reviewed, class-generic action noun — never a

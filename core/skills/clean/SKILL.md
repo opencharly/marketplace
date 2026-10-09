@@ -194,7 +194,7 @@ importing only `sdk/kit` + `spec/spec`). `--deep` shares its engine with the def
 charly-labeled dangling sweep via `pruneDanglingImages`/`selectDanglingImages`
 (`candy/plugin-clean/retention.go`) parameterized by an `onlyCharly` bool: `pruneDanglingCharlyImages`
 (onlyCharly=true, the default sweep) and `pruneDeepDanglingImages` (onlyCharly=false, `--deep`)
-are both thin wrappers over the ONE shared selection + removal engine (R3 — no duplicated
+are both thin wrappers over the ONE shared selection + removal engine (R2 — no duplicated
 listing/removal logic between the two categories). The engine is reached two ways: `charly
 clean`'s own CLI calls `runRetention` in-package (no wire hop); the three OTHER callers reach
 `verb:retention` — the build command's post-build prune (`candy/plugin-box/box.go`'s

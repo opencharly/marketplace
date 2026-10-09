@@ -203,7 +203,6 @@ packages and scripts per distro.
 - `/charly-distros:arch` — parent base image
 - `/charly-distros:charly-fedora` — Fedora counterpart, same candies, same rootless posture
 - `/charly-coder:fedora-coder` — kitchen-sink dev sibling (adds coding CLIs + DevOps)
-- `/charly-openclaw:openclaw-desktop` — streaming-desktop counterpart (charly toolchain + browser-accessible Wayland); shares the rootless-first posture
 - `/charly-distros:githubrunner` — self-hosted GitHub Actions runner; same uid=1000 posture
 
 ## Related Commands

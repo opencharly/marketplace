@@ -228,7 +228,7 @@ and rebuild. Therefore, for any agent or workflow that runs them:
   - **Launch as a harness-tracked background task** (`run_in_background`).
     Never foreground — the Bash tool's `timeout` (120s default, 600s
     maximum) kills the call mid-`vm-create`, orphaning the domain. Never a
-    sleep/poll loop to "keep it alive" — that busy-poll is the exact R4
+    sleep/poll loop to "keep it alive" — that busy-poll is the exact R3
     bandaid this replaces. A spawned sub-agent is not exempt from this
     just because it is a different agent from its spawner: a
     `check-bed-runner`-style sub-agent that foreground-runs a long VM bed

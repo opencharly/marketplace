@@ -65,7 +65,7 @@ different things to the caller.
   omits the exit code or the failing step is the exact fraud pattern the
   project bans. If exit is `2` or `1`, your report LEADS with that.
 - **R1 on failure.** If a step fails, surface the failing step's log tail;
-  do NOT retry, loop, sleep, or back off (per R4), and never classify it as
+  do NOT retry, loop, sleep, or back off (per R3), and never classify it as
   "flake/transient" (per R1). The caller decides remediation (and will invoke
   `/charly-internals:root-cause-analyzer`).
 - **Observable one-shot phases.** The runner emits `[step] START/PASS/FAIL`, the

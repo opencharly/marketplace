@@ -124,7 +124,7 @@ Resolution chain: charly.yml per-box > global setting > default (true).
 
 ## Used In Boxes
 
-charly-arch, arch-test, comfyui, charly-fedora, fedora-test, githubrunner, immich, immich-ml, jupyter, nvidia, ollama, openclaw, openclaw-full, python-ml, selkies-desktop, selkies-labwc-nvidia, sway-browser-vnc, unsloth-studio, valkey-test
+charly-arch, arch-test, comfyui, charly-fedora, fedora-test, githubrunner, immich, immich-ml, jupyter, nvidia, ollama, openclaw, python-ml, selkies-desktop, selkies-labwc-nvidia, sway-browser-vnc, unsloth-studio, valkey-test
 
 ## Related Candies
 

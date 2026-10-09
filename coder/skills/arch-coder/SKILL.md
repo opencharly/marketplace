@@ -167,7 +167,6 @@ Conflicts with `/charly-coder:fedora-coder` / `/charly-coder:debian-coder` / `/c
 - `/charly-coder:debian-coder` — deb-family sibling on Debian 13.
 - `/charly-coder:ubuntu-coder` — deb-family sibling on Ubuntu 24.04 (adopt mode).
 - `/charly-coder:charly-arch` — slimmer Arch alternative with just the charly toolchain (no AI CLIs or DevOps tooling).
-- `/charly-openclaw:openclaw-desktop` — adds a browser-streamed Wayland desktop (plus the openclaw gateway, AI CLIs, and a CPU ollama) with the same rootless charly toolchain.
 
 ## Related layers
 

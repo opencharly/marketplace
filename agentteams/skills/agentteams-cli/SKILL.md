@@ -47,7 +47,7 @@ resolves the controller's in-venue :8090 to a host-routable address
 over the reverse channel (a published port on the pod substrate, a
 live `ssh -L` forward on the vm substrate), pulls the admin SA token
 from the venue, and probes with the SAME REST client the command uses
-(R3 — one surface covers the CLI and every bed). Methods:
+(R2 — one surface covers the CLI and every bed). Methods:
 
 - `agentteams: status` — controller health + resource counts.
 - `agentteams: manager-running` — poll until a manager reaches Running

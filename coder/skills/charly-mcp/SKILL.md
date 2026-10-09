@@ -127,8 +127,7 @@ Six deploy-scope tests ship with the candy:
 | `mcp-charly-call-list-images` | MCP `call box.list.boxes` returns boxes — **proves the bind-mount OR auto-fallback is working** (matches "fedora" either way, since upstream opencharly/charly always has a `fedora` image) |
 
 All `mcp:` checks pass `mcp_name: charly` so they stay unambiguous on
-boxes that also expose `jupyter` or `chrome-devtools` servers
-(e.g. `/charly-openclaw:openclaw-desktop`).
+boxes that also expose `jupyter` or `chrome-devtools` servers.
 
 ## Host networking caveat
 

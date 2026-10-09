@@ -184,8 +184,8 @@ catalog).
   post-merge verification (tag-verify, main fast-forward, the delta re-gate
   including the architecture delta); merge sequencing and rebase
   broadcasts; the task board; the thematic batch queues (the Cutover Sizing
-  Law, `/charly-internals:cutover-policy`: every non-blocking fix is routed
-  into a named batch with an owner and a start — a teammate brief for a
+  Law, `/charly-internals:cutover-policy`: every non-blocking finding is FILED
+  (R1) and its fix collected into a theme-coherent batch with an owner — a teammate brief for a
   small fix names its batch; a solo landing ceremony for a small
   non-blocking fix is a routing error the orchestrator corrects); agent and
   worktree lifecycle (spawn, stop-stale, prune, the slot budget); operator

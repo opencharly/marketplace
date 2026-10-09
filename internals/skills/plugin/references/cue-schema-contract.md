@@ -19,7 +19,7 @@ SELF-CONTAINED (package-less, references no base def) and used two ways — the 
 2. **RUNTIME → schema-over-RPC.** The plugin SERVES its `.cue` source over the Provider **`Describe`**
    channel (the proto `Capabilities.schema_cue` field + structured `ProvidedCapability{class,word,input_def}`).
    The host splices it onto charly's base schema (`base ++ plugin`, via the public `spec/schemaconcat` — the SAME
-   concat contract as the runtime `sharedCueSchema`, R3) and validates every authored verb input (the
+   concat contract as the runtime `sharedCueSchema`, R2) and validates every authored verb input (the
    desugared internal `plugin_input`) against the plugin's def (e.g. `#MyprobeInput`). The host **never reads a candy's `schema/` dir from disk** — the
    schema travels WITH the plugin.
 
