@@ -28,11 +28,9 @@ my-box:
 
 ## Used In Boxes
 
-- `openclaw-full` (via `openclaw-full` metalayer)
 
 ## Related Candies
 - `/charly-coder:nodejs` -- runtime dependency
-- `/charly-openclaw:openclaw-full` -- parent metalayer that bundles oracle
 
 ## Related Commands
 - `/charly-automation:openclaw-deploy` -- gateway/skill configuration

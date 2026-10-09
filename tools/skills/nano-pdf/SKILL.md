@@ -28,12 +28,10 @@ my-box:
 
 ## Used In Boxes
 
-- `openclaw-full` (via `openclaw-full` metalayer)
 
 ## Related Candies
 - `/charly-languages:python` — required Python runtime dependency
-- `/charly-openclaw:openclaw-full` — metalayer that includes nano-pdf
-- `/charly-coder:uv` — sibling Python tooling in openclaw-full
+- `/charly-coder:uv` — sibling Python tooling
 
 ## Related Commands
 - `/charly-build:build` — installs nano-pdf via the pixi builder during image build
