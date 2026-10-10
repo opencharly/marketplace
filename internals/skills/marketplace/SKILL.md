@@ -25,7 +25,7 @@ cutover). Each family lives in its standalone owning candy repo:
 
 | Family | Owning repo |
 |---|---|
-| internals | layer-charly-internals (+ layer-charly-internals-extra for strict-policy, vm-spec, and the agents roster) |
+| internals | layer-charly-internals (+ layer-charly-internals-extra for strict-policy and vm-spec) |
 | build | layer-charly-build |
 | check | layer-charly-check |
 | kubernetes | layer-charly-kubernetes |
@@ -72,8 +72,16 @@ green regardless).
 
 ## Per-harness vendoring — the corpus is a CACHE, not a live source
 
-Claude Code clones the marketplace as `charly-plugins`; Codex registers it by GitHub
-source; kimi installs it as one plugin; pi installs it as a git package
+The [Codex config reference](https://developers.openai.com/codex/config-reference)
+documents `skills.max_context_tokens` as the available-skills catalog budget: it
+defaults to 2% of the model context window, and explicit values are capped at 10,000
+tokens. Set `[skills] max_context_tokens = 10000` for this large catalog. The catalog
+can still exceed that cap, so use the AGENTS.md Skill Dispatcher to select each required skill,
+then read its `SKILL.md` by path when it is absent from the session listing.
+
+Claude Code clones the marketplace as `charly-plugins`; Codex registers it with
+`codex plugin marketplace add opencharly/marketplace` and installs entries with
+`codex plugin add <plugin-name>@charly-plugins`; kimi installs it as one plugin; pi installs it as a git package
 (`.pi/pi-claude-marketplace/` + state.json with commit-SHA versioning). Updating the
 marketplace repo is NOT updating an installed plugin: each harness caches per committed
 state, so a landed fix stays invisible until the harness refreshes its marketplace and

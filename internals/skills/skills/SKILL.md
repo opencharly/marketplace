@@ -167,7 +167,7 @@ build together catch a stale cross-reference that a `git grep` sweep missed.
 1. **Edit the OWNING candy repo's `skill:` entity, then regenerate.** Since the candy
    de-submodule cutover the charly repo owns NO `skill:` entities — each family lives
    in its standalone owning repo (internals → layer-charly-internals (+ layer-charly-
-   internals-extra for strict-policy/vm-spec/agents); build → layer-charly-build;
+   internals-extra for strict-policy/vm-spec); build → layer-charly-build;
    check → layer-charly-check; kubernetes → layer-charly-kubernetes; image →
    layer-charly-image; core → pod-charly-core; automation → pod-charly-automation;
    local → layer-charly-local; pod → layer-charly-pod; hooks/verbs → pod-charly-hooks
