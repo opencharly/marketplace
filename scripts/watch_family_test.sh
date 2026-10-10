@@ -378,6 +378,26 @@ timeout 15 "$HERE/pr_state_watch.sh" opencharly/x 1 --interval 60 --timeout 1 > 
 eq "pr_state_watch: a FAILURE with nothing in flight is still BLOCKED (exit 2)" "$?" 2
 rm -f "$WORK/checkruns.json" "$WORK/headruns.json"
 
+# 8g-bis ── pr_state_watch: a CANCELLED run beside a newer SUCCESS must NOT read as PASS
+#       (opencharly/marketplace#442, measured on opencharly/opencharly#460). The classifier tested
+#       `=="FAILURE"` only, so every other non-passing conclusion fell through to PASS and the
+#       watcher reported "awaiting merge" on a PR that was BLOCKED and could not merge.
+#       Both PASS and SUPERSEDED time out under --timeout 1, so the assertion is on the REPORT:
+#       the watcher must NOT claim PASS, and must name the superseding class.
+rm -f "$WORK/checkruns.json" "$WORK/headruns.json"
+printf '%s' '{"check_runs":[
+  {"name":"validate / validate","status":"completed","conclusion":"success","started_at":"2026-10-10T01:06:16Z"},
+  {"name":"validate / validate","status":"completed","conclusion":"cancelled","started_at":"2026-10-10T00:58:06Z"}]}' > "$WORK/checkruns.json"
+printf '%s' '{"workflow_runs":[]}' > "$WORK/headruns.json"
+timeout 15 "$HERE/pr_state_watch.sh" opencharly/x 1 --interval 60 --timeout 1 > "$WORK/out_psw_cxl.txt" 2>&1
+grep -q 'verdict PASS' "$WORK/out_psw_cxl.txt" \
+  && bad "pr_state_watch cancelled+success" "read a CANCELLED run as PASS: $(cat "$WORK/out_psw_cxl.txt")" \
+  || ok "pr_state_watch: a CANCELLED run beside a newer SUCCESS is NOT read as PASS"
+grep -q 'superseded by a newer SUCCESS' "$WORK/out_psw_cxl.txt" \
+  && ok "pr_state_watch: and it reports the superseding class instead" \
+  || bad "pr_state_watch cancelled+success report" "$(cat "$WORK/out_psw_cxl.txt")"
+rm -f "$WORK/checkruns.json" "$WORK/headruns.json"
+
 # 8h ── pr_state_watch: a RED check whose gate produced NO verdict is INCONCLUSIVE (exit 8),
 #       NOT a BLOCK. The check run's `failure` conclusion is identical for both classes, so the
 #       class must come from the gate's own comment heading. A false BLOCK here is expensive:
