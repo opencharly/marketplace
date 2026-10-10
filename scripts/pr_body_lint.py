@@ -12,7 +12,8 @@ BLOCKs on the body alone):
              directly precedes it); the trailer grammar is squash_body.py's (one definition);
   rules      `## Rulebook compliance` answers EVERY rule id in --rules, each with a HOW or an
              `N/A — <reason>` (a bare `N/A` fails);
-  claims     an asserted check — a sweep result ("only occurrence"), a check reported as done
+  claims     an asserted check — a sweep result ("only occurrence"), a no-match grep/rg result,
+             a check reported as done
              ("… were checked"), an equivalence to a named source ("match(es) `…`") — is backed IN
              ITS SECTION by a later fenced block carrying a `$ ` command, or points at its evidence
              ("above"/"below");
@@ -49,6 +50,12 @@ CLAIM = re.compile(
     r"\bonly occurrence|\b(was|were|been) (checked|verified|swept|confirmed)\b|\bmatch(es)?\s+`",
     re.IGNORECASE,
 )
+NO_MATCH_SWEEP = re.compile(
+    r"\b(?:grep|rg)\b.*\bno matches?\b|\bno matches?\b.*\b(?:grep|rg)\b",
+    re.IGNORECASE,
+)
+SWEEP_COMMAND = re.compile(r"^\s*\$ .*\b(?:grep|rg)\b", re.IGNORECASE)
+NO_MATCH_STATUS = re.compile(r"\b(?:exit|rg exit|grep exit)\s*[:=]\s*1\b", re.IGNORECASE)
 POINTER = re.compile(r"\b(above|below)\b", re.IGNORECASE)
 NA = re.compile(r"\bN/A\b(?P<rest>.*)$")
 HEAD = re.compile(r"\bHead\s+`([0-9a-f]{40})`")
@@ -125,6 +132,19 @@ def lint(body: str, head: str | None, rules: tuple[str, ...]) -> list[str]:
                 kk == "fence" and any(t.lstrip().startswith("$ ") for t in tt) for kk, _, tt in bl[k + 1 :]
             )
             for ln in text:
+                if NO_MATCH_SWEEP.search(ln):
+                    sweep_backed = any(
+                        kk == "fence"
+                        and any(SWEEP_COMMAND.search(t) for t in tt)
+                        and any(NO_MATCH_STATUS.search(t) for t in tt)
+                        for kk, _, tt in bl[k + 1 :]
+                    )
+                    if not sweep_backed:
+                        findings.append(
+                            f"claims: no-match grep/rg claim in `## {name}` needs a later pasted "
+                            f"grep/rg command and exit=1 result: {ln.strip()[:100]!r}"
+                        )
+                    continue
                 if CLAIM.search(ln) and not POINTER.search(ln) and not backed_later:
                     findings.append(
                         f"claims: unbacked universal claim in `## {name}` (no later `$ ` command block, "
