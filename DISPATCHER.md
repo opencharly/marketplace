@@ -11,7 +11,7 @@
 | `charly config` encrypted volumes / gocryptfs / the `--encrypt` flag / config mount-unmount-status-passwd | `/charly-automation:enc` |
 | ‘charly herdr’ session control (status / workspace / tab / pane / agent helpers) / the `verb:herdr` check verb (`ping`, `workspace-list`, `pane-wait-output`, `agent-wait`, …) / the check-herdr-pod bed / the pod-herdr box | `/charly-automation:herdr` |
 | the herdr box (box/herdr) / the check-herdr-pod bed / composing the herdr + socat candies / the herdr: check verb + charly herdr CLI against a deployed herdr venue | `/charly-automation:herdr-box` |
-| OpenClaw gateway / `openclaw-*` candies / model auth / browser integration / channel setup | `/charly-automation:openclaw-deploy` |
+| OpenClaw gateway / the OpenClaw family's candies / model auth / browser integration / channel setup | `/charly-automation:openclaw-deploy` |
 | sidecars via `charly config` / Tailscale exit nodes / `env_accept` / `env_require` / pod networking | `/charly-automation:sidecar` |
 | `charly tmux` sessions / terminal channels / snapshot / transcript / detached-reattach / gRPC terminal | `/charly-automation:tmux` |
 | `charly udev` / GPU device access rules / container GPU troubleshooting | `/charly-automation:udev` |
