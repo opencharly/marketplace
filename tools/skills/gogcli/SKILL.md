@@ -33,9 +33,6 @@ my-box:
     candy: [gogcli]
 ```
 
-## Used In Boxes
-
-
 ## Related Candies
 - `/charly-coder:golang` — required Go toolchain dependency
 - `/charly-tools:goplaces` — sibling Google API CLI

@@ -113,8 +113,15 @@ PR head by itself — supply `--ref`.
 ### The POISON state — green verdict, still BLOCKED
 
 A branch protection rule requires ALL same-name `validate / validate` check runs on
-the head to pass, so a COMPLETED earlier FAILURE keeps the PR `BLOCKED` even after a
-later SUCCESS of the same name — it reads like a verdict BLOCK but is not. Two runs
+the head to pass, so a COMPLETED earlier run that did not pass keeps the PR `BLOCKED`
+even after a later SUCCESS of the same name — it reads like a verdict BLOCK but is
+not. **"Did not pass" is the whole non-passing vocabulary, not just `FAILURE`:
+`CANCELLED`, `TIMED_OUT`, `STARTUP_FAILURE`, `STALE` and `ACTION_REQUIRED` all block
+the merge gate the same way.** Measured: `opencharly/opencharly#460` reached PASS with
+auto-merge armed and did not merge, its head carrying one `success` beside one
+`cancelled` run — and the tooling that classifies this read the pair as PASS until the
+classifier was fixed (opencharly/marketplace#442), because it tested `=="FAILURE"` and
+let every other conclusion fall through. Two runs
 on ONE head produce two such check runs; a `gh workflow run` re-dispatch on the same
 head mints another and can keep the PR stuck. **The capability-free remedy is a
 REST re-run of the failed run** (`gh api -X POST

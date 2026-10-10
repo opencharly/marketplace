@@ -355,13 +355,15 @@ and `gh pr checks` shows `fail`.
 check's name to the WORST conclusion. A body-only fix does not move the head,
 so re-dispatching the validator on the SAME head APPENDS a second check-run of
 the same name beside the earlier one instead of replacing it. The newer
-SUCCESS never cancels the older FAILURE. Measured: opencharly/plugin-vm#39 head
+SUCCESS never cancels the older non-passing run. Measured: opencharly/plugin-vm#39 head
 `c9457a9` carried two `validate / validate` runs — failure (auto `pull_request`
 at 04:40:06) and success (manual `--ref` dispatch at 04:44:11) — and the PR
 stayed BLOCKED with a PASS verdict.
 
 **Distinguish it from a verdict BLOCK.** A verdict BLOCK's NEWEST same-name
-run is the failure; POISON's newest is SUCCESS with an older failure beneath.
+run is the non-passing one; POISON's newest is SUCCESS with an older non-passing
+run beneath (a `CANCELLED` run poisons exactly as a `FAILURE` does —
+opencharly/opencharly#460).
 Use `marketplace/scripts/pr_state_watch.sh`, which classifies exactly this and
 names the shape in its output.
 

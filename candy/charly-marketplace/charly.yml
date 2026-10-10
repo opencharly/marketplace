@@ -30,10 +30,10 @@ charly-marketplace:
             # The candies extracted out of charly/candy/ by the de-submodule cutover's
             # Phase D (opencharly/charly#451). Before this, their skills reached the corpus
             # only through the --root charly checkout at the CI pin below.
-            - '@github.com/opencharly/layer-charly-internals:v2026.282.0737'
+            - '@github.com/opencharly/layer-charly-internals:v2026.283.0125'
             - '@github.com/opencharly/layer-charly-internals-extra:v2026.282.0717'
             - '@github.com/opencharly/layer-charly-build:v2026.282.0624'
-            - '@github.com/opencharly/layer-charly-check:v2026.282.0121'
+            - '@github.com/opencharly/layer-charly-check:v2026.282.2343'
             - '@github.com/opencharly/plugin-wl/candy/plugin-wl:v2026.281.0714'
             - '@github.com/opencharly/plugin-quickshell/candy/plugin-quickshell:v2026.272.0445'
             # Serving-plugin command skills (2026-09-17 coverage campaign).
@@ -45,7 +45,7 @@ charly-marketplace:
             - '@github.com/opencharly/plugin-cardwire/candy/plugin-cardwire:v2026.271.2322'
             - '@github.com/opencharly/plugin-bpf/candy/plugin-bpf:v2026.271.2243'
             - '@github.com/opencharly/plugin-feature/candy/plugin-feature:v2026.272.0145'
-            - '@github.com/opencharly/plugin-pipeline/candy/plugin-pipeline:v2026.281.0846'
+            - '@github.com/opencharly/plugin-pipeline/candy/plugin-pipeline:v2026.282.2329'
             - '@github.com/opencharly/plugin-authoring/candy/plugin-authoring:v2026.271.2244'
             - '@github.com/opencharly/layer-charly-kubernetes:v2026.282.0120'
             - '@github.com/opencharly/layer-kind:v2026.274.0645'
@@ -82,7 +82,7 @@ charly-marketplace:
             - '@github.com/opencharly/layer-gnupg:v2026.272.0138'
             - '@github.com/opencharly/pod-qemu-guest-agent:v2026.278.1505'
             - '@github.com/opencharly/layer-gocryptfs:v2026.272.0133'
-            - '@github.com/opencharly/layer-gogcli:v2026.281.2150'
+            - '@github.com/opencharly/layer-gogcli:v2026.282.1718'
             - '@github.com/opencharly/pod-redis:v2026.272.0226'
             - '@github.com/opencharly/layer-google-cloud:v2026.272.0132'
             - '@github.com/opencharly/layer-goplaces:v2026.281.1706'
@@ -99,7 +99,7 @@ charly-marketplace:
             - '@github.com/opencharly/layer-sherpa-onnx:v2026.281.2120'
             - '@github.com/opencharly/layer-camsnap:v2026.281.1714'
             - '@github.com/opencharly/layer-shortbread:v2026.274.0643'
-            - '@github.com/opencharly/pod-charly-core:v2026.282.0638'
+            - '@github.com/opencharly/pod-charly-core:v2026.282.2344'
             - '@github.com/opencharly/layer-kde-shell:v2026.274.0753'
             - '@github.com/opencharly/layer-charly-distros:v2026.271.2154'
             - '@github.com/opencharly/layer-omarchy-base:v2026.272.0437'
@@ -124,7 +124,7 @@ charly-marketplace:
             - '@github.com/opencharly/layer-charly-tools:v2026.271.2241'
             - '@github.com/opencharly/pod-traefik:v2026.274.0627'
             - '@github.com/opencharly/pod-charly-versa:v2026.281.0818'
-            - '@github.com/opencharly/vm-charly-vm:v2026.282.0124'
+            - '@github.com/opencharly/vm-charly-vm:v2026.282.2344'
             - '@github.com/opencharly/layer-typst:v2026.272.0407'
             - '@github.com/opencharly/layer-mcporter:v2026.281.1718'
             - '@github.com/opencharly/layer-unsloth:v2026.272.0419'
@@ -216,7 +216,7 @@ charly-marketplace:
             - '@github.com/opencharly/layer-thunar:v2026.274.1030'
             - '@github.com/opencharly/layer-xfce4-terminal:v2026.274.1031'
             - '@github.com/opencharly/layer-punktfunk:v2026.272.0431'
-            - '@github.com/opencharly/pod-charly-automation:v2026.282.0624'
+            - '@github.com/opencharly/pod-charly-automation:v2026.282.1755'
             - '@github.com/opencharly/plugin-agentteams/candy/plugin-agentteams:v2026.282.0118'
             - '@github.com/opencharly/plugin-ollama/candy/plugin-ollama:v2026.272.0330'
             - '@github.com/opencharly/plugin-dsh/candy/plugin-dsh:v2026.280.2241'
@@ -247,7 +247,7 @@ charly-marketplace:
             # umbrella gate `scripts/check-harness-config.mjs` check 12.
             - '@github.com/opencharly/layer-qdrant:v2026.274.0645'
             - '@github.com/opencharly/plugin-qdrant/candy/plugin-qdrant:v2026.279.0719'
-            - '@github.com/opencharly/plugin-kubevirt/candy/plugin-kubevirt:v2026.278.1620'
+            - '@github.com/opencharly/plugin-kubevirt/candy/plugin-kubevirt:v2026.282.2359'
             # the nerdctl integration (plan/nerdctl-integration.md): the layer that
             # installs the nerdctl stack + the out-of-tree engine:nerdctl plugin,
             # each owning its harness skill.

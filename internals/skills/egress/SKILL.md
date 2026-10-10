@@ -40,7 +40,21 @@ charly's CUE work has two halves:
   `@go()`-annotated `spec/schema/*.cue` GENERATE the `spec/spec` param structs via
   `charly task cue-gen` (`cue exp gengotypes`, run in the spec repo — the spec module is
   consumed from the module proxy at the pinned require version; each plugin's own
-  `params` package is generated in ITS repo via the same pipeline), kept honest by the reproducibility + parity tests. Owned by `/charly-build:validate`; the schema-change codegen
+  `params` package is generated in ITS repo by the same pipeline, and that pipeline is
+  now ONE command: **`charly candy params <plugin>`** regenerates
+  `candy/<plugin>/params/cue_types_gen.go` from the plugin's own `schema/*.cue`,
+  provisioning its own pinned, checksum-verified toolchain, with `--check` as the drift
+  gate. It replaces a checkout-relative recipe (concatenate the plugin's schema under a
+  `package params` + `@go(params)` header with `internal/schemagen -mode=concat -pkg=params`
+  FROM A SPEC CHECKOUT, run `cue exp gengotypes`, then `-mode=retag` to double the json
+  struct tags with yaml tags), which needed a spec checkout and `cue` on PATH — the
+  procedure `plugin-pipeline` and `plugin-lobster` gate in their own `ci.yml`. **That
+  recipe is history, not a procedure a page tells a reader to run**: it is described here
+  so the pipeline's shape is legible, and the command above is what to run. Trap: a
+  regeneration check must compare the command's OUTPUT with the committed file, never grep
+  the committed file for a retired string — the generated file reproduces the SCHEMA'S
+  leading doc comment, so it can carry the pipeline's own prose while containing no
+  retired identifier at all.), kept honest by the reproducibility + parity tests. Owned by `/charly-build:validate`; the schema-change codegen
   recipe is `/charly-internals:go` "Updating Go code when an ingress CUE schema
   changes".
 - **Egress** (`candy/plugin-fleet/egress.go`, this skill): validates the OUTPUT config charly
