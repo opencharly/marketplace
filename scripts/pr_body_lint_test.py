@@ -66,6 +66,17 @@ class Rules(unittest.TestCase):
         self.assertEqual(run(body(how=claim + "\n\n```\n$ gh pr list\n#1\n```")), [])
         self.assertEqual(run(body(how="The open PRs were checked (output above).")), [])
 
+    def test_no_match_grep_claim_requires_pasted_command_and_exit_status(self):
+        claim = "The claim-keyed legacy-command grep has no matches."
+        self.assertTrue(any("no-match grep/rg claim" in x for x in run(body(how=claim))))
+        self.assertTrue(any(
+            "no-match grep/rg claim" in x
+            for x in run(body(how=claim + "\n\n```\n$ rg -n old README.md\n(no matches)\n```"))
+        ))
+        proof = claim + "\n\n```\n$ rg -n old README.md\nrg exit=1 (no matches)\n```"
+        self.assertEqual(run(body(how=proof)), [])
+        self.assertTrue(any("no-match grep/rg claim" in x for x in run(body(how=claim + " (output above)."))))
+
     def test_ellipsis_in_fence_fails(self):
         self.assertTrue(any(x.startswith("ellipsis:") for x in run(body(how="```\n$ cmd\nline … cut\n```"))))
 
