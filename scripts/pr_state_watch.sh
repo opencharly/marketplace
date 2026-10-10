@@ -159,8 +159,8 @@ while :; do
   # Classify the required check over ALL same-name runs on the head.
   #   NONE       no run yet (or a different check name)  -> keep polling
   #   PENDING    a run is queued/in progress             -> keep polling
-  #   PASS       newest completed is SUCCESS, no failure -> keep polling (await merge)
-  #   SUPERSEDED newest is SUCCESS but an older FAILURE
+  #   PASS       newest completed is SUCCESS, no blocking conclusion -> keep polling (await merge)
+  #   SUPERSEDED newest is SUCCESS but an older run did not pass (FAILURE, CANCELLED, ...)
   #              of the same name remains               -> keep polling (the newer
   #              attempt settles the merge; charly#750 merged on exactly this pair)
   #   BLOCKED    newest completed is FAILURE             -> terminal (class below)
@@ -179,9 +179,20 @@ while :; do
         [.check_runs[] | select(.name==$name)]
         | if length==0 then "NONE"
           elif any(.[]; (.status|ascii_upcase) != "COMPLETED") then "PENDING"
-          else (sort_by(.started_at) | .[-1]) as $newest
-               | if   ($newest.conclusion|ascii_upcase)=="FAILURE" then "BLOCKED"
-                 elif any(.[]; (.conclusion|ascii_upcase)=="FAILURE") then "SUPERSEDED"
+          else def # a conclusion the merge gate does NOT treat as passing. ENUMERATED, never
+               # inferred: the check-run vocabulary is FAILURE, CANCELLED, TIMED_OUT,
+               # STARTUP_FAILURE, STALE, ACTION_REQUIRED, and the passing values are SUCCESS,
+               # NEUTRAL and SKIPPED. The revision before this one tested `=="FAILURE"` only and
+               # let every other value fall through to "PASS" — so a CANCELLED run beside a newer
+               # SUCCESS read as PASS on a PR that was BLOCKED and could not merge. Measured:
+               # opencharly/opencharly#460 (head carried one success and one cancelled; it stayed
+               # BLOCKED with auto-merge armed until the cancelled run was re-run).
+               blocking: (.conclusion|ascii_upcase) as $c
+                 | ["FAILURE","CANCELLED","TIMED_OUT","STARTUP_FAILURE","STALE","ACTION_REQUIRED"]
+                 | index($c) != null;
+               (sort_by(.started_at) | .[-1]) as $newest
+               | if   ($newest|blocking) then "BLOCKED"
+                 elif any(.[]; blocking) then "SUPERSEDED"
                  else "PASS" end
           end')" || {
     echo "pr_state_watch: jq failed for check-runs of $REPO@$head" >&2; exit 5; }
@@ -271,7 +282,7 @@ while :; do
       echo "  read the latest '## Review — BLOCK' comment on $url; fix, commit, RE-FINALIZE the body, push."
       exit 2 ;;
     SUPERSEDED)
-      [ "$last_report" = "SUPERSEDED" ] || { report WAIT "an older FAILURE of $REQUIRED_CHECK is superseded by a newer SUCCESS at head ${head:0:9} (mergeState=$merge_state)"; last_report=SUPERSEDED; } ;;
+      [ "$last_report" = "SUPERSEDED" ] || { report WAIT "an older non-passing run of $REQUIRED_CHECK is superseded by a newer SUCCESS at head ${head:0:9} (mergeState=$merge_state)"; last_report=SUPERSEDED; } ;;
     PASS)
       [ "$last_report" = "PASS" ] || { report PASS "verdict PASS at head ${head:0:9}; awaiting merge (mergeState=$merge_state)"; last_report=PASS; } ;;
     NONE)
