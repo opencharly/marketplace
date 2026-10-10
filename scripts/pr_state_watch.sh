@@ -163,7 +163,9 @@ while :; do
   #   SUPERSEDED newest is SUCCESS but an older run did not pass (FAILURE, CANCELLED, ...)
   #              of the same name remains               -> keep polling (the newer
   #              attempt settles the merge; charly#750 merged on exactly this pair)
-  #   BLOCKED    newest completed is FAILURE             -> terminal (class below)
+  #   BLOCKED    newest completed run did NOT pass       -> terminal (class below). The
+  #              blocking conclusions are ENUMERATED at the classifier; FAILURE is one
+  #              of them, not the definition of the state.
   # gh api's --jq takes ONE expression (no jq flags), so filter in jq itself with the
   # required-check name passed as a positional argument.
   # NB: the REST check-runs API returns lowercase "completed"/"success"/"failure",
