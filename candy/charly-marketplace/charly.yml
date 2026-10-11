@@ -26,7 +26,7 @@ charly-marketplace:
             - '@github.com/opencharly/distro-cachyos:v2026.281.1001'
             - '@github.com/opencharly/distro-omarchy:v2026.274.2118'
             - '@github.com/opencharly/distro-debian:v2026.279.1448'
-            - '@github.com/opencharly/distro-ubuntu:v2026.279.1451'
+            - '@github.com/opencharly/distro-ubuntu:v2026.283.2149'
             # The candies extracted out of charly/candy/ by the de-submodule cutover's
             # Phase D (opencharly/charly#451). Before this, their skills reached the corpus
             # only through the --root charly checkout at the CI pin below.
