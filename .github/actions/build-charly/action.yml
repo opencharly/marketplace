@@ -1,0 +1,31 @@
+name: Build the pinned marketplace toolchain
+description: Check out the declared source inside the workspace and cache its Go dependencies.
+inputs:
+  build-calver:
+    description: CalVer identity for the caller's build.
+    required: true
+outputs:
+  binary:
+    description: Absolute path to the source-built Charly binary.
+    value: ${{ github.workspace }}/.ci/charly/bin/charly
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.0
+      with:
+        repository: opencharly/charly
+        ref: v2026.277.1528
+        path: .ci/charly
+        persist-credentials: false
+    - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      with:
+        go-version-file: .ci/charly/charly/go.mod
+        cache-dependency-path: .ci/charly/charly/go.sum
+    - name: Build from the pinned source
+      shell: bash
+      env:
+        BUILD_CALVER: ${{ inputs.build-calver }}
+      run: |
+        mkdir -p "$GITHUB_WORKSPACE/.ci/charly/bin"
+        cd "$GITHUB_WORKSPACE/.ci/charly/charly"
+        go build -buildvcs=false -ldflags "-X main.BuildCalVer=$BUILD_CALVER" -o "$GITHUB_WORKSPACE/.ci/charly/bin/charly" .
