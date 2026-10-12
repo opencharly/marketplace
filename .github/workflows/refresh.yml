@@ -59,34 +59,22 @@ jobs:
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Fetch the pinned charly source (the BINARY and the CLI word)
+      - name: Build the pinned Charly toolchain
+        id: charly
         if: steps.bump.outputs.changed == 'true' && steps.skip.outputs.skip == 'false'
-        run: |
-          git clone --depth 1 --branch v2026.277.1528 https://github.com/opencharly/charly.git /tmp/charly
-
-      - uses: actions/setup-go@v5
-        if: steps.bump.outputs.changed == 'true' && steps.skip.outputs.skip == 'false'
+        uses: ./.github/actions/build-charly
         with:
-          go-version-file: /tmp/charly/charly/go.mod
-          cache-dependency-path: /tmp/charly/charly/go.sum
-
-      - name: Build the charly binary
-        if: steps.bump.outputs.changed == 'true' && steps.skip.outputs.skip == 'false'
-        run: |
-          mkdir -p /tmp/charly/bin
-          cd /tmp/charly/charly && go build -buildvcs=false -ldflags "-X main.BuildCalVer=marketplace-refresh" -o /tmp/charly/bin/charly .
+          build-calver: marketplace-refresh
 
       - name: Regenerate the corpus at the new pins
-        # Same invocation as deploy.yml: --root is THIS repo (the refs list is the only
-        # input). The former `cd /tmp/charly` is gone — this repo declares the `marketplace`
-        # command word itself (tools/marketplace-cli), so the verb resolves here and the
-        # charly clone is purely the BINARY.
+        # Same invocation and shared toolchain as deploy.yml: this project declares
+        # the command, and its refs list is the generation input.
         if: steps.bump.outputs.changed == 'true' && steps.skip.outputs.skip == 'false'
         run: |
           # Captured so the PR body pastes the ACTUAL generation output, not a claim that
           # it ran. pipefail so a failing generator is not masked by tee's exit status.
           set -o pipefail
-          /tmp/charly/bin/charly marketplace generate --root "$GITHUB_WORKSPACE" --out "$GITHUB_WORKSPACE" 2>&1 | tee /tmp/generate.log
+          "${{ steps.charly.outputs.binary }}" marketplace generate --root "$GITHUB_WORKSPACE" --out "$GITHUB_WORKSPACE" 2>&1 | tee /tmp/generate.log
 
       # GITHUB_TOKEN cannot open a pull request: "Allow GitHub Actions to create and
       # approve pull requests" is off across this org, deliberately — the same switch also
@@ -298,7 +286,6 @@ jobs:
               [ "${UNRES:-1}" -eq 0 ] || grep 'UNRESOLVED' /tmp/refresh.log
             fi
             echo '```'
-            echo "- **R1 no parking:** an edit to the corpus here is overwritten by the next generate, so a"
             echo "  content change belongs in the OWNING repo (which gated it via its own pr-validator"
             echo "  before tagging); a defect in THIS workflow is fixed here."
             echo "- **R2 no duplication:** one refs list, one owner; the generator is the single corpus"
@@ -363,14 +350,6 @@ jobs:
           # PR now exists, because a 504 can mean the write succeeded and only the response
           # timed out, in which case a retry would fail with "already exists" and mask a
           # success.
-          # ONE publication attempt, then an explicit READBACK that classifies the outcome.
-          #
-          # WHY THERE IS NO RETRY LOOP (opencharly/marketplace#451). The loop this replaces slept
-          # 10 s + 20 s and REPEATED A WRITE, and repetition cannot make a write safe: a 5xx or 504
-          # may mean the PR was created and only the response was lost, and the repeat then fails
-          # with "already exists" and masks the success. The write is attempted ONCE; the READBACK —
-          # which is idempotent and safe to repeat — is what establishes what happened. No sleep, no
-          # blind retry (R3).
           BR=$(git rev-parse --abbrev-ref HEAD)
           attempt_log="$(gh pr create --title "chore: refresh the refs list" --body-file /tmp/pr-body.md 2>&1)" && attempt_rc=0 || attempt_rc=$?
           # The readback is the discriminator: "created", "created but the response was lost", and
