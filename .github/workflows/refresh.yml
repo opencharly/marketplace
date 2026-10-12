@@ -286,6 +286,7 @@ jobs:
               [ "${UNRES:-1}" -eq 0 ] || grep 'UNRESOLVED' /tmp/refresh.log
             fi
             echo '```'
+            echo "- **R1 no parking:** an edit to the corpus here is overwritten by the next generate, so a"
             echo "  content change belongs in the OWNING repo (which gated it via its own pr-validator"
             echo "  before tagging); a defect in THIS workflow is fixed here."
             echo "- **R2 no duplication:** one refs list, one owner; the generator is the single corpus"

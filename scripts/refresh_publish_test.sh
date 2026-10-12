@@ -88,6 +88,62 @@ run_case "created"      0 7     0 "published: PR #7"
 run_case "response-lost" 1 9    0 "the PR EXISTS (#9)" "the write landed"
 run_case "not-created"  1 ""    1 "did not create a PR" "Open it by hand"
 
+# ---- the EMITTED compliance block, validated at its actual boundary (R7). The block is shell
+# `echo`s; running them is what the workflow does, so run them here. Two properties, both aimed
+# at the round-2 defect this harness now guards: a renumbering that drops a bullet's HEADER
+# leaves its body lines printed with no rule id — the artifact this PR exists to fix — and a
+# mapping that emits one rule id twice is equally wrong.
+python3 - "$WF" "$WORK/emitted.txt" "$WORK/emitted-head.txt" <<'PY'
+import re, sys
+src = open(sys.argv[1]).read().split('\n')
+# The body is assembled by runs of `echo` lines. Pick the run that CARRIES rule bullets — the
+# compliance block — not the first fence in the file (there are many fences; the log/diff
+# sections each close one).
+runs, cur = [], []
+for l in src:
+    if re.match(r'\s*echo(\s|$)', l): cur.append(l)
+    else:
+        if cur: runs.append(cur)
+        cur = []
+if cur: runs.append(cur)
+def emit(run):
+    out = []
+    for l in run:
+        m = re.match(r'\s*echo\s*(.*)$', l)
+        a = (m.group(1) if m else '').strip()
+        if a.startswith('"') and a.endswith('"'): a = a[1:-1]
+        out.append(a.replace('\\`', '`').replace('\\"', '"'))
+    return out
+block = next((r for r in runs if any(t.startswith('- **R') for t in emit(r))), None)
+open(sys.argv[2], 'w').write('\n'.join(emit(block)) + '\n' if block else '')
+# Every log/diff fence-close in the assembled body must be followed by a HEADING — a rule bullet
+# or a `##` section — never by a continuation-only line: a renumbering that drops a bullet's
+# header leaves exactly that orphan, printed with no rule id. Report every offending line.
+FENCE = "echo '" + chr(96) * 3 + "'"
+bad_fences = []
+for i, l in enumerate(src):
+    if FENCE in l and i + 1 < len(src):
+        m = re.match(r'\s*echo\s*(.*)$', src[i + 1])
+        if m:
+            nxt = m.group(1).strip().strip('"')
+            if nxt.startswith('  '): bad_fences.append(f"{i + 2}: {nxt}")
+open(sys.argv[3], 'w').write('\n'.join(bad_fences) + ('\n' if bad_fences else ''))
+PY
+EMITTED="$WORK/emitted.txt"
+HEAD="$WORK/emitted-head.txt"
+if [ -s "$HEAD" ]; then
+  bad "a fence-close is followed by a headerless body line: $(tr '\n' ';' < "$HEAD")"
+else ok "every fence-close is followed by a heading, never an orphaned body line"; fi
+dupes="$(grep -oE '^- \*\*R[0-9]+' "$EMITTED" | sort | uniq -d)"
+[ -z "$dupes" ] && ok "no rule id is emitted twice" || bad "rule ids emitted twice: $dupes"
+orphans=""
+while IFS=: read -r n _; do
+  prev="$(sed -n "$((n-1))p" "$EMITTED")"
+  case "$prev" in '- **R'*|'  '*) ;; *) orphans="$orphans $n" ;; esac
+done < <(grep -nE '^  ' "$EMITTED" || true)
+[ -z "$orphans" ] && ok "every continuation line follows a rule bullet" \
+  || bad "continuation lines with no rule bullet above them: line(s)$orphans"
+
 echo
 if [ "$FAILS" -eq 0 ]; then echo "PASS — refresh publication block assertions passed"; exit 0; fi
 echo "FAIL — $FAILS assertion(s) failed"; exit 1
