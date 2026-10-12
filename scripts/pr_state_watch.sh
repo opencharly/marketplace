@@ -142,7 +142,8 @@ while :; do
   # mistaken for a generic gh failure (a rate limit is a stop, not a transient).
   json="$(gh pr view "$PR" --repo "$REPO" \
             --json state,mergeStateStatus,headRefOid,url 2>&1)" || {
-    watch_is_rate_limited "$json" && watch_fatal_rate_limit "pr_state_watch" "$(printf '%s' "$json" | head -c 200)"
+    gh_rc=$?
+    watch_is_rate_limited "$json" "$gh_rc" && watch_fatal_rate_limit "pr_state_watch" "$(printf '%s' "$json" | head -c 200)"
     echo "pr_state_watch: gh pr view failed for $REPO#$PR" >&2; exit 5; }
   watch_is_rate_limited "$json" && watch_fatal_rate_limit "pr_state_watch" "$(printf '%s' "$json" | head -c 200)"
 
@@ -174,7 +175,8 @@ while :; do
   # `filter=all` is REQUIRED, not cosmetic: the endpoint's default is `latest`, which
   # returns only the newest same-name run and so hides a superseded attempt entirely.
   cr_json="$(gh api "repos/$REPO/commits/$head/check-runs?filter=all" --paginate 2>&1)" || {
-    watch_is_rate_limited "$cr_json" && watch_fatal_rate_limit "pr_state_watch" "$(printf '%s' "$cr_json" | head -c 200)"
+    gh_rc=$?
+    watch_is_rate_limited "$cr_json" "$gh_rc" && watch_fatal_rate_limit "pr_state_watch" "$(printf '%s' "$cr_json" | head -c 200)"
     echo "pr_state_watch: gh api check-runs failed for $REPO@$head" >&2; exit 5; }
   watch_is_rate_limited "$cr_json" && watch_fatal_rate_limit "pr_state_watch" "$(printf '%s' "$cr_json" | head -c 200)"
   verdict="$(printf '%s' "$cr_json" | jq -r --arg name "$REQUIRED_CHECK" '
@@ -206,7 +208,8 @@ while :; do
   # (opencharly/marketplace#403).
   if [ "$verdict" = "BLOCKED" ]; then
     wr_json="$(gh api "repos/$REPO/actions/runs?head_sha=$head&per_page=100" 2>&1)" || {
-      watch_is_rate_limited "$wr_json" && watch_fatal_rate_limit "pr_state_watch" "$(printf '%s' "$wr_json" | head -c 200)"
+      gh_rc=$?
+      watch_is_rate_limited "$wr_json" "$gh_rc" && watch_fatal_rate_limit "pr_state_watch" "$(printf '%s' "$wr_json" | head -c 200)"
       echo "pr_state_watch: gh api actions/runs failed for $REPO@$head" >&2; exit 5; }
     watch_is_rate_limited "$wr_json" && watch_fatal_rate_limit "pr_state_watch" "$(printf '%s' "$wr_json" | head -c 200)"
     inflight="$(printf '%s' "$wr_json" | jq -r --arg wf "$REQUIRED_WORKFLOW" '
@@ -244,7 +247,8 @@ while :; do
     # whose gate did produce one. gh emits ONE JSON ARRAY PER PAGE, so the jq below slurps the
     # pages and flattens them (`add`) before filtering.
     vc_json="$(gh api --paginate "repos/$REPO/issues/$PR/comments" 2>&1)" || {
-      watch_is_rate_limited "$vc_json" && watch_fatal_rate_limit "pr_state_watch" "$(printf '%s' "$vc_json" | head -c 200)"
+      gh_rc=$?
+      watch_is_rate_limited "$vc_json" "$gh_rc" && watch_fatal_rate_limit "pr_state_watch" "$(printf '%s' "$vc_json" | head -c 200)"
       echo "pr_state_watch: gh api issue comments failed for $REPO#$PR" >&2; exit 5; }
     watch_is_rate_limited "$vc_json" && watch_fatal_rate_limit "pr_state_watch" "$(printf '%s' "$vc_json" | head -c 200)"
     class="$(printf '%s' "$vc_json" | jq -sr --arg author "$VALIDATOR_AUTHOR" --arg head "$head" --arg since "$run_started" '

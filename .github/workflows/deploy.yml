@@ -64,23 +64,14 @@ jobs:
         # refs list — and every skill:/hook: entity resolves transitively from the @github refs
         # in it. That is the ONE input.
         #
-        # It used to be the charly checkout, and the refs list had to be copied IN over charly's
-        # own stale copy, because charly's candy/ dirs owned in-repo skill entities. Both reasons
-        # are gone: the candy de-submodule cutover moved every candy to its own repo and emptied
-        # charly/candy/ entirely (opencharly/charly#457). Verified byte-identical — generating
-        # with --root pointed here produces the same 397 artifacts across 26 families.
-        #
-        # No `cd /tmp/charly` any more. That used to be required to borrow the CLI grammar:
-        # `marketplace` is an out-of-tree command plugin, and the word only enters the grammar
-        # when charly runs inside a project whose prescan declares it. This repo now declares it
-        # itself (tools/marketplace-cli), so the verb resolves here. The charly clone is purely
-        # the BINARY.
+        # This project declares the marketplace command; the charly checkout supplies
+        # the build binary, not the corpus sources or generation root.
         run: |
           /tmp/charly/bin/charly marketplace generate --root ${{ github.workspace }} --out ${{ github.workspace }}
 
       - name: Drift gate — the committed corpus must match the pinned charly
         # Regeneration on a clean tree is a no-op by contract (hand-authored files carry no
-        # DO-NOT-EDIT header and sit outside the known paths, so they are never rewritten). A
+        # DO-NOT-EDIT header and sit outside the known paths, so they are never rewritten).
         # A diff here means this repo's refs list moved without the corpus being regenerated
         # in the same commit (or, less often, that the generator changed behind the CI-time
         # charly tag).

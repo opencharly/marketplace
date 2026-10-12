@@ -100,8 +100,7 @@ watch_rate_backoff_factor() {
 
 # gql_alias <item> — the GraphQL alias for one "owner/repo#num" item. GraphQL alias
 # names allow only [A-Za-z0-9_], so the whole item is sanitized to that set. It is
-# derived the SAME way in gh_watch.sh's request builder AND response parser (and in
-# the test fixtures) so the two can never drift.
+# Request builders and response parsers call this one implementation.
 gql_alias() { printf 'r_%s' "$(printf '%s' "$1" | tr -c 'A-Za-z0-9_' '_')"; }
 
 # watch_run_latest <owner/repo> <workflow-name> — the newest COMPLETED run of
@@ -124,7 +123,7 @@ watch_run_latest() {
   # (which a caller would treat as a benign empty seed and keep polling). Because this
   # helper is called INSIDE a `$(…)`, `exit 7` ends the whole watcher (the caller's
   # assignment runs in a subshell) — the correct hard abort.
-  if watch_is_rate_limited "$out"; then
+  if watch_is_rate_limited "$out" "$rc"; then
     watch_fatal_rate_limit "watcher" "$(printf '%s' "$out" | head -c 200)"
   fi
   [ "$rc" -eq 0 ] || { printf '%s' "$out" >&2; return 1; }
@@ -193,8 +192,8 @@ watch_rate_gate() {
 
 # ── rate-limit HARD ABORT (a stop condition, never a retry) ───────────────────
 # A rate limit is not a transient: retrying hammers the wall and hides the cause.
-# The moment a poll observes a rate-limit signal — HTTP 403/429, a body/header
-# `x-ratelimit-remaining: 0`, or a GraphQL `errors[].type == RATE_LIMIT` — the
+# The moment a failed poll reports throttling or a top-level API error envelope
+# identifies a rate limit (including GraphQL `errors[].type == RATE_LIMIT`), the
 # watcher prints a FATAL naming the reset instant and exits NON-ZERO (7). MEASURED
 # trap: `gh api graphql` exits 0 while its JSON body carries the RATE_LIMIT error,
 # so a caller that trusted the exit code alone would silently treat the empty body
@@ -210,16 +209,33 @@ watch_rate_reset() {
   printf '%s' "$r"
 }
 
-# watch_is_rate_limited <text> — success (0) iff <text> (a poll's combined output)
-# carries a rate-limit signal. Matches the REST 403/429 wall AND the GraphQL
-# RATE_LIMIT error type (case-insensitive on the message), so both transports are
-# covered by ONE predicate.
+# watch_is_rate_limited <output> [exit-code] — inspect API error envelopes,
+# never user-authored fields in successful data (comments, titles, logs).
+# HTTP 200 GraphQL failures live in top-level errors[] even when gh exits zero.
+# Text diagnostics are meaningful only when the gh command itself failed.
 watch_is_rate_limited() {
-  local t="$1"
-  case "$t" in
-    *'"type":"RATE_LIMIT"'*|*'"type": "RATE_LIMIT"'*|*RATE_LIMITED*|*'rate limit already exceeded'*|*'API rate limit exceeded'*|*'HTTP 403'*|*'HTTP 429'*|*'x-ratelimit-remaining: 0'*) return 0 ;;
-  esac
-  return 1
+  local t="$1" rc="${2:-0}"
+  # gh may append its text diagnostic directly after the API JSON. Inspect each
+  # complete envelope and stop on a recognized quota error before that suffix.
+  if jq -e '
+      def limited:
+        if .type? == "RATE_LIMIT" or .type? == "RATE_LIMITED"
+           or .code? == "graphql_rate_limit" then true
+        elif .type? != null or .code? != null then false
+        else
+          (.status? == 429 or .status? == "429")
+          or ((.message? // "") | test(
+            "^(API )?rate.?limit (already )?exceeded|^You have exceeded (a |the )?(secondary |primary )?rate.?limit"; "i"))
+        end;
+      if type == "object" and
+        ((any(.errors[]?; limited)) or (has("message") and limited))
+      then halt else empty end
+      ' <<<"$t" >/dev/null 2>&1; then
+    return 0
+  fi
+  [ "$rc" -ne 0 ] || return 1
+  LC_ALL=C grep -Eiq \
+    '^[[:space:]]*((gh|GraphQL|graphql):[[:space:]]*)?(HTTP 403:[[:space:]]*)?(HTTP 429|API rate.?limit.*exceeded|rate.?limit.*exceeded|You have exceeded (a |the )?(secondary |primary )?rate.?limit|x-ratelimit-remaining:[[:space:]]*0)' <<<"$t"
 }
 
 # watch_rc_guard <rc> — re-raise a rate-limit abort that happened INSIDE a `$(…)`
