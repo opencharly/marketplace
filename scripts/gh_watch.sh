@@ -199,13 +199,13 @@ has() { watch_has "$1" "$EVENTS"; }
 # honest. The only conditional fetch is the item-scoped `probe_run_id` REST probe,
 # run solely when the candidate run id moved.
 #
-# RATE-LIMIT HARD ABORT: any rate-limit signal — HTTP 403/429, an `errors[].type ==
-# RATE_LIMIT` body, or a zero/absent quota — is a STOP, not a retry. `graphql_batch`
+# RATE-LIMIT HARD ABORT: failed-command throttle diagnostics, top-level API error
+# envelopes, or zero quota are a STOP, not a retry. `graphql_batch`
 # exits 7 via `watch_fatal_rate_limit` (naming the reset instant). MEASURED trap:
 # `gh api graphql` exits 0 while its body carries the RATE_LIMIT error, so the payload
-# is inspected, never the exit code alone.
+# error envelope is inspected, never the exit code alone or successful data fields.
 
-# gql_alias is defined in _watch_common.sh (shared with the test fixtures).
+# gql_alias is defined in _watch_common.sh.
 
 # graphql_batch → prints the raw JSON on stdout; on a rate-limit signal it prints the
 # signal to stderr and exits 7 (the poll loop aborts). Any other failure exits 8 (a
@@ -225,7 +225,7 @@ graphql_batch() {
   done
   q="query { ${sel} }"
   out="$(gh api graphql -f "query=$q" 2>&1)"; rc=$?
-  if watch_is_rate_limited "$out"; then
+  if watch_is_rate_limited "$out" "$rc"; then
     watch_fatal_rate_limit "gh_watch" "$(printf '%s' "$out" | head -c 200)"
   fi
   [ "$rc" -eq 0 ] || { printf 'gh_watch: graphql poll failed (%s): %s\n' "$rc" "$(printf '%s' "$out" | head -c 200)" >&2; exit 8; }
@@ -276,7 +276,7 @@ probe_run_id() {
   { exec 9>&-; } 2>/dev/null || true
   local out rc
   out="$(gh api "repos/$1/actions/runs/$2" 2>&1)"; rc=$?
-  if watch_is_rate_limited "$out"; then
+  if watch_is_rate_limited "$out" "$rc"; then
     watch_fatal_rate_limit "gh_watch" "$(printf '%s' "$out" | head -c 200)"
   fi
   [ "$rc" -eq 0 ] || return 0

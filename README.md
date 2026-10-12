@@ -2,18 +2,13 @@
 
 Claude Code, Codex, Kimi, and pi plugins for OpenCharly — the fully equipped factory floor for you and your agents.
 
-This repository IS the marketplace: every plugin family lives flat at the repo root
-(`<family>/skills/…`, `<family>/agents/…`, per-family manifests), and the root carries one
-catalog per harness. Everything under the corpus trees is **GENERATED** from the
-[opencharly/charly](https://github.com/opencharly/charly) candies by
-`charly marketplace generate` — edit a `skill:`/`hook:`/`marketplace:` entity in charly's
-`candy/`, regenerate, and land the corpus here. Hand-authored files are only
-`README.md`, `AGENTS.md`, `LICENSE`, `CHANGELOG/`, `scripts/squash_body.py`,
-`scripts/refresh-refs.sh`, `scripts/pr_state_watch.sh`, `scripts/pr_watch_many.sh`,
-`scripts/gh_watch.sh`, `scripts/_watch_common.sh`, `scripts/watch_family_test.sh`
-and `kimi-user-config.toml` — everything else carries a
-DO-NOT-EDIT header (`DISPATCHER.md` carries the generated-dispatcher markers in place
-of that header).
+This repository IS the marketplace: plugin families live at the repo root
+(`<family>/skills/…`, `<family>/agents/…`, per-family manifests), alongside the harness
+catalogs. Skill and catalog sources live in standalone owning candy repositories,
+selected by the canonical [refs list](candy/charly-marketplace/charly.yml).
+`charly marketplace generate` projects those pinned sources into this repository.
+Hand-authored repository infrastructure includes `README.md`, `AGENTS.md`, `LICENSE`,
+`CHANGELOG/`, `scripts/`, workflows and `kimi-user-config.toml`.
 
 ## How this marketplace is organized
 
@@ -51,8 +46,7 @@ The `deploy.yml` workflow is the SOLE owner of generation: it clones charly at t
 CI-time tag (this repo carries no charly submodule — a declared submodule is initialized on
 every fetch, which dragged the whole charly repo into consumer trees), builds the binary,
 regenerates the corpus, and **fails closed on any diff** (the drift gate — including untracked
-files). A marketplace PR bumps the charly pin and carries the regenerated corpus in the same
-change.
+files). A refs-list change carries its regenerated corpus in the same change.
 
 The generator produces the corpus and nothing else. It no longer writes charly's harness
 surface (`.claude/hooks`, a `.claude/settings.json` merge, the R0 dispatcher splice), and the
@@ -120,12 +114,8 @@ surface (`.claude/hooks`, a `.claude/settings.json` merge, the R0 dispatcher spl
 
 ## Contributing
 
-Skills, agents, hooks and catalog metadata are all generated — **edit the charly candy
-entities** (`candy/<name>/charly.yml` in opencharly/charly) and regenerate. A skill that
-must not be regenerated has no place here. The corpus validator (`charly marketplace drift
---root ./charly --out .`) must be a no-op on every commit, and the deploy workflow enforces
-it.
-<!-- drift gate proof: see the PR body (in-repo regeneration, clean status) -->
-<!-- drift gate: in-repo regeneration must be a no-op (see PR body) -->
-<!-- corpus regenerated from the pinned charly v2026.277.1528 -->
-<!-- drift gate: in-repo regeneration is a no-op (verified) -->
+Edit source entities in their owning standalone candy repositories, then advance the
+[refs list](candy/charly-marketplace/charly.yml) and regenerate the affected corpus.
+The generation root is this marketplace checkout. The canonical generation procedure
+is in [AGENTS.md](AGENTS.md); the deploy workflow rejects drift, including untracked
+regenerated files.

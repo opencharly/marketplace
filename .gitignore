@@ -17,3 +17,6 @@ bin/
 # failure — a self-inflicted one, with no tracked file to explain it (marketplace#412).
 __pycache__/
 *.pyc
+
+# Declared CI toolchain checkout; not an authored or generated corpus artifact.
+/.ci/charly/

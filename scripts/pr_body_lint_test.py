@@ -39,7 +39,8 @@ class Fixtures(unittest.TestCase):
         self.assertTrue(any("does not answer R1" in x for x in f), f)
 
     def test_clean_body_passes(self):
-        self.assertEqual(run((DATA / "clean-marketplace-405.md").read_text()), [])
+        # Use the canonical merged PR body instead of a duplicate historical fixture.
+        self.assertEqual(run((HERE.parent / "CHANGELOG/2026.275.0418.md").read_text()), [])
 
 
 class Rules(unittest.TestCase):

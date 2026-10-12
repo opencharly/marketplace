@@ -206,10 +206,7 @@ though it were fresh. The guards, all mandatory:
   state never spuriously fires beyond the deliberate STATE semantics.
 
 A stale fire is noise that trains the operator to ignore the watcher; the
-discipline is the same "watch the outcome, not noise" rule as above. The
-regression is locked by `scripts/watch_family_test.sh` ("a DIFFERENT but
-still-old run never fires" / "empty seed + a pre-arm run never fires" — both
-negative, with a positive control that a run completing AFTER arm DOES fire).
+discipline is the same "watch the outcome, not noise" rule as above.
 
 **`pr_watch_many.sh` is REPO-SCOPED.** It watches `<validator>` runs across the
 repos you pass — it does **not** filter to your PR, so it fires on ANY newer
