@@ -54,6 +54,13 @@ NEW repository.
    from the merged PR body (the body IS the changelog). Proxy-consumed root
    modules (`sdk`, `spec`, `plugin-gh`) get the Go-module `v0.<YYYYDDD>.<HHMM>`
    form instead.
+
+   **A landing in one of those repos is not tagged at the merge instant.** The org sweep that mints the tag
+   runs on `workflow_run` of `charly/pr-validator` and scans the last 24h of merged PRs, so a native-auto-merge
+   squash - which GitHub Actions creates ZERO runs for - is tagged when the NEXT validator completes in that
+   repo, not when it merges. Measured and diagnosed on `sdk`'s own `.github/workflows/tag-on-merge.yml`, whose
+   header RCA states it: do not read a missing tag minutes after a merge in `sdk`, `spec` or `plugin-gh` as a
+   defect.
 4. A body-only fix after the head was pushed needs NO empty commit: re-run the
    failed run MANUALLY with `gh api -X POST repos/<owner>/<repo>/actions/runs/<run-id>/rerun`
    (not `gh run rerun`, which 404s on the org-required workflow; the re-run's newer
