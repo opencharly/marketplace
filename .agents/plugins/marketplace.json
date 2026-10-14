@@ -209,6 +209,18 @@
       "category": "images"
     },
     {
+      "name": "charly-firecracker",
+      "source": {
+        "source": "local",
+        "path": "./firecracker"
+      },
+      "policy": {
+        "installation": "INSTALLED_BY_DEFAULT",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "kind"
+    },
+    {
       "name": "charly-hermes",
       "source": {
         "source": "local",
