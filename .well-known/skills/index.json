@@ -660,6 +660,12 @@
       ]
     },
     {
+      "name": "firecracker",
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
       "name": "fonts-extended",
       "files": [
         "SKILL.md"

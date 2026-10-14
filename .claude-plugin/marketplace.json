@@ -322,6 +322,25 @@
       "category": "images"
     },
     {
+      "name": "charly-firecracker",
+      "source": "./firecracker",
+      "description": "Schema authoring reference for the `firecracker` microVM substrate — the root-drive + kernel artefact, the VMM API surface (what it answers and what it rejects), and the boot recipe that needs no TAP, no root and no network.",
+      "author": {
+        "name": "opencharly"
+      },
+      "homepage": "https://github.com/opencharly/charly",
+      "repository": "https://github.com/opencharly/marketplace",
+      "license": "MIT",
+      "keywords": [
+        "charly",
+        "firecracker",
+        "microvm",
+        "vmm",
+        "kvm"
+      ],
+      "category": "kind"
+    },
+    {
       "name": "charly-hermes",
       "source": "./hermes",
       "description": "Self-contained skills for the hermes agent image (hermes + hermes-playwright variants). Consumes the jupyter MCP server for notebook manipulation — enable charly-jupyter alongside.",

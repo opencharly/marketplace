@@ -14,7 +14,7 @@ charly-marketplace:
             # here ('@github.com/opencharly/charly:vTAG') was not a candy node and
             # resolved to unknown candy "github.com/opencharly/charly" - silently in
             # this repo, but as a hard validation error in every consumer of the list.
-            - '@github.com/opencharly/pod-charly-hooks:v2026.281.2104'
+            - '@github.com/opencharly/pod-charly-hooks:v2026.287.2315'
             - '@github.com/opencharly/eval-omarchy:v2026.277.2043'
             # The distro-* image families own their OS/base skills (relocated from the
             # layer-charly-distros concept aggregator — this pin is the corpus source for
@@ -251,6 +251,10 @@ charly-marketplace:
             # each owning its harness skill.
             - '@github.com/opencharly/layer-nerdctl/candy/layer-nerdctl:v2026.266.1833'
             - '@github.com/opencharly/plugin-nerdctl/candy/plugin-nerdctl:v2026.266.1833'
+
+            - '@github.com/opencharly/plugin-firecracker/candy/plugin-firecracker:v2026.287.2236'
+            # plugin-firecracker owns the `firecracker` family skill (microVM substrate). Pinned at the tag its own
+            # merge minted (tag-on-merge), which is also what the drift gate checks against.
         plan:
             - check: the marketplace corpus source resolves via the charly binary
               exit_status: 0
