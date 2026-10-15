@@ -159,7 +159,7 @@ Confirm the fix by watching the job, not the runner: a picked-up job flips to
 
 A runner whose job is to execute `gh`-driven workflows (the org `pr-validator`
 runs `gh api` / `gh pr comment` / `gh pr merge`) needs the `gh` CLI in its
-image — compose `/charly-tools:gh` (it is not part of the base toolchain). A
+image — compose `/charly-coder:gh` (it is not part of the base toolchain). A
 runner without it fails the workflow at its first `gh` call.
 
 ## Used In Boxes

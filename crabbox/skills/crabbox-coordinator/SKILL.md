@@ -53,7 +53,7 @@ the broker and drives broker-backed `crabbox:` verb methods
 
 ## Cross-References
 
-- `/charly-tools:crabbox` — the CLI candy (layer-crabbox).
+- `/charly-check:crabbox` — the CLI candy (layer-crabbox).
 - `/charly-check:crabbox` — the `crabbox:` check verb (plugin-crabbox).
 - `/charly-infrastructure:postgresql` — the backing database candy.
 - Upstream [Crabbox](https://github.com/openclaw/crabbox) coordinator docs.
