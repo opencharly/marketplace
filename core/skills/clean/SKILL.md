@@ -49,12 +49,30 @@ charly clean --deep --dry-run   # the safe default probe: report the would-remov
 charly clean --keep N     # override the retention count for this run (0 = use defaults:)
 charly clean --invalidate '<glob>'   # remove charly-labeled image tags matching the glob
                                      # (full ref or last segment; in-use skipped; runs ONLY this)
+charly clean --cache      # reclaim unreferenced blobs from every named charly cache (the
+                          # content-addressed ArtifactStore's own GC); reports each store's live
+                          # entries + the blobs/bytes it would reclaim; runs ONLY this category
+charly clean --scopes     # reap HUNG transient build scopes — the systemd user scopes
+                          # buildah/podman put a build container into (runc-buildah-*.scope).
+                          # A scope is stopped only when it has hung; a live one is left alone
 ```
 
-With neither `--images` nor `--check` nor `--deep`, the three DEFAULT categories run (images +
-check + makepkg) — unchanged, `--deep` NEVER fires implicitly. `--keep N` overrides both the
-image and check-run retention counts for the invocation (it does not affect `--deep`, which has
-no keep-N — it purges every untagged image).
+With **none** of `--images` / `--check` / `--deep` / `--cache` / `--scopes`, the **four** DEFAULT categories
+run (image-tag + check-run + build-candy + scopes) — unchanged, and `--deep` and `--cache` NEVER fire
+implicitly. `--scopes` IS in that list because it is itself a category flag: the test the code applies is
+`anyCategory := images || check || deep || cacheGC || scopes`, so naming ANY one of the five suppresses the
+default set and runs only what was named (plus, for `--deep`, the scope reap below).
+**`--scopes` is a default and `--deep` implies it:** `cleanCategories` computes
+`doScopes = scopes || deep || !anyCategory`, so a bare `charly clean` reaps hung build scopes
+and `--deep` does too, while `--deep` on its own runs only the image half plus that scope reap — and
+`--cache` on its own runs only the cache sweep, with `doScopes` false.
+`--keep N` overrides both the image and check-run retention counts for the invocation (it does
+not affect `--deep`, which has no keep-N — it purges every untagged image).
+**Category names, from the engine's own header** (`retention.go`): *image-tag / build-candy / check-run
+pruning*, plus the `--deep` store-wide purge and the `--cache` blob sweep. The middle one prunes
+`.build/_candy/<candy>.<version>/` per candy (`pruneBuildCandyDirs`) — **the sweep this text used to call
+"makepkg leftovers", a name the code no longer carries**; the only remaining `makepkg` in the module is a
+comment describing an unrelated unconditional cleanup, and it is stale.
 
 **`--deep` — the store-wide untagged/dangling-image purge.** The default image-tag sweep above
 only ever touches images carrying the `ai.opencharly.box` label. A multi-stage build's
