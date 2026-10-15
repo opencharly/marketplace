@@ -97,7 +97,7 @@ charly-marketplace:
             - '@github.com/opencharly/layer-sherpa-onnx:v2026.281.2120'
             - '@github.com/opencharly/layer-camsnap:v2026.281.1714'
             - '@github.com/opencharly/layer-shortbread:v2026.274.0643'
-            - '@github.com/opencharly/pod-charly-core:v2026.282.2344'
+            - '@github.com/opencharly/pod-charly-core:v2026.288.2245'
             - '@github.com/opencharly/layer-kde-shell:v2026.274.0753'
             - '@github.com/opencharly/layer-charly-distros:v2026.271.2154'
             - '@github.com/opencharly/layer-omarchy-base:v2026.272.0437'
