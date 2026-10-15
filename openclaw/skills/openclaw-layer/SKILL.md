@@ -66,6 +66,5 @@ pattern as the `chrome` candy (CDP on port 9222).
 
 ## Related
 
-- `/charly-openclaw:openclaw` — the box that composes this layer
-- `/charly-openclaw:openclaw` — the `openclaw:` check verb, served by `opencharly/plugin-openclaw`
+- `/charly-openclaw:openclaw` — the box that composes this layer, and the `openclaw:` check verb it serves (`opencharly/plugin-openclaw`)
 - `/charly-coder:nodejs`, `/charly-infrastructure:socat`, `/charly-infrastructure:supervisord` — this layer's dependencies
