@@ -33,6 +33,16 @@ both body-only, and neither covered by classes 1-5.
 4. **Surfaced-failure parking (R1, CONC)**: a failing check pasted with
    "pre-existing / unrelated / environmental" framing and neither fixed nor
    filed as a real issue under `## Filed issues`.
+
+   **A gate your change turns RED in ANOTHER repo is the same class, whatever its
+   framing.** "The normal producer-first order" describes *why* the red is
+   expected; it does not dispose of the finding. Measured: a plugin PR that
+   canonicalized data the consumer had committed made the consumer's own
+   fail-closed `drift` gate report one stale artifact; the consequence was
+   disclosed in the body and not filed, and the validator correctly BLOCKed it.
+   A producer PR cannot regenerate another repository's artifact — which is
+   exactly why the remedy is the FILED half: an issue in the repo that owns the
+   artifact, a `BLOCKS` on both threads, and the close condition stated.
 5. **Split cutover (HC)**: content removed from surface A in this PR while
    its replacement home on surface B is deferred.
 6. **The asserted-check overclaim (universal / negative quantifier)**: a claim
@@ -43,6 +53,17 @@ both body-only, and neither covered by classes 1-5.
    URL checked", two configured endpoints missing). A completeness claim IS a
    check: paste the command that proves it, or drop the claim — never leave a
    quantifier standing on the author's confidence.
+
+   **A PROPERTY of the surface the PR changes is the same species, and it does
+   not look like a quantifier.** Which fields are required, what a default is,
+   what a key's type is, what a value's indicator means — each is a check about
+   the very file the diff edits, and stating it from the design notes instead of
+   the committed file is the identical failure. Measured: `spec#247` round 1
+   BLOCKed on "*`#Skill`'s `name`, `description` and `content` become optional;
+   `family`, `owner`, `triggers` and `category` stay required*", when only
+   `family` and `owner` carried no `?` — `triggers` and `category` were already
+   optional and stayed so. No command stood behind the sentence, and the PR's
+   own test contradicted it.
 
 ## The preflight (run BEFORE the first push)
 
@@ -65,6 +86,31 @@ both body-only, and neither covered by classes 1-5.
    read its siblings (the other `description:`s in the same file) for the same
    phrase. `docs#142` is the same failure one level up: a completeness claim
    ("every URL checked") that two lines of the changed file already refuted.
+   **3c. Derive every asserted PROPERTY of the changed surface from the
+   COMMITTED file, and keep the claim and its command adjacent.** The command
+   that decides a requiredness, a default, a key's type or an indicator's
+   meaning runs against the file as committed — after the edit, from `HEAD` —
+   never the working tree and never the pre-edit text, and its output goes in the
+   body beside the claim or the claim is dropped. Reading the file and then
+   writing the claim from memory are indistinguishable in the resulting body;
+   only the pasted output tells them apart.
+   **3d. A fence is evidence about a HEAD, and it EXPIRES when the head moves —
+   re-run or drop EVERY fence in the body, not only the ones you just wrote.** A
+   fence carried across a head is indistinguishable from a fabricated paste to
+   the validator, which is right to block it. Measured: `spec#247` round 3 blocked
+   on a round-1 fence whose pasted `git diff --stat` showed `+38/−11` —
+   legitimate at round 1, when the generated file was not yet committed, and a
+   no-op by round 3. That round exposed the sub-case too: the command's first
+   re-run FAILED on a `TMPDIR` that did not exist, and a command that cannot
+   succeed is not evidence — an `rc` read from a pipeline rather than from the
+   command is how such a failure hides.
+   **3e. A consequence your change causes in ANOTHER repo is FILED, never
+   narrated.** When the diff turns a CONSUMER's gate red — its corpus, its
+   drift, a pin that no longer matches — file the issue in the repo that owns
+   the artefact, post `BLOCKS` on both threads, and state the close condition.
+   "Expected", "by design" and "the normal producer-first order" explain WHY it
+   is red; none of them is a disposition. R1's remedy for a consequence you
+   cannot fix in-tree is the filed half, and only the filed half.
 4. Account for EVERY applicable rule (the repo's numbered rules AND R1–R10)
    with a one-line `HOW` or `N/A — <reason>`; never a bare `N/A.`
 5. NEVER surface a failure you cannot own. Either fix it (including the coupled

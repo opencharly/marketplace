@@ -183,7 +183,43 @@ as durable. Full procedure and the harness-binding detail:
   operation, ensure the ledger reflects it, so a later interruption resumes
   from STATE, not memory.
 
+- **One writer per artefact, and a VERSION GUARD on every read-modify-write.** Two sessions appending to the
+    same ledger or editing the same file is a **lost update**, not a merge: the second writer read a stale
+    version, its write overwrites the first's, and **nothing reports an error** - the surviving artefact is one
+    of the two, chosen by timing. The guard is the write's PRECONDITION: read the artefact **with** its version,
+    and refuse the write if the version moved (a stale-version error IS this guard firing - re-read, rebase the
+    intended change onto the new content, retry). Where no version is exposed, the durable substitute is a
+    **single writer**: one session owns the artefact and the rest hand work over through a coordination
+    comment instead of writing it themselves.
+- **A status written from memory is a claim about the WRONG MOMENT.** Re-read the artefact before reporting
+    on it. *This is the lost update read one step earlier: the reader held a stale version and reported it as
+    current - and it is the same mechanism that presents downstream as `a concurrent writer presents as a
+    flaky test`.*
+
 The umbrella rulebook states this as a Part II rule (`AGENTS.md`, "Ledger and
 interruption safety") and points here for the detail. Where this guidance
 itself belongs is owned by the sibling `/charly-internals:skills` ("Where
 guidance belongs"): mandate in `AGENTS.md`, detail in the skill.
+
+## A control that SKIPS is not a control
+
+Three occurrences of ONE defect, all measured in a single night, on three levels: **a
+check that did not run — or that ran against a narrower object than the claim — was
+read as a pass.**
+
+1. **A suite proved the FEATURE, not the CONTRACT.** A plugin's schema documented two
+   edge shapes and the suite exercised one, so nothing could fail when the code
+   ignored the shape the prose promised.
+2. **A live gate drove only the already-guarded shape.** The same change's gate arm
+   used the shape the code already handled, so the behaviour the change ADDED had no
+   live execution at all and the gate still reached its PASS line.
+3. **A control SKIPPED two of its five assertions and printed `OK`.** They were
+   skipped for want of uninitialized inputs; initializing them turned two `SKIP`s into
+   `PASS`es and disclosed a fifth check that had also been quietly not running.
+
+**Read a control's OUTPUT, never its exit code or its headline.** A `SKIP`, an
+uninitialized input, an empty result set, and a narrowed arm all render as green.
+Before trusting any gate: count the assertions it CLAIMS, count the ones it RAN, and
+make the two numbers agree — or re-run it with its inputs materialized. The same
+discipline governs a monitor: a watcher armed over a stale item list reports silence,
+and silence is the very thing it exists to detect.
