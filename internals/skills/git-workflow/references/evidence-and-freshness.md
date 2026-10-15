@@ -729,4 +729,79 @@ whatsoever. Zero-on-both-sides can also be a true answer to a badly chosen quest
 (the phrase genuinely was never there), so it does not prove the instrument broke —
 it proves the check never DISCRIMINATED, which is sufficient grounds to refuse the
 result either way.
+### A claim about an artefact you have not read
+
+Six failures in one session, and every one is the same act: asserting something ABOUT an
+artefact instead of reading it. Each had a one-command fix available at the moment it was
+written, and each was caught by a validator reading the thing the author had not.
+
+- **A copied file's prose is not yours.** A dispatcher file copied byte-for-byte into 27
+  repositories carried the ORIGINAL repo's RCA in its comment block — "measured in this repo
+  across 8 merges and 17 schedule runs", "PR #3's tag landed 4+ hours late". The bytes were
+  identical and the *claims* were false in every copy. Byte-equality is a true and insufficient
+  gate when the artefact carries text that is only true where it was written. State provenance,
+  or make the prose repo-neutral.
+- **A truncated hash is not identity.** A 16-character `sha256` prefix pasted as proof of
+  byte-identity establishes a prefix. Paste the whole digest, and derive it per artefact — a
+  re-usable value proves nothing about the copy in front of you.
+- **An empty stream has a hash.** `e3b0c44298fc…` is the digest of NOTHING; it appears whenever a
+  probe 404s and its empty output reaches `sha256sum`. A negative or degenerate result is a trap
+  when the result is not actually empty — confirm the fetch succeeded before believing the digest.
+- **Read the whole artefact, not the parts your rule cites.** A rulebook answer declared the
+  `wait-for-merge` poll loop "not in anything added here" — from memory, having read the file's
+  comment and its triggers and never its `jobs:`. The loop was in the diff. A justification is a
+  claim, and gets the same gate as any other.
+- **Read the diff GLOBALLY, and account for every `-` line.** Four rounds of one lane shipped
+  collateral damage — a swallowed heading, an orphaned subsection, 77 deleted lines — because each
+  edit read only the diff of the region it MEANT to change. For a narrative file, deletion is the
+  dangerous direction: an addition is visible in the result, a deletion only in the diff. Read the
+  hunk HEADERS too: `@@ -554,77 +557,21 @@` is the alarm.
+- **Never format the data you are about to parse.** Indenting a file for display with
+  `sed 's/^/    /' > file` shifted every field, so a later `read repo num state` bound the wrong
+  columns and the guard rejected every row silently. View and data are different targets — and so
+  are they when you read an indentation through `cat -A | cut` and then edit against it.
+
+The shared remedy is one sentence: **before writing a sentence about an artefact, run the command
+that would falsify it.** The cost is one tool call; the alternative, measured here, was nine BLOCKs
+and two full passes across 25 pull requests.
+
+### Every check must be derived from the artefact, in the artefact's own terms
+
+Twelve failures in one session, and they are one failure: a check whose SHAPE decided its answer, so that it
+measured the author's intent instead of the artefact in front of it. Each was caught by a validator or a
+reviewer reading the thing the author had not, and each had a one-command fix available when it was written.
+
+- **A count must name its object.** Two different numbers both looked like "6 steps" — a phase table and a
+  plan-check line — and the prose used one to describe the other. State what was counted.
+- **A truncated hash is not identity.** A 16-character prefix proves a prefix. Paste the whole digest, derived
+  per artefact.
+- **An empty stream has a hash.** `e3b0c44298fc...` is the digest of NOTHING, and it is what a 404'd fetch
+  produces. Confirm the fetch succeeded before believing the digest.
+- **Read the whole artefact, not the parts your rule cites.** A rule answer declared a poll loop "not in
+  anything added here" — written from memory, having read the file's comment and triggers and never its
+  `jobs:`. A justification is a claim and gets the same gate.
+- **Read the diff GLOBALLY, and account for every `-` line.** Deletion is the dangerous direction: an addition
+  is visible in the result, a deletion only in the diff. Read the hunk headers too.
+- **Never format the data you are about to parse.** Indenting a file for display shifted every field and a
+  later `read` bound the wrong columns, silently. View and data are different targets — including when you
+  read an indentation through `cat -A` and then edit against it.
+- **Fix the CLASS, then verify the CLASS.** Every review round that answered only the finding it was handed
+  bought another round. So did three sweeps that repaired four of five sites.
+- **Sweep for the CLAIM, not the string.** Patterns written from the one sample you read miss the identical
+  assertion in different words.
+- **Verify on flattened content.** A sentence split across a line break defeats a line-shaped grep, and a
+  disown-pattern must itself be tuned or it reports provenance as a claim.
+- **A timestamp without a timezone is not a fact.** UTC read as local turned post-fix verdicts into pre-fix
+  ones and produced "no verdicts yet" while nine BLOCKs were already in.
+- **A count is not a tree.** Twenty watchers looked like twenty processes by `ps | wc -l`, were twenty-five
+  pollers each, and only PPIDs showed it. The process table decides what is watching, never the job listing.
+- **A blanket regex emits impossible states.** Rewriting every 40-hex string replaced a commit's TREE with its
+  own HEAD — output no reader could miss and no check looked at. Recomputed values come from the object each
+  one describes, per instance.
+
+The shared remedy is one sentence, and it is the whole of this section: **derive the check from the artefact,
+in the artefact's own terms, and run it on every instance rather than on the one in front of you.** A control
+you have to remember is not a control; a check that cannot be wrong is not a check.
+
+
 

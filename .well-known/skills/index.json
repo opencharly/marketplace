@@ -715,12 +715,13 @@
       "files": [
         "SKILL.md",
         "references/branch-and-pr-loop.md",
-        "references/multi-repo-coordination.md",
-        "references/validator-and-calver.md",
-        "references/umbrella-mechanics.md",
         "references/evidence-and-freshness.md",
-        "references/watch-and-wake.md",
-        "references/pre-validator-self-audit.md"
+        "references/multi-repo-coordination.md",
+        "references/pin-intent-and-currency.md",
+        "references/pre-validator-self-audit.md",
+        "references/umbrella-mechanics.md",
+        "references/validator-and-calver.md",
+        "references/watch-and-wake.md"
       ]
     },
     {

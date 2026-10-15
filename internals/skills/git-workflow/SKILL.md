@@ -110,6 +110,28 @@ never consumes it (`grep -c 'steps.pr.outputs'` in
 workflow contains no re-dispatch step. A `workflow_dispatch` does NOT land its check on the
 PR head by itself — supply `--ref`.
 
+### A body is a DERIVED artefact — four mechanical checks, not care
+
+The order above gets the body written before the push. **These four checks keep it TRUE**, and they are what actually
+blocks PRs: in one leg, five verdicts on one PR turned on prose while the code and the schema passed every single time.
+
+1. **PARSE, DO NOT TRANSCRIBE.** *When the body quotes a machine's output, read the machine's file and extract the field BY
+   KEY — never retype it.* **A parsed substitution cannot drift; a retyped one always can.**
+2. **EVERY CONTENT COMMIT INVALIDATES A MEASURED BODY.** *An empty `chore(pr): re-trigger` commit moves the HEAD and not the
+   TREE; a content commit moves BOTH — and with them every count, every tree key and every "the diff is N files"
+   statement.* **A tree key is stable only while commits are empty.**
+3. **EVERY CLAIM ABOUT STATE MUST BE LOCATED IN ITS ARTEFACT — and this includes the ledger, which is not exempt from
+   its own rules.** *A claim written inside a section that TEACHES checking is the worst place to leave one unchecked,
+   because the next reader trusts it precisely because of where it sits.*
+4. **FIXING A CLAIM MEANS FINDING EVERY INSTANCE OF IT.** *A body-wide claim is a property of the WHOLE body, so its repair
+   is a SWEEP — the same shape as an R5 deletion grep.* **And never write a NEGATIVE claim about the body's own contents
+   (`the only place`, `no other`, `nowhere else`): a positive description cannot be falsified by a later paragraph; a
+   negative one can, and will be.**
+
+**And name ONE owner consistently.** *If a body says a piece of proof is owed by the consumer and an issue says it is owed
+here, the two cannot both be the disposition.* **Grep the body for every statement about a responsibility and reconcile
+them before the push — being scrupulous is not the same as being consistent.**
+
 ### The POISON state — green verdict, still BLOCKED
 
 A branch protection rule requires ALL same-name `validate / validate` check runs on
@@ -234,6 +256,7 @@ commit — never re-dispatch the same head. Detail: the reference + the script h
 - **A monitor's alarm must have a CLEARING CONDITION, and its window must match the cadence of what it watches.** A state-shaped alarm fires at arm time while its condition holds, so on an item whose silence is permanent - a peer's PR nobody is pushing - the condition never clears, every re-arm re-fires immediately, and the watch never actually waits. *An alarm whose condition cannot clear is not an alarm; it is a loop with a label.* **Where nothing can clear it, do not arm it - record the state instead.** And for a long-lived backlog item, minutes of silence are the normal state: a window shorter than the item's expected cadence manufactures the alarm it claims to detect.
 - **A monitor must be a MANAGED background command, and re-arming REPLACES rather than adds.** A detached watcher cannot be waited on, so the harness is never woken by it and every round becomes a poll. Arm the watch as a managed job over the whole item list in ONE invocation (a batched poll costs one request for N items), then block on that job - *a completed job IS the wake.* **And check the per-args lock before trusting it: a changed item list is a DIFFERENT argument list, so "re-arming with the new list" starts a parallel watcher instead of replacing the live peer - duplicate polls and duplicate wakes. Stop the live watcher first, then arm one.** `ps` over the process table is the authority; a job listing is not, because an auto-rearming watcher detaches a successor and reads as finished while it is alive.
 - **Search existing issues/PRs before starting; file ONE proper issue if none; claim it before branching.** Before any non-trivial work — and before filing anything — search the whole org (`gh search issues <terms>` / `gh search prs <terms>` / `gh issue list -S <terms>`) and ADD to the existing issue/PR thread rather than creating a duplicate. If none exists, file ONE proper issue (specific title, the problem, the evidence, the intended scope) and reference it from the PR (`Closes #N` / `relates to #N`). The issue is the coordination point: check its owner (assignee / claim comment / status label) and CLAIM it (comment + assign) BEFORE you create a branch; if another session already owns it, coordinate on the thread instead of opening a competing PR. **Every issue resolved by a PR MUST be closed by an agent once that PR merges** (with a comment linking the merge); never leave a resolved issue open. Full protocol: B2b.
+- **Filter a PR list on `merged_at`, never on `merged`.** The GitHub pull-list API returns `merged: null` for PRs that HAVE merged, so a session that reads it as "not merged" reports landed work as in flight and then rebuilds it. *Measured: a fix called "unpushed" that had landed hours earlier, which understated a whole clause of a wave.* `merged_at` carries the timestamp or nothing at all, and `state=all` is what finds a merged PR; use those. The same shape applies to any bounded query: **a field that is null for "unknown" and null for "no" cannot be counted with**, and `per_page` is a window, not an inventory.
 - **Identity is in the footers; authority is in the comment verb.** On a triggered scope — two or more agents on one issue/PR, OR a blocking dependency (any `BLOCKS`/`UNBLOCKS` in play) — EVERY agent-authored comment and PR body carries the two-line footer in ONE canonical order, **`Agent:` FIRST and `Assisted-by:` LAST** (a PR body thereby also satisfies the validator's "`Assisted-by` FINAL line" requirement), and a coordination comment OPENS with a label from the CLOSED set — `CLAIM` · `OWNING` · `HANDING OVER` · `TAKING OVER` · `BLOCKS` · `UNBLOCKS` · `STATUS` · `RESOLVED`. Both are optional for a solo agent on an uncontended PR; the slug is NEVER appended to `Assisted-by`. Because same-account sessions are indistinguishable by comment author, the SLUG is authoritative for COORDINATION IDENTITY (who is doing the work), not the GitHub author: the LATEST `OWNING` (or `TAKING OVER`) for a scope wins, and you MUST NOT push to another slug's claimed branch/PR without a `HANDING OVER` addressed to you, a `TAKING OVER` naming your `authority:`, or operator sign-off. **The sign-off authority is a SEPARATE axis and is ACCOUNT-gated** — a maintainer sign-off is valid ONLY when the comment is posted by a maintainer-set account (`atrawog`/`aitrawog`), verified by the author label (`by @<login>`), never the prose; the two rules do not conflict (the slug governs WHO, the account governs the sign-off's VALIDITY). **Progress is a COMPLETED `charly/pr-validator` run, never session activity; takeover is comment-FIRST over a 60-minute FLOOR window; the auto-close carry-forward touches FOUR surfaces (closed PR, successor body, the issue, ownership transfer); and there is no R10 class exemption for a library/schema change.** An agent NEVER impersonates the operator. Full mechanics + rendered examples: B2b "agent identity and the coordination verb grammar".
 - **A dispatched workflow defaults to the DEFAULT BRANCH — `--ref` is MANDATORY.** `gh workflow run <wf> --ref <branch>` is required to dispatch CI on a PR head; a dispatch with no `--ref` runs on `main`, so its check registers there and counts for nothing on the PR's required checks. There is NO self-heal: the reusable workflow's `head_ref` output is never consumed and no dispatcher re-dispatches itself. For run-on-head diagnostics, target the PR's branch explicitly.
 - **Tree-safety before destructive actions (R6).** Check `git status` + `git stash list` before any destructive working-tree action — `git stash` discards in-progress work; `rm` on a tracked file is destructive. When the sandbox blocks an action, find a non-destructive alternative rather than working around it. The stash/pop cycle can itself silently un-stage a `git rm`: a stash taken while a deletion is staged restores the deletion as unstaged on `pop`, so a `git status` right after the cycle that shows the deleted file back as a plain unstaged change (rather than the staged deletion you left) has quietly lost the staging — re-stage it (`git rm <path>` again, or `git add -u`) before committing. A stash/pop round-trip is never a no-op on a mixed add+rm working tree.
@@ -261,15 +284,31 @@ end-user never sees them; they are the umbrella's own `charly task` entities.
 
 Inside the umbrella checkout the umbrella `AGENTS.md` governs (Part I is the org-wide
 rulebook; a subrepo's own `AGENTS.md` — e.g. `charly/AGENTS.md` for the charly
-core — adds repo-specific rules on top). The umbrella's own commands — never an ad-hoc substitute — are:
-`charly task sync` (policy-B pin bump), `charly task verify` (the full pinning gate — there is
-NO CI gate), `charly task hooks` (install the per-commit gate),
-`charly task map`. Hard rules there: **never edit inside a submodule** (change
-lands by PR to the owning repo; the umbrella only records gitlinks), run submodule
-git through `git -C <absolute-path>` from the umbrella root, no worktrees inside
-submodules, pin only MERGED refs, and bound every command's output (SIGPIPE is
-ignored — `grep` floods on `Broken pipe`). Full detail:
-`references/umbrella-mechanics.md`.
+core — adds repo-specific rules on top). The umbrella's own commands — never an ad-hoc substitute — answer
+three DIFFERENT questions: `charly task map` is **state** (a listing), `charly task
+verify` is **consistency** (each checkout matches the recorded gitlink), and
+**currency** — whether each recorded pin is the value its declared INTENT names, read
+from the REMOTE — is a **first-class mode of the ONE pin verb** (`verb: git-submodules`
+with `mode: currency`), never a second implementation and never a hand-measured table.
+**That is the CONTRACT this repository is adopting, and the mode is NOT yet in a
+released binary**: it lands with the pin-contract cutover in the plugin that owns the
+verb, and this repo's task surface moves onto it in the same cutover. Until both halves
+land, MEASURE the question rather than assuming a verb answers it — a build that
+predates the cutover answers `git-submodules: unknown
+mode "currency"`. The command, the shapes and the states are in
+`references/pin-intent-and-currency.md`.
+A green `verify` still does NOT answer the currency question — it passes on a tree
+whose submodules are all behind their remotes (measured: five of six `distro-*` were)
+— which is why the pin contract now has its own reference: the intent model and its
+two structural rules, the states and what each obliges, and the producer-first leg
+order are in `references/pin-intent-and-currency.md`. `charly task hooks` installs the
+per-commit gate. Hard rules
+there: **never edit inside a submodule** (change lands by PR to the owning repo; the
+umbrella only records gitlinks), run submodule git through `git -C <absolute-path>`
+from the umbrella root, no worktrees inside submodules, pin only MERGED refs, run
+`charly task sync` on a base current with `origin/main` (its answer is base-relative),
+and bound every command's output (SIGPIPE is ignored — `grep` floods on `Broken
+pipe`). Full detail: `references/umbrella-mechanics.md`.
 
 ## Reference Index
 
@@ -279,7 +318,8 @@ ignored — `grep` floods on `Broken pipe`). Full detail:
 | B2 (multi-repo/multi-worktree coordination, per-module verification), **B2b (cross-session coordination via PR comments when another session's PR blocks you; the two-line identity footer + the CLAIM/OWNING/HANDING OVER/TAKING OVER/BLOCKS/UNBLOCKS/STATUS/RESOLVED verb grammar, mandatory on a contended or blocking scope)**, B3 (agent teams in per-teammate worktrees), B6 (cross-repo `@github` landing), and B7 (multi-worktree landing + refresh, the canonical end-to-end) | `references/multi-repo-coordination.md` |
 | B5 (the fresh evaluator + fork/PR path, the two-gate autonomous-landing model), CalVer generation, post-landing cleanliness + report format, and the validation-FAILS recovery sequence | `references/validator-and-calver.md` |
 | Evidence discipline — provenance vs plausibility of a pasted gate, the three freshness surfaces (head / body / pasted output), positive-vs-negative claim decay, sweeping for claims a fix invalidated, the merged-tree gate for a `BEHIND` PR, source-and-regeneration as one cross-repo cutover, submodule pointers reverted by a non-conflicting merge, and why status-absence on a known head proves nothing | `references/evidence-and-freshness.md` |
-| Umbrella mechanics — the ~400-submodule view, Policy B, the full `charly task` maintenance table, session worktrees, the no-edit-in-submodule rule, pin discipline | `references/umbrella-mechanics.md` |
+| The pin contract — a pin declares its INTENT (`upstream:<ref>` leaf vs `derived-from:<path>` edge), the two structural rules (an edge may not point at an edge; every leaf remote-verifiable), the states with what each obliges, why `behind` and `blocked-by` PASS by design, and the producer-first leg order | `references/pin-intent-and-currency.md` |
+| Umbrella mechanics — the ~400-submodule view, the pin contract's umbrella side (policy B is its edge mechanism), the full `charly task` maintenance table, session worktrees, the no-edit-in-submodule rule, pin discipline | `references/umbrella-mechanics.md` |
 | Watch-and-wake — the self-sustaining watcher family (`--auto-rearm`, the single-instance lock, rate-limit backoff) and the arm → wake → act → re-arm runbook | `marketplace/scripts/pr_state_watch.sh`, `marketplace/scripts/pr_watch_many.sh`, `marketplace/scripts/gh_watch.sh` (run one — never hand-roll a poll) + `references/watch-and-wake.md` |
 | The pre-validator self-audit — the six BLOCK classes detectable before the first push, the ten-step preflight that removes them, and the delegating-parent duties | `references/pre-validator-self-audit.md` |
 
