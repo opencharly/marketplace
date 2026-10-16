@@ -32,6 +32,7 @@ charly-marketplace:
             - '@github.com/opencharly/layer-charly-internals-extra:v2026.282.0717'
             - '@github.com/opencharly/layer-charly-build:v2026.282.0624'
             - '@github.com/opencharly/layer-charly-check:v2026.282.2343'
+            - '@github.com/opencharly/layer-android-sdk:v2026.289.0725'
             - '@github.com/opencharly/plugin-wl/candy/plugin-wl:v2026.281.0714'
             - '@github.com/opencharly/plugin-quickshell/candy/plugin-quickshell:v2026.272.0445'
             # Serving-plugin command skills (2026-09-17 coverage campaign).
