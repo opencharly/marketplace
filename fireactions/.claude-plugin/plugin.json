@@ -1,0 +1,18 @@
+{
+  "name": "charly-fireactions",
+  "description": "Fireactions — GitHub Actions runners on Firecracker microVMs: the pool model where a runner is a microVM, the containerd snapshotter constraint that decides whether a pool needs a spare block device, the opencharly fork and why it is pinned, the host layer that installs the VMM and kernel, and the beds that gate the host and the runner.",
+  "author": {
+    "name": "opencharly"
+  },
+  "homepage": "https://github.com/opencharly/charly",
+  "repository": "https://github.com/opencharly/marketplace",
+  "license": "MIT",
+  "keywords": [
+    "charly",
+    "fireactions",
+    "github-actions",
+    "runner",
+    "microvm",
+    "pool"
+  ]
+}

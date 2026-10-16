@@ -261,10 +261,10 @@ them fails in `charly check box` because the mount isn't attached.
       file: /workspace
       filetype: directory
 
-# ✓ context: [deploy] so it runs only against live containers
+# ✓ context: [runtime] so it runs only against live deployments
 - check: the workspace directory exists
   id: workspace-dir
-  context: [deploy]
+  context: [runtime]
   file:
       file: /workspace
       filetype: directory
@@ -360,7 +360,7 @@ the shell is a login shell — reproduced: `runuser -l user -s /bin/bash
 -n -l` prints the full NOPASSWD listing. This bit the earlier shipping
 form of the test; the sshd candy now uses `-u … --`.
 
-Worked example: `/charly-coder:sshd` ships exactly the `-u user --` pattern. Alternative: give the step `context: [deploy]` so it runs against a live container where you control the user-switch externally.
+Worked example: `/charly-coder:sshd` ships exactly the `-u user --` pattern. Alternative: give the step `context: [runtime]` so it runs against a live container where you control the user-switch externally.
 
 ### 12. `charly check box <short-name>` is ambiguous with multiple CalVer tags — use the full registry ref
 

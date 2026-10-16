@@ -36,13 +36,13 @@ cdp-exclusive field (`tab:`, `expression:`, `url:`, `selector:`, `text:`, `x:`, 
 `artifact:`, `artifact_min_bytes:`, …) — those fields live INSIDE the `cdp:` map. The
 shared matchers (`stdout:`, `stderr:`, `exit_status:`) and `context:`/`id:`/`timeout:`
 stay siblings of the `cdp:` key. A query is a `check:` step; a navigation/click action
-is a `run:` step. All `cdp:` steps are **deploy-context only** (they need a running
-container), so author them with `context: [deploy]`. See `/charly-check:check` for the
+is a `run:` step. All `cdp:` steps are **live-mode only** (they need a running
+container), so author them with `context: [runtime]`. See `/charly-check:check` for the
 full method allowlist and YAML shape. Example:
 
 ```yaml
 - check: the page title is Dashboard
-  context: [deploy]
+  context: [runtime]
   cdp:
     method: eval
     tab: "1"
@@ -123,7 +123,7 @@ tab ID between steps; reference subsequent steps as `tab: "1"`).
 
 ```yaml
 - check: a tab is open
-  context: [deploy]
+  context: [runtime]
   cdp: list          # scalar sugar — bare method, no cdp-exclusive fields
   stdout:
     contains: example.com
@@ -148,7 +148,7 @@ Uses HTTP API: `GET /json/close/<id>`.
 
 ```yaml
 - check: the page text contains the marker
-  context: [deploy]
+  context: [runtime]
   cdp:
     method: text     # cdp: html → HTML source; cdp: url → title and URL
     tab: "1"
@@ -162,7 +162,7 @@ Uses CDP WebSocket: `Runtime.evaluate` with `document.body.innerText` / `documen
 
 ```yaml
 - check: a non-empty screenshot is captured
-  context: [deploy]
+  context: [runtime]
   cdp:
     method: screenshot
     tab: "1"
@@ -206,7 +206,7 @@ CDP coordinates are **viewport-relative** (relative to Chrome's content area). V
 
 ```yaml
 - check: the sync button is located
-  context: [deploy]
+  context: [runtime]
   cdp:
     method: coords
     tab: "1"
@@ -248,7 +248,7 @@ above, then author a `wl: click` step at those `x:`/`y:`:
 
 ```yaml
 - check: read the document title
-  context: [deploy]
+  context: [runtime]
   cdp:
     method: eval
     tab: "1"
@@ -264,7 +264,7 @@ Uses CDP: `Runtime.evaluate`. Returns the result value (e.g.
 
 ```yaml
 - check: the heading appears
-  context: [deploy]
+  context: [runtime]
   cdp:
     method: wait
     tab: "1"
@@ -420,7 +420,7 @@ then deliver the click via the `vnc:` verb at the reported desktop center:
 
 ```yaml
 - check: the sign-in button is located
-  context: [deploy]
+  context: [runtime]
   cdp:
     method: coords
     tab: "1"
@@ -434,14 +434,14 @@ ID survives Google's same-tab navigations (email → password → result).
 
 ```yaml
 - check: the email field appears
-  context: [deploy]
+  context: [runtime]
   cdp:
     method: wait
     tab: "1"
     selector: "#identifierId"
   timeout: 30s
 - check: the email field is located (focus via vnc: at these coords)
-  context: [deploy]
+  context: [runtime]
   cdp:
     method: coords
     tab: "1"
@@ -460,14 +460,14 @@ transition:
 
 ```yaml
 - check: the password challenge page is reached
-  context: [deploy]
+  context: [runtime]
   cdp:
     method: url
     tab: "1"
   stdout:
     contains: challenge/pwd
 - check: a verification screenshot is captured
-  context: [deploy]
+  context: [runtime]
   cdp:
     method: screenshot
     tab: "1"
@@ -479,14 +479,14 @@ transition:
 
 ```yaml
 - check: the password field appears
-  context: [deploy]
+  context: [runtime]
   cdp:
     method: wait
     tab: "1"
     selector: input[type="password"]
   timeout: 15s
 - check: the password field is located (focus via vnc:, then vnc: type "$GMAIL_PASSWORD")
-  context: [deploy]
+  context: [runtime]
   cdp:
     method: coords
     tab: "1"
@@ -538,7 +538,7 @@ The `cdp: spa-*` methods provide first-class support for interacting with Selkie
 
 ```yaml
 - check: the SPA is in a healthy state
-  context: [deploy]
+  context: [runtime]
   cdp:
     method: spa-status
     tab: "1"
@@ -597,7 +597,7 @@ on an instance, then run `charly check live <image> -i <instance> --filter cdp`:
 
 ```yaml
 - check: CDP is available on port 9222
-  context: [deploy]
+  context: [runtime]
   cdp: status
   stdout:
     equals: ok
@@ -607,7 +607,7 @@ on an instance, then run `charly check live <image> -i <instance> --filter cdp`:
     method: open
     url: https://ip.me
 - check: the proxy IP is reflected by the page
-  context: [deploy]
+  context: [runtime]
   cdp:
     method: eval
     tab: "1"

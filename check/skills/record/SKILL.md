@@ -58,8 +58,9 @@ record-exclusive fields (`record_name:`, `record_mode:`, `record_fps:`,
 the `record:` map. Only the shared matchers (`stdout:`, `stderr:`, `exit_status:`) and
 `context:`/`id:`/`timeout:` stay siblings. All `record:` steps need a running
 container, so author them with `context: [runtime]` — the live phase, where the
-plugin resolves. (`context: [deploy]` is skipped in live mode; no context runs them
-in the box phase, where the plugin is unavailable.)
+plugin resolves. (`context: [deploy]` is a no-op in BOTH modes — the engine activates `build` for
+box and `runtime` for live — and no context value makes a live-only verb resolvable
+in the box phase, where its plugin is unavailable.)
 
 ```yaml
 - check: a terminal recording starts

@@ -35,12 +35,12 @@ when the step carries dbus-exclusive fields (`dest:`, `path:`, `member:`, `arg:`
 `text:`) — those live INSIDE the `dbus:` map. The shared matchers (`stdout:`,
 `stderr:`, `exit_status:`) and `description:` (the notify body, doubling as the step's
 report label) stay siblings of the `dbus:` key. All `dbus:` steps are
-**deploy-context only** (they need a running session bus), so author them with
-`context: [deploy]`. See `/charly-check:check` for the full YAML shape. Example:
+**live-mode only** (they need a running session bus), so author them with
+`context: [runtime]`. See `/charly-check:check` for the full YAML shape. Example:
 
 ```yaml
 - check: the notifications service is on the session bus
-  context: [deploy]
+  context: [runtime]
   dbus: list
   stdout:
     contains: org.freedesktop.Notifications
@@ -71,7 +71,7 @@ exit 0 (run them as `run:` steps). All steps are deploy-context only.
 
 ```yaml
 - check: a desktop notification is delivered
-  context: [deploy]
+  context: [runtime]
   dbus:
     method: notify
     text: Build Complete           # notification summary (dbus-exclusive, in the map)
@@ -85,7 +85,7 @@ appears via the running notification daemon (swaync or mako).
 
 ```yaml
 - check: the notifications service reports its capabilities
-  context: [deploy]
+  context: [runtime]
   dbus:
     method: call
     dest: org.freedesktop.Notifications
@@ -100,7 +100,7 @@ Calls an arbitrary D-Bus method on the session bus and returns its reply.
 
 ```yaml
 - check: the session bus has the expected services registered
-  context: [deploy]
+  context: [runtime]
   dbus: list
   stdout:
     contains: org.freedesktop.Notifications
@@ -112,7 +112,7 @@ Lists all registered services on the venue's session bus.
 
 ```yaml
 - check: the notifications object exposes the Notify method
-  context: [deploy]
+  context: [runtime]
   dbus:
     method: introspect
     dest: org.freedesktop.Notifications

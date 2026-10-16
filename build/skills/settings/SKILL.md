@@ -29,7 +29,6 @@ Manage charly's runtime configuration stored in `~/.config/charly/config.yml`. C
 
 | Key | Default | Env Var | Description |
 |-----|---------|---------|-------------|
-| `engine.build` | `auto` | `CHARLY_BUILD_ENGINE` | Build engine (docker/podman) |
 | `engine.run` | `auto` | `CHARLY_RUN_ENGINE` | Run engine (docker/podman) |
 | `run_mode` | `auto` | `CHARLY_RUN_MODE` | Deployment mode (quadlet/direct) |
 | `bind_address` | `127.0.0.1` | `CHARLY_BIND_ADDRESS` | Default bind address for ports |
@@ -46,12 +45,11 @@ Manage charly's runtime configuration stored in `~/.config/charly/config.yml`. C
 ### Engine Selection
 
 ```bash
-# Switch to podman for both build and run
-charly settings set engine.build podman
+# Which engine RUNS containers (the builder is BuildKit, and is not selectable)
 charly settings set engine.run podman
 
 # Check current engine
-charly settings get engine.build
+charly settings get engine.run
 ```
 
 ### Storage Paths

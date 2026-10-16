@@ -743,6 +743,12 @@
       ]
     },
     {
+      "name": "githubrunner-ubuntu",
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
       "name": "gnupg",
       "files": [
         "SKILL.md"

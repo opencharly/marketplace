@@ -222,6 +222,43 @@ A probe NO `charly` verb expresses is a charly GAP — fix it in this change whe
 
 **Interaction with other rules.** R5 covers stale references everywhere, not just the deleted artifact itself. R5 is the cleanup discipline that R2 enables — once you've refactored to the unified abstraction, R5 ensures every old reference points to the new one.
 
+## A GREEN verdict is not a LANDING — the mechanisms, and the re-trigger table
+
+*This is R10's boundary, and it is where a correct change still fails to ship.*
+
+**A passing review verdict is one step's output. Four different mechanisms can stop it becoming a merge, and a body that
+claims a landing must name which it ruled out.**
+
+1. **The repo setting arms nothing.** *Auto-merge is a repo setting; a PASS that "arms" it on a repo where it is not
+   enabled merges nothing.*
+2. **The repo's own required check refuses.** *A ruleset-required status check (`validate / validate`) that is red or was
+   never reported blocks the merge outright — whatever the verdict says, and even if every sibling is green.*
+3. **The branch is `BEHIND`.** *The head no longer contains the merge base.*
+4. **Any sibling check is red, so the validator's own head-check step fails and "Enable auto-merge" is skipped.** *The
+   verdict comment may still say PASS; the RUN is what decides.*
+5. **The arming step runs and reports SUCCESS, and arms nothing.** *The inverse of 4: the head-check step passes, the arming step executes and returns success, and the PR still reads no auto-merge — so the check list shows a green required check either way, and only the PR state reveals it.* Measured on `opencharly/lobster#4`, head `885a8472a` - one `validate / validate` on that head, `completed/success`, started 2026-10-15T21:02:31Z: the repo allows auto-merge, `mergeable` was `clean`, step 17 `Enable auto-merge` reported `success`, and the PR was unmerged with nothing armed. *Leading cause, untested: that step was reached by a REST RE-RUN, and a re-run may not carry the context its mutation needs.*
+**The one action for it is a NEW HEAD — an empty round commit; a re-run does not arm it (measured).**
+
+**Read the CHECK RUN, not the verdict comment.** *The verdict comment is emitted before the workflow finishes, so
+`PASS` in a comment and a red check-run are perfectly normal together.* **And look at the SIBLINGS: a red sibling makes the
+validator's own check red for a reason that has nothing to do with your diff.**
+
+**THE RE-TRIGGER TABLE — one action per condition, and no others:**
+
+| condition | the ONE action |
+|---|---|
+| branch is `BEHIND` | `gh pr update-branch` — **never a rebase, never a force-push** |
+| an unresolvable / stale `workflow_id`, or a run that produced **no verdict** | a NEW run: **an empty round commit** |
+| `update-branch` on an already-current branch | **nothing — it is a no-op and re-fires nothing** |
+| a body-only change | a push still needs a commit to re-fire the gate (a body edit never does) |
+
+**And never interrupt or clean an active long-running bed because it is quiet — wait for its exit and its
+`summary.yml`.** *A VM bed can legitimately run for a long time; killing it loses the evidence you were waiting for.*
+
+**A note on the attribution tier, filed as `charly/946`:** *no row in the AI-attribution tier table fits "the class's gate
+passed, but the change's own central runtime action is not live-proven" — which is the normal shape of a producer-first
+library whose consumer supplies the venue.* **Until a row exists, say which clause of the closest tier diverges and why,
+rather than inflating the tier or forbidding the push in the other clause.**
 ## How R1–R5 interact with R6–R10
 
 R1–R5 are **authoring discipline** — what you do during the work.
@@ -234,6 +271,33 @@ The layers compose. A cutover that violates R2 (duplication) but passes R7 (end-
 
 Per the project rulebook "AI Attribution" section: a violation at any layer FORBIDS the push. The five-tier table describes the proof level a pushed commit has earned. A known violation means nothing is pushed, regardless of tier. The agent fixes the violation or escalates to the operator — never both downgrade and ship.
 
+## The INSTRUMENT CHECKLIST — apply BEFORE any count or absence claim (Lead ruling, 2026-10-14)
+Three defects of one family in a single wave — a bed trigger that was never the trigger, an unanchored
+call-site count that manufactured a stale-count finding, and an absence claim made with a piped `head` —
+are **not** fixed by resolving to be more careful. **The durable control is mechanical, and it applies to
+every grep a claim rests on:**
+| # | The claim | The instrument | Why |
+|---|---|---|---|
+| 1 | **A count of CALL SITES** | anchored: `grep -cE '^[[:space:]]+name\('` | a PROSE mention of a symbol is not a call |
+| 2 | **An ABSENCE claim** | `grep -rl --include=… .` with **NO `head`, NO `-v`**, and the **SCOPE STATED** | a window is not an inventory; `per_page` and `head` are windows |
+| 3 | **A prose IDENTIFIER** | **case-insensitive (`-i`)** | prose capitalizes — a capitalised identifier costs a whole round |
+| 4 | **Any claim-bearing grep** | **never pipe into `head`**; a `Broken pipe` in the output is a **defect in the run**, not a clean result | the pager's exit code is not the command's |
+| 5 | **An assertion about behaviour** | a **mutation** that breaks the behaviour must FAIL it | a test that cannot fail proves nothing |
+| 6 | **An assertion about a RULE** | mutate the rule's **FORM** (allowlist it to one case), not only its behaviour | the rule's reach is the claim |
+| 7 | **A claim about generality** | assert every **AXIS** separately — for a path: content, structure, and NAME | one axis passing is not the claim |
+| 8 | **A claim about a DIFF's scope** ("this PR contains my change") | `git log --oneline origin/main..HEAD` before the claim | the branch may carry less than you think |
+| 9 | **A mutation RESULT** ("this mutation was killed") | the harness must **prove the mutation APPLIED** | an unapplied mutation "dies" for free |
+| 10 | **A result carried across a tree change** | **re-run on the new tree** | identical is an assertion, not a measurement |
+| 13 | **A result's REVISION** | **name the revision a result was measured on** | a figure without its revision is a claim about an unknown tree |
+**A field that is null for "unknown" and null for "no" cannot be counted with** — *the pull-list `merged`
+boolean is `null` for PRs that HAVE merged, so filter on `merged_at`, never on `merged`.*
+**And a count must name its SCOPE**: a whole-file figure and an entity-scoped figure are different
+numbers for the same word, and quoting one while enumerating the other is a contradiction, not a typo.
+**⚑ THE ROOT OF ALL OF THEM, IN ONE SENTENCE (Lead, 2026-10-14):**
+> **A result reported without verifying that the instrument ran is not a result — in either direction.**
+This is the complement of *"A GREEN verdict is not a LANDING"* above: that section is about a RESULT reported
+without the mechanism having run; this one is about the INSTRUMENT behind any result at all. **Items 11 and 12
+of the original ruling were never recorded in the wave's ledger and are deliberately not invented here.**
 ## Cross-references
 
 - `/charly-internals:cutover-policy` — the operationalization of R5 for schema/API/rename changes specifically. Cutover-policy is one of strict-policy's children — R5 governs all hard-cutover behavior, and cutover-policy operationalizes it for the most common case.

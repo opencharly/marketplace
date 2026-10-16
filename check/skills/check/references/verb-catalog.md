@@ -133,7 +133,7 @@ schema; a scalar value is the verb's primary-field shorthand (`file: /x`,
 | `skip: true` | Always skip this check (reported but doesn't fail the run). |
 | `exclude_distro: [<tag>, ...]` | Skip the check when any of the image's `distro:` tags matches an entry. Use for probes that only apply on some distros (e.g. `file: /usr/bin/fastfetch` is valid on Fedora/Arch/Debian but fastfetch is dropped from Ubuntu 24.04's noble main). Matched against the image's full distro list (`["ubuntu:24.04", "ubuntu", "debian"]`), so either `ubuntu:24.04` or `ubuntu` matches. See `charly/checkspec.go:Op.ExcludeDistros` and `charly/checkrun.go:runOne`. |
 | `timeout: "5s"` | Per-check timeout (http, addr). |
-| `context: [build\|deploy\|runtime]` | Which contexts the step runs in (a list). Build steps run in `charly check box`; deploy/runtime steps need a live deployment. |
+| `context: [build\|deploy\|runtime]` | Which contexts the step runs in (a list). **The check engine activates exactly two of them**: `build` under `charly check box`, `runtime` under `charly check live` (`sdk/checkkit/checkkit.go:37`; `sdk/kit/runner.go:225`). An unscoped step with a plugin-envelope verb runs in BOTH. `deploy` is **not** a mode any check runner has: on a `check:`/`agent-check:` step it is a no-op in both modes (the step is skipped, so a plan relying on it asserts nothing — `opencharly/opencharly#413`, `opencharly/plugin-check#111`); it keeps its meaning on a `run:` step, where it names the install timeline. Use `[runtime]` for a live-only assertion and `[build]` for a build-artifact assertion. |
 | `eventually: "30s"` | POLL until the check passes, re-running it every `retry_interval` until this deadline. The FIRST pass wins and returns immediately; on failure the LAST attempt is reported, annotated `(after N attempts over D)`. Absent means the check runs exactly once. |
 | `retry_interval: "2s"` | Poll interval for `eventually:`. Default 1s. Clamped if it exceeds the deadline. |
 
@@ -183,7 +183,7 @@ verb. One code per test. See `references/authoring-gotchas.md` #2.
 |---------|-------------|--------------|
 | `candy` | `plan:` steps in the candy body, `candy/<name>/charly.yml` (build context) | `charly check box` + `charly check live` |
 | `box` | `plan:` steps in the box body, `charly.yml` (build context) | `charly check box` + `charly check live` |
-| `deploy` | a `plan:` step with `context: [deploy]`, or a local `charly.yml` overlay step | `charly check live <name>` only (deploy-context steps need a running deployment with port mappings, volumes, and resolved runtime variables) |
+| `deploy` | a `plan:` step in the deployment node's own `plan:` (a local `charly.yml` overlay step), or a step authored `context: [runtime]` | `charly check live <name>` only (these steps need a running deployment with port mappings, volumes, and resolved runtime variables). **Not** a step scoped `context: [deploy]`: the engine activates `build` (box mode) and `runtime` (live mode) only, so a `check:` step carrying `[deploy]` is skipped in both modes and asserts nothing (`opencharly/opencharly#413`) |
 
 The `ai.opencharly.description` label carries the collected plan steps from all three
 sections with `origin:` annotations (`candy:<name>`, `box:<name>`, `deploy-default`,
