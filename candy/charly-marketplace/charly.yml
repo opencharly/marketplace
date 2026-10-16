@@ -51,7 +51,7 @@ charly-marketplace:
             - '@github.com/opencharly/layer-charly-immich:v2026.271.2156'
             - '@github.com/opencharly/pod-charly-mcp:v2026.281.2255'
             - '@github.com/opencharly/layer-ripgrep:v2026.281.2238'
-            - '@github.com/opencharly/layer-supervisord:v2026.271.1817'
+            - '@github.com/opencharly/layer-supervisord:v2026.288.2336'
             - '@github.com/opencharly/layer-nodejs:v2026.280.2136'
             - '@github.com/opencharly/layer-golang:v2026.272.0137'
             - '@github.com/opencharly/pod-pipewire:v2026.273.1856'
