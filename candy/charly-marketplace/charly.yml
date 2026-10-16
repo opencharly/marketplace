@@ -261,6 +261,10 @@ charly-marketplace:
             - '@github.com/opencharly/plugin-firecracker/candy/plugin-firecracker:v2026.288.0016'
             # plugin-firecracker owns the `firecracker` family skill (microVM substrate). Pinned at the tag its own
             # merge minted (tag-on-merge), which is also what the drift gate checks against.
+            - '@github.com/opencharly/layer-fireactions/candy/layer-fireactions:v2026.289.1308'
+            # layer-fireactions owns the `fireactions` family skill - the runner pool on Firecracker microVMs. Its
+            # `containerd:` connection declares the `blockfile` snapshotter, which is what lets a pool run on a host
+            # with no devmapper device; the family itself is DECLARED in pod-charly-hooks, pinned above.
         plan:
             - check: the marketplace corpus source resolves via the charly binary
               exit_status: 0
