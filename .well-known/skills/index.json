@@ -666,6 +666,12 @@
       ]
     },
     {
+      "name": "fireactions",
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
       "name": "firecracker",
       "files": [
         "SKILL.md"

@@ -68,6 +68,7 @@
 | Ubuntu images / `ubuntu*` / `box/ubuntu` submodule | `/charly-distros:ubuntu-builder` |
 | Ubuntu images / `ubuntu*` / `box/ubuntu` submodule | `/charly-distros:ubuntu-debootstrap` |
 | `charly feature` / feature list / feature pending / feature validate / ADE entity descriptions | `/charly-feature:feature` |
+| Fireactions / GitHub Actions runners on microVMs / the `fireactions:` host or runner / the pool scheduler / `layer-fireactions` / a runner pool with no spare block device / the containerd snapshotter configuration / devmapper vs blockfile / the `check-fireactions-*` beds | `/charly-fireactions:fireactions` |
 | Firecracker / a microVM / `charly firecracker` / the root-drive + kernel artefact / the `firecracker:` verb or command surface / building a microVM box image / an ext4 root drive / booting a guest under KVM without libvirt / the `check-firecracker-*` beds / the Firecracker pool host | `/charly-firecracker:firecracker` |
 | Editing a box (`box/<name>/charly.yml` — boxes live in the `box/<distro>` submodules; main owns none), box composition | `/charly-image:image` |
 | Editing a candy (`candy/<name>/charly.yml`), candy authoring, candy tasks/services | `/charly-image:layer` |

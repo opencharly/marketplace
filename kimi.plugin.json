@@ -19,6 +19,7 @@
     "./distros/skills",
     "./feature/skills",
     "./filebrowser/skills",
+    "./fireactions/skills",
     "./firecracker/skills",
     "./hermes/skills",
     "./image/skills",
