@@ -420,7 +420,7 @@
       ]
     },
     {
-      "name": "crabbox",
+      "name": "crabbox-cli",
       "files": [
         "SKILL.md"
       ]

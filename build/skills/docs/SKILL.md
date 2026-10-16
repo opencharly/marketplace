@@ -204,7 +204,7 @@ the pinned charly) belongs to the same cutover as the candy edit.
 `candy/*/charly.yml` — but the generator DOES project candy `skill:` entities directly
 from its own remote-aware walk (`collectCandySkills`), the complement that keeps a moved
 candy's recipe references resolving on the site even before the marketplace regeneration
-lands (the stale-marketplace gap `/charly-tools:crabbox` measures — see the tests
+lands (the stale-marketplace gap `/charly-tools:crabbox-cli` measures — see the tests
 section). The long path still holds: a skill is authored as a `skill:` entity in its
 owning candy; `charly marketplace generate` projects that into the
 opencharly/marketplace repo (`<family>/skills/<name>/SKILL.md`), and

@@ -16,7 +16,7 @@ description: |-
 `crabbox:` probes the [Crabbox](https://github.com/openclaw/crabbox) CLI
 and its optional local Node.js/PostgreSQL coordinator, served
 out-of-process over go-plugin gRPC by `opencharly/plugin-crabbox`.
-Install the CLI with `/charly-tools:crabbox` (opencharly/layer-crabbox)
+Install the CLI with `/charly-tools:crabbox-cli` (opencharly/layer-crabbox)
 and the coordinator with `/charly-crabbox:crabbox-coordinator`
 (opencharly/pod-crabbox).
 
