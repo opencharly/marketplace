@@ -222,17 +222,22 @@ charly-marketplace:
             - '@github.com/opencharly/pod-herdr:v2026.280.2246'
             - '@github.com/opencharly/plugin-punktfunk/candy/plugin-punktfunk:v2026.281.0939'
             # Crabbox wave (Phase 4): the CLI (layer-crabbox) + coordinator (pod-crabbox)
-            # skill entities. The `crabbox:` CHECK-VERB skill entity is LIVE: the corpus
-            # carries check/skills/crabbox (frontmatter: "the `crabbox:` check verb …
-            # served out-of-process by plugin-crabbox"), and the /charly-check:crabbox
-            # dispatcher row with it. What is NOT live is the tools-family copy: TWO refs
-            # declare a `skill:` entity named `crabbox` — layer-crabbox (family: tools,
-            # v2026.274.0609) and plugin-crabbox (family: check, owner: plugin-crabbox,
-            # v2026.281.0923) — and the emitter's dedupe key is (Kind, Name) WITHOUT the
-            # family, so they collide, preferEntity picks the higher CalVer tag, and the
-            # loser's projection is pruned. Hence check/skills/crabbox PRESENT and
-            # tools/skills/crabbox ABSENT. The earlier v2026.250.1019 "retired … the
-            # projection drops check/skills/crabbox" note this replaces was false.
+            # skill entities. TWO refs declare a `skill:` entity named `crabbox` —
+            # layer-crabbox (family: tools) and plugin-crabbox (family: check, owner:
+            # plugin-crabbox) — and the emitter's dedupe key is (Kind, Name) WITHOUT the
+            # family, so they collide and preferEntity picks the higher CalVer tag. As of the
+            # pins below that is layer-crabbox v2026.288.2114 over plugin-crabbox
+            # v2026.288.1538, so tools/skills/crabbox is PRESENT (its frontmatter is the CLI
+            # candy's) and check/skills/crabbox is ABSENT — the reverse of what this comment
+            # said while layer-crabbox sat at v2026.274.0609. The `/charly-check:crabbox`
+            # dispatcher row goes with the losing entity, because the `triggers:` that fed it
+            # live on that side.
+            # WHICH ONE IS PUBLISHED IS DECIDED BY TAG ORDER, which means a pin refresh can
+            # swap one for the other — and this refresh did, silently, until a validator read
+            # this comment against the diff. The collision itself is the defect:
+            # opencharly/plugin-marketplace#20 keys resolve.go on (Kind, Name) without the
+            # family. Fixing that belongs there, not here — no pin can express "prefer the
+            # check-verb entity" without inventing a rule the emitter does not have.
             - '@github.com/opencharly/layer-crabbox:v2026.288.2114'
             - '@github.com/opencharly/pod-crabbox:v2026.274.0652'
             - '@github.com/opencharly/plugin-crabbox/candy/plugin-crabbox:v2026.288.1538'
