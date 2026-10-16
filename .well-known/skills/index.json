@@ -420,6 +420,12 @@
       ]
     },
     {
+      "name": "crabbox",
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
       "name": "crabbox-coordinator",
       "files": [
         "SKILL.md"
@@ -1308,6 +1314,12 @@
     },
     {
       "name": "omarchy-vm",
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "openclaw",
       "files": [
         "SKILL.md"
       ]
