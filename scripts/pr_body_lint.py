@@ -92,6 +92,31 @@ def sections(lines: list[str]) -> dict[str, list[str]]:
     return out
 
 
+# The SWEEP subset of CLAIM: claims about an EXHAUSTIVE SEARCH, where only a command can
+# support the assertion. Ordinary rule bullets ("git status was checked", "the artifact was
+# verified after the build") assert that a STEP WAS DONE, and `## Rulebook compliance` is
+# designed to back those with the evidence of the section -- measured: requiring bullet-local
+# backing for the whole CLAIM regex fires on 7 of 36 merged bodies, every one a false
+# positive. So the bullet-local requirement is scoped to this subset alone.
+SWEEP_CLAIM = re.compile(r"\bonly occurrence\b|\b(?:was|were|been) swept\b", re.IGNORECASE)
+
+BULLET = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s")
+
+
+def own_bullet_has_command(section_lines: list[str], start: int) -> bool:
+    """Is there a `$ ` fence in the claim's OWN bullet (up to the next bullet marker)?
+
+    This is what "pasted with the claim" means for a sweep claim: the exhaustive search's
+    command belongs to the bullet asserting it, not to some unrelated fence further down.
+    """
+    for ln in section_lines[start + 1:]:
+        if BULLET.match(ln):
+            return False
+        if ln.lstrip().startswith("$ "):
+            return True
+    return False
+
+
 def lint(body: str, head: str | None, rules: tuple[str, ...]) -> list[str]:
     findings: list[str] = []
     lines = body.rstrip("\n").split("\n")
@@ -122,6 +147,10 @@ def lint(body: str, head: str | None, rules: tuple[str, ...]) -> list[str]:
 
     for name, body_lines in secs.items():
         bl = list(blocks(body_lines))
+        _starts, _pos = [], 0
+        for _kind, _, _text in bl:
+            _starts.append(_pos)
+            _pos += len(_text)
         for k, (kind, _, text) in enumerate(bl):
             if kind == "fence":
                 for ln in text:
@@ -131,7 +160,7 @@ def lint(body: str, head: str | None, rules: tuple[str, ...]) -> list[str]:
             backed_later = any(
                 kk == "fence" and any(t.lstrip().startswith("$ ") for t in tt) for kk, _, tt in bl[k + 1 :]
             )
-            for ln in text:
+            for _i, ln in enumerate(text):
                 if NO_MATCH_SWEEP.search(ln):
                     sweep_backed = any(
                         kk == "fence"
@@ -145,7 +174,12 @@ def lint(body: str, head: str | None, rules: tuple[str, ...]) -> list[str]:
                             f"grep/rg command and exit=1 result: {ln.strip()[:100]!r}"
                         )
                     continue
-                if CLAIM.search(ln) and not POINTER.search(ln) and not backed_later:
+                # NARROW shape: only a SWEEP claim must be backed inside its own bullet.
+                # An ordinary rule assertion keeps the section-wide `backed_later` rule.
+                _sweep_unbacked = SWEEP_CLAIM.search(ln) and not own_bullet_has_command(
+                    body_lines, _starts[k] + _i
+                )
+                if CLAIM.search(ln) and not POINTER.search(ln) and (_sweep_unbacked or not backed_later):
                     findings.append(
                         f"claims: unbacked universal claim in `## {name}` (no later `$ ` command block, "
                         f"no (above)/(below) pointer): {ln.strip()[:100]!r}"

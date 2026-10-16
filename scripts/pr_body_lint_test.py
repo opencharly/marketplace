@@ -67,6 +67,37 @@ class Rules(unittest.TestCase):
         self.assertEqual(run(body(how=claim + "\n\n```\n$ gh pr list\n#1\n```")), [])
         self.assertEqual(run(body(how="The open PRs were checked (output above).")), [])
 
+    def test_sweep_claim_needs_its_backing_in_its_own_bullet(self):
+        """opencharly/marketplace#493 — the class-6 arm's `backed_later` accepted ANY later fence.
+
+        A sweep claim asserts an EXHAUSTIVE SEARCH, so only a command can support it, and the
+        command belongs to the bullet asserting it. Measured against four consecutive successful
+        daily corpus refreshes: a claim in a `## Rulebook compliance` bullet was exempted by an
+        unrelated fence further down the section, so the same claim fired in `## Summary` and
+        passed one section later.
+        """
+        sweep = "R5 was swept by grep over the org, and only older copies retain it."
+        # In a Rules bullet, with an UNRELATED fence later in the same section: must STILL fire.
+        # The bullet AFTER the claim matters: a fence belongs to the bullet it follows, so the
+        # unrelated fence must sit under a LATER bullet for the claim above it to be unbacked.
+        unrelated = OK_RULES + (
+            "\n- **R5:** " + sweep
+            + "\n- **R7:** answered with how."
+            + "\n\n```\n$ gh pr list\n#1\n```"
+        )
+        self.assertTrue(
+            any(x.startswith("claims:") for x in run(body(rules=unrelated))),
+            "a sweep claim backed only by a fence under a LATER bullet must be flagged",
+        )
+        # The same claim with its command INSIDE its own bullet: must NOT fire.
+        own = OK_RULES + "\n- **R5:** " + sweep + "\n\n```\n$ rg -n 'x' .\n```" + "\n- **R8:** answered with how."
+        self.assertEqual(run(body(rules=own)), [])
+        # An ordinary rule assertion keeps the section-wide rule: a later fence still backs it.
+        self.assertEqual(
+            run(body(rules=OK_RULES + "\n- **R6:** `git status` was checked first.\n\n```\n$ git status\n```")),
+            [],
+        )
+
     def test_no_match_grep_claim_requires_pasted_command_and_exit_status(self):
         claim = "The claim-keyed legacy-command grep has no matches."
         self.assertTrue(any("no-match grep/rg claim" in x for x in run(body(how=claim))))
