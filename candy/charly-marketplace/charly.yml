@@ -29,7 +29,7 @@ charly-marketplace:
             - '@github.com/opencharly/distro-ubuntu:v2026.283.2149'
             # Standalone sources for internals, command and authoring skills.
             - '@github.com/opencharly/layer-charly-internals:v2026.288.2320'
-            - '@github.com/opencharly/layer-charly-internals-extra:v2026.288.2135'
+            - '@github.com/opencharly/layer-charly-internals-extra:v2026.289.0735'
             - '@github.com/opencharly/layer-charly-build:v2026.288.0830'
             - '@github.com/opencharly/layer-charly-check:v2026.288.1102'
             - '@github.com/opencharly/plugin-wl/candy/plugin-wl:v2026.281.0714'
