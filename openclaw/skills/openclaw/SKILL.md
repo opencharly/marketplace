@@ -52,7 +52,6 @@ charly check run check-openclaw-pod      # the disposable R10 witness
 ## Key Candies
 
 - `/charly-openclaw:openclaw-layer` — the gateway layer this box composes (npm pin, supervisord service, `data` volume, port relay)
-- `/charly-check:openclaw` — the `openclaw:` check verb, served out-of-process by `opencharly/plugin-openclaw`
 
 ## Verification
 
