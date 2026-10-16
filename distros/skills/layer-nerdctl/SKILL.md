@@ -21,7 +21,7 @@ engine.
   sha256-verified `nerdctl-full` tarball (step `nerdctl-full-tarball`), which
   supplies nerdctl + containerd + `containerd-fuse-overlayfs-grpc` + CNI +
   buildkit + rootlesskit in one archive.
-- `/etc/nerdctl/nerdctl.toml` (charly namespace + rootless buildkit host) and
+- `/etc/nerdctl/nerdctl.toml` (charly namespace + CNI path) and
   the `charly` CNI network conflist at `/etc/cni/net.d/charly.conflist`.
 - The **nested-pod posture**: userns-scoped `cap_add: ALL`, `/dev/fuse`,
   `/dev/net/tun`, `unmask=/proc/*`.

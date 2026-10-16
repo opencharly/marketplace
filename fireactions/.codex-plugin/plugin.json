@@ -1,0 +1,22 @@
+{
+  "name": "charly-fireactions",
+  "description": "Fireactions — GitHub Actions runners on Firecracker microVMs: the pool model where a runner is a microVM, the containerd snapshotter constraint that decides whether a pool needs a spare block device, the opencharly fork and why it is pinned, the host layer that installs the VMM and kernel, and the beds that gate the host and the runner.",
+  "author": {
+    "name": "opencharly"
+  },
+  "repository": "https://github.com/opencharly/marketplace",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "OpenCharly Fireactions",
+    "shortDescription": "Fireactions — GitHub Actions runners on Firecracker microVMs: the pool model where a runner is a microVM, the containerd snapshotter constraint that decides whether a pool needs a spare block device, the opencharly fork and why it is pinned, the host layer that installs the VMM and kernel, and the beds that gate the host and the runner.",
+    "longDescription": "Fireactions — GitHub Actions runners on Firecracker microVMs: the pool model where a runner is a microVM, the containerd snapshotter constraint that decides whether a pool needs a spare block device, the opencharly fork and why it is pinned, the host layer that installs the VMM and kernel, and the beds that gate the host and the runner.",
+    "developerName": "opencharly",
+    "category": "kind",
+    "capabilities": [
+      "Instructions"
+    ],
+    "defaultPrompt": [
+      "Use OpenCharly Fireactions for this OpenCharly task."
+    ]
+  }
+}

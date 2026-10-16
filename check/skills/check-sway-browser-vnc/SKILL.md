@@ -32,21 +32,21 @@ check-sway-browser-vnc-pod:
         plan:
             - check: CDP /json/version answers over the published HOST_PORT
               id: esbv-pod-http-cdp
-              context: [deploy]
+              context: [runtime]
               http:
                 http: "http://127.0.0.1:${HOST_PORT:9222}/json/version"
                 status: 200
             - check: CDP enumerates the live debugging targets
               id: esbv-pod-cdp-list
-              context: [deploy]
+              context: [runtime]
               cdp: list
             - check: the Sway tree is reachable over the Wayland socket
               id: esbv-pod-wl-sway-tree
-              context: [deploy]
+              context: [runtime]
               wl: sway-tree
             - check: a terminal recording starts
               id: esbv-pod-record-start
-              context: [deploy]
+              context: [runtime]
               record:
                 method: start
                 record_name: check-term

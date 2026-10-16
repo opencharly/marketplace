@@ -27,7 +27,7 @@ CLI -> broker at loopback :8080 -> postgres :5432 -> leases via
 
 | Action | Command | Description |
 |--------|---------|-------------|
-| CLI version | `crabbox --version` | Verified 0.48.1 pin |
+| CLI version | `crabbox --version` | The pin is owned by `layer-crabbox`'s `CRABBOX_VERSION` — never restate a version here |
 | Doctor | `crabbox doctor` | Local prerequisites; exit 0 needs NO broker (or a reachable one) |
 | Providers | `crabbox providers` | Credential-free local provider matrix (local-container/ssh/external) |
 | Login (shared token) | `printf '%s' "$CRABBOX_SHARED_TOKEN" \| crabbox login --url http://127.0.0.1:8080 --token-stdin` | Broker auth |

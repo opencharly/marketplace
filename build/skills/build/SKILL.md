@@ -12,11 +12,11 @@ Invoked as `charly box build`. See `/charly-image:image` for the family overview
 
 ## Overview
 
-`charly box build` generates Containerfiles from `charly.yml` and layer definitions, then builds images in dependency order using the configured build engine (Docker or Podman). Images at the same dependency level are built in parallel (up to `--jobs` concurrent builds).
+`charly box build` generates Containerfiles from `charly.yml` and layer definitions, then builds images in dependency order with **BuildKit**, charly's only image builder. Images at the same dependency level are built in parallel (up to `--jobs` concurrent builds).
 
 **Mode purity**: `charly box build` reads `charly.yml` only. `charly.yml` is never read during build — this is enforced by `LoadConfig` in `charly/loader_threaded.go` (it reads the PROJECT `charly.yml` only and never merges the per-host `charly.yml` overlay — no `MergeDeployOverlay`), to guarantee OCI labels are baked strictly from authored configuration, never from local deploy-time overrides. See `/charly-internals:go` "Mode purity" for the architectural invariant this protects and the bug it prevents.
 
-**Build-engine dispatch**: `charly box build` does not construct a generator host-side at all (the former `NewGenerator` is DELETED) — `BuildCmd.Run` computes the build tag, holds the build-activity retention lock, and dispatches through the COMPILED-IN `build:box` plugin (candy/plugin-build) over the F10 reverse channel; on return it runs the retention prune host-side. The plugin's `runBoxBuild` → `resolveBuildEngine` (candy/plugin-build/resolve.go) runs the ENTIRE build-engine RESOLVE plugin-side — loader, vocab, scan, connect, validate, box resolve, intermediates, order, effective versions, host-fs prep, render-seam-cache prep, render-prep, user-context, envelope projection, and drive-model — and returns `spec.BuildResolveReply` (the resolved-project envelope + a serializable drive-model: engine/platform, build order, per-image descriptors, resolved tunables; NO Containerfile content). This is the plugin-side replacement for the DELETED host `build-prep` fat seam (`charly/build_resolve_host.go`'s `hostBuildBuildResolve`). The plugin **OWNS the podman DRIVE** (the build-order loop, per-image build lock, `podman build`, push, and the inline-merge gate) IN the candy — it imports only the sdk module. It reaches the host ONLY for thin `buildengine-*` shards a sdk-only candy cannot hold: `buildengine-scan-local` (local candy scan), `buildengine-connect-plugins` (registry plugin connect), and `buildengine-prep` (the render-seam-floor `renderGenCache` — `hostBuildPrep` stores a CHEAP candy-scan-only Generator for the render-seam floor's reverse-channel consumers and returns an EMPTY map; the host-fs PREP itself moved plugin-side in the K3 host-prep move — `runHostFSPrep` in candy/plugin-build/host_prep.go). The resolved-project envelope + drive-model are NOT returned by `buildengine-prep` — they come from `resolveBuildEngine`'s reply. The render DRIVE is `sdk/deploykit.Generator`, driven by the candy over the envelope + `HostBuild("render-seam")` for the host-coupled render seams (#67 — the host no longer renders the `.build/` tree); `bake_plugin:` binary baking is INLINE via `deploykit.EmitBakedPlugins` (no `HostBuild("bake-plugins")` round-trip — that host-builder + `host_build_bake_plugins.go` are DELETED). `charly box generate` mirrors this via `build:generate` → `runBoxGenerate` → `resolveBuildEngine(..., generateOnly=true)`: `generateOnly` is a PLUGIN-SIDE parameter (NOT a `HostBuild("buildengine-prep")` argument — that host leg takes `spec.ResolvedProjectRequest`, which has no `GenerateOnly` field) that returns after the envelope projection (no engine/order drive-model); the candy renders the `.build/` tree itself via `deploykit.Generator` + returns the written Containerfile paths; no podman. (The resolved-project envelope that OTHER verbs fetch — `charly box inspect`, `charly check`, … — comes over the separate `InvokeProvider("build","project",OpResolve)` peer seam, the `build:project` word; the build/generate path projects its own envelope inside `resolveBuildEngine`.) See `/charly-internals:plugin` (the `build` provider class + the in-proc reverse channel) and `/charly-build:generate`.
+**Build dispatch**: `charly box build` does not construct a generator host-side at all (the former `NewGenerator` is DELETED) — `BuildCmd.Run` computes the build tag, holds the build-activity retention lock, and dispatches through the COMPILED-IN `build:box` plugin (candy/plugin-build) over the F10 reverse channel; on return it runs the retention prune host-side. The plugin's `runBoxBuild` → `resolveBuildEngine` (candy/plugin-build/resolve.go) runs the ENTIRE build RESOLVE plugin-side — loader, vocab, scan, connect, validate, box resolve, intermediates, order, effective versions, host-fs prep, render-seam-cache prep, render-prep, user-context, envelope projection, and drive-model — and returns `spec.BuildResolveReply` (the resolved-project envelope + a serializable drive-model: engine/platform, build order, per-image descriptors, resolved tunables; NO Containerfile content). This is the plugin-side replacement for the DELETED host `build-prep` fat seam (`charly/build_resolve_host.go`'s `hostBuildBuildResolve`). The plugin **OWNS the BuildKit DRIVE** (the build-order loop, per-image build lock, the `buildctl` argv, the store bridge, push, and the inline-merge gate) IN the candy — it imports only the sdk module. It reaches the host ONLY for thin `buildengine-*` shards a sdk-only candy cannot hold: `buildengine-scan-local` (local candy scan), `buildengine-connect-plugins` (registry plugin connect), and `buildengine-prep` (the render-seam-floor `renderGenCache` — `hostBuildPrep` stores a CHEAP candy-scan-only Generator for the render-seam floor's reverse-channel consumers and returns an EMPTY map; the host-fs PREP itself moved plugin-side in the K3 host-prep move — `runHostFSPrep` in candy/plugin-build/host_prep.go). The resolved-project envelope + drive-model are NOT returned by `buildengine-prep` — they come from `resolveBuildEngine`'s reply. The render DRIVE is `sdk/deploykit.Generator`, driven by the candy over the envelope + `HostBuild("render-seam")` for the host-coupled render seams (#67 — the host no longer renders the `.build/` tree); `bake_plugin:` binary baking is INLINE via `deploykit.EmitBakedPlugins` (no `HostBuild("bake-plugins")` round-trip — that host-builder + `host_build_bake_plugins.go` are DELETED). `charly box generate` mirrors this via `build:generate` → `runBoxGenerate` → `resolveBuildEngine(..., generateOnly=true)`: `generateOnly` is a PLUGIN-SIDE parameter (NOT a `HostBuild("buildengine-prep")` argument — that host leg takes `spec.ResolvedProjectRequest`, which has no `GenerateOnly` field) that returns after the envelope projection (no engine/order drive-model); the candy renders the `.build/` tree itself via `deploykit.Generator` + returns the written Containerfile paths; no podman. (The resolved-project envelope that OTHER verbs fetch — `charly box inspect`, `charly check`, … — comes over the separate `InvokeProvider("build","project",OpResolve)` peer seam, the `build:project` word; the build/generate path projects its own envelope inside `resolveBuildEngine`.) See `/charly-internals:plugin` (the `build` provider class + the in-proc reverse channel) and `/charly-build:generate`.
 
 **Build-mode emission**: the build-mode Containerfile render DRIVE is `sdk/deploykit.Generator.Generate` / `generateContainerfile` (relocated from `charly/generate.go` in #67), driven by `candy/plugin-build` over the resolved-project envelope + `HostBuild("render-seam")`; the `charly/generate.go` top-level `Generate`/`writeCandySteps` orchestrator is DELETED. the pod-overlay deploy path reaches `deploykit.Generator.EmitTasks` DIRECTLY — `charly/tasks.go` holds no shim and cannot hold one (P16 import purity forbids `charly/` importing the sdk); that path stays for the pod-overlay deploy path (the candy `plugin-deploy-pod` constructs `deploykit.OCITarget` + renders via `deploykit.NewRenderGeneratorFromProject`, the per-step fragment over the `HostBuild("step-emit","oci-emit-step")` seam); the build-mode render (in `sdk/deploykit`) drives `WriteCandySteps` → `EmitTasks` directly. The render walks each layer's ops directly to write Containerfile text — NOT the `InstallPlan` IR. It shares the package-cascade / shell-snippet / localpkg compiler helpers with the IR (one source of truth, R2), but the overall walk is the direct generator. The `InstallPlan` IR + `deploykit.OCITarget.Emit` is the DEPLOY-mode path used by `charly deploy add` (the candy `plugin-deploy-pod`'s `add_candy:` overlay synthesis, rendered in its own code via `deploykit.OCITarget` + `deploykit.NewRenderGeneratorFromProject` + the external out-of-process deploys; the local/vm/kubernetes/android substrates are external plugins via `pluginDeployTarget` (S3b, dispatched through `candy/plugin-fleet`'s `Invoke(OpDeployDispatch)`) — `deploy:local` via candy/plugin-deploy-local and `deploy:vm` via candy/plugin-deploy-vm DO consume the IR (the plugin walks it via `kit.WalkPlans` over the reverse channel, the vm one over the guest `SSHExecutor`), while `deploy:kubernetes` via candy/plugin-kube does NOT, materializing its Kustomize tree PLUGIN-side (`candy/plugin-kube/materialize.go`'s `materializeKustomize`, reaching `candy/plugin-k8sgen` peer-to-peer over `verb:k8sgen`/`OpEmit`)). See `/charly-internals:install-plan` for the IR and `/charly-internals:generate-source` for the Go call graph.
 
@@ -43,7 +43,7 @@ charly box build --cache image [image...]           # Image cache (read-only, de
 charly box build --cache gha [image...]             # GitHub Actions cache
 charly box build --no-cache [image...]              # Disable cache entirely
 charly box build --jobs N [image...]                # Max concurrent images per DAG level (0=auto from defaults.jobs, else 4)
-charly box build --podman-jobs N [image...]         # Max concurrent stages within a single podman build (0=auto: min(NCPU, defaults.podman_jobs_cap))
+charly box build --podman-jobs N [image...]         # Max concurrent stages within a single build (0=auto: min(NCPU, defaults.stage_parallelism_cap))
 charly box build <image> --include-disabled         # Build an `enabled: false` image without flipping authored config
 charly box build <image> --dev-local-pkg            # EVAL-BED ONLY: build localpkg candies (the charly toolchain) from LOCAL in-dev source, not the published release
 ```
@@ -163,7 +163,7 @@ cat .build/my-image/Containerfile    # Inspect generated output
 ## Build Flow
 
 1. Run `charly box generate` internally (produces Containerfiles in `.build/`)
-2. Resolve runtime config to get build engine (`engine.build`)
+2. Resolve runtime config (there is no build-engine selection: BuildKit is the builder)
 3. Resolve image build order (dependency ordering, grouped by level)
 4. Filter to requested images (and their base dependencies)
 5. For each level: build images in parallel (up to `--jobs` concurrent, default 4)
@@ -176,23 +176,21 @@ charly exposes **two** parallelism knobs with distinct meanings:
 | Flag | Env var | `defaults:` key | What it controls |
 |---|---|---|---|
 | `--jobs N` | `CHARLY_BUILD_JOBS` | `jobs` | **Outer** concurrency: how many charly-level images to build in parallel within a DAG level (e.g., when `charly box build` rebuilds the whole graph). |
-| `--podman-jobs N` | `CHARLY_PODMAN_JOBS` | `podman_jobs` (+ `podman_jobs_cap`) | **Inner** concurrency: passed to `podman build --jobs N`, controls how many stages of a *single* multi-stage build run concurrently. |
+| `--podman-jobs N` | `CHARLY_PODMAN_JOBS` | `stage_parallelism` (+ `stage_parallelism_cap`) | **Inner** concurrency: how many stages of a *single* multi-stage build run concurrently. It becomes the BuildKit daemon's `[worker.oci] max-parallelism`, applied when the daemon starts. |
 
 Both knobs are **config-driven**: precedence is **CLI flag → env → `defaults:`
 in `charly.yml` → built-in fallback** (4). The inner auto value (when
-`--podman-jobs` / `CHARLY_PODMAN_JOBS` / `defaults.podman_jobs` are all unset) is
-CPU-proportional, capped at `defaults.podman_jobs_cap`: `min(NCPU, cap)`. The
-cap is the operative ceiling; the repo ships `podman_jobs_cap: 8`. (A
-high-concurrency `--cache-from` SIGABRT race in podman ≤ 5.7.x originally
-motivated a hard cap of 4 — see `CHANGELOG/` for that history and the 20-run
-race gate required before raising the cap on a new podman version.)
+`--podman-jobs` / `CHARLY_PODMAN_JOBS` / `defaults.stage_parallelism` are all unset) is
+CPU-proportional, capped at `defaults.stage_parallelism_cap`: `min(NCPU, cap)`.
+The cap is the operative ceiling, and it is the project's own to set. (The 20-run
+race gate required before raising it on a new engine version is in `CHANGELOG/`.)
 
 ```yaml
 # charly.yml — defaults: block
 defaults:
   jobs: 4              # outer: images per DAG level
-  podman_jobs: 0       # inner: 0 = auto = min(NCPU, podman_jobs_cap)
-  podman_jobs_cap: 8   # ceiling for the auto calc
+  stage_parallelism: 0       # inner: 0 = auto = min(NCPU, stage_parallelism_cap)
+  stage_parallelism_cap: 8   # ceiling for the auto calc
 ```
 
 ```bash
@@ -201,10 +199,10 @@ CHARLY_PODMAN_JOBS=8 charly update <image> --build    # via env
 charly box build <image> --podman-jobs 1              # fully serialised, worst-case debugging
 ```
 
-Source: `candy/plugin-build/resolve.go` (`resolveDrivePodmanJobs`, feeding
-`buildkit.ResolvePodmanJobs`; the host-resolved `PodmanJobs` value feeds `--jobs`
-directly in `candy/plugin-build/podman.go`). Covered by
-`candy/plugin-build/podman_test.go`. The outer `--jobs` knob and the inner `--podman-jobs`
+Source: `candy/plugin-build/resolve.go` (`resolveDriveStageParallelism`, feeding
+`buildkit.ResolveStageParallelism`; the host-resolved `StageParallelism` value is the
+`MaxParallelism` the drive hands the daemon in `candy/plugin-build/buildkit.go`).
+Covered by `buildkit/build_helpers_test.go` (`TestResolveStageParallelism`). The outer `--jobs` knob and the inner `--podman-jobs`
 are separate fields so the two semantics don't get conflated.
 
 ## Build-context excludes (`defaults.context_ignore`)
@@ -333,10 +331,8 @@ OCI labels. The CLI accepts an explicit `--tag <calver>` for pinning;
 an empty `--tag` resolves to newest-local automatically.
 
 Rationale:
-1. **No stale-`:latest`-under-`--cache-from` bug.** The documented
-   caveat where podman's `--cache-from` silently pulls a stale
-   `:latest` from the remote registry is unreachable when charly never
-   emits `:latest` in the first place.
+1. **Nothing can pin a stale float tag.** charly never emits `:latest`, so a build can never
+   resolve to a float tag a previous build left behind.
 2. **No "ambiguous short name" errors under multiple tags.** Previously
    the resolver listed every `:latest` + `:<calver>` tag of the same
    image as competing candidates; the CalVer sort picks the newest
@@ -394,12 +390,11 @@ Three kinds of source changes are real cache invalidators — if you see a long 
 
 ## Push Mode
 
-- **Docker:** `docker buildx build --push` for multi-platform builds
-- **Podman:** `podman build --manifest` + `podman manifest push`
+BuildKit's image exporter is the ONE push path — `--output type=image,name=<ref>,push=true` —
+and the only one that can push the multi-platform image a `--push` build produces. It
+covers both `docker buildx --push` and `podman manifest push`.
 
-Podman manifest push uses retry with exponential backoff (3 attempts, 5s/10s/20s delays) to handle transient registry errors (e.g., GHCR 500 errors after long builds).
-
-Source: `candy/plugin-build/podman.go` (`retryCmd`).
+Source: `candy/plugin-build/buildkit.go` (`pushOutput`).
 
 ## Layer Merging
 
@@ -446,13 +441,17 @@ For filtered builds (`charly box build <image>`), only the built images are merg
 ## Engine Configuration
 
 ```bash
-charly settings set engine.build docker   # or podman
-charly settings set engine.run docker     # or podman
+charly settings set engine.run docker     # or podman — which engine RUNS containers
 ```
+
+**There is no `engine.build`**: the image builder is BuildKit, which is not a container
+engine — it cannot run a container and therefore cannot be selected like one. `engine.run`
+is unaffected and still selectable.
 
 ## Host Prerequisites (First Time)
 
-Building images needs the `charly` binary and a container engine — `docker` or `podman`, whichever `engine.build` names. Nothing else, and no project checkout: `charly box build` runs against the `charly.yml` in the current directory, one started by `charly box new project <dir>` or read from a published project with `--repo <owner>/<repo>`.
+Building images needs the `charly` binary and a container engine — `docker` or `podman`, whichever `engine.run` names (BuildKit builds the image; the drive bridges it into
+that engine's store). Nothing else, and no project checkout: `charly box build` runs against the `charly.yml` in the current directory, one started by `charly box new project <dir>` or read from a published project with `--repo <owner>/<repo>`.
 
 Install `charly` as a distro-native package with your OWN package manager (`pacman -U` / `dnf install` / `apt install` / `apk add`) — the `charly generate-packages` plugin (nFPM) builds the `.pkg.tar.zst`/`.rpm`/`.deb`/`.apk`/`.ipk` published to the per-distro package repos. Obtaining the binary is covered end to end at [Install](https://opencharly.ai/start/install/); it is the one page that describes building from a source tree.
 
@@ -515,9 +514,13 @@ Beyond the YAML-unmarshal symptom above, a stale `charly` binary can produce *sy
 
 If the symptom persists after upgrading, the copy on `$PATH` may not be the one you just installed — `which charly` reports which wins.
 
-### Buildah cache-mount corruption (pixi tzdata et al.)
+### Cache-mount corruption (pixi tzdata et al.)
 
-Cache mounts declared via `--mount=type=cache,dst=<path>,uid=<u>,gid=<g>` (used for pixi, npm, cargo, rattler, dnf) persist across builds and are **not** evicted by `charly box build --no-cache` (which only suppresses `--cache-from`; see above). A disk-full event mid-download can leave a partial package in the cache, and every subsequent build re-hits the same broken file:
+Cache mounts are declared as `--mount=type=cache,id=charly-<path>,dst=<path>,sharing=locked` (pixi, npm, cargo,
+rattler and dnf all use one — `buildkit.SharedCacheMount` emits the format). Their **id is stable on purpose**:
+that is what makes the cache survive layer-hash churn, which is the entire reason cache mounts exist
+(`candy/plugin-build/cache_mount_test.go`). A cache mount is therefore not the build cache: `charly box build
+--no-cache` disables the build cache for that build, and the mount's contents persist regardless. A disk-full event mid-download can leave a partial package in the cache, and every subsequent build re-hits the same broken file:
 
 ```
 error: × failed to link tzdata-2025c-hc9c84f9_1.conda
@@ -534,71 +537,21 @@ Options, in order of least to most disruptive:
 
 `podman image prune -a -f` will delete tagged images that are **not referenced by a running container**. That means the image you just built via `charly box build` — and haven't started as a container yet — is eligible for prune. Observed sequence: `charly box build` → `podman image prune -af` → `sudo podman load` (manual rootful refresh) fails with `image not known`. Protect the fresh build by starting a container or use `prune` with explicit filters instead.
 
-### `--no-cache` does not invalidate intermediate scratch-stage caches
+### Forcing a rebuild of one layer's scratch stage
 
-`charly box build --no-cache <image>` and `charly box build --cache none <image>` reliably disable the
-cache for the **final image stage**, but in observed behavior they do **not** propagate
-to intermediate scratch stages produced by `COPY candy/<x>/ /` instructions
-(`[15/25] STEP 2/2: COPY candy/labwc/ /` style). Editing a single file inside a layer
-directory and rebuilding with `--no-cache` may still pull the labwc scratch stage from
-cache, leaving the new file content out of the rebuilt image.
-
-**Workaround:** force a content-hash bump on the layer's `charly.yml`. The simplest is
-adding (or removing) a trailing comment line:
+A layer's scratch stage is keyed by the layer directory's own content — the cache key is
+`(parent-image-SHA, instruction-text, COPY-source-content)` (see "Cache Efficiency" above) — so editing any
+file under `candy/<name>/` rebuilds that stage and everything downstream of it. To force that rebuild without
+changing the file that matters, bump the layer's `charly.yml`:
 
 ```bash
-echo "" >> candy/labwc/charly.yml          # bump content hash
-charly box build selkies-desktop                   # now invalidates the labwc scratch stage
-git checkout -- candy/labwc/charly.yml     # revert the cosmetic change
+echo "" >> candy/labwc/charly.yml          # bump the layer's content hash
+charly box build selkies-desktop            # rebuilds the labwc scratch stage
+git diff candy/labwc/charly.yml             # the appended line, and nothing else
 ```
 
-This was discovered while shipping commit `febb9bd` (labwc autostart race fix): the
-edit to `candy/labwc/autostart` did not propagate to the rebuilt image until
-`candy/labwc/charly.yml` itself was touched. Two consecutive `--no-cache` rebuilds
-produced the same image hash (`502c8012c7a5`) until the charly.yml content changed.
-
-Symptom: `charly box list tags <name>` shows a new tag, but `charly shell <image> -c "cat /path/to/changed/file"`
-returns the **old** content.
-
-### Known caveat: stale `:latest` under `--cache-from`
-
-charly's Containerfile generator currently emits `FROM <registry>/<builder>:latest`
-for parent builder images (not pinned CalVer). When charly invokes
-`podman build --cache-from <registry>/<image>`, podman resolves those `FROM`
-clauses at parse time and will **pull `:latest` from the remote registry**,
-silently clobbering any locally-rebuilt `:latest` tag. For images that rebuild
-their builder stages in the same invocation this can lead to the later
-stages using the **stale registry builder** instead of the freshly-built one.
-
-**Symptom observed on this project:** `charly update selkies-desktop --build`
-fails deep inside selkies' `pixi install && bash build.sh` step with
-`error: can't find Rust compiler`. The remote
-`ghcr.io/opencharly/fedora-builder:latest` predates the `build-toolchain`
-layer adding `cargo` as an RPM, so its pixi env has no rustc — even though
-the current local `build-toolchain/charly.yml` lists `cargo`. The build phase
-that rebuilds fedora-builder locally *does* run, but parent-stage FROM
-resolution happens before that stage exists, and podman pulls the stale
-remote image.
-
-**Workaround until the generator is fixed:**
-
-```bash
-charly box build <image> --cache=none      # or equivalently --no-cache at the charly level
-```
-
-Both `--cache=none` and `--no-cache` short-circuit `cacheArgs()` in
-`candy/plugin-build/podman.go` (`driveConfig.cacheArgs`) and do NOT pass `--cache-from` to podman, so
-the broken resolution path never fires. `--no-cache` is charly-level only — it
-does *not* pass `--no-cache` to podman, it just skips `--cache-from`.
-
-**Proper fix (not yet implemented):** charly's generator should emit pinned
-CalVer tags for builder `FROM` clauses (e.g.,
-`FROM ghcr.io/opencharly/fedora-builder:2026.105.0128`) or pass
-`--pull=never` to podman so local tags aren't resolved from the remote.
-Tracked as a follow-up.
-
-See also: `/charly-build:generate` for the Containerfile generation path, `/charly-core:charly-update`
-for the `--build` flag that also picks up this caveat.
+Remove the added line to revert it. Do not reach for `git checkout -- <file>` to undo it: that restores the
+file from the index and discards any other uncommitted work it holds.
 
 ## Project directory override
 

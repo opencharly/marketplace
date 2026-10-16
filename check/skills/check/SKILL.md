@@ -111,6 +111,37 @@ feature run`. Every candy MUST ship a non-empty `description:` + at least one
 deterministic `check:` step (`charly box validate` enforces it); the live agent
 grader stays opt-in. Full detail: `references/authoring-gotchas.md`.
 
+## The three-step bed shape — a gate that can FAIL without the change
+
+*This is the shape every `check:` bed the R10 gate selects should have, and the one this org's best beds use.*
+
+**A bed that only inspects the FINAL state cannot tell "my change worked" from "something else made it true" — and
+cannot fail without the change, which is R7's real test.** The shape that can:
+
+1. **ASSERT THE ABSENCE — before the change.** *Probe the thing your change will produce, and assert it is NOT there
+   yet: `nothing-served-before-the-delivery`. If the probe already succeeds on the un-changed tree, the bed proves
+   nothing about your change.*
+2. **PERFORM THE CHANGE.** *The `run:` step, or the deploy the bed exists to exercise.*
+3. **ASSERT THE PRESENCE — after it, in terms ONLY the change could produce.** *`delivers-the-built-tree`,
+   `venue-serves-the-delivered-word`.* **The assertion must be specific enough that a coincidence does not satisfy it.**
+
+**A working example in this org:** `spec#245`'s `check-spec-delivery` bed, whose three steps are named exactly along this
+shape. *Six PRs in one leg failed by omitting step 1.* **If you cannot write step 1, you have not decided what your change
+produces — which is worth knowing before the gate runs, not after.**
+
+## The uppercase-token trap — a step that SKIPS is not a step that PASSES
+
+**A step's body is scanned for variables INCLUDING ITS COMMENTS, and an unresolvable UPPER-CASE token makes the step
+SKIP rather than fail.** This is the single most expensive authoring trap in the check system, because a skipped step
+reads as a satisfied one in the summary.
+
+**So:**
+- **do not put an upper-case `${...}`-looking token in a step's body or in a comment inside it**, even to explain
+  something. *A comment is scanned.*
+- **verify the step table says `PASS`, not `SKIP`**, after a run that you are quoting as evidence. `2 steps: 2 passed,
+  0 skipped` is the line to look for; a bed that reports skips has not proven what you are claiming it proved.
+- **when a variable genuinely is needed, use the bed's declared `var:` mechanism** so the value is resolvable at the
+  point the step runs.
 ## Quick Reference
 
 | Action | Command | Description |

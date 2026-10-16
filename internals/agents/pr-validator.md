@@ -554,6 +554,22 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
 
 **B. Ground-truth rules R0–R10 (each explicit).**
 
+The R-numbers were re-cut on 2026-10-09, so a reference written before that date
+names a DIFFERENT rule than the same number does today. The umbrella rulebook's
+`*Old citations.*` statement (Part I, under R10) is the ONE canonical mapping — read
+it there, never re-derive it from a memory of the old text. For this checklist the
+translation is:
+
+| an older reference to | is now |
+|---|---|
+| old R3 / old R4 / old R4a | R2 / R3 / R4 |
+| old R7a | R8 |
+| old R2 ("finish the whole cutover") | Hard Cutover by Default |
+| old R8 ("preserve emitted artifacts") | R7 |
+
+A finding that cites an old number is not yet actionable: map it first, then judge it
+against the rule it now is.
+
 4. **R0 skills.** The change honors EVERY skill its area's Skill-Dispatcher rows
    load — name them and spot-check the concrete claims against the skill (a
    candy edit vs `/charly-image:layer`; a check verb vs `/charly-check:check`; Go

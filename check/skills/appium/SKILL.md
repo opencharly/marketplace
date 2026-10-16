@@ -37,7 +37,7 @@ the W3C escape hatch: `POST /session/<id>/execute/sync` with
 ### Authoring the `appium:` verb in a plan step
 
 The verb is the inline Op of a step — an ordered list item under the candy/box
-`plan:` (deploy-context only — `context: [deploy]`); an Appium action that drives the
+`plan:` (**live-mode only** — `context: [runtime]`); an Appium action that drives the
 UI is a `run:` step. The method name is the scalar value for a bare-method step
 (`appium: status`), or the `method:` key of the `appium:` map when the step carries
 appium-exclusive fields (`caps:`, `apk:`, `strategy:`, `selector:`, `text:`,
@@ -51,7 +51,7 @@ validators) — those live INSIDE the `appium:` map. Only the shared matchers
   id: appium-up
   appium: status
   stdout: { contains: '"ready":true' }
-  context: [deploy]
+  context: [runtime]
 - run: open a W3C WebDriver session against the emulator
   id: open-session
   appium:
@@ -78,7 +78,7 @@ validators) — those live INSIDE the `appium:` map. Only the shared matchers
     method: screenshot
     artifact: /tmp/post-tap.png
     artifact_min_bytes: 10000
-  context: [deploy]
+  context: [runtime]
 - run: close the WebDriver session
   id: close
   appium: session-delete
@@ -304,7 +304,7 @@ Override the session id for a single check with `session:`:
     method: screenshot
     artifact: /tmp/x.png
     session: 37e8f3c1-...   # bypass the session file
-  context: [deploy]
+  context: [runtime]
 ```
 
 ## Implementation

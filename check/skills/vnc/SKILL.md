@@ -38,13 +38,13 @@ bare-method step (`vnc: status`), or the `method:` key of the `vnc:` map when th
 carries vnc-exclusive fields (`x:`, `y:`, `button:`, `text:`, `key:`, `artifact:`,
 `artifact_min_bytes:`, …) — those live INSIDE the `vnc:` map. Only the shared matchers
 (`stdout:`, `stderr:`, `exit_status:`) and `context:`/`id:`/`timeout:` stay siblings.
-All `vnc:` steps are **deploy-context only** (they need a running deployment), so
-author them with `context: [deploy]`. See `/charly-check:check` for the full YAML
+All `vnc:` steps are **live-mode only** (they need a running deployment), so
+author them with `context: [runtime]`. See `/charly-check:check` for the full YAML
 shape. Example:
 
 ```yaml
 - check: a non-empty VNC framebuffer is captured
-  context: [deploy]
+  context: [runtime]
   vnc:
     method: screenshot
     artifact: /tmp/vnc.png
@@ -96,14 +96,14 @@ in `candy/plugin-vnc`. The host retains only the endpoint pre-resolution and
 
 ## Methods
 
-Each method below is a `vnc:` plan step authored with `context: [deploy]`; run a
+Each method below is a `vnc:` plan step authored with `context: [runtime]`; run a
 candy's baked steps with `charly check live <image> --filter vnc` (add
 `-i <instance>` for a specific instance).
 
 ### Screenshot
 ```yaml
 - check: a non-empty VNC framebuffer is captured
-  context: [deploy]
+  context: [runtime]
   vnc:
     method: screenshot
     artifact: /tmp/desktop.png        # host path for the captured PNG
@@ -161,7 +161,7 @@ Valid key names: Return, Escape, Tab, BackSpace, Delete, Home, End, Page_Up, Pag
 ### Status
 ```yaml
 - check: the VNC server reports its desktop and resolution
-  context: [deploy]
+  context: [runtime]
   vnc: status
   stdout:
     contains: "1920x1080"
@@ -244,7 +244,7 @@ Some websites (notably Google sign-in) detect and block CDP-based input. VNC pro
 ```yaml
 # 1. Locate via cdp: coords — reports both viewport and desktop coords for '#identifierId'
 - check: the email field is located
-  context: [deploy]
+  context: [runtime]
   cdp:
     method: coords
     tab: "1"
@@ -286,7 +286,7 @@ desktop `x:`/`y:`:
 
 ```yaml
 - check: the sync button is located
-  context: [deploy]
+  context: [runtime]
   cdp:
     method: coords
     tab: "1"
@@ -315,13 +315,13 @@ VNC screenshots work correctly on NVIDIA headless for images using `sway-desktop
 Both the `vnc: screenshot` step and the `wl: screenshot` step (grim, always works) work on NVIDIA headless:
 ```yaml
 - check: a non-empty VNC framebuffer is captured (works with pixman + DPMS fix)
-  context: [deploy]
+  context: [runtime]
   vnc:
     method: screenshot
     artifact: /tmp/out.png
     artifact_min_bytes: 5000
 - check: a non-empty Wayland screenshot is captured (grim)
-  context: [deploy]
+  context: [runtime]
   wl:
     method: screenshot
     artifact: /tmp/wl-out.png

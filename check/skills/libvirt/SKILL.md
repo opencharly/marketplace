@@ -46,7 +46,7 @@ siblings of the `libvirt:` key: the shared matchers (`stdout:`, `stderr:`,
 `exit_status:`) AND the `target:` snapshot name (a genuinely shared `#Op` modifier
 the `snapshot/*` methods read). A query/probe is a `check:` step; an action that
 changes domain state (send-key, passwd, snapshot create/revert) is a `run:` step.
-**`context: [deploy]`** — the verb needs a running VM; under `charly check
+**`context: [runtime]`** — the verb needs a running VM; under `charly check
 box` (no running VM) it skips. Run a candy's baked `libvirt:` steps against a
 live VM deployment with `charly check live <vm> --filter libvirt`.
 
@@ -157,13 +157,13 @@ probe is a `check:` step, a state-changing action is a `run:` step. Run with
 - check: the session lists the arch domain
   id: libvirt-domains-listed
   libvirt: list
-  context: [deploy]
+  context: [runtime]
   stdout:
     contains: arch
 - check: the domain reports a reachable guest agent
   id: libvirt-agent-reachable
   libvirt: info
-  context: [deploy]
+  context: [runtime]
   stdout:
     contains: "Agent: true"
 
@@ -174,7 +174,7 @@ probe is a `check:` step, a state-changing action is a `run:` step. Run with
     method: screenshot
     artifact: /tmp/fb.png
     artifact_not_uniform: true
-  context: [deploy]
+  context: [runtime]
 
 # Keyboard injection via libvirt (alternate path to the `spice: key` verb).
 - run: switch to VT2 via a libvirt key chord
@@ -190,7 +190,7 @@ probe is a `check:` step, a state-changing action is a `run:` step. Run with
   libvirt:
     method: qmp
     text: query-status
-  context: [deploy]
+  context: [runtime]
   stdout:
     contains: running
 
@@ -200,7 +200,7 @@ probe is a `check:` step, a state-changing action is a `run:` step. Run with
   libvirt:
     method: guest/exec
     command: uname -a
-  context: [deploy]
+  context: [runtime]
   stdout:
     contains: Linux
 

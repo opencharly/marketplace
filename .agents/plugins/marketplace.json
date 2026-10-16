@@ -209,6 +209,18 @@
       "category": "images"
     },
     {
+      "name": "charly-fireactions",
+      "source": {
+        "source": "local",
+        "path": "./fireactions"
+      },
+      "policy": {
+        "installation": "INSTALLED_BY_DEFAULT",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "kind"
+    },
+    {
       "name": "charly-firecracker",
       "source": {
         "source": "local",

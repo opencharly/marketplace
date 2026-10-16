@@ -66,7 +66,7 @@ the step carries spice-exclusive fields — those live INSIDE the `spice:` map:
 The artifact validators (`artifact_min_bytes:`, `artifact_min_dimensions:`,
 `artifact_not_uniform:`) are spice-exclusive too, so they live inside the `spice:`
 map; only the shared matchers (`stdout:`, `stderr:`, `exit_status:`) and
-`context:`/`timeout:`/`id:` stay siblings of the `spice:` key. **`context: [deploy]`**
+`context:`/`timeout:`/`id:` stay siblings of the `spice:` key. **`context: [runtime]`**
 — the verb needs a running VM; under `charly check box` (no running VM) it
 skips, and a SPICE-less deployment (e.g. a GPU desktop with no `<graphics
 type='spice'>` device) is reported N/A SKIP.
@@ -84,7 +84,7 @@ Example — each step is an ordered list item under the candy/box `plan:`:
 - check: the SPICE server completes the handshake and enumerates channels
   id: spice-handshake
   spice: status
-  context: [deploy]
+  context: [runtime]
   stdout:
     - contains: ok
     - contains: "inputs:    ready"
@@ -94,7 +94,7 @@ Example — each step is an ordered list item under the candy/box `plan:`:
     method: screenshot
     artifact: /tmp/spice-shot.png
     artifact_not_uniform: true
-  context: [deploy]
+  context: [runtime]
 ```
 
 Input injection is authored as `run:` steps (each one mutates guest state) — a
@@ -115,7 +115,7 @@ console login sequence walks the form with `spice: key` / `spice: type` steps:
 ```yaml
 - check: SPICE video recording starts on the VM display
   id: spice-rec-start
-  context: [deploy]
+  context: [runtime]
   spice:
     method: record
     action: start
@@ -123,11 +123,11 @@ console login sequence walks the form with `spice: key` / `spice: type` steps:
     fps: 5
 - check: a desktop-visible action runs during the capture
   id: spice-rec-drive
-  context: [deploy]
+  context: [runtime]
   command: "notify-send 'demo' 'capturing' 2>/dev/null || true; sleep 3"
 - check: the recording stops and a real MJPEG stream lands on the HOST
   id: spice-rec-stop
-  context: [deploy]
+  context: [runtime]
   spice:
     method: record
     action: stop

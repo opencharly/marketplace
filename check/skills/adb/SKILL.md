@@ -39,7 +39,7 @@ adb-exclusive fields (`arg:`, `apk:`, `property:`, `key:`, `query:`, `amount:`,
 `artifact:` and the artifact validators) — those live INSIDE the `adb:` map. Only
 the shared matchers (`stdout:`, `stderr:`, `exit_status:`) and `context:`/`id:`/
 `timeout:` stay siblings.
-**`context: [deploy]` only** — needs a running container with a
+**`context: [runtime]` only** — needs a live deployment (a running container with a
 host-mapped ADB server port; the validator rejects `context: [build]`
 use at `charly box validate` time.
 
@@ -50,7 +50,7 @@ Example — each step is an ordered list item under the candy/box `plan:` (mirro
 - check: the emulator is attached to the adb server
   id: emulator-is-up
   adb: devices
-  context: [deploy]
+  context: [runtime]
   stdout:
     - contains: "emulator-5554"
 - check: the emulator reports boot completed
@@ -58,7 +58,7 @@ Example — each step is an ordered list item under the candy/box `plan:` (mirro
   adb:
     method: getprop
     property: sys.boot_completed
-  context: [deploy]
+  context: [runtime]
   stdout:
     - contains: "1"
   timeout: 300s
@@ -170,7 +170,7 @@ is immune to the stdin-heredoc hazard that breaks shell-based settle loops
 - check: the emulator UI has settled past the ANR churn
   id: emulator-ui-settled
   adb: wait-ui-settled
-  context: [deploy]
+  context: [runtime]
   timeout: 600s
   stdout:
     - contains: settled
@@ -196,7 +196,7 @@ Common pattern:
 - check: wait for the device to finish booting
   adb: wait-for-device
   timeout: 120s
-  context: [deploy]
+  context: [runtime]
 ```
 
 ## Implementation
