@@ -204,7 +204,7 @@ charly-marketplace:
             - '@github.com/opencharly/layer-notebook-ollama:v2026.272.0611'
             - '@github.com/opencharly/layer-charly-coder:v2026.271.2125'
             - '@github.com/opencharly/layer-charly-hermes:v2026.281.2122'
-            - '@github.com/opencharly/pod-github-runner:v2026.279.0028'
+            - '@github.com/opencharly/pod-github-runner:v2026.289.1228'
             - '@github.com/opencharly/pod-nested-podman-socket:v2026.273.1858'
             - '@github.com/opencharly/layer-notebook-openrouter:v2026.272.0413'
             - '@github.com/opencharly/layer-charly-jupyter:v2026.271.2217'
