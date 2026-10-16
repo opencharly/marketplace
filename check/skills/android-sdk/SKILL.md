@@ -60,4 +60,3 @@ resolves on PATH.
 - `/charly-check:android` — the `kind: android` device + `target: android` deploy
 - `/charly-check:adb` — the `adb:` probe verb
 - `/charly-check:appium` — the `appium:` UI-automation verb
-- `/charly-java:java` — the JDK this SDK requires
