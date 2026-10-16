@@ -108,7 +108,7 @@ charly-marketplace:
             - '@github.com/opencharly/layer-kimi:v2026.281.2048'
             - '@github.com/opencharly/layer-charly-languages:v2026.271.2219'
             - '@github.com/opencharly/layer-ssh-client:v2026.272.0430'
-            - '@github.com/opencharly/layer-charly-local:v2026.278.0946'
+            - '@github.com/opencharly/layer-charly-local:v2026.288.2342'
             - '@github.com/opencharly/pod-labwc:v2026.274.0811'
             - '@github.com/opencharly/pod-sshd:v2026.272.0324'
             - '@github.com/opencharly/layer-libnotify:v2026.274.0749'
