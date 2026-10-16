@@ -2,7 +2,7 @@
 name: valkey-test
 description: |-
   Test box with Valkey (Redis-compatible) key-value store.
-  Currently disabled. Used for development testing.
+  Used for development testing.
   MUST be invoked before building or troubleshooting the valkey-test box.
 ---
 
@@ -20,7 +20,7 @@ Development test box with Valkey in-memory data store.
 | Layers | agent-forwarding, supervisord, valkey |
 | Platforms | linux/amd64, linux/arm64 |
 | Ports | 6379 (Valkey) |
-| Status | **disabled** (set `enabled: true` in charly.yml) |
+| Status | enabled |
 
 ## Purpose
 

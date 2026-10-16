@@ -2,7 +2,7 @@
 name: fedora-test
 description: |-
   Test box with Traefik reverse proxy and testapi service.
-  Currently disabled. Used for development testing.
+  Used for development testing.
   MUST be invoked before building or troubleshooting the fedora-test box.
 ---
 
@@ -39,7 +39,7 @@ Used for testing Traefik routing, service health checks, and the `testapi` candy
 
 ## Related Boxes
 - `/charly-distros:fedora` — parent base image
-- `/charly-distros:valkey-test` — sibling test box (disabled)
+- `/charly-distros:valkey-test` — sibling test box
 
 ## Related Commands
 - `/charly-build:build` — build the fedora-test box
