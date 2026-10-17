@@ -470,7 +470,7 @@ Source: `sdk/deploykit/security.go`, `sdk/deploykit/quadlet.go`.
 
 ### Image Transfer
 
-When `engine.build=docker`, `charly config` auto-detects if the image is missing from podman and transfers via `docker save | podman load`. `charly update` re-transfers if needed.
+When `engine.run=docker`, `charly config` auto-detects if the image is missing from podman and transfers via `docker save | podman load`. `charly update` re-transfers if needed.
 
 Source: `sdk/deploykit/quadlet.go` + `sdk/deploykit/quadlet_pod.go` (generation), `charly/commands.go` (command structs).
 
@@ -579,7 +579,7 @@ Port protocols are stored in the `ai.opencharly.port_proto` image label so deplo
 
 **Critical:** When deploying instances with `charly config setup -i <name>`, tunnel config is NOT auto-inherited from the base image's charly.yml entry. Each instance must have its own `tunnel:` section in charly.yml. Without it, the generated quadlet will have no `ExecStartPost=tailscale serve` commands and the instance will be unreachable via Tailscale.
 
-**Root cause:** `labels.go:238` deliberately skips parsing the `ai.opencharly.tunnel` OCI label — tunnel is charly.yml-only. When `charly config setup` creates a new instance, it writes ports/env/security to charly.yml but does not copy tunnel from the base entry.
+**Root cause:** `sdk/deploykit/capabilities.go` deliberately skips parsing the `ai.opencharly.tunnel` OCI label — tunnel is charly.yml-only. When `charly config setup` creates a new instance, it writes ports/env/security to charly.yml but does not copy tunnel from the base entry.
 
 **Workaround:** After `charly config setup -i <name>`, manually edit `~/.config/charly/charly.yml` to add `tunnel: {provider: tailscale, private: all}` to the instance entry, then re-run `charly config setup -i <name>` to regenerate the quadlet.
 
@@ -1204,7 +1204,7 @@ webapp:                            # an operator deploy + a companion member
 - `/charly-vm:vm` — Virtual machine deployment (charly vm)
 - `/charly-build:build` — Building images before deployment (+ the `--no-cache` intermediate scratch-stage caveat)
 - `/charly-build:charly-mcp-cmd` — verify the MCP endpoints declared by `provides.mcp:` entries are actually reachable (`charly check live <image> --filter mcp`); note the **port-publishing gotcha** when a `port:` override in charly.yml predates a newly-added mcp-providing layer
-- `/charly-image:image` — Image configuration, OCI label emission, `labels.go:238` tunnel read-skip
+- `/charly-image:image` — Image configuration, OCI label emission, `sdk/deploykit/capabilities.go` tunnel read-skip
 - `/charly-image:layer` — Unified `service:` schema (use_packaged + structured custom), `env_provide`/`env_require`/`env_accept` field declarations, security resource caps
 - `/charly-check:check` — Local `check:` in charly.yml overlays image-baked deploy defaults: entries with matching `id:` replace, otherwise append. `id: X, skip: true` disables a baked check without a replacement.
 

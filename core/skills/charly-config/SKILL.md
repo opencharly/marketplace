@@ -566,7 +566,7 @@ Kong `sep:"none"` on all `-e` flags means commas in values are preserved (no spl
 
 **Tunnel persistence:** `charly config setup` automatically persists tunnel config from charly.yml back to charly.yml via `saveDeployState`. Tunnel is a deploy-time concern — see `/charly-core:deploy` for tunnel configuration.
 
-**Tunnel is charly.yml-only:** `labels.go:238` deliberately skips parsing the `ai.opencharly.tunnel` OCI image label. Tunnel config is ONLY sourced from `charly.yml`. New instances created with `charly config setup -i <name>` do NOT inherit tunnel config from the base image's charly.yml entry — you must manually add `tunnel: {provider: tailscale, private: all}` to the instance's charly.yml entry, then re-run `charly config setup` to regenerate the quadlet with `ExecStartPost=tailscale serve` commands.
+**Tunnel is charly.yml-only:** `sdk/deploykit/capabilities.go` deliberately skips parsing the `ai.opencharly.tunnel` OCI image label. Tunnel config is ONLY sourced from `charly.yml`. New instances created with `charly config setup -i <name>` do NOT inherit tunnel config from the base image's charly.yml entry — you must manually add `tunnel: {provider: tailscale, private: all}` to the instance's charly.yml entry, then re-run `charly config setup` to regenerate the quadlet with `ExecStartPost=tailscale serve` commands.
 
 Source: `spec/hostenv/envfile.go` (`normalizeNoProxy`), `sdk/deploykit/deploy_state.go` (`MergeEnvVars`, `SaveDeployState`), `sep:"none"` in `candy/plugin-fleet/deploy_cmd.go` + `candy/plugin-pod/pod_cmd.go` (the former `charly/config_image.go`/`shell.go`/`start.go` are DELETED, K-wave 2).
 
@@ -586,7 +586,7 @@ Source: `spec/hostenv/envfile.go` (`normalizeNoProxy`), `sdk/deploykit/deploy_st
 - `/charly-build:settings` — Runtime settings (engine, run_mode, encrypted_storage_path)
 - `/charly-core:service` — Service lifecycle (start, stop, status, logs)
 - `/charly-image:layer` — Volume, secret, `env_provide` / `env_require` / `env_accept` declarations, security resource cap fields, `service:` blocks
-- `/charly-image:image` — Image composition, inheritance, OCI label emission, tunnel charly.yml-only note (`labels.go:238`)
+- `/charly-image:image` — Image composition, inheritance, OCI label emission, tunnel charly.yml-only note (`sdk/deploykit/capabilities.go`)
 - `/charly-core:charly-doctor` — Host GPU/device detection driving `appendAutoDetectedEnv()` (DRINODE, HSA_OVERRIDE_GFX_VERSION)
 - `/charly-core:shell` — Interactive shells share the same `appendAutoDetectedEnv()` path
 - `/charly-selkies:chrome` — Chrome HTTP proxy (`env_accept`), NO_PROXY auto-enrichment, cgroup resource caps

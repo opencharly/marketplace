@@ -63,9 +63,8 @@ Resolved OCI security label:
 | `devices` | `[/dev/fuse, /dev/net/tun]` (from `/charly-distros:container-nesting`) |
 | `privileged` | `false` |
 
-See `/charly-openclaw:openclaw-desktop` for the sibling rootless-first
-box that proves this posture works under streaming-desktop +
-nested-VM load, and `/charly-distros:container-nesting` for the kernel
+See `/charly-distros:charly-fedora` for the sibling rootless-first box and
+`/charly-distros:container-nesting` for the kernel
 `mount_too_revealing()` RCA.
 
 ### Network + port publishing
@@ -77,8 +76,8 @@ mappings to work with. (That leg also handles host-networked containers
 via `HostConfig.NetworkMode` detection — `ContainerInspection.IsHostNetworked()` in
 `sdk/kit/checkvars.go` — so the bridge isn't strictly required
 — but it remains the portable default.) If host-port 2222 is already taken by
-another running box (canonical conflict: `/charly-openclaw:openclaw-desktop`
-or any `selkies-desktop-*` variant), remap at config time:
+another running box (canonical conflict: any
+`selkies-desktop-*` variant), remap at config time:
 `charly config charly-arch -p 2223:2222`.
 
 ### MCP gateway (charly-mcp)
