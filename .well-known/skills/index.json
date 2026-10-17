@@ -1772,6 +1772,18 @@
       ]
     },
     {
+      "name": "strata",
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "strata-layer",
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
       "name": "strict-policy",
       "files": [
         "SKILL.md"

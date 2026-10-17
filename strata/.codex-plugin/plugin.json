@@ -1,0 +1,22 @@
+{
+  "name": "charly-strata",
+  "description": "The Strata family — the inference-engine layer, its cachyos-based image, the `charly strata` management CLI, and both beds: the deterministic GPU-free one and the exclusive-host GPU one.",
+  "author": {
+    "name": "opencharly"
+  },
+  "repository": "https://github.com/opencharly/marketplace",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "OpenCharly Strata",
+    "shortDescription": "The Strata family — the inference-engine layer, its cachyos-based image, the `charly strata` management CLI, and both beds: the deterministic GPU-free one and the exclusive-host GPU one.",
+    "longDescription": "The Strata family — the inference-engine layer, its cachyos-based image, the `charly strata` management CLI, and both beds: the deterministic GPU-free one and the exclusive-host GPU one.",
+    "developerName": "opencharly",
+    "category": "images",
+    "capabilities": [
+      "Instructions"
+    ],
+    "defaultPrompt": [
+      "Use OpenCharly Strata for this OpenCharly task."
+    ]
+  }
+}
