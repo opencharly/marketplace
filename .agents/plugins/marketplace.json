@@ -473,6 +473,18 @@
       "category": "images"
     },
     {
+      "name": "charly-strata",
+      "source": {
+        "source": "local",
+        "path": "./strata"
+      },
+      "policy": {
+        "installation": "INSTALLED_BY_DEFAULT",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "images"
+    },
+    {
       "name": "charly-tools",
       "source": {
         "source": "local",

@@ -39,6 +39,7 @@
     "charly-qdrant",
     "charly-review",
     "charly-selkies",
+    "charly-strata",
     "charly-tools",
     "charly-versa",
     "charly-vm"
@@ -70,6 +71,7 @@
     "charly-pod-verbs",
     "charly-qdrant",
     "charly-review",
+    "charly-strata",
     "charly-tools",
     "charly-vm"
   ],

@@ -41,6 +41,7 @@
     "./qdrant/skills",
     "./review/skills",
     "./selkies/skills",
+    "./strata/skills",
     "./tools/skills",
     "./versa/skills",
     "./vm/skills"
