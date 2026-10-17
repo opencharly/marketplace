@@ -27,7 +27,7 @@ CUDA compiler, cuDNN, ONNX Runtime, and GPU development libraries. Depends on th
 
 ## Packages
 
-RPM: `cuda-nvcc`, `cuda-cudart-devel`, `cuda-cudart-static`, `cuda-nvrtc-devel`, `cuda-cupti-devel`, `cuda-cccl-devel`, `cuda-cudnn`, `libcurand-devel`, `libcufile-devel`, `onnxruntime`, `libaio-devel`, `cpio`
+RPM: `cuda-nvcc`, `cuda-cudart-devel`, `cuda-cudart-static`, `cuda-nvrtc-devel`, `cuda-cupti-devel`, `cccl-devel`, `cuda-cudnn`, `libcurand-devel`, `libcufile-devel`, `onnxruntime`, `libaio-devel`, `cpio`
 
 PAC: `cuda`, `cudnn`, `python-onnxruntime-cpu`
 
@@ -37,8 +37,19 @@ PAC: `cuda`, `cudnn`, `python-onnxruntime-cpu`
 
 The candy is multi-distro. The `distro.arch` section installs `cuda`, `cudnn`,
 and `python-onnxruntime-cpu` from the Arch repos. Arch installs CUDA under
-`/opt/cuda`, while `CUDA_HOME` is `/usr`, so the Arch path symlinks
-`/opt/cuda/*` into `/usr/*` to stitch the Arch layout into the Fedora layout.
+`/opt/cuda` — its toolkit headers under `/opt/cuda/targets/x86_64-linux/include/` —
+while `CUDA_HOME` is `/usr`, so the Arch path links **every entry of those trees into
+`/usr`** — files of any extension and subtrees alike, enumerated rather than
+pattern-matched. `nvcc` computes its include root *relative to its own executable*, and
+`/usr/bin/nvcc` is a symlink, so anything not reachable under `/usr/include` cannot be
+found: `cuda_runtime.h`'s own `#include` fails and every CUDA build dies at CMake's
+`enable_language(CUDA)` with "No such file or directory". Matching on patterns produced
+both of those failures, on both Arch arms, while every probe in this plan still passed
+(opencharly/layer-cuda#9): first a `*.h` glob that linked the top-level headers but not
+the `crt/` and `cccl/` subtrees, then the same glob missing the `.hpp` half of the
+`_functions` family once the subtrees were linked. The check `cuda-arch-header-root`
+preprocesses a real CUDA translation unit to prove the whole header root resolves.
+
 With that stitch in place, the same `nvcc`, header, and library paths resolve
 identically on Fedora and on Arch/CachyOS.
 

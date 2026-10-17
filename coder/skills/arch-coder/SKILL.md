@@ -2,7 +2,7 @@
 name: arch-coder
 description: |-
   Kitchen-sink development box on Arch Linux: coding + AI-coding CLIs +
-  DevOps tooling in one container. Arch base, 30+ direct candies mirroring
+  DevOps tooling in one container. Arch base, 26 direct candies mirroring
   fedora-coder's stack but with pac:-section packages (plus AUR for a few
   unique cases). Runs as uid 1000 (`user`) with passwordless sudo.
   Use when working with the arch-coder box — or when comparing
@@ -29,6 +29,17 @@ description: |-
 Arch Linux counterpart of `/charly-coder:fedora-coder`. Same daily-development surface (AI CLIs, language runtimes, DevOps stack), same rootless posture (uid 1000 + passwordless sudo), same shape of tests — only the package manager (`pac:` / `aur:`) and a handful of Arch-specific package names differ.
 
 ## Definition
+
+The list below is the **resolved composition**, not the box's `refs` list: it names **32 candies** by
+their candy names, of which **26 are the box's direct refs** in `box/arch-coder/charly.yml`. The other
+six — `charly`, `layer-nodejs`, `rust`, `direnv`, `layer-gemini`, `google-cloud` — are still in the
+closure but now arrive **transitively at the same tags** through the composed refs, after the `charly#739`
+"ONE SOURCE per layer" rule dropped those six direct refs. That rule's own mapping, in the manifest's
+comment, names the dropped **refs** (which is why the two spellings differ: the list uses candy names,
+the mapping uses ref names): `layer-charly` ← `pod-charly-mcp`, `layer-nodejs` and `layer-rust` ←
+`layer-language-runtimes`, `layer-direnv` ← `layer-agent-forwarding`, `layer-gemini` and
+`layer-google-cloud` ← `layer-google-cloud-npm`. So "26 direct candies" above and the 32 names below
+describe the same box at two depths, and the closure is unchanged.
 
 ```yaml
 arch-coder:
@@ -123,7 +134,8 @@ Candies in roughly the same groups as fedora-coder, with these Arch-specific not
 - `gh` — GitHub CLI from Arch's `extra` repo (no third-party apt repo needed).
 - `container-nesting` — Arch equivalents for podman + buildah + skopeo + fuse-overlayfs + crun.
 
-The remaining 25+ candies are identical to fedora-coder at the *composition* level. Each candy's `pac:` section handles the Arch-specific package names.
+The other 22 of the box's 26 direct candies are identical to fedora-coder at the *composition* level — the
+four noted above are the direct entries that differ, and `nodejs` arrives inside `language-runtimes`. Each candy's `pac:` section handles the Arch-specific package names.
 
 ## Quick start
 

@@ -164,7 +164,7 @@ workflow.
 
 ## Cross-Engine Image Transfer
 
-When `engine.build` differs from `engine.run`, images are automatically transferred between engines on demand via `<src> save | <dst> load`.
+When a build and a run name different engines, images are automatically transferred between them on demand via `<src> save | <dst> load`.
 
 Source: `dispatchBuildEnsure` (`charly/dispatch_build_ensure.go`) dispatches to candy/plugin-build's `build:ensure` word (`candy/plugin-build/ensure.go`), which calls `kit.TransferImage` (`sdk/kit/transfer.go`, re-exporting `spec/container/transfer.go`). `charly/transfer.go`, this doc's former source citation, no longer exists.
 
