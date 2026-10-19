@@ -30,7 +30,7 @@ charly-marketplace:
             # Standalone sources for internals, command and authoring skills.
             - '@github.com/opencharly/layer-charly-internals:v2026.288.2320'
             - '@github.com/opencharly/layer-charly-internals-extra:v2026.289.0735'
-            - '@github.com/opencharly/layer-charly-build:v2026.289.1121'
+            - '@github.com/opencharly/layer-charly-build:v2026.292.2017'
             - '@github.com/opencharly/layer-charly-check:v2026.288.1102'
             - '@github.com/opencharly/layer-strata:v2026.290.1137'
             - '@github.com/opencharly/plugin-strata/candy/plugin-strata:v2026.290.1034'
