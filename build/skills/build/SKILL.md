@@ -43,7 +43,7 @@ charly box build --cache image [image...]           # Image cache (read-only, de
 charly box build --cache gha [image...]             # GitHub Actions cache
 charly box build --no-cache [image...]              # Disable cache entirely
 charly box build --jobs N [image...]                # Max concurrent images per DAG level (0=auto from defaults.jobs, else 4)
-charly box build --podman-jobs N [image...]         # Max concurrent stages within a single build (0=auto: min(NCPU, defaults.stage_parallelism_cap))
+charly box build --stage-parallelism N [image...]    # Max concurrent stages within a single build (0=auto: min(NCPU, defaults.stage_parallelism_cap))
 charly box build <image> --include-disabled         # Build an `enabled: false` image without flipping authored config
 charly box build <image> --dev-local-pkg            # EVAL-BED ONLY: build localpkg candies (the charly toolchain) from LOCAL in-dev source, not the published release
 ```
@@ -169,18 +169,18 @@ cat .build/my-image/Containerfile    # Inspect generated output
 5. For each level: build images in parallel (up to `--jobs` concurrent, default 4)
 6. After all builds: `charly box merge --all` (if `merge.auto` enabled, skipped for `--push`)
 
-## Parallelism: `--jobs` vs `--podman-jobs`
+## Parallelism: `--jobs` vs `--stage-parallelism`
 
 charly exposes **two** parallelism knobs with distinct meanings:
 
 | Flag | Env var | `defaults:` key | What it controls |
 |---|---|---|---|
 | `--jobs N` | `CHARLY_BUILD_JOBS` | `jobs` | **Outer** concurrency: how many charly-level images to build in parallel within a DAG level (e.g., when `charly box build` rebuilds the whole graph). |
-| `--podman-jobs N` | `CHARLY_PODMAN_JOBS` | `stage_parallelism` (+ `stage_parallelism_cap`) | **Inner** concurrency: how many stages of a *single* multi-stage build run concurrently. It becomes the BuildKit daemon's `[worker.oci] max-parallelism`, applied when the daemon starts. |
+| `--stage-parallelism N` | `CHARLY_STAGE_PARALLELISM` | `stage_parallelism` (+ `stage_parallelism_cap`) | **Inner** concurrency: how many stages of a *single* multi-stage build run concurrently. It becomes the BuildKit daemon's `[worker.oci] max-parallelism`, applied when the daemon starts. |
 
 Both knobs are **config-driven**: precedence is **CLI flag → env → `defaults:`
 in `charly.yml` → built-in fallback** (4). The inner auto value (when
-`--podman-jobs` / `CHARLY_PODMAN_JOBS` / `defaults.stage_parallelism` are all unset) is
+`--stage-parallelism` / `CHARLY_STAGE_PARALLELISM` / `defaults.stage_parallelism` are all unset) is
 CPU-proportional, capped at `defaults.stage_parallelism_cap`: `min(NCPU, cap)`.
 The cap is the operative ceiling, and it is the project's own to set. (The 20-run
 race gate required before raising it on a new engine version is in `CHANGELOG/`.)
@@ -194,15 +194,15 @@ defaults:
 ```
 
 ```bash
-charly box build <image> --podman-jobs 16             # fully parallel stages (override)
-CHARLY_PODMAN_JOBS=8 charly update <image> --build    # via env
-charly box build <image> --podman-jobs 1              # fully serialised, worst-case debugging
+charly box build <image> --stage-parallelism 16       # fully parallel stages (override)
+CHARLY_STAGE_PARALLELISM=8 charly update <image> --build  # via env
+charly box build <image> --stage-parallelism 1        # fully serialised, worst-case debugging
 ```
 
 Source: `candy/plugin-build/resolve.go` (`resolveDriveStageParallelism`, feeding
 `buildkit.ResolveStageParallelism`; the host-resolved `StageParallelism` value is the
 `MaxParallelism` the drive hands the daemon in `candy/plugin-build/buildkit.go`).
-Covered by `buildkit/build_helpers_test.go` (`TestResolveStageParallelism`). The outer `--jobs` knob and the inner `--podman-jobs`
+Covered by `buildkit/build_helpers_test.go` (`TestResolveStageParallelism`). The outer `--jobs` knob and the inner `--stage-parallelism`
 are separate fields so the two semantics don't get conflated.
 
 ## Build-context excludes (`defaults.context_ignore`)
@@ -226,8 +226,9 @@ defaults:
 
 Why it matters: the build context tar is streamed to the engine on **every**
 build regardless of cache state, so excluding large never-COPYed directories is
-the dominant warm-rebuild win. podman reads `.containerignore`; docker reads
-`.dockerignore` — emitting both keeps the two engines in lockstep. Only add a
+the dominant warm-rebuild win. BuildKit's dockerfile frontend reads `.dockerignore`;
+`.containerignore` is the engine-native name kept for engine-native builds — emitting both
+keeps the two readers in lockstep. Only add a
 directory you've confirmed no Containerfile COPY/ADDs from (generated
 Containerfiles COPY only from `candy/`, `templates/`, `.build/`). Source:
 `candy/plugin-build/host_prep.go:writeContextIgnore` + `charly/host_build_buildengine.go`
@@ -285,8 +286,8 @@ what actually orders them; **within one image's tag rows**, the
 *"creation time, not the tag"* across to the tag budget — it is true of the first and
 false of the second.
 
-Images referenced by a container (`podman ps -a`) are skipped, and `rmi` runs without
-`-f` as a backstop.
+Images referenced by a running container are skipped, and removal runs without `-f` as a
+backstop (`charly clean` owns the prune; never call the engine's prune directly).
 
 ```yaml
 # charly.yml — defaults:
@@ -342,7 +343,7 @@ Rationale:
    a CalVer tag is self-describing and rotates naturally.
 
 Any stray `:latest` tag in local storage is never refreshed by a new
-build; prune it with `podman image prune` if you want it gone.
+build; prune it with `charly clean` if you want it gone.
 
 ## Cache Efficiency
 
@@ -362,7 +363,7 @@ Three kinds of source changes are real cache invalidators — if you see a long 
 
 ### What does NOT invalidate cache
 
-- **CalVer tag shifts alone.** The Containerfile emits `ARG BASE_IMAGE=<registry>/<name>:<calver>` with a fresh CalVer on every generate. That ARG default appears in the Containerfile text but is not part of the cache key for subsequent RUN/COPY steps — podman/buildah resolves the FROM to an image SHA first, and caches downstream steps off that SHA. If the SHA is unchanged, cache hits. The cache cost comes from content changes in the layer itself, not the tag.
+- **CalVer tag shifts alone.** The Containerfile emits `ARG BASE_IMAGE=<registry>/<name>:<calver>` with a fresh CalVer on every generate. That ARG default appears in the Containerfile text but is not part of the cache key for subsequent RUN/COPY steps — BuildKit resolves the FROM to an image digest first, and caches downstream steps off that digest. If the SHA is unchanged, cache hits. The cache cost comes from content changes in the layer itself, not the tag.
 - **Baked `plan:` edits.** LABEL directives are emitted last in every final stage (after the last USER). Editing a baked step (a `check:`/`agent-check:` step, or a runtime-context `run:` step) — a common layer mutation — only re-runs the final LABEL block (~2 seconds on a 138-step stack like `immich-ml`). (Editing a build/deploy-context `run:` step changes the install timeline, so it re-runs that RUN/COPY instead.) See `/charly-internals:generate-source` for the rationale.
 - **Re-running `charly box build` without source changes.** Fully cached; seconds to complete.
 
@@ -386,13 +387,13 @@ Three kinds of source changes are real cache invalidators — if you see a long 
 
 ## Build Flow Details
 
-**Internal base images** use exact CalVer tags in Containerfiles (`FROM ghcr.io/opencharly/fedora:2026.46.1415`). This ensures each image references the precise version of its parent. Both Docker and Podman resolve local images before pulling from registry.
+**Internal base images** use exact CalVer tags in Containerfiles (`FROM ghcr.io/opencharly/fedora:2026.46.1415`), so each image names the precise version of its parent. **The builder does not resolve that tag through a local-image lookup**: BuildKit's OCI worker has no local-first resolution. The built image is stored in the configured RUN engine's store (`LoadExport`: load → tag → verify), where every later read of it — capability labels, deploy, status, inline merge, `charly clean` — resolves it; it is ALSO pushed to charly's local OCI registry, which the buildkitd mirrors `ghcr.io/opencharly` to, so a dependent box's `FROM ${BASE_IMAGE}` resolves a locally built base instead of the upstream registry (`opencharly/charly#937`, `opencharly/layer-charly-build#25`).
 
 ## Push Mode
 
 BuildKit's image exporter is the ONE push path — `--output type=image,name=<ref>,push=true` —
 and the only one that can push the multi-platform image a `--push` build produces. It
-covers both `docker buildx --push` and `podman manifest push`.
+replaces the engine-native push drivers — no per-engine push path remains.
 
 Source: `candy/plugin-build/buildkit.go` (`pushOutput`).
 
@@ -531,11 +532,11 @@ Options, in order of least to most disruptive:
 
 1. **Just retry the build.** Often the cache clears itself once the partial package finishes downloading or gets superseded by a checksum mismatch.
 2. **Bump a content-hash on the builder layer** (e.g. `echo "" >> candy/pixi/charly.yml`) to evict the cache mount associated with that build-stage's hash, then revert the cosmetic change. Same workaround as the scratch-stage cache issue above.
-3. **`podman image prune -af` is NOT the right hammer** — see next note.
+3. **The engine's `image prune -af` is NOT the right hammer** — use `charly clean`; see next note.
 
-### `podman image prune -af` caveat — removes tagged-but-idle images
+### Engine-level `image prune -a -f` caveat — removes tagged-but-idle images
 
-`podman image prune -a -f` will delete tagged images that are **not referenced by a running container**. That means the image you just built via `charly box build` — and haven't started as a container yet — is eligible for prune. Observed sequence: `charly box build` → `podman image prune -af` → `sudo podman load` (manual rootful refresh) fails with `image not known`. Protect the fresh build by starting a container or use `prune` with explicit filters instead.
+An engine-level `image prune -a -f` deletes tagged images that are **not referenced by a running container**. That means the image you just built via `charly box build` — and haven't started as a container yet — is eligible for prune. Observed sequence: `charly box build` → an engine-level `image prune -af` → a manual rootful reload fails with `image not known`. Protect the fresh build by starting a container or use `prune` with explicit filters instead.
 
 ### Forcing a rebuild of one layer's scratch stage
 
