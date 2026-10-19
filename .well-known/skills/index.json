@@ -1778,6 +1778,12 @@
       ]
     },
     {
+      "name": "strata-cli",
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
       "name": "strata-layer",
       "files": [
         "SKILL.md"

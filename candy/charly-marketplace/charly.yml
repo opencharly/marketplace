@@ -33,6 +33,7 @@ charly-marketplace:
             - '@github.com/opencharly/layer-charly-build:v2026.289.1121'
             - '@github.com/opencharly/layer-charly-check:v2026.288.1102'
             - '@github.com/opencharly/layer-strata:v2026.290.1137'
+            - '@github.com/opencharly/plugin-strata/candy/plugin-strata:v2026.290.1034'
             - '@github.com/opencharly/layer-android-sdk:v2026.289.0725'
             - '@github.com/opencharly/plugin-wl/candy/plugin-wl:v2026.281.0714'
             - '@github.com/opencharly/plugin-quickshell/candy/plugin-quickshell:v2026.272.0445'
