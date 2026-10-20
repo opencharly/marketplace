@@ -41,7 +41,7 @@ and the coordinator with `/charly-crabbox:crabbox-coordinator`
 Per-lease state is `crabbox status <id-or-slug>` — *"Show lease state; add
 `--wait` to block until ready"*. It is deliberately NOT this verb's `leases`
 method: `status` is not an enumerator, and it has **no `--all` flag** (measured
-on the pinned v0.78.0: `crabbox status --all` exits *"flag provided but not
+on the pinned v0.79.0: `crabbox status --all` exits *"flag provided but not
 defined: -all"*), so the earlier prose that documented `leases` as
 `crabbox status --all` named a command that cannot run.
 
@@ -84,7 +84,7 @@ coordinator readiness first.
 `provider:` is passed through as `--provider <name>` for the two methods whose CLI
 command defines the flag — `doctor` and `leases` (`crabbox list`) — and nowhere
 else, because attaching it to a command that does not define it is an argument
-error, not a selection. Measured on the pinned v0.78.0:
+error, not a selection. Measured on the pinned v0.79.0:
 
 ```
 $ crabbox doctor --provider local-container   -> ok provider-selection provider=local-container source=flag selected=true

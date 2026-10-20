@@ -241,9 +241,9 @@ charly-marketplace:
             # opencharly/plugin-marketplace#20 keys resolve.go on (Kind, Name) without the
             # family. Fixing that belongs there, not here — no pin can express "prefer the
             # check-verb entity" without inventing a rule the emitter does not have.
-            - '@github.com/opencharly/layer-crabbox:v2026.289.1044'
-            - '@github.com/opencharly/pod-crabbox:v2026.289.1103'
-            - '@github.com/opencharly/plugin-crabbox/candy/plugin-crabbox:v2026.289.1122'
+            - '@github.com/opencharly/layer-crabbox:v2026.293.1001'
+            - '@github.com/opencharly/pod-crabbox:v2026.293.1003'
+            - '@github.com/opencharly/plugin-crabbox/candy/plugin-crabbox:v2026.293.1011'
             # R0 coverage wave (opencharly/opencharly#382): three repos own `skill:`
             # entities that carry `triggers:` but were never pinned, so the emitter
             # never saw them and their skills were absent from the corpus entirely —
