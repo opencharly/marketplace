@@ -36,8 +36,8 @@ pacman -S / dnf install / apt install) pulls the release binary + its OS deps.
 The `packaging:` section is the single metadata source those repos build from
 (`charly generate-packages`, sdk/packagekit).
 
-The IN-DEVELOPMENT binary (the local working tree, synced by
-`task build:binary`) installs via the **`charly-dev`** candy — the local-source
+The IN-DEVELOPMENT binary (the local working tree, built by
+`scripts/bootstrap-charly.sh`) installs via the **`charly-dev`** candy — the local-source
 variant used ONLY by charly check beds (`add_candy: [charly-dev]`), so a fresh
 bed always exercises the code under development while a real box ships the
 published release.
@@ -46,16 +46,16 @@ published release.
 
 **The commands in this section are maintenance the charly repository performs on itself.** They are not steps an charly user runs: the charly-dev candy's binary source is a working tree (see "Binary source" above), so this is something a contributor does inside a charly checkout. It is recorded here because it is this candy's own build contract — named as maintenance, not as instructions for the reader.
 
-There is **one** path. The `charly-dev` candy is declared in the repo-root `charly.yml`, and a candy's `copy:` resolves against its declaring file's directory, so `copy: bin/charly` reads the repo-root `bin/charly` that `task build:binary` writes:
+There is **one** path. The `charly-dev` candy is declared in the repo-root `charly.yml`, and a candy's `copy:` resolves against its declaring file's directory, so `copy: bin/charly` reads the repo-root `bin/charly` that `scripts/bootstrap-charly.sh` writes:
 
 ```bash
-task build:binary                            # Builds repo-root bin/charly.
+./scripts/bootstrap-charly.sh                # Builds repo-root bin/charly.
 ./bin/charly box build <image>               # Rebuild affected images.
 ```
 
 Building with `go build -o ../bin/charly .` directly is equivalent for this purpose — the candy reads whatever is at repo-root `bin/charly`. There is no second copy to keep in step.
 
-This used to be a two-path contract: charly-dev lived in `candy/charly-dev/`, so its `copy:` resolved against the candy directory and needed its own `bin/charly`, synced there by `task build:binary`. Forgetting that sync baked the PREVIOUS binary into every check bed — silently, because nothing failed. Declaring the candy where the path already resolves removed the second path, and the class of mistake with it.
+This used to be a two-path contract: charly-dev lived in `candy/charly-dev/`, so its `copy:` resolved against the candy directory and needed its own `bin/charly`, built by `scripts/bootstrap-charly.sh`. Forgetting that sync baked the PREVIOUS binary into every check bed — silently, because nothing failed. Declaring the candy where the path already resolves removed the second path, and the class of mistake with it.
 
 **Still worth knowing**: `charly box build` uses auto-generated intermediate images (e.g., `ghcr.io/opencharly/charly-fedora-2-dbus-nodejs`) that cache the `charly-dev` candy. If an intermediate serves stale content, `charly clean --invalidate 'charly-fedora-2*'` forces a clean rebuild.
 
