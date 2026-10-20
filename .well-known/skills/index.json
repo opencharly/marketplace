@@ -1331,7 +1331,7 @@
       ]
     },
     {
-      "name": "openclaw",
+      "name": "openclaw-cmd",
       "files": [
         "SKILL.md"
       ]

@@ -32,8 +32,8 @@ charly-marketplace:
             - '@github.com/opencharly/layer-charly-internals-extra:v2026.289.0735'
             - '@github.com/opencharly/layer-charly-build:v2026.292.2017'
             - '@github.com/opencharly/layer-charly-check:v2026.288.1102'
-            - '@github.com/opencharly/layer-strata:v2026.290.1137'
-            - '@github.com/opencharly/plugin-strata/candy/plugin-strata:v2026.290.1034'
+            - '@github.com/opencharly/layer-strata:v2026.293.1253'
+            - '@github.com/opencharly/plugin-strata/candy/plugin-strata:v2026.293.0541'
             - '@github.com/opencharly/layer-android-sdk:v2026.289.0725'
             - '@github.com/opencharly/plugin-wl/candy/plugin-wl:v2026.281.0714'
             - '@github.com/opencharly/plugin-quickshell/candy/plugin-quickshell:v2026.272.0445'
@@ -142,7 +142,7 @@ charly-marketplace:
             - '@github.com/opencharly/pod-ollama:v2026.274.0620'
             - '@github.com/opencharly/pod-virtualization:v2026.281.2114'
             - '@github.com/opencharly/layer-vscode:v2026.272.0410'
-            - '@github.com/opencharly/layer-openclaw:v2026.282.0448'
+            - '@github.com/opencharly/layer-openclaw:v2026.293.1243'
             - '@github.com/opencharly/layer-oracle:v2026.281.1716'
             - '@github.com/opencharly/layer-wacli:v2026.281.2114'
             - '@github.com/opencharly/layer-ordercli:v2026.281.1711'
@@ -241,7 +241,7 @@ charly-marketplace:
             # opencharly/plugin-marketplace#20 keys resolve.go on (Kind, Name) without the
             # family. Fixing that belongs there, not here — no pin can express "prefer the
             # check-verb entity" without inventing a rule the emitter does not have.
-            - '@github.com/opencharly/layer-crabbox:v2026.293.1001'
+            - '@github.com/opencharly/layer-crabbox:v2026.293.1244'
             - '@github.com/opencharly/pod-crabbox:v2026.293.1003'
             - '@github.com/opencharly/plugin-crabbox/candy/plugin-crabbox:v2026.293.1011'
             # R0 coverage wave (opencharly/opencharly#382): three repos own `skill:`

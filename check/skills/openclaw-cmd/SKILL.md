@@ -1,5 +1,5 @@
 ---
-name: openclaw
+name: openclaw-cmd
 description: |-
   the `openclaw:` check verb — probe a running OpenClaw 2.0 gateway (health/ready/startup
   via the /healthz /readyz /startupz HTTP probe endpoints, status/models/channels/version

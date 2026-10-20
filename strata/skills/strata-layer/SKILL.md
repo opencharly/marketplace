@@ -30,7 +30,9 @@ volume's first start reuses the engine instead of compiling for 20-40 minutes.
 Everything is the deployment's `env:` — the engine's own documented variables, renamed by
 nothing: `FAMILY`, `MODEL`, `CONTEXT`, `VISION`, `KV`, `GPU`, `GPUS`, `LAYER_SPLIT`,
 `LOW_RAM`, `RESIDENT_BUDGET_GIB`, `KV_STREAMING`, `REINSTALL`, `GGUF_DIR`, plus
-`STRATA_OVERLAY_JSON` for the server-behaviour keys. `LOW_RAM` is always passed through:
+`STRATA_RUN_ARGS` for an external model's extra engine argv (a community pack's own
+`--pack/--native/--ple-gguf/--mtp`), and `STRATA_OVERLAY_JSON` for the
+server-behaviour keys. `LOW_RAM` is always passed through:
 `setup.py` measures RAM from `/proc/meminfo`, which in a container is the HOST's total,
 so a memory-capped container must ask for the low-RAM path itself.
 
