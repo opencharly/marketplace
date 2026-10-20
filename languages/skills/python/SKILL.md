@@ -20,6 +20,21 @@ description: |-
 
 Pixi (conda-forge): `python >=3.13,<3.14`
 
+## Environment ownership (read before pinning a version)
+
+An image's pixi environment belongs to **whichever candy ships the `pixi.toml` it is
+built from** — usually the top consumer, not this layer. So the package pin above is
+this layer's *default*, not a property of every image that composes it: an image whose
+own `pixi.toml` pins a different minor gets that interpreter.
+
+Because of that, the candy's checks assert what the layer actually guarantees — a
+working CPython at or above the supported floor of **3.11**, proven by running real
+standard-library code (including the `sqlite3` C extension) through it — rather than
+one exact minor. An image that needs a specific version should assert it in its own
+`plan:`. The concrete case that forced this: `open-webui` (and so the `openwebui`
+candy) requires `>=3.11,<3.13`, so it legitimately runs 3.12 and a hard-coded 3.13
+assertion redded its whole check bed (opencharly/layer-python#8).
+
 ## Usage
 
 ```yaml

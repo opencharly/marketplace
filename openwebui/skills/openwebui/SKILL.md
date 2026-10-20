@@ -9,7 +9,12 @@ description: |-
 
 # Box: openwebui
 
-Open WebUI with auto-configured LLM providers (Ollama, OpenRouter), MCP server discovery, and Jupyter code execution. No manual setup needed — secrets auto-managed via `charly secrets`.
+Open WebUI with auto-configured LLM providers (Ollama, OpenRouter), MCP server discovery, and Jupyter code execution. No manual setup needed — secrets are credential-backed and auto-wired.
+
+Pinned to **Open WebUI 0.12.3** (`pixi.toml`). The upstream contract this candy
+depends on is recorded under "Upstream contract" below — read it before changing
+the entrypoint or any `env:` value, and re-verify it against the real source on
+every version bump.
 
 ## Definition
 
@@ -38,7 +43,9 @@ openwebui:
 
 ```bash
 charly box build openwebui
-charly config openwebui -e OPENROUTER_API_KEY=sk-or-xxx
+charly config openwebui -e WEBUI_ADMIN_EMAIL=you@example.com \
+                        -e WEBUI_ADMIN_PASSWORD=<32-byte hex> \
+                        -e OPENROUTER_API_KEY=sk-or-xxx
 charly start openwebui
 # Open http://localhost:8080
 ```
@@ -46,6 +53,11 @@ charly start openwebui
 ## Deployment Patterns
 
 ### Standalone with GPG secrets (recommended)
+
+> The `charly secrets …` steps need the `secrets` command plugin, which the default
+> binary does not ship yet (opencharly/charly#995). Without it, pass the same values
+> with `-e` on `charly config` as above.
+
 ```bash
 charly secrets gpg setup
 charly secrets gpg set OPENROUTER_API_KEY sk-or-xxx
@@ -70,19 +82,67 @@ charly config openwebui --env-file .secrets --update-all
 charly start ollama jupyter selkies-desktop openwebui
 ```
 
+## LLM provider wiring
+
+The entrypoint re-detects providers on every start and builds Open Web UI's
+semicolon-separated provider lists — `OPENAI_API_BASE_URLS` / `OPENAI_API_KEYS` are
+the only thing that configures chat providers (`open_webui/config.py:341-355`); the
+singular `OPENAI_API_KEY` / `OPENAI_API_BASE_URL` are aliases upstream resets after
+folding them into those lists (`config.py:355-375`).
+
+| Trigger env | Projection |
+|---|---|
+| `OPENROUTER_API_KEY` | `https://openrouter.ai/api/v1` + the key |
+| `OLLAMA_API_KEY` | `https://ollama.com/v1` + the key (Ollama Cloud, additive) |
+| `OPENAI_API_KEY` **and** `OPENAI_API_BASE_URL` | that base URL + the key |
+| `OLLAMA_HOST` | `ENABLE_OLLAMA_API=true` + `OLLAMA_BASE_URL` (native Ollama API) |
+
+The three OpenAI-compatible entries stack: the lists are appended in order and stay
+index-aligned, so OpenRouter + Ollama Cloud + a self-hosted endpoint can be live at
+once. With no `OLLAMA_HOST` the entrypoint sets `ENABLE_OLLAMA_API=false` (upstream
+defaults it to true), so an absent Ollama never appears as a failing provider.
+
 ## Secrets Management
 
-```bash
-# Tier 1: Auto-generated infrastructure secrets
-charly secrets list charly/openwebui
-charly secrets get charly/openwebui webui-secret-key
-charly secrets set charly/openwebui admin-password --generate
+`WEBUI_ADMIN_PASSWORD` is a `secret_require:` entry, so it lives in the credential
+store under the default namespace (`charly/secret`) and reaches the container as a
+podman secret injected into the env. It is enforced, not invented: `charly config`
+stops on `missing required credential-backed secret(s)` when it is absent, and `-e
+WEBUI_ADMIN_PASSWORD=…` imports it into the backend and strips it from the deploy. The
+image-owned `secret: webui-secret-key` (`WEBUI_SECRET_KEY`) is auto-generated per
+deployment and provisioned as the podman secret
+`charly-openwebui-webui-secret-key`.
 
-# Tier 2: User API keys (GPG-encrypted)
+The `charly secrets …` surface below is the documented credential interface, but the
+`secrets` command plugin is **not** in the default binary today — `charly secrets`
+answers with usage, from a candy-loaded project too (opencharly/charly#995). Read a
+provisioned value from the credential backend (`~/.config/charly/config.yml` →
+`keyring_keys: charly/secret/<NAME>`) until that lands.
+
+```bash
+# Tier 1: admin password (credential store -> podman secret)
+charly config openwebui -e WEBUI_ADMIN_EMAIL=you@example.com \
+                        -e WEBUI_ADMIN_PASSWORD=<32-byte hex>
+
+# Tier 1: what is provisioned for this deploy (works without the secrets plugin)
+charly status openwebui          # the Secrets: line lists charly-openwebui-*
+
+# Tier 1 + 2 (needs the `secrets` command plugin — see #995)
+charly secrets get charly/secret WEBUI_ADMIN_PASSWORD
+charly secrets set charly/secret WEBUI_ADMIN_PASSWORD <password>
+charly secrets list charly/secret
 charly secrets gpg set OPENROUTER_API_KEY sk-or-new-key
-charly secrets gpg show
 charly config openwebui --env-file .secrets --update-all
 ```
+
+`WEBUI_SECRET_KEY` is a **hard requirement** in 0.12.3: with `WEBUI_AUTH=true` and an
+empty key the backend refuses to start (`open_webui/env.py` raises `SystemExit` at
+import; 0.9.5 silently fell back to `t0p-s3cr3t`). `open-webui serve` dodges that only
+by writing `.webui_secret_key` into the current directory — the candy never relies on
+it, because the key must stay stable across restarts or every session and stored OAUTH
+token is invalidated. The candy always supplies it; a service that dies on startup
+with "WEBUI_SECRET_KEY is not set" means the podman secret did not reach the container
+— check `charly status openwebui`.
 
 ## Cross-Container Service Discovery
 
@@ -107,6 +167,35 @@ Open WebUI receives:
 - `TOOL_SERVER_CONNECTIONS=[...]` — MCP servers (jupyter + chrome-devtools)
 - `CODE_EXECUTION_ENGINE=jupyter` — code execution via Jupyter
 
+### `TOOL_SERVER_CONNECTIONS` shape
+
+The entrypoint translates charly's `CHARLY_MCP_SERVERS` array into the JSON Open Web
+UI's `ToolServerConnection` model accepts (`routers/configs.py`):
+
+```json
+[{
+  "type": "mcp",
+  "url": "http://charly-jupyter:8888/mcp",
+  "spec_type": "url", "spec": "", "path": "",
+  "auth_type": "", "key": "",
+  "config": {"enable": true},
+  "info": {"id": "jupyter", "name": "jupyter", "description": "MCP: jupyter"}
+}]
+```
+
+- `url` is the **full** MCP endpoint — it is passed to the MCP client verbatim; `path`
+  is only appended for `openapi` servers, so it stays empty here.
+- `path`, `auth_type`, `key` and `config` have no model default — they must be present.
+  `spec_type`/`spec` are carried as extra fields and are inert for MCP.
+- `config.enable` must be `true`; a connection without it is ignored.
+- **`info.id` is the server's identity**, not decoration. Open Web UI builds the tool
+  id as `server:mcp:<info.id>`, keys the connected-client map, the OAuth client, and
+  the access-control lookup on it — so it must be unique per server. The entrypoint
+  sets it to the server name, which is unique by charly's `mcp_provide` contract.
+- MCP connections without `config.access_grants` are **admin-only** by default
+  (`utils/access_control/__init__.py:167-172`). That is sufficient here: creating the
+  admin from env disables signup, so the deployment has exactly one account.
+
 ## Key Candies
 
 - `/charly-openwebui:openwebui` — Auto-config entrypoint, secrets, env_accept, TOOL_SERVER_CONNECTIONS format
@@ -122,25 +211,68 @@ Open WebUI receives:
 ## Verification
 
 ```bash
-charly status openwebui
-charly service status openwebui                    # openwebui: RUNNING
+charly status openwebui                        # Running + the Secrets: line (charly-openwebui-*)
+charly service status openwebui                # openwebui: RUNNING
 curl -s -o /dev/null -w '%{http_code}' http://localhost:8080   # 200
-charly shell openwebui -c "open-webui version"
+charly shell openwebui -c "open-webui --version"
 
-# Verify secrets
-charly status openwebui   # the Secrets: line lists the provisioned charly-openwebui-* engine secrets              # webui-secret-key, admin-password
-
-# Verify MCP (inside container process)
-charly cmd openwebui "cat /proc/3/environ" | tr '\0' '\n' | grep TOOL_SERVER_CONNECTIONS
+# What the entrypoint actually projected into the service environment
+charly cmd openwebui "printenv TOOL_SERVER_CONNECTIONS"
+charly cmd openwebui "printenv CODE_EXECUTION_ENGINE CODE_EXECUTION_JUPYTER_URL"
+charly cmd openwebui "printenv OPENAI_API_BASE_URLS OPENAI_API_KEYS OLLAMA_BASE_URL WEBUI_ADMIN_EMAIL"
 ```
+
+`WEBUI_ADMIN_PASSWORD` and `WEBUI_SECRET_KEY` arrive as podman secrets that charly
+projects into the container environment (the entrypoint additionally falls back to
+reading `/run/secrets/webui-secret-key`), so the `printenv` lines above are the
+runtime witness. The readable source of the value is the credential backend
+(`~/.config/charly/config.yml` → `keyring_keys: charly/secret/<NAME>`); the
+`charly secrets get` read-back needs the `secrets` command plugin (#995).
+
+## Upstream contract (Open WebUI 0.12.3)
+
+Every surface the entrypoint projects, with the evidence in the 0.12.3 source. The
+plumbing was rewritten between 0.9.5 and 0.12.3 — `PersistentConfig` objects and
+`/opt/data/config.json` are gone, replaced by a per-key `config` table plus a
+`DEFAULT_CONFIG` dict built from the environment at import time (`config.py`,
+`models/config.py`) — but **the env-var names and their meaning did not move**:
+
+| Surface | Verdict | Evidence in 0.12.3 |
+|---|---|---|
+| `DATA_DIR` | unchanged | `env.py:228` (`DATA_DIR`, `/opt/data` honoured; the `FROM_INIT_PY` block at `env.py:231-250` is a no-op when old and new dirs are equal) |
+| `PORT` | **not read by upstream** (also not in 0.9.5) | `__init__.py:38-41` — `serve(host='0.0.0.0', port: int = 8080)` is a Typer option; the entrypoint therefore passes `--port "${PORT:-8080}"` |
+| `DOCKER` | unchanged | `env.py:44` |
+| `ENABLE_DIRECT_CONNECTIONS` | unchanged | `config.py:236` |
+| `ENABLE_CODE_EXECUTION` | unchanged | `config.py:415` |
+| `ENABLE_PERSISTENT_CONFIG` | name/semantics unchanged, mechanism rewritten | `config.py:3334` → `models/config.py:119-149`: disabled ⇒ `Config.get()` answers from the env-built defaults, so env wins on every read; admin-panel writes then apply to process memory only (`models/config.py:200-208`) |
+| `ENABLE_VERSION_UPDATE_CHECK` | unchanged | `env.py:1212` |
+| `WEBUI_AUTH` | unchanged | `env.py:757` |
+| `WEBUI_ADMIN_EMAIL` / `WEBUI_ADMIN_PASSWORD` / `WEBUI_ADMIN_NAME` | unchanged (first-run admin path intact) | `env.py:804-806`, `main.py:401-405`, `utils/auth.py:631-662` |
+| `WEBUI_SECRET_KEY` | **now a hard requirement** | `env.py:770-786` raises `SystemExit` when `WEBUI_AUTH` and the key is empty (0.9.5 silently defaulted to `t0p-s3cr3t`) |
+| `OLLAMA_BASE_URL` / `ENABLE_OLLAMA_API` | unchanged | `config.py:243,247,298-313` |
+| `OPENAI_API_KEY` / `OPENAI_API_BASE_URL` | unchanged — still aliases that feed the plural lists, then get reset | `config.py:328-375` |
+| `OPENAI_API_BASE_URLS` / `OPENAI_API_KEYS` | unchanged (semicolon lists; providers without an `OPENAI_API_CONFIGS` entry take the legacy path) | `config.py:341-355`, `routers/openai.py:594-608` |
+| `TOOL_SERVER_CONNECTIONS` | unchanged shape (superset: optional `forward_cookies`; model is `extra='allow'`) | `config.py:388-394`, `routers/configs.py:222-233` |
+| `CODE_EXECUTION_ENGINE` + `CODE_EXECUTION_JUPYTER_*` | unchanged | `config.py:417-447`, `routers/utils.py:49-64` |
+| `ENABLE_TOOL_SERVERS` | now master-gated by `ENABLE_PLUGINS` (both default `true`) | `env.py:1194-1198` |
+
+Two consequences worth remembering:
+
+- A stale `/opt/data/config.json` from a pre-0.12 deployment is imported into the
+  config table on first start (`config.py:86-93`). `ENABLE_PERSISTENT_CONFIG=false`
+  is what keeps it from overriding the environment afterwards — that is the whole
+  reason the candy sets it, and it matters more now than it did in 0.9.5.
+- The entrypoint runs on **every** start and re-derives every value from env, which
+  is what makes a changed provider/secret take effect without touching data.
 
 ## Test Coverage
 
-Latest `charly check live openwebui` run: **24 passed, 0 failed, 0 skipped**.
-Covers: openwebui entrypoint script presence, pixi python + charly binary,
-and deploy-scope: service up, port reachable on `127.0.0.1:${HOST_PORT:8080}`,
-HTTP 200 on `/` (30-second timeout for first-request startup), admin
-email env var injected. See `/charly-check:check` for the framework.
+The witness is `charly check live openwebui` on a composing box's check bed: the
+entrypoint script is present and executable, the pixi python env and `charly` binary
+are installed, and the deploy-scope steps assert the service is up, `127.0.0.1:${HOST_PORT:8080}`
+is reachable, `/` answers HTTP 200 (30-second first-request timeout), and
+`WEBUI_ADMIN_EMAIL` is in the service environment. See `/charly-check:check` for the
+framework; record the run's pass/fail counts on the PR that lands a change here.
 
 ## Related Skills
 
