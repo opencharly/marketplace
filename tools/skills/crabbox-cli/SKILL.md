@@ -17,7 +17,7 @@ description: |-
 | Property | Value |
 |----------|-------|
 | Binary | `/usr/local/bin/crabbox` |
-| Version | pinned `0.78.0` (GoReleaser release archive, `CRABBOX_VERSION` var) |
+| Version | pinned `0.79.0` (GoReleaser release archive, `CRABBOX_VERSION` var) |
 | Install | `download:` the release tarball, `extract_include: [crabbox]` |
 | Requires | `layer-gh` (git), `layer-ssh-client` (ssh/ssh-keygen), rsync + curl packages |
 | Alias | `crabbox` (wrapper runs in-box via `charly alias`) |
@@ -48,7 +48,7 @@ doctor` passes in a broker-less build context.
 Opt out of the explicit lease hostname for runtimes that share the
 host UTS namespace via `localContainer.noHostname: true` in
 `~/.config/crabbox/config.yaml` (or
-`CRABBOX_LOCAL_CONTAINER_NO_HOSTNAME=1`) — the v0.78.0 surface
+`CRABBOX_LOCAL_CONTAINER_NO_HOSTNAME=1`) — the v0.79.0 surface
 (upstream #1813/#1924); a fixed lease ID conflicts when the setting
 changes between acquisitions.
 | `ssh` (`static`/`static-ssh`) | existing machines |
