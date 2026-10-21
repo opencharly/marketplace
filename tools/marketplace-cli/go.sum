@@ -60,8 +60,8 @@ github.com/mitchellh/go-wordwrap v1.0.1 h1:TLuKupo69TCn6TQSyGxwI1EblZZEsQ0vMlAFQ
 github.com/mitchellh/go-wordwrap v1.0.1/go.mod h1:R62XHJLzvMFRBbcrT7m7WgmE1eOyTSsCt+hzestvNj0=
 github.com/oklog/run v1.1.0 h1:GEenZ1cK0+q0+wsJew9qUg/DyD8k3JzYsZAi5gYi2mA=
 github.com/oklog/run v1.1.0/go.mod h1:sVPdnTZT1zYwAJeCMu2Th4T21pA3FPOQRfWjQlk7DVU=
-github.com/opencharly/plugin-marketplace/candy/plugin-marketplace v0.2026289.219 h1:abJhi5YZgRQwMHKsymD1hwWqNra65i/S4kVQZHnUwEo=
-github.com/opencharly/plugin-marketplace/candy/plugin-marketplace v0.2026289.219/go.mod h1:gn6XULmUb40lTND7Yw5CWTVkH9x2iFqhkY29zqUbI3I=
+github.com/opencharly/plugin-marketplace/candy/plugin-marketplace v0.2026294.1612 h1:c/6dqjEUhXvwv+trp3CrQqNCRermwzrfhmPmhs/PhZA=
+github.com/opencharly/plugin-marketplace/candy/plugin-marketplace v0.2026294.1612/go.mod h1:gn6XULmUb40lTND7Yw5CWTVkH9x2iFqhkY29zqUbI3I=
 github.com/opencharly/sdk v0.2026289.157 h1:MXH07IzcEjlm76a+XHTizyQZW7ad/21G44EdBHYT8RI=
 github.com/opencharly/sdk v0.2026289.157/go.mod h1:lf3rmumA7gpiHYs7IBzHpoLiic16CeuO7TjuZZvAQ2Y=
 github.com/opencharly/spec v0.2026288.1242 h1:QaK64GRx2dKik/bXbZ62bMkKUqNIL1AImWkrjSVMLoY=
