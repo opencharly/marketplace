@@ -196,7 +196,7 @@ charly-marketplace:
             - '@github.com/opencharly/pod-immich-ml:v2026.274.0811'
             - '@github.com/opencharly/pod-jupyter-ml:v2026.274.0802'
             - '@github.com/opencharly/layer-notebook-finetuning:v2026.272.0321'
-            - '@github.com/opencharly/pod-openwebui:v2026.274.0629'
+            - '@github.com/opencharly/pod-openwebui:v2026.293.1944'
             - '@github.com/opencharly/layer-selkies-kde-desktop:v2026.274.1343'
             - '@github.com/opencharly/layer-vectorchord:v2026.273.1836'
             - '@github.com/opencharly/layer-charly-openwebui:v2026.278.0935'
