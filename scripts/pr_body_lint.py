@@ -8,10 +8,11 @@ the validator (opencharly/marketplace#404 — distro-fedora#79 and docs#142, bot
 BLOCKs on the body alone):
 
   sections   the four required `## ` sections are present;
-  footer     OPTIONAL: when an italic `Assisted-by` trailer is present it is the LAST line (an
-             `Agent:` line, when present, directly precedes it), and a trailer buried mid-text
-             fails; a body with no trailer passes. The trailer grammar is squash_body.py's (one
-             definition);
+  footer     OPTIONAL for a human-authored body: a body with no trailer passes. REQUIRED when
+             the body carries an `Agent:` line (the mechanical agent marker): the italic
+             `Assisted-by` trailer must then be the LAST line, with the `Agent:` line directly
+             preceding it. A trailer buried mid-text always fails. The trailer grammar is
+             squash_body.py's (one definition);
   rules      `## Rulebook compliance` answers EVERY rule id in --rules, each with a HOW or an
              `N/A — <reason>` (a bare `N/A` fails);
   claims     an asserted check — a sweep result ("only occurrence"), a no-match grep/rg result,
@@ -460,14 +461,24 @@ def lint(body: str, head: str | None, rules: tuple[str, ...]) -> list[str]:
         s = ln.strip()
         return len(s) > 2 and s.startswith("*") and s.endswith("*") and bool(TRAILER.match(s[1:-1]))
 
-    # The footer is OPTIONAL. A body with no trailer passes; a trailer that IS present must be
-    # the last non-empty line, so it cannot be buried mid-text (and a second, earlier trailer
-    # cannot pass alongside a final one). The message shape is unchanged for the misplaced arm.
+    def is_agent_line(ln: str) -> bool:
+        # The mechanical agent marker: `Agent:` opens the line, in its plain or emphasis-wrapped
+        # form (`Agent: …`, `*Agent: …*`, `**Agent:** …`). A mention mid-line is not a marker.
+        return ln.strip().lstrip("*").startswith("Agent:")
+
+    has_trailer = any(is_trailer(ln) for ln in tail)
+    has_agent = any(is_agent_line(ln) for ln in tail)
+
+    # The footer is OPTIONAL for a body with no `Agent:` line (as far as the linter can tell, a
+    # human author). A body that carries the agent marker REQUIRES the trailer, and a trailer
+    # that IS present must be the last non-empty line, so it cannot be buried mid-text (and a
+    # second, earlier trailer cannot pass alongside a final one). The message shape is unchanged
+    # for the misplaced arm.
     if any(i != len(tail) - 1 for i, ln in enumerate(tail) if is_trailer(ln)):
         findings.append(f"footer: the last line must be the italic Assisted-by trailer, got: {last[:80]!r}")
-    if any(is_trailer(ln) for ln in tail) and any(
-        ln.lstrip().startswith("*Agent:") for ln in tail[:-1]
-    ) and not tail[-2].lstrip().startswith("*Agent:"):
+    if has_agent and not has_trailer:
+        findings.append("footer: a body carrying an `Agent:` line must end with the italic Assisted-by trailer")
+    if has_trailer and any(is_agent_line(ln) for ln in tail[:-1]) and not is_agent_line(tail[-2]):
         findings.append("footer: the `Agent:` line must directly precede the Assisted-by trailer")
 
     rc = secs.get("Rulebook compliance", [])
