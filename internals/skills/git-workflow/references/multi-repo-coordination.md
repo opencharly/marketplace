@@ -125,11 +125,11 @@ yourself.
 **When another session's PR blocks you** (a projection lands before the source
 that pins it; a consumer pin needs the producer merged; a shared file is
 mid-flight on their branch), the ONE sanctioned channel is a **PR comment on the
-PR that owns the blocking file** (or a new issue naming it). It is a `BLOCKS`
+PR that owns the blocking file** (or a new issue naming it). It is a `WAITING`
 comment, and it goes on **BOTH threads**: the blocking PR/issue AND your own. The
 comment must be actionable: name your session slug, the exact file/gitlink/pin
 you need, what change unblocks you, and the evidence. Then STOP; if it stays
-blocked, ask the operator. When the block clears, post `UNBLOCKS` on both
+blocked, ask the operator. When the wait clears, post `CLEARED` on both
 threads. Never work around it (R3), never edit their artifact, never
 force-land, and never `-D`/reset their branch.
 
@@ -189,14 +189,14 @@ one-sided.
   what is done, what is next, and when the next update is due. Silence is what lets
   the takeover window (B2b.1) start, so an owner who wants to keep a claim keeps
   posting.
-- **Say so the moment you block someone.** When YOUR issue or PR is blocking another
+- **Say so the moment you hold someone up.** When YOUR issue or PR is holding another
   session's progress (you hold a file, a producer they pin, a gitlink they need), post
-  `BLOCKS` on BOTH threads immediately. Name the blocked item, the blocking change,
-  and your expected unblock. Do not wait for them to find it.
-- **Answer coordination before your own work.** A `BLOCKS`, a `TAKING OVER`, or a
-  question addressed to your slug is read in full and answered in-thread before your
-  next push.
-- **Record every thread** you claimed or posted `BLOCKS` on in the session ledger
+  `HOLDING` on BOTH threads immediately. Name the held item, what you hold, and
+  your expected unblock. Do not wait for them to find it.
+- **Answer coordination before your own work.** A `WAITING`, a `HOLDING`, a `TAKING OVER`,
+  or a question addressed to your slug is read in full and answered in-thread before
+  your next push.
+- **Record every thread** you claimed or posted `WAITING`/`HOLDING` on in the session ledger
   (`/charly-internals:agents`), so an interrupted session resumes its reporting.
 - **Close out:** `RESOLVED` on every coordination thread you opened, once the work
   lands.
@@ -232,7 +232,7 @@ line nor the verb grammar is required of a solo agent on an uncontended PR
 — never tax every comment. They become MANDATORY the moment EITHER holds:
 
 1. **two or more agents work the same issue or PR**, or
-2. **the scope is a blocking dependency** (any `BLOCKS` / `UNBLOCKS` is in play).
+2. **the scope is a blocking dependency** (any `WAITING` / `HOLDING` / `CLEARED` is in play).
 
 On a triggered scope, EVERY agent-authored comment and PR body carries the
 two-line footer, and coordination comments open with the verb.
@@ -247,10 +247,16 @@ CLOSED set**, uppercase, then sharp prose in proper GitHub Markdown
 | `OWNING` | the standing owner of a live scope | scope ref, your slug |
 | `HANDING OVER` | the owner passes the scope to a named slug | scope ref, from-slug, to-slug, state + next step |
 | `TAKING OVER` | a slug assumes an unowned or window-expired scope | scope ref, your slug, `authority:` |
-| `BLOCKS` | this scope is blocked | blocked ref, blocking ref, what unblocks |
-| `UNBLOCKS` | the block is cleared | blocked ref, who cleared it |
+| `WAITING` | this scope is waiting on another scope | waiting-on ref, what you need, what unblocks it |
+| `HOLDING` | this scope is holding another scope up | held ref, what you hold, what unblocks it |
+| `CLEARED` | the wait is over | ref, who cleared it |
 | `STATUS` | progress, no authority change | scope ref, your slug, state |
 | `RESOLVED` | the scope is done | merged PR ref + `v<CalVer>` tag |
+
+The set is CLOSED, and it is the whole set: a coordination comment opens with one
+of those nine labels and nothing else. A comment whose first non-blank line is any
+other word is not a coordination comment, so a gate looking for one does not count
+it. The set changes only through a rulebook change, landed like any other.
 
 Rendered example — a claim on a PR:
 
@@ -289,7 +295,7 @@ BEFORE the first push to the taken scope. A takeover may proceed ONLY
 after ALL of:
 
 1. **A coordination comment posted on the scope FIRST** — an ownership
-   board, or a `BLOCKS`/`STATUS` addressed to the owner, asking them to
+   board, or a `WAITING`/`HOLDING`/`STATUS` addressed to the owner, asking them to
    reply with their status or `HANDING OVER — <reason>`. **No comment, no
    takeover, ever.**
 2. **The window elapsing** with **no answer from the original session AND
@@ -329,7 +335,7 @@ relocation/cutover (a sibling consumer's landability waits on it), the
 auto-close at the block limit must not silently drop it: the successor PR
 (or the owning issue, with the leg re-driven) MUST exist — or the auto-close
 is refused/deferred — so the cutover is never left with a deleted producer
-and no replacement. The consumer leg names the producer and `BLOCKS` on it;
+and no replacement. The consumer leg names the producer and `WAITING` on it;
 the producer's successor is opened before the producer's thread is abandoned.
 **Field evidence:** the umbrella add PR (the replacement leg of the
 narrative relocation) auto-closed at the block limit with **no successor**,
@@ -395,7 +401,7 @@ a subagent's error. An action taken by a subagent MUST identify itself and name
 its parent, so the chain of responsibility is followable — the footer extends to
 `*Agent: <slug> (subagent of <parent-slug>) · session <ses_…>*` + the
 `Assisted-by:` trailer (`Agent:` FIRST, `Assisted-by:` LAST). `CLAIM` /
-`TAKING OVER` / `HANDING OVER` / `BLOCKS` are addressed to the accountable PARENT,
+`TAKING OVER` / `HANDING OVER` / `WAITING` / `HOLDING` are addressed to the accountable PARENT,
 not merely a subagent. A `CLAIM` carries a PRODUCE-OR-HAND-OVER duty: produce an
 artifact or `HANDING OVER` with the reason — "still investigating" past the
 window is a silent block, not progress.
@@ -430,7 +436,7 @@ rulebook (`AI_REVIEW_PROMPT`) and the skill must agree on this form.
 
 ```bash
 gh pr view <n> --repo <r> --json comments --jq '.comments[].body' \
-  | grep -E '^(CLAIM|OWNING|HANDING OVER|TAKING OVER|BLOCKS|UNBLOCKS|STATUS|RESOLVED)\b'
+  | grep -E '^(CLAIM|OWNING|HANDING OVER|TAKING OVER|WAITING|HOLDING|CLEARED|STATUS|RESOLVED)\b'
 gh pr view <n> --repo <r> --json comments --jq '.comments[].body' \
   | grep -oE 'Agent: `[^`]+`'         # who has a voice on this PR
 ```

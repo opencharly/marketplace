@@ -8,7 +8,7 @@
 #   discipline). This script carries only a pointer so the explanation lives ONCE.
 #
 # Fully generic: no org, repo, session, or date is baked in — everything is env/args.
-# Use it for anything you are waiting on: a PR that BLOCKS you (wake when it merges),
+# Use it for anything you are waiting on: a PR you are WAITING on (wake when it merges),
 # a PR you might take over (wake on a stall), or an issue you commented on (wake when
 # anyone replies).
 #

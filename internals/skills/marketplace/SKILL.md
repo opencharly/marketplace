@@ -36,9 +36,13 @@ cutover). Each family lives in its standalone owning candy repo:
 | pod | layer-charly-pod |
 | hooks / marketplace verb / hook: entities | pod-charly-hooks |
 
-A skill edit lands in the OWNING repo's candy `skill:` entity (e.g.
-`layer-charly-internals/charly.yml`), then the marketplace refs list is bumped and the
-corpus regenerated. Never hand-edit a generated SKILL.md or a marketplace family dir.
+A skill edit lands in the OWNING repo as a FILE — `<owning candy dir>/.agents/skills/<name>/SKILL.md`,
+or `<owning candy dir>/.agents/agents/<name>.md` for a sub-agent definition — while the `skill:` node
+beside it carries only routing (`family`/`owner`/`triggers`). Then the marketplace refs list is bumped
+and the corpus regenerated. Never hand-edit a generated SKILL.md or a marketplace family dir. The
+authoring contract — the file's shape, the routing-only node, the prohibition on an image `owner:`, and
+the hard error on an inline body that disagrees with its file — is `/charly-internals:skills`; it is
+not restated here.
 
 ## Regeneration
 
@@ -89,7 +93,7 @@ re-installs the plugin at scope.
 
 ## Cross-References
 
-- `/charly-internals:skills` — authoring: edit the OWNING repo's `skill:` entity, then regenerate
+- `/charly-internals:skills` — authoring: edit the owning repo's `.agents/skills/<name>/SKILL.md`, then regenerate
 - `/charly-internals:git-workflow` — PR-only landing + CalVer tags for the owning repos
 - `/charly-build:docs` — the docs mirror of the same corpus (standalone opencharly/docs repo)
 - `/charly-build:charly-mcp-cmd` — out-of-process plugin verbs and the discover:-path grammar

@@ -74,9 +74,20 @@ common=(--agent slug-x --session ses_test --harness OpenCode --model "DeepSeek V
 # 1. --help exits 0 and names every verb (the EXACT canonical spaced labels).
 "$COORD" --help > "$WORK/help.txt" 2>&1
 eq "$?" 0 "coord.sh --help exits 0"
-for v in CLAIM OWNING "HANDING OVER" "TAKING OVER" BLOCKS UNBLOCKS STATUS RESOLVED; do
+for v in CLAIM OWNING "HANDING OVER" "TAKING OVER" WAITING HOLDING CLEARED STATUS RESOLVED; do
   grep -qF "$v" "$WORK/help.txt" && ok "help lists the canonical label $v" || bad "help lists the canonical label $v"
 done
+
+# 1b. round-trip: the VERBS array and the --help prose carry the SAME label set.
+# The array drives validation and the header IS the --help output, so a one-sided
+# edit passes the loop above while the tool rejects the verb it advertises.
+array_str=$(sed -n 's/^VERBS=(\(.*\))$/\1/p' "$COORD" | sed 's/"//g')
+help_str=$(tr '\n' ' ' < "$WORK/help.txt" | tr -s ' ' ' ' | sed 's/^ *//; s/ *$//')
+if printf '%s' "$help_str" | grep -qF "one of $array_str."; then
+  ok "the --help prose lists exactly the VERBS array labels"
+else
+  bad "the --help prose lists exactly the VERBS array labels (array: $array_str)"
+fi
 
 # 2. unknown option → exit 2.
 "$COORD" STATUS acme/widget#1 "${common[@]}" --bogus --dry-run >/dev/null 2>&1
@@ -113,8 +124,8 @@ eq "$?" 2 "missing --agent exits 2"
 eq "$?" 2 "missing target exits 2"
 
 # 6. canonical footer ORDER: verb first line, Agent before Assisted-by, last line.
-out=$("$COORD" BLOCKS "acme/widget#7" --body "waiting on the producer pin" "${common[@]}" --dry-run 2>/dev/null)
-eq "$(printf '%s\n' "$out" | head -1)" "BLOCKS" "first line is the verb label"
+out=$("$COORD" WAITING "acme/widget#7" --body "waiting on the producer pin" "${common[@]}" --dry-run 2>/dev/null)
+eq "$(printf '%s\n' "$out" | head -1)" "WAITING" "first line is the verb label"
 eq "$(printf '%s\n' "$out" | tail -1)" "*Assisted-by: OpenCode DeepSeek V4.1 Flash (documentation reviewed)*" "last line is the Assisted-by trailer"
 agent_line=$(printf '%s\n' "$out" | grep -n '^\*Agent:' | cut -d: -f1)
 assist_line=$(printf '%s\n' "$out" | grep -n '^\*Assisted-by:' | cut -d: -f1)

@@ -7,7 +7,7 @@
 #   comment grammar every agent must use the moment two or more agents work the same
 #   issue/PR, or the scope is a blocking dependency:
 #     * the FIRST non-blank line is exactly ONE label from the closed set
-#       CLAIM · OWNING · HANDING OVER · TAKING OVER · BLOCKS · UNBLOCKS · STATUS · RESOLVED;
+#       CLAIM · OWNING · HANDING OVER · TAKING OVER · WAITING · HOLDING · CLEARED · STATUS · RESOLVED;
 #     * the comment ENDS with two italic identity lines in the canonical order —
 #       `Agent:` FIRST, `Assisted-by:` LAST (the order the pr-validator accepts).
 #   Hand-writing that footer is exactly where agents drift (wrong order, a missing
@@ -21,9 +21,9 @@
 # USAGE
 #   coord.sh <VERB> <owner/repo#num> [--body TEXT | --body-file FILE] [OPTIONS]
 #
-#   <VERB>        one of CLAIM OWNING HANDING OVER TAKING OVER BLOCKS UNBLOCKS
-#                 STATUS RESOLVED. Case-insensitive; `-`, `_` and runs of spaces
-#                 all normalise to the canonical spaced upper-case label.
+#   <VERB>        one of CLAIM OWNING HANDING OVER TAKING OVER WAITING HOLDING
+#                 CLEARED STATUS RESOLVED. Case-insensitive; `-`, `_` and runs of
+#                 spaces all normalise to the canonical spaced upper-case label.
 #
 #                 <VERB> IS ONE ARGUMENT. Write a two-word verb with `_` or `-`
 #                 (one word, so no quoting is needed), or QUOTE the spaced form.
@@ -61,7 +61,7 @@ set -euo pipefail
 
 PROG=${0##*/}
 
-VERBS=(CLAIM OWNING "HANDING OVER" "TAKING OVER" BLOCKS UNBLOCKS STATUS RESOLVED)
+VERBS=(CLAIM OWNING "HANDING OVER" "TAKING OVER" WAITING HOLDING CLEARED STATUS RESOLVED)
 TIERS=(
   "fully tested and validated"
   "analysed on a live system"

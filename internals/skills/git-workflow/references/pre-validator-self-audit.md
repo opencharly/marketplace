@@ -42,7 +42,7 @@ both body-only, and neither covered by classes 1-5.
    disclosed in the body and not filed, and the validator correctly BLOCKed it.
    A producer PR cannot regenerate another repository's artifact — which is
    exactly why the remedy is the FILED half: an issue in the repo that owns the
-   artifact, a `BLOCKS` on both threads, and the close condition stated.
+   artifact, a `WAITING` on both threads, and the close condition stated.
 5. **Split cutover (HC)**: content removed from surface A in this PR while
    its replacement home on surface B is deferred.
 6. **The asserted-check overclaim (universal / negative quantifier)**: a claim
@@ -107,7 +107,7 @@ both body-only, and neither covered by classes 1-5.
    **3e. A consequence your change causes in ANOTHER repo is FILED, never
    narrated.** When the diff turns a CONSUMER's gate red — its corpus, its
    drift, a pin that no longer matches — file the issue in the repo that owns
-   the artefact, post `BLOCKS` on both threads, and state the close condition.
+   the artefact, post `WAITING` on both threads, and state the close condition.
    "Expected", "by design" and "the normal producer-first order" explain WHY it
    is red; none of them is a disposition. R1's remedy for a consequence you
    cannot fix in-tree is the filed half, and only the filed half.
