@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# coord.sh — post ONE verb-labelled coordination comment (or claim) on a GitHub
-# issue or PR, carrying the canonical two-line agent footer.
+# coord.sh — post ONE verb-labelled coordination comment on a GitHub issue or PR,
+# carrying the canonical two-line agent footer.
 #
 # WHY THIS EXISTS
 #   `AGENTS.md` ("Agent identity & comment coordination", extends rule 9) defines a
 #   comment grammar every agent must use the moment two or more agents work the same
 #   issue/PR, or the scope is a blocking dependency:
-#     * the FIRST non-blank line is exactly ONE label from the closed set
-#       CLAIM · OWNING · HANDING OVER · TAKING OVER · WAITING · HOLDING · CLEARED · STATUS · RESOLVED;
+#     * the FIRST non-blank line is exactly ONE label from the closed set — the labels
+#       are listed by `--help` below, and the VERBS array is the ONE that decides them.
 #     * the comment ENDS with two italic identity lines in the canonical order —
 #       `Agent:` FIRST, `Assisted-by:` LAST (the order the pr-validator accepts).
 #   Hand-writing that footer is exactly where agents drift (wrong order, a missing
@@ -79,9 +79,9 @@ have() { command -v "$1" >/dev/null 2>&1; }
 in_list() { local needle=$1; shift; local x; for x in "$@"; do [ "$x" = "$needle" ] && return 0; done; return 1; }
 
 # canon_verb is the ONE verb normalisation (R3): upper-cased, with `_` and `-` read as a
-# space and runs of spaces collapsed, so any spelling a caller may type (`TAKING OVER`,
-# `TAKING-OVER`, `taking_over`) reaches the closed set as the same label. It trims the
-# outer spaces the `_`/`-` mapping can produce (a leading `_`).
+# space and runs of spaces collapsed, so any spelling a caller may type of a two-word
+# label reaches the closed set as the same label. It trims the outer spaces the `_`/`-`
+# mapping can produce (a leading `_`).
 # BOTH callers use it — the closed-set validation below and the two-word-verb diagnostic
 # in positional() — so the two can never drift into different notions of "the same verb".
 canon_verb() {

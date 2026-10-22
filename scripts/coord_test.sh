@@ -72,9 +72,20 @@ export PATH="$WORK/bin:$PATH" CALLS
 common=(--agent slug-x --session ses_test --harness OpenCode --model "DeepSeek V4.1 Flash" --confidence "documentation reviewed")
 
 # 1. --help exits 0 and names every verb (the EXACT canonical spaced labels).
+#
+# ORACLE is this test's ONE statement of the closed set — an expectation, not an
+# implementation. The implementation states it twice (the VERBS array and the --help
+# prose); the assertions below hold those two to the oracle and to each other, and
+# 1d holds them to being the only two statements of it.
+ORACLE=(CLAIM OWNING "HANDING OVER" "TAKING OVER" WAITING HOLDING CLEARED STATUS RESOLVED)
+# The retired labels, named once, for the two assertions that prove the tooling does
+# not grandfather them: the tool REJECTS them, and the implementation never mentions
+# them. A test that forbids a label has to name it — that is the only place in this
+# repo where the old names appear, and the R5 sweep classifies it.
+RETIRED=("BLOCKS" "UNBLOCKS")
 "$COORD" --help > "$WORK/help.txt" 2>&1
 eq "$?" 0 "coord.sh --help exits 0"
-for v in CLAIM OWNING "HANDING OVER" "TAKING OVER" WAITING HOLDING CLEARED STATUS RESOLVED; do
+for v in "${ORACLE[@]}"; do
   grep -qF "$v" "$WORK/help.txt" && ok "help lists the canonical label $v" || bad "help lists the canonical label $v"
 done
 
@@ -87,6 +98,58 @@ if printf '%s' "$help_str" | grep -qF "one of $array_str."; then
   ok "the --help prose lists exactly the VERBS array labels"
 else
   bad "the --help prose lists exactly the VERBS array labels (array: $array_str)"
+fi
+
+# 1c. the VERBS array IS the canonical set: exactly the oracle's labels, in the
+# canonical order. 1b proves the two copies agree with each other; this proves they
+# agree with the SET — a label added to the array (and to the help) would leave 1b
+# green while the closed set quietly grew.
+eq "$array_str" "${ORACLE[*]}" "the VERBS array is exactly the canonical closed set, in order"
+
+# 1d. the closed set is stated EXACTLY TWICE in coord.sh: the VERBS array (the
+# implementation) and the --help block (the user-facing rendering). A third
+# statement — in the header prose or in any comment — is a COPY, and a copy in prose
+# is invisible to every other assertion: nothing compares it, so it drifts silently
+# and the file then advertises a set the tool does not accept. So no closed-set
+# label may be named anywhere outside those two regions.
+outside=$(awk '
+  /^# USAGE/ { inhelp = 1; next }
+  /^# EXIT/  { inhelp = 0; next }
+  inhelp     { next }
+  /^VERBS=/ { next }
+  { print NR ": " $0 }
+' "$COORD")
+leak=""
+while IFS= read -r line; do
+  [ -z "$line" ] && continue
+  # normalise the way the tool does: upper case, `_`/`-` read as a space, runs of
+  # spaces collapsed — so a copy spelled `TAKING-OVER` is found, not missed.
+  n=$(printf '%s' "$line" | tr '[:lower:]' '[:upper:]' | tr '_-' '  ' | tr -s ' ' | sed 's/^ //; s/ $//')
+  for l in "${ORACLE[@]}"; do
+    case " $n " in
+      *" $l "*) leak="$leak
+$line"; break ;;
+    esac
+  done
+done <<< "$outside"
+if [ -z "$leak" ]; then
+  ok "the closed set is stated only in the VERBS array and the --help block"
+else
+  bad "the closed set is stated only in the VERBS array and the --help block (a third copy at:$leak)"
+fi
+
+# 1e. the tooling does not grandfather the retired labels. The BEHAVIOURAL proof
+#     first: the tool rejects them. A grandfather branch — a path that still accepts
+#     an old label — would make these exit 0, so this is the assertion that catches
+#     it. Then the textual one: the implementation never mentions them.
+for r in "${RETIRED[@]}"; do
+  "$COORD" "$r" acme/widget#1 "${common[@]}" --dry-run >/dev/null 2>&1
+  eq "$?" 2 "the retired label $r is rejected with exit 2"
+done
+if grep -qE "\b(${RETIRED[0]}|${RETIRED[1]})\b" "$COORD"; then
+  bad "coord.sh names no retired coordination label"
+else
+  ok "coord.sh names no retired coordination label"
 fi
 
 # 2. unknown option → exit 2.
