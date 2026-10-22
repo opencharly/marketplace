@@ -36,8 +36,27 @@ NEW repository.
   org-level default: `allow_auto_merge=true` and `delete_branch_on_merge=true`.
 - The target set is `discover_repos` in `scripts/lib-org.sh`: **active,
   non-fork, default branch `main`**. Everything else is `discover_excludes`
-  (forks, archived, non-`main` defaults) and receives NEITHER the org workflow
-  NOR CalVer tags — by design, not by omission.
+  (forks, archived, non-`main` defaults). Exclusion is about the ORG-WIDE
+  AUTOMATIC coverage ONLY: the org does not attach the required
+  `validate / validate` workflow to the repo and does not mint its CalVer tag.
+  **It is not a prohibition, and a fork is not a defect.** A fork is a
+  legitimate, actively developed repo here, and it runs its own checks:
+  * `openclaw-enterprise` (fork of `openclaw/openclaw-enterprise`) has ZERO
+    branch rules, so no branch check is ENFORCED; its PRs run its own
+    `.github/workflows/ci.yml` and merge on that CI signal — its PR #2 merged
+    2026-10-13 with `CI Required`, `CodeQL` and `QA advisory`, and no
+    `validate / validate`;
+  * `crabbox` (fork of `openclaw/crabbox`) is excluded from the org-wide
+    ruleset but carries its OWN repo-scoped ruleset requiring the SAME
+    `org-wide-pr-validator-required.yml`, so its PRs get the org gate through
+    that repo's ruleset;
+  * `gst-wayland-display` (fork, default `stable`) carries its own rules on
+    `stable` (including `validate / validate`) and CalVer tags minted
+    out-of-band.
+  For a LIVE repo, an exclusion never means "cannot land" or "is junk" — the
+  non-landing categories are named below. What DOES still hold: a NEW repo is
+  created non-fork so it inherits the org gate, and an excluded repo is not
+  tagged or gated by the org automatically.
 
 ## What happens automatically on every PR (the landing chain)
 
@@ -101,6 +120,10 @@ an appliance is the defect this step exists to catch.
 
 1. Create `opencharly/<name>` (non-fork; it must end up on default branch `main`).
    The org ruleset then covers it automatically — no per-repo branch rules.
+   **Adopting an existing upstream is an explicit choice, not a defect:** either
+   land it NON-FORK (it gains the org gate and CalVer tags) or keep it a fork and
+   accept that it lands on its own CI (as `openclaw-enterprise` does) or its own
+   repo-scoped ruleset (as `crabbox` does), with no CalVer tag minted by the org.
 2. Add the per-repo `.github/workflows/tag-on-merge.yml` caller — REQUIRED for
    CalVer tags and the CHANGELOG — plus the appropriate `deploy.yml`. The
    org-required validator needs NO per-repo file (the old `pr-validator.yml`
@@ -118,10 +141,26 @@ an appliance is the defect this step exists to catch.
 A repo created WITHOUT the `tag-on-merge.yml` caller still MERGES (the org
 workflow validates it) but NEVER gets a CalVer tag: measured on
 `layer-nerdctl` and `plugin-nerdctl` (no `.github` directory at all; their two
-`v2026.266.*` tags were minted manually). Excluded BY DESIGN (no tag expected):
-`gst-wayland-display` (a fork), `pixelflux` (a vendored upstream on non-`main`
-default `av1`), `omarchy-eval-artifacts` (a `runs`-branch artifact sink), and the
-archived `pi-review-action`.
+`v2026.266.*` tags were minted manually).
+
+Four DIFFERENT things sit outside `discover_repos`, and they are not one
+category:
+
+- **A fork under development** — `gst-wayland-display` (fork of
+  `games-on-whales/gst-wayland-display`, default `stable`), `crabbox` (fork of
+  `openclaw/crabbox`), and `openclaw-enterprise` (fork of
+  `openclaw/openclaw-enterprise`). Real repos, real PRs, own CI or own ruleset;
+  only the org-wide automatic coverage is absent.
+- **A vendored upstream on a non-`main` default** — `pixelflux` (default
+  `av1`): consumed as a pin, not a landing target.
+- **An artifact-branch sink** — `omarchy-eval-artifacts` (default `runs`): a
+  branch that receives published output, not a landing target.
+- **An archived repo** — `pi-review-action`: read-only, so GitHub rejects
+  pushes and new PRs.
+
+"No tag expected" is true only of the AUTOMATIC tag: the org mints none for
+these repos, so a CalVer tag you find there was minted out-of-band (measured:
+`gst-wayland-display` carries three).
 
 ## Cross-References
 
