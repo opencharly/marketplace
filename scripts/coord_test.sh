@@ -108,34 +108,158 @@ eq "$array_str" "${ORACLE[*]}" "the VERBS array is exactly the canonical closed 
 
 # 1d. the closed set is stated EXACTLY TWICE in coord.sh: the VERBS array (the
 # implementation) and the --help block (the user-facing rendering). A third
-# statement — in the header prose or in any comment — is a COPY, and a copy in prose
-# is invisible to every other assertion: nothing compares it, so it drifts silently
-# and the file then advertises a set the tool does not accept. So no closed-set
-# label may be named anywhere outside those two regions.
-outside=$(awk '
-  /^# USAGE/ { inhelp = 1; next }
-  /^# EXIT/  { inhelp = 0; next }
-  inhelp     { next }
-  /^VERBS=/ { next }
-  { print NR ": " $0 }
-' "$COORD")
-leak=""
-while IFS= read -r line; do
-  [ -z "$line" ] && continue
-  # normalise the way the tool does: upper case, `_`/`-` read as a space, runs of
-  # spaces collapsed — so a copy spelled `TAKING-OVER` is found, not missed.
-  n=$(printf '%s' "$line" | tr '[:lower:]' '[:upper:]' | tr '_-' '  ' | tr -s ' ' | sed 's/^ //; s/ $//')
-  for l in "${ORACLE[@]}"; do
-    case " $n " in
-      *" $l "*) leak="$leak
-$line"; break ;;
-    esac
-  done
-done <<< "$outside"
-if [ -z "$leak" ]; then
-  ok "the closed set is stated only in the VERBS array and the --help block"
-else
-  bad "the closed set is stated only in the VERBS array and the --help block (a third copy at:$leak)"
+# statement — in the header prose, in a comment, or in the code — is a COPY, and a
+# copy in prose is invisible to every other assertion: nothing compares it, so it
+# drifts silently and the file then advertises a set the tool does not accept.
+#
+# This assertion asks the FILE a question, not a list of places:
+#   * WHERE the --help block ends is not hard-coded here. It is the set of lines the
+#     SCRIPT prints for --help, so a marker renamed in coord.sh moves the region with
+#     it, and this check cannot drift onto the help prose.
+#   * WHAT a copy is, is not "a label appears". A single label in ordinary code
+#     (`status = 0`) is prose, not a copy. A copy is a STATEMENT: a maximal run of
+#     consecutive lines that together name THREE OR MORE of the nine labels. The
+#     labels are matched in ANY separator (space, comma, `·`, `/`, `_`, `-`), in any
+#     case, greedily longest-first so `HANDING OVER` is never read as two words. A
+#     copy spelled `CLAIM, OWNING, ...` is still a copy, and a copy spread over
+#     several lines is still a copy.
+# The file must hold exactly two statements, each the canonical nine in order: the
+# VERBS array, and the one inside the --help block.
+python3 -I - "$COORD" "$WORK/help.txt" "${ORACLE[@]}" > "$WORK/1d.out" 2>&1 <<'PY'
+import re
+import sys
+
+coord_path, help_path = sys.argv[1], sys.argv[2]
+canonical = sys.argv[3:]                    # the nine labels, in canonical order
+CANON = [l.split(" ") for l in canonical]    # each label's words
+VERB_LINE = re.compile(r"^VERBS\s*=")
+MIN_STATEMENT = 3      # a statement names at least this many DISTINCT labels
+
+
+def words(line):
+    """The line's words, upper-cased, with every separator (space, comma, `·`, `/`,
+    `_`, `-`, quotes, punctuation) turned into a space. A copy spelled with any
+    separator tokenises the same way."""
+    return re.sub(r"[^A-Z0-9]+", " ", line.upper()).split()
+
+
+def labels_in(line):
+    """The canonical labels this line names, in order. Greedy longest match, so
+    `HANDING OVER` is never read as `HANDING` + `OVER`."""
+    w = words(line)
+    found = []
+    i = 0
+    while i < len(w):
+        best = None
+        for lab in CANON:
+            if w[i:i + len(lab)] == lab and (best is None or len(lab) > len(best)):
+                best = lab
+        if best is None:
+            i += 1
+        else:
+            found.append(" ".join(best))
+            i += len(best)
+    return found
+
+
+with open(help_path, encoding="utf-8") as fh:
+    help_lines = set(fh.read().splitlines())
+
+
+def in_help(line):
+    """Is this source line one the script PRINTS for --help? The region is taken from
+    the script's own output, so it follows the file when the markers move — no marker
+    name is hard-coded here."""
+    s = line
+    if s.startswith("#"):
+        s = s[1:]
+        if s.startswith(" "):
+            s = s[1:]
+    return s in help_lines
+
+
+with open(coord_path, encoding="utf-8") as fh:
+    src = fh.read().splitlines()
+
+# A STATEMENT is a maximal run of consecutive lines that each name a label; the
+# statement's labels are theirs, in order.
+statements = []
+cur = []
+for n, line in enumerate(src, 1):
+    found = labels_in(line)
+    if found:
+        cur.append((n, line, found))
+    elif cur:
+        statements.append(cur)
+        cur = []
+if cur:
+    statements.append(cur)
+
+enumerations = []
+for st in statements:
+    seq = [l for _, _, ls in st for l in ls]
+    distinct = []
+    for l in seq:
+        if l not in distinct:
+            distinct.append(l)
+    if len(distinct) >= MIN_STATEMENT:
+        enumerations.append((st, seq, distinct))
+
+fails = 0
+
+
+def ok(msg):
+    print("  PASS  " + msg)
+
+
+def bad(msg):
+    global fails
+    fails += 1
+    print("  FAIL  " + msg)
+
+
+# (1) every statement of the set is the canonical nine, in order.
+for st, seq, distinct in enumerations:
+    first = st[0][0]
+    if seq != canonical:
+        bad("a statement of the closed set is not the canonical nine, in order (line %d: %s)"
+            % (first, st[0][1].strip()))
+    else:
+        ok("the statement of the closed set at line %d is the canonical nine, in order" % first)
+
+# (2) exactly two of them.
+if len(enumerations) == 2:
+    ok("the closed set is stated only in the VERBS array and the --help block")
+else:
+    where = ", ".join("line %d" % st[0][0] for st, _, _ in enumerations) or "none"
+    bad("the closed set is stated only in the VERBS array and the --help block "
+        "(found %d statements of it: %s)" % (len(enumerations), where))
+
+# (3) one of them is the VERBS array ...
+arr = [i for i, e in enumerate(enumerations) if VERB_LINE.match(e[0][0][1])]
+if len(arr) == 1:
+    ok("the VERBS array is one of the two statements of the closed set")
+else:
+    bad("the VERBS array is one of the two statements of the closed set (matched %d)" % len(arr))
+
+# (4) ... and the other is inside the --help block.
+rest = [e for i, e in enumerate(enumerations) if i not in arr]
+outside_help = sum(1 for e in rest for _, l, _ in e[0] if not in_help(l))
+if len(rest) == 1 and outside_help == 0:
+    ok("the other statement of the closed set is inside the --help block")
+else:
+    bad("the other statement of the closed set is inside the --help block "
+        "(%d statement line(s) outside it)" % outside_help)
+
+sys.exit(1 if fails else 0)
+PY
+rc1d=$?
+cat "$WORK/1d.out"
+n1d=$(grep -c '^  FAIL' "$WORK/1d.out")
+if [ "$n1d" -gt 0 ]; then
+  FAILS=$((FAILS + n1d))
+elif [ "$rc1d" -ne 0 ]; then
+  bad "the closed-set statement check ran to completion (rc=$rc1d)"
 fi
 
 # 1e. the tooling does not grandfather the retired labels. The BEHAVIOURAL proof

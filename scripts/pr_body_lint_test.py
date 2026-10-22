@@ -112,6 +112,47 @@ class Rules(unittest.TestCase):
     def test_ellipsis_in_fence_fails(self):
         self.assertTrue(any(x.startswith("ellipsis:") for x in run(body(how="```\n$ cmd\nline … cut\n```"))))
 
+    def test_body_must_not_contradict_itself_about_a_file(self):
+        """opencharly/marketplace#526, round 2 — the body-only BLOCK the linter could not see.
+
+        The Summary said the `strict-policy` skill "c[arries] the new grammar" while the
+        body's own detail paragraph said that file "touches no coordination label". Every
+        other check here passed that body: the structure was right, the claims were backed,
+        and each statement was TRUE of the file on its own. Only a comparison of the two
+        finds it — and the comparison is mechanical.
+        """
+        f = run((DATA / "blocked-marketplace-526.md").read_text())
+        self.assertTrue(any(x.startswith("files:") and "strict-policy" in x for x in f), f)
+
+    def test_one_way_claims_about_a_file_pass(self):
+        text = body(how="The `internals/skills/cutover-policy/SKILL.md` file carries the new grammar.")
+        self.assertEqual(run(text), [])
+
+    def test_a_claim_about_something_else_is_not_comparable(self):
+        """A claim about a DIFFERENT proposition is not a claim about the change."""
+        text = body(how="The `internals/skills/cutover-policy/SKILL.md` file carries authoring prose.")
+        self.assertEqual(run(text), [])
+
+    def test_narration_of_a_past_state_is_not_a_claim(self):
+        """The Summary LISTED the file among the grammar-bearing ones — that is about the
+        Summary, not about the file, and a generic subject says so."""
+        text = body(
+            how="The Summary listed the `internals/skills/cutover-policy/SKILL.md` file among "
+            "the files that carry the new grammar."
+        )
+        self.assertEqual(run(text), [])
+
+    def test_merged_bodies_stay_clean(self):
+        """The rule must not fire on bodies that were MERGED — a noisy lint teaches authors
+        to ignore it. Calibrated against 944 merged bodies (the org's CHANGELOG entries),
+        zero findings. Only THIS rule is asserted here: an older body may miss another
+        check (an unanswered rule, an older footer grammar) and still be a valid body."""
+        logs = sorted((HERE.parent / "CHANGELOG").glob("*.md"))[-25:]
+        self.assertTrue(logs)
+        for lg in logs:
+            fired = [x for x in run(lg.read_text()) if x.startswith("files:")]
+            self.assertEqual(fired, [], f"{lg.name} must not trip the files rule")
+
     def test_head_mismatch_fails(self):
         sha = "a" * 40
         text = body(how=f"Head `{sha}`")

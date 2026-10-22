@@ -18,7 +18,13 @@ BLOCKs on the body alone):
              ITS SECTION by a later fenced block carrying a `$ ` command, or points at its evidence
              ("above"/"below");
   head       a pasted `Head `<sha>`` equals the commit being pushed;
-  ellipsis   no `…` inside a fenced block (pasted output is verbatim, never ellipsized).
+  ellipsis   no `…` inside a fenced block (pasted output is verbatim, never ellipsized);
+  files      the body does not contradict ITSELF about a file: within one section, a file the
+             body says CARRIES the change and a file the body says does NOT carry it are the
+             same file — that is a defect no other check here can see (opencharly/marketplace#526
+             round 2: the Summary said the `strict-policy` skill "c[arries] the new grammar"
+             while the body's own detail paragraph said that file "touches no coordination
+             label"; the validator BLOCKed on exactly that contradiction).
 
 It cannot judge whether evidence is SUFFICIENT — that stays the validator's job. It removes the
 classes that need no judgment.
@@ -59,6 +65,175 @@ NO_MATCH_STATUS = re.compile(r"\b(?:exit|rg exit|grep exit)\s*[:=]\s*1\b", re.IG
 POINTER = re.compile(r"\b(above|below)\b", re.IGNORECASE)
 NA = re.compile(r"\bN/A\b(?P<rest>.*)$")
 HEAD = re.compile(r"\bHead\s+`([0-9a-f]{40})`")
+
+# --- the FILE-CLAIM CONSISTENCY rule ------------------------------------------
+# A body states, per file, what the diff does to it. Two statements about the SAME file can
+# contradict each other, and the contradiction is invisible to every other check in this file:
+# the structure is fine, the claims are backed, and each statement is TRUE of the file on its
+# own. Only a comparison of the two finds it. Measured: opencharly/marketplace#526, round 2 —
+# the Summary said the `strict-policy` skill "c[arries] the new grammar" while the body's own
+# detail paragraph said that file "touches no coordination label". The validator BLOCKed the
+# body on exactly that contradiction, and no mechanical check here had seen it.
+#
+# The comparison is mechanical, and deliberately narrow:
+#   * a CLAIM needs a PREDICATE ("carries", "touches", "contains", "converts") and an OBJECT
+#     that names THE CHANGE ("the new grammar", "a coordination label", "the closed set", …).
+#     A claim about anything else — "carries authoring prose", "contains no runtime
+#     dependency" — names a different proposition and is not comparable, so it is left alone;
+#   * a FILE is named by its path, or by prose ("the `strict-policy` skill", "its
+#     multi-repo-coordination reference"). Both normalize to the same key, so the Summary's
+#     prose name and the detail paragraph's path are recognised as the same file;
+#   * the comparison happens WITHIN ONE SECTION. Across sections the body narrates its own
+#     history ("the Summary listed the `strict-policy` skill among the files that carry the
+#     new grammar"), and a past-tense narration is not a claim about the file. A contradiction
+#     inside one section has no such excuse.
+CHANGE_OBJECT = re.compile(
+    r"\b(?:the new grammar|the grammar|a coordination label|coordination labels?|"
+    r"the closed set|the new closed set|the new set|the new labels?|the new verbs?|"
+    r"the new vocabulary|the rename|the renamed set)\b",
+    re.IGNORECASE,
+)
+CARRY = re.compile(r"\b(carries|carry|touches|touch|contains|contain|converts|convert)\b", re.IGNORECASE)
+NEGATION = re.compile(r"\b(no|not|neither|nor|zero|without|never|lacks?|lack)\b", re.IGNORECASE)
+PATH_TOKEN = re.compile(
+    r"\b[\w][\w./-]*\.(?:md|sh|py|mjs|cjs|ts|tsx|yml|yaml|json|txt|cue|toml|js)\b"
+)
+TICKED = re.compile(r"`([^`\n]+)`")
+KIND = re.compile(
+    r"\b(skills?|references?|agents?|files?|docs?|pages?|guides?)\b", re.IGNORECASE
+)
+PROSE_NAME = re.compile(
+    r"\b([a-z][\w-]*(?:[ ][a-z][\w-]+){0,2})[ ]+(?:skills?|references?|agents?|files?|docs?|pages?|guides?)\b"
+)
+SLUG = re.compile(r"^[a-z0-9][\w-]*(?:[ ][\w-]+){0,2}$")
+LEADING = re.compile(r"^(?:the|its|a|an|that|this|these|those|each|every|our|their)\b[ ]*")
+
+
+def _stem(path: str) -> str:
+    """The key of a path: the file's own name, or its directory for SKILL.md/index.md."""
+    base = path.rsplit("/", 1)[-1]
+    parent = path.rsplit("/", 2)[-2] if "/" in path else ""
+    if base.lower() in ("skill.md", "index.md", "readme.md"):
+        return parent
+    return base.rsplit(".", 1)[0]
+
+
+def _paragraphs(text_lines: list[str]) -> list[str]:
+    """The prose paragraphs of a block: consecutive non-blank lines, joined."""
+    out: list[str] = []
+    cur: list[str] = []
+    for ln in text_lines:
+        if ln.strip():
+            cur.append(ln.strip())
+        elif cur:
+            out.append(" ".join(cur))
+            cur = []
+    if cur:
+        out.append(" ".join(cur))
+    return out
+
+
+def _named_files(para: str, generic: set[str]) -> set[str]:
+    """The files this paragraph names, as keys.
+
+    A path gives its stem; a prose name gives itself. A name that is a FAMILY directory of a
+    named path (`agents`, `references`) is not a file, and is dropped — but the directory that
+    HOLDS a SKILL.md is that file's own name, so it is kept.
+    """
+    found: set[str] = set()
+    for m in PATH_TOKEN.finditer(para):
+        stem = _stem(m.group(0))
+        if stem and stem not in generic:
+            found.add(stem)
+    for m in TICKED.finditer(para):
+        tok = m.group(1).strip()
+        if SLUG.match(tok):
+            key = tok.replace(" ", "-")
+            if key not in generic:
+                found.add(key)
+    for m in PROSE_NAME.finditer(para):
+        phrase = LEADING.sub("", m.group(1).strip())
+        if " " in phrase and "-" not in phrase:
+            continue
+        key = phrase.replace(" ", "-")
+        if key not in generic:
+            found.add(key)
+    return found
+
+
+GENERIC = re.compile(
+    r"\b(?:files|skills|references|agents|docs|pages|hunks|changes|ones|things|paragraphs)\b",
+    re.IGNORECASE,
+)
+
+
+def _claim_polarity(para: str) -> list[tuple[str, int]]:
+    """The comparable claims this paragraph makes: (polarity, predicate position).
+
+    Only a predicate whose object names THE CHANGE counts; a claim about anything else —
+    "carries authoring prose", "contains no runtime dependency" — names a different
+    proposition and is left alone.
+    """
+    out: list[tuple[str, int]] = []
+    for m in CARRY.finditer(para):
+        after = re.split(r"[.;:\n]", para[m.end(): m.end() + 120])[0]
+        if not CHANGE_OBJECT.search(after):
+            continue
+        neg = bool(NEGATION.search(para[max(0, m.start() - 40):m.start()]))
+        if re.match(r"\s*(?:no|not|neither|nor|zero)\b", after, re.IGNORECASE):
+            neg = True
+        out.append(("neg" if neg else "pos", m.start()))
+    return out
+
+
+def _file_claims(body_lines: list[str]) -> list[str]:
+    """The self-contradictions about a file, one finding each.
+
+    Compared WITHIN a section: across sections a body narrates its own history, and a
+    past-tense narration is not a claim about the file.
+    """
+    findings: list[str] = []
+    secs = sections(body_lines)
+    for name, body_lines_s in secs.items():
+        joined = "\n".join(body_lines_s)
+        stems = {_stem(m.group(0)) for m in PATH_TOKEN.finditer(joined)}
+        generic: set[str] = set()
+        for m in PATH_TOKEN.finditer(joined):
+            generic.update(m.group(0).split("/")[:-1])
+        # a directory that HOLDS a SKILL.md is that file's own name, not a family
+        generic -= stems
+        pos: dict[str, str] = {}
+        neg: dict[str, str] = {}
+        for kind, _, text in blocks(body_lines_s):
+            if kind != "text":
+                continue
+            for para in _paragraphs(text):
+                claims = _claim_polarity(para)
+                pols = {p for p, _ in claims}
+                if len(pols) != 1:
+                    continue
+                names = _named_files(para, generic)
+                for polarity, at in claims:
+                    # A predicate whose subject is a GENERIC noun ("the files that carry the
+                    # new grammar") says something about that noun, not about the file the
+                    # paragraph mentioned. Nothing between the last named file and the
+                    # predicate means the predicate is about the named files.
+                    last = max(
+                        (m.end() for m in PATH_TOKEN.finditer(para) if m.end() < at), default=-1
+                    )
+                    for m in TICKED.finditer(para):
+                        if m.end() < at:
+                            last = max(last, m.end())
+                    if last >= 0 and GENERIC.search(para[last:at]):
+                        continue
+                    for key in names:
+                        (pos if polarity == "pos" else neg).setdefault(key, para)
+        for key in sorted(set(pos) & set(neg)):
+            findings.append(
+                f"files: `{name}` contradicts itself about `{key}` — the body says it carries the "
+                f"change AND that it does not: {pos[key][:90]!r} / {neg[key][:90]!r}"
+            )
+    return findings
 
 
 def blocks(lines: list[str]):
@@ -188,6 +363,8 @@ def lint(body: str, head: str | None, rules: tuple[str, ...]) -> list[str]:
     pasted = HEAD.search(body)
     if pasted and head and pasted.group(1) != head:
         findings.append(f"head: body pastes Head `{pasted.group(1)[:12]}…` but the commit is `{head[:12]}…`")
+
+    findings.extend(_file_claims(lines))
     return findings
 
 
