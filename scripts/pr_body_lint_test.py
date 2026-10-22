@@ -17,6 +17,7 @@ from pr_body_lint import DEFAULT_RULES, lint  # noqa: E402
 
 DATA = HERE / "testdata" / "pr_body_lint"
 FOOTER = "*Assisted-by: Claude Code Anthropic Claude Opus 5.5 (documentation reviewed)*"
+AGENT = "*Agent: containerd-crabbox-program/w10 · session 8b1c01cf-7f79-4a75-bff8-240415a06208*"
 OK_RULES = "\n".join(f"- **{r}:** answered with how." for r in DEFAULT_RULES)
 
 
@@ -48,21 +49,43 @@ class Rules(unittest.TestCase):
         self.assertEqual(run(body()), [])
 
     def test_body_without_footer_is_clean(self):
-        # Arm 1: the footer is OPTIONAL — a body that carries no trailer at all passes.
+        # Coverage arm 1: the footer is OPTIONAL for a human body — no `Agent:` line, no trailer,
+        # passes.
         self.assertEqual(run(body(footer="")), [])
         # ...and an unrelated italic line is not a trailer, so it does not have to be last.
         self.assertEqual(run(body(footer="*Note: no attribution here*")), [])
 
     def test_footer_last_is_clean(self):
-        # Arm 2: a footer that IS present and sits last passes.
+        # Coverage arm 2: a human body whose footer IS present and sits last passes.
         self.assertEqual(run(body()), [])
+
+    def test_agent_body_requires_the_trailer(self):
+        # Coverage arm 3 (the new rule): the `Agent:` line marks an agent-authored body, so the
+        # Assisted-by trailer is REQUIRED even though it is optional for a human body.
+        f = run(body(footer=AGENT))
+        self.assertTrue(any("must end with the italic Assisted-by trailer" in x for x in f), f)
+        # ...even with prose after the marker, and in the plain (non-emphasis) form.
+        f = run(body(footer=AGENT + "\n\ntrailing prose"))
+        self.assertTrue(any("must end with the italic Assisted-by trailer" in x for x in f), f)
+        f = run(body(footer="Agent: containerd-crabbox-program/w10"))
+        self.assertTrue(any("must end with the italic Assisted-by trailer" in x for x in f), f)
+
+    def test_agent_body_with_trailer_last_is_clean(self):
+        # Coverage arm 4: the correct agent form — `Agent:` then the trailer as the last line.
+        self.assertEqual(run(body(footer=AGENT + "\n" + FOOTER)), [])
+        self.assertEqual(run(body(footer="Agent: containerd-crabbox-program/w10\n" + FOOTER)), [])
+
+    def test_agent_body_with_trailer_not_last_fails(self):
+        # Coverage arm 5: the agent body's trailer must be LAST, not merely present.
+        f = run(body(footer=AGENT + "\n" + FOOTER + "\ntrailing prose\n"))
+        self.assertTrue(any("the last line must be the italic Assisted-by trailer" in x for x in f), f)
 
     def test_missing_section(self):
         self.assertTrue(any("missing `## How tested`" in x for x in run(body().replace("## How tested\n", ""))))
 
     def test_footer_must_be_last(self):
-        # Arm 3 (the control): a footer that is present but not last still FAILS, so making
-        # the trailer optional did not remove the rule that a footer is never buried.
+        # The unchanged control (#531): a HUMAN body's trailer that is present but not last still
+        # FAILS, so making the trailer optional did not remove the never-buried rule.
         self.assertTrue(any(x.startswith("footer:") for x in run(body() + "trailing prose\n")))
         # A second trailer cannot hide earlier in the body beside a final one either.
         self.assertTrue(
