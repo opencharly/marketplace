@@ -47,11 +47,27 @@ class Rules(unittest.TestCase):
     def test_minimal_valid_body_is_clean(self):
         self.assertEqual(run(body()), [])
 
+    def test_body_without_footer_is_clean(self):
+        # Arm 1: the footer is OPTIONAL — a body that carries no trailer at all passes.
+        self.assertEqual(run(body(footer="")), [])
+        # ...and an unrelated italic line is not a trailer, so it does not have to be last.
+        self.assertEqual(run(body(footer="*Note: no attribution here*")), [])
+
+    def test_footer_last_is_clean(self):
+        # Arm 2: a footer that IS present and sits last passes.
+        self.assertEqual(run(body()), [])
+
     def test_missing_section(self):
         self.assertTrue(any("missing `## How tested`" in x for x in run(body().replace("## How tested\n", ""))))
 
     def test_footer_must_be_last(self):
+        # Arm 3 (the control): a footer that is present but not last still FAILS, so making
+        # the trailer optional did not remove the rule that a footer is never buried.
         self.assertTrue(any(x.startswith("footer:") for x in run(body() + "trailing prose\n")))
+        # A second trailer cannot hide earlier in the body beside a final one either.
+        self.assertTrue(
+            any(x.startswith("footer:") for x in run(body(footer=FOOTER + "\n\nprose\n\n" + FOOTER)))
+        )
 
     def test_agent_line_must_precede_trailer(self):
         f = run(body(footer="*Agent: `s` · session `x`*\n\nprose\n" + FOOTER))
