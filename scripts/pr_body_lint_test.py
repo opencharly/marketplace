@@ -181,13 +181,36 @@ class Rules(unittest.TestCase):
         )
         self.assertEqual([x for x in run(text) if x.startswith("counts:")], [])
 
+    def test_a_negative_claim_written_as_none_is_a_negative_claim(self):
+        """opencharly/marketplace#526, round 4 — the validator's non-blocking observation.
+
+        The negation vocabulary decided the polarity, and `none`/`nothing` were missing from
+        it: "X carries none of the new grammar" was read as a POSITIVE claim, so a body that
+        said that in one paragraph and "X does not carry the new grammar" in another was read
+        as claiming BOTH — and the rule fired on a body that was telling the truth. A lint
+        that cries wolf on a true body teaches authors to ignore it.
+        """
+        f = "The `internals/skills/cutover-policy/SKILL.md` file carries none of the new grammar."
+        self.assertEqual(run(body(how=f)), [])
+        both_negative = body(how=f + "\n\n" + f.replace("carries none", "does not carry"))
+        self.assertEqual([x for x in run(both_negative) if x.startswith("files:")], [])
+        contradiction = body(
+            how="The `internals/skills/cutover-policy/SKILL.md` file carries the new grammar."
+            "\n\nThe `internals/skills/cutover-policy/SKILL.md` file does not carry the new grammar."
+        )
+        self.assertTrue(any(x.startswith("files:") for x in run(contradiction)))
+
     def test_merged_bodies_stay_clean(self):
         """The rule must not fire on bodies that were MERGED — a noisy lint teaches authors
-        to ignore it. Calibrated against 944 merged bodies (the org's CHANGELOG entries),
-        zero findings. Only THESE rules are asserted here: an older body may miss another
-        check (an unanswered rule, an older footer grammar) and still be a valid body."""
-        logs = sorted((HERE.parent / "CHANGELOG").glob("*.md"))[-25:]
+        to ignore it. Calibrated against EVERY merged body this repo carries in its own
+        CHANGELOG (each entry is the body of a merged PR, written at merge time), zero
+        findings; the wider 944-body run across the five repos of the coordination cutover
+        is the same calibration over the whole cutover, and it is pasted in that PR's body.
+        Only THESE rules are asserted here: an older body may miss another check (an
+        unanswered rule, an older footer grammar) and still be a valid body."""
+        logs = sorted((HERE.parent / "CHANGELOG").glob("2026.*.md"))
         self.assertTrue(logs)
+        self.assertGreaterEqual(len(logs), 400, "the corpus this rule is calibrated against shrank")
         for lg in logs:
             fired = [x for x in run(lg.read_text()) if x.startswith(("files:", "counts:"))]
             self.assertEqual(fired, [], f"{lg.name} must not trip the files or counts rule")

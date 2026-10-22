@@ -99,7 +99,14 @@ CHANGE_OBJECT = re.compile(
     re.IGNORECASE,
 )
 CARRY = re.compile(r"\b(carries|carry|touches|touch|contains|contain|converts|convert)\b", re.IGNORECASE)
-NEGATION = re.compile(r"\b(no|not|neither|nor|zero|without|never|lacks?|lack)\b", re.IGNORECASE)
+# The words that make a claim NEGATIVE. The vocabulary decides the polarity, so a missing
+# entry turns a negative claim into a positive one: a body that says "X carries none of the
+# new grammar" in one paragraph and "X does not carry the new grammar" in another was read
+# as claiming BOTH, and the `files` rule fired on a body that was telling the truth.
+# Measured: opencharly/marketplace#526, round 4 — the validator's non-blocking observation.
+NEGATION = re.compile(
+    r"\b(no|not|neither|nor|zero|without|never|lacks?|lack|none|nothing)\b", re.IGNORECASE
+)
 PATH_TOKEN = re.compile(
     r"\b[\w][\w./-]*\.(?:md|sh|py|mjs|cjs|ts|tsx|yml|yaml|json|txt|cue|toml|js)\b"
 )
@@ -185,7 +192,7 @@ def _claim_polarity(para: str) -> list[tuple[str, int]]:
         if not CHANGE_OBJECT.search(after):
             continue
         neg = bool(NEGATION.search(para[max(0, m.start() - 40):m.start()]))
-        if re.match(r"\s*(?:no|not|neither|nor|zero)\b", after, re.IGNORECASE):
+        if re.match(r"\s*(?:no|not|neither|nor|zero|none|nothing)\b", after, re.IGNORECASE):
             neg = True
         out.append(("neg" if neg else "pos", m.start()))
     return out
