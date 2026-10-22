@@ -8,8 +8,10 @@ the validator (opencharly/marketplace#404 — distro-fedora#79 and docs#142, bot
 BLOCKs on the body alone):
 
   sections   the four required `## ` sections are present;
-  footer     the italic `Assisted-by` trailer is the LAST line (an `Agent:` line, when present,
-             directly precedes it); the trailer grammar is squash_body.py's (one definition);
+  footer     OPTIONAL: when an italic `Assisted-by` trailer is present it is the LAST line (an
+             `Agent:` line, when present, directly precedes it), and a trailer buried mid-text
+             fails; a body with no trailer passes. The trailer grammar is squash_body.py's (one
+             definition);
   rules      `## Rulebook compliance` answers EVERY rule id in --rules, each with a HOW or an
              `N/A — <reason>` (a bare `N/A` fails);
   claims     an asserted check — a sweep result ("only occurrence"), a no-match grep/rg result,
@@ -453,10 +455,19 @@ def lint(body: str, head: str | None, rules: tuple[str, ...]) -> list[str]:
 
     tail = [ln for ln in lines if ln.strip()]
     last = tail[-1].strip() if tail else ""
-    trailer = last[1:-1] if last.startswith("*") and last.endswith("*") else ""
-    if not TRAILER.match(trailer):
+
+    def is_trailer(ln: str) -> bool:
+        s = ln.strip()
+        return len(s) > 2 and s.startswith("*") and s.endswith("*") and bool(TRAILER.match(s[1:-1]))
+
+    # The footer is OPTIONAL. A body with no trailer passes; a trailer that IS present must be
+    # the last non-empty line, so it cannot be buried mid-text (and a second, earlier trailer
+    # cannot pass alongside a final one). The message shape is unchanged for the misplaced arm.
+    if any(i != len(tail) - 1 for i, ln in enumerate(tail) if is_trailer(ln)):
         findings.append(f"footer: the last line must be the italic Assisted-by trailer, got: {last[:80]!r}")
-    if any(ln.lstrip().startswith("*Agent:") for ln in tail[:-1]) and not tail[-2].lstrip().startswith("*Agent:"):
+    if any(is_trailer(ln) for ln in tail) and any(
+        ln.lstrip().startswith("*Agent:") for ln in tail[:-1]
+    ) and not tail[-2].lstrip().startswith("*Agent:"):
         findings.append("footer: the `Agent:` line must directly precede the Assisted-by trailer")
 
     rc = secs.get("Rulebook compliance", [])
