@@ -200,6 +200,41 @@ class Rules(unittest.TestCase):
         )
         self.assertTrue(any(x.startswith("files:") for x in run(contradiction)))
 
+    def test_the_negation_vocabulary_is_one_list_read_in_both_positions(self):
+        """R2 — the words that decide a claim's polarity are ONE list, read before the
+        predicate and immediately after it.
+
+        The two positions differ in WHERE they look, not in WHICH words they recognise. A
+        second, narrower copy of the list is how the two drift apart, and the drift is the
+        defect this change was written for: "carries none of the new grammar" was read as a
+        positive claim while "does not carry the new grammar" was read as a negative one.
+        """
+        from pr_body_lint import NEGATION, NEGATION_LEAD
+
+        for word in (
+            "no", "not", "neither", "nor", "zero", "without", "never", "lack", "lacks",
+            "none", "nothing",
+        ):
+            self.assertTrue(NEGATION.search(f"the file {word} the grammar"), word)
+            self.assertTrue(NEGATION_LEAD.match(f" {word} the grammar"), word)
+
+    def test_a_negative_claim_about_a_different_object_is_not_comparable(self):
+        """A negation does not make a claim about a DIFFERENT object comparable.
+
+        The `files` rule compares a body's two statements about one FILE. It compares the
+        CLAIMS, and a claim is comparable only when its object names THE CHANGE: "X
+        carries the new grammar" and "X carries none of the old grammar" are two statements
+        about one file, but only the first names the change, so the second is not a claim
+        about it and the pair is not a contradiction. The whole-corpus calibration is the
+        evidence that the boundary holds; this test pins the boundary itself, so widening
+        the change-object vocabulary would turn it RED.
+        """
+        both = body(
+            how="The `internals/skills/cutover-policy/SKILL.md` file carries the new grammar."
+            "\n\nThe `internals/skills/cutover-policy/SKILL.md` file carries none of the old grammar."
+        )
+        self.assertEqual([x for x in run(both) if x.startswith("files:")], [])
+
     def test_merged_bodies_stay_clean(self):
         """The rule must not fire on bodies that were MERGED — a noisy lint teaches authors
         to ignore it. Calibrated against EVERY merged body this repo carries in its own

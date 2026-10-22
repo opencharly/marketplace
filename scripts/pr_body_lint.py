@@ -104,9 +104,15 @@ CARRY = re.compile(r"\b(carries|carry|touches|touch|contains|contain|converts|co
 # new grammar" in one paragraph and "X does not carry the new grammar" in another was read
 # as claiming BOTH, and the `files` rule fired on a body that was telling the truth.
 # Measured: opencharly/marketplace#526, round 4 — the validator's non-blocking observation.
-NEGATION = re.compile(
-    r"\b(no|not|neither|nor|zero|without|never|lacks?|lack|none|nothing)\b", re.IGNORECASE
-)
+#
+# ONE vocabulary, read in TWO positions: before the predicate (a negative subject — "X does
+# not carry the new grammar") and immediately after it (a negative object — "X carries none
+# of the new grammar"). The two positions differ in WHERE they look, not in WHICH words they
+# recognise: a second, narrower copy of the list is how the two drift apart, and the drift is
+# the defect this change was written for.
+NEGATION_WORDS = r"no|not|neither|nor|zero|without|never|lacks?|lack|none|nothing"
+NEGATION = re.compile(r"\b(?:" + NEGATION_WORDS + r")\b", re.IGNORECASE)
+NEGATION_LEAD = re.compile(r"\s*(?:" + NEGATION_WORDS + r")\b", re.IGNORECASE)
 PATH_TOKEN = re.compile(
     r"\b[\w][\w./-]*\.(?:md|sh|py|mjs|cjs|ts|tsx|yml|yaml|json|txt|cue|toml|js)\b"
 )
@@ -192,7 +198,7 @@ def _claim_polarity(para: str) -> list[tuple[str, int]]:
         if not CHANGE_OBJECT.search(after):
             continue
         neg = bool(NEGATION.search(para[max(0, m.start() - 40):m.start()]))
-        if re.match(r"\s*(?:no|not|neither|nor|zero|none|nothing)\b", after, re.IGNORECASE):
+        if NEGATION_LEAD.match(after):
             neg = True
         out.append(("neg" if neg else "pos", m.start()))
     return out
