@@ -3,16 +3,12 @@
 The coordination grammar's closed set is nine labels, and this repo owns two halves of that
 contract — the shell implementation and the generated corpus that carries the same grammar.
 
-The corpus is regenerated from the refs list, never hand edited. The `git-workflow` skill, its
-multi-repo-coordination reference, the pre-validator self-audit, the `agents`
-hooks-and-lifecycle reference, the `cutover-policy` skill and the `pr-validator` agent all
-carry the new grammar.
-
 The regeneration also carries the other prose merged into those layer repos since the last
-corpus refresh. No file loses net lines. Two of those hunks are carried prose and not grammar
-at all: `internals/skills/skills/SKILL.md` (76/38) is authoring/absence-claim prose, and
-`internals/skills/strict-policy/SKILL.md` (4/0) is an added absence claim. Neither touches a
-coordination label; they move because the layer repos they are generated from moved.
+corpus refresh. No file loses net lines — several are net-neutral — so no projection was
+dragged backwards. Two of those hunks are carried prose and not grammar at all:
+`internals/skills/skills/SKILL.md` (76/38) is authoring/absence-claim prose, and
+`internals/skills/strict-policy/SKILL.md` (4/0) is an added absence claim. Neither touches
+a coordination label; they move because the layer repos they are generated from moved.
 
 The classification of the generated projections, derived from the diff:
 
