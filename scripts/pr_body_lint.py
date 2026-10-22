@@ -24,7 +24,12 @@ BLOCKs on the body alone):
              same file — that is a defect no other check here can see (opencharly/marketplace#526
              round 2: the Summary said the `strict-policy` skill "c[arries] the new grammar"
              while the body's own detail paragraph said that file "touches no coordination
-             label"; the validator BLOCKed on exactly that contradiction).
+             label"; the validator BLOCKed on exactly that contradiction);
+  counts     a count the body states about a class of files must equal the count of that class
+             in the table the body PASTES (a row of `<tag> [<tag>] <path>`) — a count typed by
+             hand drifts from the diff it describes (opencharly/marketplace#526 round 3: the
+             Summary said "Two of those hunks are carried prose" while the diff carried three,
+             and the validator BLOCKed on the undercount).
 
 It cannot judge whether evidence is SUFFICIENT — that stays the validator's job. It removes the
 classes that need no judgment.
@@ -236,6 +241,138 @@ def _file_claims(body_lines: list[str]) -> list[str]:
     return findings
 
 
+# --- the COUNT-CONSISTENCY rule ------------------------------------------------
+# A body that classifies files in a PASTED TABLE — a row of `<tag> [<tag>] <path>`, the shape
+# this org already uses for `git status --short` output (`M  path.md`) — and then states a
+# COUNT in prose must state the table's count. The two are the same fact, and a count typed by
+# hand drifts from the table it describes: the author classifies nine files, then writes "two"
+# because two of them were the ones they were looking at.
+#
+# Measured: opencharly/marketplace#526, round 3 — the Summary said "Two of those hunks are
+# carried prose" and named two of the three generated projections that carry none; the third,
+# `internals/skills/marketplace/SKILL.md`, was never named. Nothing in the body contradicted
+# itself (the `files` rule is clean on it), every count was TRUE of the two files it named,
+# and the validator BLOCKed the body on the undercount.
+#
+# The check is deliberately narrow:
+#   * a TABLE is a fenced block with two or more rows of that shape; anything else in a fence
+#     (a command, a numstat, a log) is not a table;
+#   * a tag of ONE character is not a class (a `git status` code), so it is never compared —
+#     otherwise "A" reads as the English article and every count in the section matches it;
+#   * a tag that appears in TWO tables of the same section is ambiguous — the counts cannot be
+#     attributed — and is left alone;
+#   * the count must GOVERN the class word: the number comes FIRST ("Two of those hunks are
+#     carried prose") and within a few words of it, because a number that FOLLOWS a class word
+#     quantifies something else ("the coordination grammar's closed set is nine labels" counts
+#     labels, not grammars);
+#   * a numstat pair ("76/38") is not a count and is stripped before the comparison;
+#   * a NARRATION is not a claim: a sentence that reports what a body said ("the Summary
+#     said 'Two of those hunks are carried prose'") quotes a count, it does not assert one,
+#     so a reporting verb in the sentence retires it;
+#   * the comparison happens WITHIN ONE SECTION, because a table and the prose about it belong
+#     to the same section.
+COUNT_WORDS = {
+    "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7,
+    "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13,
+    "fourteen": 14, "fifteen": 15, "sixteen": 16, "seventeen": 17, "eighteen": 18,
+    "nineteen": 19, "twenty": 20,
+}
+COUNT_PHRASE = re.compile(
+    r"(?<![\w./-])(?P<n>\d{1,3}|" + "|".join(COUNT_WORDS) + r")(?![\w/])",
+    re.IGNORECASE,
+)
+NARRATION = re.compile(
+    r"\b(?:said|says|wrote|written|listed|named|stated|claimed|counted|reported|"
+    r"misstated|undercounted|returned|blocked|missed|caught|quoted)\b",
+    re.IGNORECASE,
+)
+NUMSTAT_PAIR = re.compile(r"\b\d{1,4}\s*/\s*\d{1,4}\b")
+TABLE_PATH = re.compile(r"^\S+\.(?:md|sh|py|mjs|cjs|ts|tsx|yml|yaml|json|txt|cue|toml|js)$")
+TABLE_TAG = re.compile(r"^[A-Za-z][A-Za-z-]*$")
+COUNT_WINDOW = 6  # words between the count and the class word it governs
+
+
+def _table_rows(lines: list[str]) -> list[tuple[list[str], str]]:
+    """The rows of a classification table: (tags, path), lower-cased tags."""
+    rows: list[tuple[list[str], str]] = []
+    for ln in lines:
+        toks = ln.split()
+        if len(toks) < 2:
+            continue
+        if not TABLE_PATH.match(toks[-1]):
+            continue
+        tags = toks[:-1]
+        if not all(TABLE_TAG.match(t) for t in tags):
+            continue
+        rows.append(([t.lower() for t in tags], toks[-1]))
+    return rows
+
+
+def _count_claims(body_lines: list[str]) -> list[str]:
+    """The counts the body states about a class it also pasted a table for."""
+    findings: list[str] = []
+    for name, sec in sections(body_lines).items():
+        counts: dict[str, int] = {}
+        ambiguous: set[str] = set()
+        for kind, _i, text in blocks(sec):
+            if kind != "fence":
+                continue
+            rows = _table_rows(text)
+            if len(rows) < 2:
+                continue
+            seen: dict[str, int] = {}
+            for tags, _p in rows:
+                for t in tags:
+                    seen[t] = seen.get(t, 0) + 1
+            for t, c in seen.items():
+                if len(t) < 2:
+                    continue  # a `git status` code is not a class
+                if t in counts:
+                    ambiguous.add(t)
+                counts[t] = c
+        if not counts:
+            continue
+        for kind, _i, text in blocks(sec):
+            if kind != "text":
+                continue
+            for para in _paragraphs(text):
+                para = NUMSTAT_PAIR.sub(" ", para)
+                for sent in re.split(r"(?<=[.!?;])\s+", para):
+                    if NARRATION.search(sent):
+                        continue  # a quoted count is not an asserted one
+                    words = sent.split()
+                    for m in COUNT_PHRASE.finditer(sent):
+                        raw = m.group("n")
+                        stated = int(raw) if raw.isdigit() else COUNT_WORDS[raw.lower()]
+                        # the class word this count governs: the first one AFTER it
+                        after = m.end()
+                        candidates: list[tuple[int, str]] = []
+                        for tag in counts:
+                            if tag in ambiguous:
+                                continue
+                            tm = re.search(
+                                rf"(?<![\w-]){re.escape(tag)}(?![\w-])", sent[after:], re.IGNORECASE
+                            )
+                            if not tm:
+                                continue
+                            between = len(sent[after : after + tm.start()].split())
+                            if between > COUNT_WINDOW:
+                                continue
+                            candidates.append((between, tag))
+                        if not candidates:
+                            continue
+                        candidates.sort()
+                        if len(candidates) > 1 and candidates[0][0] == candidates[1][0]:
+                            continue  # two class words at the same distance: ambiguous
+                        tag = candidates[0][1]
+                        if stated != counts[tag]:
+                            findings.append(
+                                f"counts: `{name}` says {raw} {tag} but the pasted table has "
+                                f"{counts[tag]} {tag} row(s): {sent.strip()[:90]!r}"
+                            )
+    return findings
+
+
 def blocks(lines: list[str]):
     """Yield (kind, start_index, text_lines): 'fence' for ``` blocks, 'text' for the rest."""
     i, n = 0, len(lines)
@@ -365,6 +502,7 @@ def lint(body: str, head: str | None, rules: tuple[str, ...]) -> list[str]:
         findings.append(f"head: body pastes Head `{pasted.group(1)[:12]}…` but the commit is `{head[:12]}…`")
 
     findings.extend(_file_claims(lines))
+    findings.extend(_count_claims(lines))
     return findings
 
 
