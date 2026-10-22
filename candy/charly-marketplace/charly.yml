@@ -267,6 +267,19 @@ charly-marketplace:
             # layer-fireactions owns the `fireactions` family skill - the runner pool on Firecracker microVMs. Its
             # `containerd:` connection declares the `blockfile` snapshotter, which is what lets a pool run on a host
             # with no devmapper device; the family itself is DECLARED in pod-charly-hooks, pinned above.
+
+            # The three plugin repos whose skill bodies moved to the REPO ROOT
+            # (opencharly/opencharly#568 item (b)). None of them was ever pinned HERE, and the
+            # corpus published all three anyway — reached TRANSITIVELY through another repo's
+            # pin, which is a closure accident rather than a pin: distro-omarchy pins
+            # `plugin-mise/candy/plugin-mise:v2026.274.2100`, and the `image/skills/mise/SKILL.md`
+            # this list generated was byte-identical to THAT tag's inline body. A DIRECT ref makes
+            # this list the authority (resolve.go's preferEntity step 2) instead of leaving the
+            # published body to whichever tag a sibling happens to name, and pins the body each
+            # repo actually serves at the tag its own merge minted.
+            - '@github.com/opencharly/plugin-mise/candy/plugin-mise:v2026.295.0432'
+            - '@github.com/opencharly/plugin-openclaw/candy/plugin-openclaw:v2026.295.0432'
+            - '@github.com/opencharly/plugin-media/candy/plugin-media:v2026.295.0432'
         plan:
             - check: the marketplace corpus source resolves via the charly binary
               exit_status: 0
