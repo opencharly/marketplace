@@ -474,8 +474,8 @@ acting without the orchestrator's direct supervision.
   or more agents work one issue/PR, or a scope is a blocking dependency,
   a session speaks through its two-line `Agent:` + `Assisted-by` footer
   and a scope is claimed or taken over only through the closed verb set
-  (`CLAIM`/`OWNING`/`HANDING OVER`/`TAKING OVER`/`BLOCKS`/`UNBLOCKS`/
-  `STATUS`/`RESOLVED`). Owned by `/charly-internals:git-workflow` B2b —
+  (`CLAIM`/`OWNING`/`HANDING OVER`/`TAKING OVER`/`WAITING`/`HOLDING`/
+  `CLEARED`/`STATUS`/`RESOLVED`). Owned by `/charly-internals:git-workflow` B2b —
   never restated here.
 
 ## Todo ledger & interruption safety
@@ -494,8 +494,8 @@ push), a delegated report, or a compaction. The rule:
   it before acting and update it in place (the todo tool REPLACES the list,
   so re-state the items you are not changing).
 - **Coordination threads are ledger items.** Every issue or PR you `CLAIM`ed, and
-  every thread you posted `BLOCKS` on, stays in the ledger until you post its
-  `RESOLVED`/`UNBLOCKS`. That way an interrupted session resumes its reporting
+  every thread you posted `WAITING`/`HOLDING` on, stays in the ledger until you post its
+  `RESOLVED`/`CLEARED`. That way an interrupted session resumes its reporting
   duties (the project rulebook Part II #11; `/charly-internals:git-workflow` B2b).
 - **Long operations are ledger-first.** Before a long-running step, ensure
   the list names it, so a later interruption resumes from state, not memory.

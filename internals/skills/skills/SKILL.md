@@ -164,40 +164,82 @@ build together catch a stale cross-reference that a `git grep` sweep missed.
 
 ## How to Update
 
-1. **Edit the OWNING candy repo's `skill:` entity, then regenerate.** Since the candy
-   de-submodule cutover the charly repo owns NO `skill:` entities — each family lives
-   in its standalone owning repo (internals → layer-charly-internals (+ layer-charly-
-   internals-extra for strict-policy/vm-spec); build → layer-charly-build;
-   check → layer-charly-check; kubernetes → layer-charly-kubernetes; image →
-   layer-charly-image; core → pod-charly-core; automation → pod-charly-automation;
-   local → layer-charly-local; pod → layer-charly-pod; hooks/verbs → pod-charly-hooks
-   — see `/charly-internals:marketplace`). Regenerate the corpus with
-   `charly -C <marketplace-checkout> marketplace generate --root <marketplace-checkout> --out <marketplace-checkout>`;
-   the marketplace repo's refs list (`candy/charly-marketplace/charly.yml`) pins the
-   owning repos, and the deploy drift gate requires the regenerated corpus to ship
-   with any refs/source change. Most of the corpus under
-   `marketplace/**/SKILL.md` is a PROJECTION and carries a DO-NOT-EDIT banner: an edit
-   there is reverted by the next regeneration, silently and without conflict. `git grep
-   -l 'DO[- ]NOT[- ]EDIT'` tells you which files are generated — but triage the hits
-   rather than trusting them, since a file may MENTION the banner without carrying one
-   (agent definitions under `marketplace/<family>/agents/` are hand-authored).
-2. If the insight affects cross-skill behavior, update the project rulebook (`AGENTS.md`) too
-3. After any non-trivial deployment session, ask: "Did we learn anything that future sessions should know?"
+The rule this section implements — authored content lives in the repo that owns it, and any binding
+that crosses a repo line is DERIVED rather than hand-maintained — is the umbrella `AGENTS.md`
+Part II #5. What follows is only the how.
+
+1. **Edit the skill's own FILE, in the repo that owns it.** A skill's prose lives at
+   `<owning candy dir>/.agents/skills/<name>/SKILL.md`: the `<name>` DIRECTORY is the skill id, the
+   frontmatter `name` must agree with it, and an optional `references/<stem>.md` sits beside it (no
+   frontmatter, by contract). A sub-agent DEFINITION is ONE file at
+   `<owning candy dir>/.agents/agents/<name>.md` — the SIBLING tree, never a child of
+   `.agents/skills`, and a candy's `skills:` list does not govern it. `.agents/skills` is what a
+   candy's `skills:` list means when it declares none (a candy that declares another tree is honoured
+   by the generators; the OCI-label collector reads only the default one — a stated limit at
+   `sdk/deploykit/skills_collect.go`). Both shapes go through ONE reader
+   (`sdk/candywalk/skillfile.go` — `AgentsSkillsDir` / `AgentsAgentsDir`), so the file you author and
+   the file the corpus publishes parse identically. **You write the body; nothing writes it for
+   you.**
+
+2. **Leave the `skill:` node carrying ROUTING only.** Its sibling node in the owning repo's
+   `charly.yml` keeps `family`/`owner`/`triggers` (plus `category`, and `type: agent` with
+   `model`/`tools` for a sub-agent definition) — that is what the R0 dispatcher, the corpus family
+   and the OCI-label association consume. The prose fields `description:`/`content:`/`references:` are
+   the TRANSITIONAL in-line form: `spec/schema/skill.cue` still declares them and a node that carries
+   them instead of a file is still read, but they are being removed — author in the FILE and delete
+   the node's copy as part of the move.
+
+3. **An inline body that DISAGREES with the file is a HARD ERROR** — the one failure mode that makes
+   the in-line advice actively break a migrated repo. The marketplace generator refuses the node:
+
+   ```
+   skill %q: the node's inline `content:` and its file disagree — delete the inline body and keep the file
+   skill %q: the node's inline `description:` and its file's frontmatter disagree
+   ```
+
+   (`plugin-marketplace/candy/plugin-marketplace/skillfile.go`, and the same pair for an `agent`-type
+   node); `references:` declared on BOTH sides is refused as well. A repo cannot land a corpus while
+   one of its nodes is in that state. **`charly box validate` is not the gate that catches this one**
+   — it resolves the file and takes it, so a stale inline copy passes it. Moving a body means
+   DELETING the node's `content:`/`description:` in the same change, never copying the file back over
+   them.
+
+4. **An IMAGE cannot own a resolvable skill.** A `candy:` node carrying `base:` or `from:` folds into
+   the BOX set and never the layer set, so it has no source directory at all: its skill's body
+   resolves nowhere, and the node is silently absent from the `ai.opencharly.skill` OCI label too — it
+   is invisible, not merely unreadable. `charly box validate` rejects the shape
+   (`… owner %q is an image, not a candy …`, `plugin-box/candy/plugin-box/validate_skills.go`,
+   `opencharly/sdk#434`). `owner:` must name a PACKAGE candy the image composes; for a repo whose
+   skills belong to images the sanctioned shape is a `<repo>-skills` carrier candy — a real candy,
+   with install content that `copy:`s `.agents/skills` to the account's `~/.agents/skills` and an ADE
+   `check:` proving it landed, composed by every image that carries one of its skills.
+   `opencharly/distro-arch`'s `candy/arch-skills` is the worked example. The carrier is deliberately
+   COARSE: one carrier composed into N images puts that repo's whole skill set on all N labels.
+
+5. **Regenerate the corpus** in the marketplace repo — the ownership table, the command, the deploy
+   drift gate and the daily refresh all live in `/charly-internals:marketplace`. The file you edited
+   is the generation SOURCE; `marketplace/**/SKILL.md` is a PROJECTION carrying a DO-NOT-EDIT banner,
+   and an edit there is reverted by the next regeneration, silently and without conflict. `git grep
+   -l 'DO[- ]NOT[- ]EDIT'` tells you which files are generated — but triage the hits rather than
+   trusting them, since a file may MENTION the banner without carrying one (agent definitions under
+   `marketplace/<family>/agents/` are hand-authored).
+6. If the insight affects cross-skill behavior, update the project rulebook (`AGENTS.md`) too
+7. After any non-trivial deployment session, ask: "Did we learn anything that future sessions should know?"
 
 ### Regenerate ONLY the projections of the sources you edited
 
 **A projection merges before the superproject source that pins it**, so prose can be
-correct and landed in `plugins`/`docs` while its candy source is still in flight on
-another branch. Regenerating from a superproject tree that lacks that pending source
+correct and landed in `plugins`/`docs` while the owning repo's skill file is still in flight
+on another branch. Regenerating from a superproject tree that lacks that pending source
 does not bring the projection up to date — it **drags it backwards**, and the diff is
 indistinguishable from a legitimate update.
 
 Measured: a wholesale `charly marketplace generate` touched **21** files in `plugins`
-and **41** in `docs` when three candy sources had changed. The extra ones were reverts,
+and **41** in `docs` when three skill files had changed. The extra ones were reverts,
 about 500 lines of landed prose including 317 from one `git-workflow` reference and 107 from
 the `pr-validator` agent spec. Nothing in the output flagged it.
 
-So: after regenerating, **restore every file whose candy source you did not touch**, and
+So: after regenerating, **restore every file whose source skill file you did not touch**, and
 audit the deletions that remain — each one should be a line you deliberately replaced.
 
 ```bash
@@ -238,14 +280,8 @@ stale" is the reading that ships the revert.
 
 ## Skill File Structure
 
-
-This is the SHAPE the projection EMITS, not a file you create. You author it on the candy's
-
-`skill:` entity — frontmatter fields as entity fields, the body as its content — and
-
-`charly marketplace generate` writes the `SKILL.md`. Every emitted file carries a DO-NOT-EDIT
-
-banner; if you find yourself editing one, the change belongs one hop upstream.
+This is the shape of the file you AUTHOR — and it is the same shape the corpus publishes, because one
+reader parses both:
 
 ```markdown
 ---
@@ -264,15 +300,17 @@ description: |
 ## When to Use This Skill
 ```
 
+Two frontmatter keys, and no marker of your own: the generator adds its DO-NOT-EDIT banner to the copy
+it publishes, and the shared reader (`sdk/candywalk`) strips that marker on the way back in — which is
+what makes the authored file and the published file round-trip to the same body. The EOF convention is
+one trailing newline (`TrimSuffix(content, "\n") + "\n"`, `plugin-marketplace#33`): a body authored
+without one differs from its own projection by that byte on every skill of the repo.
+
 ## Progressive disclosure: multi-file skills
 
-Both halves are GENERATED. You author the split on the candy's `skill:` entity — the entry body
-plus one `reference:` entry per topic — and `charly marketplace generate` writes the `SKILL.md` and
-`references/*.md` files. The shapes below describe what the projection must come out looking like,
-never files to create or edit by hand; every one of them carries a DO-NOT-EDIT banner. This is
-stated here because the section reads as a set of file operations, and the previous revision of
-this skill opened its update instructions by telling the reader to edit `SKILL.md` directly — so a
-reader arriving at this section had already been pointed the wrong way once.
+Both halves are files in the skill's own directory, authored together: the entry `SKILL.md` plus one
+`references/<stem>.md` per topic. Nothing emits the split for you — the corpus projection copies both,
+and both are read back through the same reader.
 
 A skill is either a single `SKILL.md`, or an entry `SKILL.md` plus sibling `references/*.md` files in the same skill directory, loaded on demand by path. Split once a single file grows past ~400 lines or spans more than one cleanly-separable topic.
 

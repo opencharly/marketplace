@@ -112,6 +112,86 @@ class Rules(unittest.TestCase):
     def test_ellipsis_in_fence_fails(self):
         self.assertTrue(any(x.startswith("ellipsis:") for x in run(body(how="```\n$ cmd\nline … cut\n```"))))
 
+    def test_body_must_not_contradict_itself_about_a_file(self):
+        """opencharly/marketplace#526, round 2 — the body-only BLOCK the linter could not see.
+
+        The Summary said the `strict-policy` skill "c[arries] the new grammar" while the
+        body's own detail paragraph said that file "touches no coordination label". Every
+        other check here passed that body: the structure was right, the claims were backed,
+        and each statement was TRUE of the file on its own. Only a comparison of the two
+        finds it — and the comparison is mechanical.
+        """
+        f = run((DATA / "blocked-marketplace-526.md").read_text())
+        self.assertTrue(any(x.startswith("files:") and "strict-policy" in x for x in f), f)
+
+    def test_one_way_claims_about_a_file_pass(self):
+        text = body(how="The `internals/skills/cutover-policy/SKILL.md` file carries the new grammar.")
+        self.assertEqual(run(text), [])
+
+    def test_a_claim_about_something_else_is_not_comparable(self):
+        """A claim about a DIFFERENT proposition is not a claim about the change."""
+        text = body(how="The `internals/skills/cutover-policy/SKILL.md` file carries authoring prose.")
+        self.assertEqual(run(text), [])
+
+    def test_narration_of_a_past_state_is_not_a_claim(self):
+        """The Summary LISTED the file among the grammar-bearing ones — that is about the
+        Summary, not about the file, and a generic subject says so."""
+        text = body(
+            how="The Summary listed the `internals/skills/cutover-policy/SKILL.md` file among "
+            "the files that carry the new grammar."
+        )
+        self.assertEqual(run(text), [])
+
+    def test_body_must_not_contradict_the_count_table_it_carries(self):
+        """opencharly/marketplace#526, round 3 — the body-only BLOCK, one class further on.
+
+        The Summary said "Two of those hunks are carried prose" and named two of the three
+        generated projections that carry none; the third was never named. Nothing in the body
+        contradicted ITSELF — the `files` rule is clean on it — and every count was TRUE of
+        the two files it named. A count that disagrees with the body's own classification
+        table is the same defect one step further, and it is mechanical.
+        """
+        f = run((DATA / "blocked-marketplace-526-counts.md").read_text())
+        self.assertTrue(any(x.startswith("counts:") and "prose" in x for x in f), f)
+
+    def test_a_count_that_matches_its_table_passes(self):
+        text = (DATA / "blocked-marketplace-526-counts.md").read_text()
+        fixed = text.replace("Two of those hunks", "Three of those hunks")
+        self.assertEqual([x for x in run(fixed) if x.startswith("counts:")], [])
+
+    def test_a_count_that_does_not_govern_the_class_word_is_not_comparable(self):
+        """A number that FOLLOWS a class word quantifies something else: "the coordination
+        grammar's closed set is nine labels" counts labels, not grammars."""
+        text = body(how="The coordination grammar's closed set is nine labels.")
+        self.assertEqual(run(text), [])
+        with_table = body(
+            how="The coordination grammar's closed set is nine labels.\n\n"
+            "```\ngrammar  internals/skills/cutover-policy/SKILL.md\n"
+            "grammar  internals/skills/git-workflow/SKILL.md\n```"
+        )
+        self.assertEqual([x for x in run(with_table) if x.startswith("counts:")], [])
+
+    def test_a_narrated_count_is_not_an_asserted_one(self):
+        """A body that narrates its own history quotes a count; it does not assert one."""
+        text = body(
+            how="The Summary said 'Two of those hunks are carried prose' and named two of them.\n\n"
+            "```\ngrammar  internals/skills/cutover-policy/SKILL.md\n"
+            "grammar  internals/skills/git-workflow/SKILL.md\n"
+            "prose    internals/skills/skills/SKILL.md\n```"
+        )
+        self.assertEqual([x for x in run(text) if x.startswith("counts:")], [])
+
+    def test_merged_bodies_stay_clean(self):
+        """The rule must not fire on bodies that were MERGED — a noisy lint teaches authors
+        to ignore it. Calibrated against 944 merged bodies (the org's CHANGELOG entries),
+        zero findings. Only THESE rules are asserted here: an older body may miss another
+        check (an unanswered rule, an older footer grammar) and still be a valid body."""
+        logs = sorted((HERE.parent / "CHANGELOG").glob("*.md"))[-25:]
+        self.assertTrue(logs)
+        for lg in logs:
+            fired = [x for x in run(lg.read_text()) if x.startswith(("files:", "counts:"))]
+            self.assertEqual(fired, [], f"{lg.name} must not trip the files or counts rule")
+
     def test_head_mismatch_fails(self):
         sha = "a" * 40
         text = body(how=f"Head `{sha}`")

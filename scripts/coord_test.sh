@@ -72,11 +72,209 @@ export PATH="$WORK/bin:$PATH" CALLS
 common=(--agent slug-x --session ses_test --harness OpenCode --model "DeepSeek V4.1 Flash" --confidence "documentation reviewed")
 
 # 1. --help exits 0 and names every verb (the EXACT canonical spaced labels).
+#
+# ORACLE is this test's ONE statement of the closed set — an expectation, not an
+# implementation. The implementation states it twice (the VERBS array and the --help
+# prose); the assertions below hold those two to the oracle and to each other, and
+# 1d holds them to being the only two statements of it.
+ORACLE=(CLAIM OWNING "HANDING OVER" "TAKING OVER" WAITING HOLDING CLEARED STATUS RESOLVED)
+# The retired labels, named once, for the two assertions that prove the tooling does
+# not grandfather them: the tool REJECTS them, and the implementation never mentions
+# them. A test that forbids a label has to name it — that is the only place in this
+# repo where the old names appear, and the R5 sweep classifies it.
+RETIRED=("BLOCKS" "UNBLOCKS")
 "$COORD" --help > "$WORK/help.txt" 2>&1
 eq "$?" 0 "coord.sh --help exits 0"
-for v in CLAIM OWNING "HANDING OVER" "TAKING OVER" BLOCKS UNBLOCKS STATUS RESOLVED; do
+for v in "${ORACLE[@]}"; do
   grep -qF "$v" "$WORK/help.txt" && ok "help lists the canonical label $v" || bad "help lists the canonical label $v"
 done
+
+# 1b. round-trip: the VERBS array and the --help prose carry the SAME label set.
+# The array drives validation and the header IS the --help output, so a one-sided
+# edit passes the loop above while the tool rejects the verb it advertises.
+array_str=$(sed -n 's/^VERBS=(\(.*\))$/\1/p' "$COORD" | sed 's/"//g')
+help_str=$(tr '\n' ' ' < "$WORK/help.txt" | tr -s ' ' ' ' | sed 's/^ *//; s/ *$//')
+if printf '%s' "$help_str" | grep -qF "one of $array_str."; then
+  ok "the --help prose lists exactly the VERBS array labels"
+else
+  bad "the --help prose lists exactly the VERBS array labels (array: $array_str)"
+fi
+
+# 1c. the VERBS array IS the canonical set: exactly the oracle's labels, in the
+# canonical order. 1b proves the two copies agree with each other; this proves they
+# agree with the SET — a label added to the array (and to the help) would leave 1b
+# green while the closed set quietly grew.
+eq "$array_str" "${ORACLE[*]}" "the VERBS array is exactly the canonical closed set, in order"
+
+# 1d. the closed set is stated EXACTLY TWICE in coord.sh: the VERBS array (the
+# implementation) and the --help block (the user-facing rendering). A third
+# statement — in the header prose, in a comment, or in the code — is a COPY, and a
+# copy in prose is invisible to every other assertion: nothing compares it, so it
+# drifts silently and the file then advertises a set the tool does not accept.
+#
+# This assertion asks the FILE a question, not a list of places:
+#   * WHERE the --help block ends is not hard-coded here. It is the set of lines the
+#     SCRIPT prints for --help, so a marker renamed in coord.sh moves the region with
+#     it, and this check cannot drift onto the help prose.
+#   * WHAT a copy is, is not "a label appears". A single label in ordinary code
+#     (`status = 0`) is prose, not a copy. A copy is a STATEMENT: a maximal run of
+#     consecutive lines that together name THREE OR MORE of the nine labels. The
+#     labels are matched in ANY separator (space, comma, `·`, `/`, `_`, `-`), in any
+#     case, greedily longest-first so `HANDING OVER` is never read as two words. A
+#     copy spelled `CLAIM, OWNING, ...` is still a copy, and a copy spread over
+#     several lines is still a copy.
+# The file must hold exactly two statements, each the canonical nine in order: the
+# VERBS array, and the one inside the --help block.
+python3 -I - "$COORD" "$WORK/help.txt" "${ORACLE[@]}" > "$WORK/1d.out" 2>&1 <<'PY'
+import re
+import sys
+
+coord_path, help_path = sys.argv[1], sys.argv[2]
+canonical = sys.argv[3:]                    # the nine labels, in canonical order
+CANON = [l.split(" ") for l in canonical]    # each label's words
+VERB_LINE = re.compile(r"^VERBS\s*=")
+MIN_STATEMENT = 3      # a statement names at least this many DISTINCT labels
+
+
+def words(line):
+    """The line's words, upper-cased, with every separator (space, comma, `·`, `/`,
+    `_`, `-`, quotes, punctuation) turned into a space. A copy spelled with any
+    separator tokenises the same way."""
+    return re.sub(r"[^A-Z0-9]+", " ", line.upper()).split()
+
+
+def labels_in(line):
+    """The canonical labels this line names, in order. Greedy longest match, so
+    `HANDING OVER` is never read as `HANDING` + `OVER`."""
+    w = words(line)
+    found = []
+    i = 0
+    while i < len(w):
+        best = None
+        for lab in CANON:
+            if w[i:i + len(lab)] == lab and (best is None or len(lab) > len(best)):
+                best = lab
+        if best is None:
+            i += 1
+        else:
+            found.append(" ".join(best))
+            i += len(best)
+    return found
+
+
+with open(help_path, encoding="utf-8") as fh:
+    help_lines = set(fh.read().splitlines())
+
+
+def in_help(line):
+    """Is this source line one the script PRINTS for --help? The region is taken from
+    the script's own output, so it follows the file when the markers move — no marker
+    name is hard-coded here."""
+    s = line
+    if s.startswith("#"):
+        s = s[1:]
+        if s.startswith(" "):
+            s = s[1:]
+    return s in help_lines
+
+
+with open(coord_path, encoding="utf-8") as fh:
+    src = fh.read().splitlines()
+
+# A STATEMENT is a maximal run of consecutive lines that each name a label; the
+# statement's labels are theirs, in order.
+statements = []
+cur = []
+for n, line in enumerate(src, 1):
+    found = labels_in(line)
+    if found:
+        cur.append((n, line, found))
+    elif cur:
+        statements.append(cur)
+        cur = []
+if cur:
+    statements.append(cur)
+
+enumerations = []
+for st in statements:
+    seq = [l for _, _, ls in st for l in ls]
+    distinct = []
+    for l in seq:
+        if l not in distinct:
+            distinct.append(l)
+    if len(distinct) >= MIN_STATEMENT:
+        enumerations.append((st, seq, distinct))
+
+fails = 0
+
+
+def ok(msg):
+    print("  PASS  " + msg)
+
+
+def bad(msg):
+    global fails
+    fails += 1
+    print("  FAIL  " + msg)
+
+
+# (1) every statement of the set is the canonical nine, in order.
+for st, seq, distinct in enumerations:
+    first = st[0][0]
+    if seq != canonical:
+        bad("a statement of the closed set is not the canonical nine, in order (line %d: %s)"
+            % (first, st[0][1].strip()))
+    else:
+        ok("the statement of the closed set at line %d is the canonical nine, in order" % first)
+
+# (2) exactly two of them.
+if len(enumerations) == 2:
+    ok("the closed set is stated only in the VERBS array and the --help block")
+else:
+    where = ", ".join("line %d" % st[0][0] for st, _, _ in enumerations) or "none"
+    bad("the closed set is stated only in the VERBS array and the --help block "
+        "(found %d statements of it: %s)" % (len(enumerations), where))
+
+# (3) one of them is the VERBS array ...
+arr = [i for i, e in enumerate(enumerations) if VERB_LINE.match(e[0][0][1])]
+if len(arr) == 1:
+    ok("the VERBS array is one of the two statements of the closed set")
+else:
+    bad("the VERBS array is one of the two statements of the closed set (matched %d)" % len(arr))
+
+# (4) ... and the other is inside the --help block.
+rest = [e for i, e in enumerate(enumerations) if i not in arr]
+outside_help = sum(1 for e in rest for _, l, _ in e[0] if not in_help(l))
+if len(rest) == 1 and outside_help == 0:
+    ok("the other statement of the closed set is inside the --help block")
+else:
+    bad("the other statement of the closed set is inside the --help block "
+        "(%d statement line(s) outside it)" % outside_help)
+
+sys.exit(1 if fails else 0)
+PY
+rc1d=$?
+cat "$WORK/1d.out"
+n1d=$(grep -c '^  FAIL' "$WORK/1d.out")
+if [ "$n1d" -gt 0 ]; then
+  FAILS=$((FAILS + n1d))
+elif [ "$rc1d" -ne 0 ]; then
+  bad "the closed-set statement check ran to completion (rc=$rc1d)"
+fi
+
+# 1e. the tooling does not grandfather the retired labels. The BEHAVIOURAL proof
+#     first: the tool rejects them. A grandfather branch — a path that still accepts
+#     an old label — would make these exit 0, so this is the assertion that catches
+#     it. Then the textual one: the implementation never mentions them.
+for r in "${RETIRED[@]}"; do
+  "$COORD" "$r" acme/widget#1 "${common[@]}" --dry-run >/dev/null 2>&1
+  eq "$?" 2 "the retired label $r is rejected with exit 2"
+done
+if grep -qE "\b(${RETIRED[0]}|${RETIRED[1]})\b" "$COORD"; then
+  bad "coord.sh names no retired coordination label"
+else
+  ok "coord.sh names no retired coordination label"
+fi
 
 # 2. unknown option → exit 2.
 "$COORD" STATUS acme/widget#1 "${common[@]}" --bogus --dry-run >/dev/null 2>&1
@@ -113,8 +311,8 @@ eq "$?" 2 "missing --agent exits 2"
 eq "$?" 2 "missing target exits 2"
 
 # 6. canonical footer ORDER: verb first line, Agent before Assisted-by, last line.
-out=$("$COORD" BLOCKS "acme/widget#7" --body "waiting on the producer pin" "${common[@]}" --dry-run 2>/dev/null)
-eq "$(printf '%s\n' "$out" | head -1)" "BLOCKS" "first line is the verb label"
+out=$("$COORD" WAITING "acme/widget#7" --body "waiting on the producer pin" "${common[@]}" --dry-run 2>/dev/null)
+eq "$(printf '%s\n' "$out" | head -1)" "WAITING" "first line is the verb label"
 eq "$(printf '%s\n' "$out" | tail -1)" "*Assisted-by: OpenCode DeepSeek V4.1 Flash (documentation reviewed)*" "last line is the Assisted-by trailer"
 agent_line=$(printf '%s\n' "$out" | grep -n '^\*Agent:' | cut -d: -f1)
 assist_line=$(printf '%s\n' "$out" | grep -n '^\*Assisted-by:' | cut -d: -f1)
