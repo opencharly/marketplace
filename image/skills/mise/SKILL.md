@@ -58,6 +58,48 @@ In the BUILD context the step's `OpEmit` renders the shell the step runs at
 image build (an act-script wrapped in `RUN` with the step's `run_as`); at
 check/deploy time `OpExecute` runs `mise <command>` on the venue.
 
+## Venue precondition — a tool archive comes from the BUILD VENUE
+
+A `mise:` step that installs a tool fetches that tool's archive from the
+network of the venue the build runs in, NOT from the host running
+`charly`. mise's own downloader is what performs the fetch, so the
+egress rules of the build venue decide whether it succeeds — and when a
+venue filters the CDN, the step fails inside the image build with
+mise's own error (`Failed to install core:go@1.25: HTTP status client
+error (404 Not Found) for url (...)`), which reads like a plugin bug and
+is not one.
+
+A `mise:` step carries an `env:` field, and that is the authored lever:
+point mise's downloader at a mirror reachable from the venue. For Go:
+
+```yaml
+- check: install go via mise, from a mirror the build venue can reach
+  mise:
+    command: use
+    tool: go@1.25
+    env:
+      MISE_GO_DOWNLOAD_MIRROR: https://mirrors.aliyun.com/golang
+      MISE_GO_SKIP_CHECKSUM: "1"   # a mirror's bytes are not the CDN's checksum
+```
+
+MEASURED 2026-10-08 on a dev host, inside the build venue rather than on
+the host (the distinction is the whole point):
+
+```
+$ podman run --rm quay.io/fedora/fedora:43 sh -c 'curl -s -o /dev/null -w "%{http_code}\n" <url>'
+https://dl.google.com/go/go1.25.14.linux-amd64.tar.gz        200
+https://mirrors.aliyun.com/golang/go1.25.14.linux-amd64.tar.gz  200
+```
+
+Both answer 200 here, so `check-mise-<distro>` — the R10 witness — has no
+precondition problem on THIS venue today. On a venue that DOES filter the
+Go CDN (measured 404 on 2026-10-03, same command, `opencharly/plugin-mise#13`),
+the same command returns 200 from the mirror, and the `env:` block above is
+the fix — no product change to `charly` or to this plugin is required.
+`charly` does not forward host environment variables into an image build, so
+the mirror has to be AUTHORED in the step (or the step has to avoid the CDN
+tool), not exported by whoever runs the build.
+
 ## Verification
 
 `plan:` `check:` steps assert the plugin module + its self-contained
