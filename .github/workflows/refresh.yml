@@ -164,6 +164,20 @@ jobs:
           # the `|| echo 0` double-print that previously corrupts the value.
           BUMPED=$(grep -cE '^  [a-z]' /tmp/refresh.log || true)
           BUMPED=${BUMPED:-0}
+          # STAGE FIRST, THEN SNAPSHOT. The block below is published under the legend
+          # "(`A` added, `D` removed, `M` modified)", so its codes must be the codes the
+          # commit carries. The snapshot used to be taken ~200 lines BEFORE the run's
+          # `git add -A`, so every file the run produced was still untracked at that
+          # moment and read `??` — a code the legend does not define and the commit does
+          # not carry. The COUNTS were right (the counters accept `^??` as well as `^A `),
+          # which is the worst combination: the report looked precise while describing
+          # something the PR was not. Staging first makes the report's codes the commit's
+          # codes by construction.
+          #
+          # ONE staging command, here. Nothing between this snapshot and the commit
+          # touches the worktree (the body is assembled into /tmp/pr-body.md), so the
+          # commit is byte-identical to what the late `git add -A` produced.
+          git add -A
           STATUS=$(git status --porcelain -uall)
           SKILLS=$(printf '%s\n' "$STATUS" | grep -c 'SKILL.md' || true)
           SKILLS=${SKILLS:-0}
@@ -373,7 +387,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "refresh/$(date -u +%Y%m%d-%H%M%S)"
-          git add -A
           git commit -m "chore: refresh the refs list to the newest tags"
           git push -u origin HEAD
 

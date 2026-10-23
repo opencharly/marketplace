@@ -42,8 +42,9 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: The repo's own script tests
-        # These scripts carry real behaviour — the refresh's publication block, the PR-body
-        # linter, the coordination grammar, the consumer-currency report, the refs resolver —
+        # These scripts carry real behaviour — the refresh's publication block, the refresh's
+        # report block, the PR-body linter, the coordination grammar, the consumer-currency
+        # report, the refs resolver —
         # and their tests ran NOWHERE: a script could be broken and no gate would notice. They
         # run here, BEFORE the heavy toolchain build, so a broken script fails in seconds.
         #
@@ -54,6 +55,7 @@ jobs:
           python3 scripts/pr_body_lint_test.py
           bash scripts/refresh_publish_test.sh
           bash scripts/refresh_refs_test.sh
+          bash scripts/refresh_report_test.sh
           bash scripts/consumer_currency_test.sh
 
       - name: Build the pinned Charly toolchain
