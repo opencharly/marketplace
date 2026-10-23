@@ -152,10 +152,12 @@ done < <(grep -nE '^  ' "$EMITTED" || true)
 # about a list that changes on every refresh is a claim that drifts: refresh PR #534's body gave
 # TWO different sizes for the same list — how many pins the run advanced, and how many the
 # workflow still had to advance — and the validator read the contradiction there. The CLASS is
-# what is forbidden (a count of pins, of the refs left over, or of the per-ref progress lines),
-# not one instance of it, so a later list cannot re-introduce the same drift under a different
-# number.
-COUNT_PATTERN='\b[0-9]{2,} +(hand-maintained +)?pins?\b|\bthe remaining +[0-9]+\b|\b[0-9]{2,} +of them\b'
+# what is forbidden (a count of pins or of refs, of the refs left over, or of the per-ref
+# progress lines), not one instance of it, so a later list cannot re-introduce the same drift
+# under a different number. The nouns are the sweep's own: the R1 sweep greps for a count of
+# `pins?` OR `refs?`, so the guard covers both — a guard narrower than the sweep would let a
+# "N refs" phrasing through the very hole the sweep is looking for.
+COUNT_PATTERN='\b[0-9]{2,} +(hand-maintained +)?(pins?|refs?)\b|\bthe remaining +[0-9]+\b|\b[0-9]{2,} +of them\b'
 COUNT_CLAIMS="$(grep -nE "$COUNT_PATTERN" "$WF" || true)"
 if [ -z "$COUNT_CLAIMS" ]; then
   ok "the workflow states the refs list's size without a number"
