@@ -94,7 +94,7 @@
 | VmSpec / libvirt / cloud-init / OVMF internals | `/charly-internals:vm-spec` |
 | the `kube:` check verb / Kubernetes cluster probing from a candy/box plan (out-of-process plugin; nodes, pods, ingress, wait-ready, storageclass, addons, apply/delete, raw resource GETs) | `/charly-kubernetes:check-k8s` |
 | `step:helm-release` / `verb:helm` / installing a Helm chart from a candy plan / the `helm_charts:` deploy field and its kustomize `helmCharts:` emission / the `--enable-helm` apply path | `/charly-kubernetes:helm` |
-| kind (Kubernetes-in-Docker) / kindcluster deploy / local Kubernetes-in-Docker / a kind cluster on docker-podman-nerdctl / KIND_EXPERIMENTAL_PROVIDER / composing the kind candy | `/charly-kubernetes:kind` |
+| kind (Kubernetes-in-Docker) / kindcluster deploy / local Kubernetes-in-Docker / a kind cluster on podman/docker/containerd / KIND_EXPERIMENTAL_PROVIDER / composing the kind candy | `/charly-kubernetes:kind` |
 | the `kubevirt:` check verb / probing a running KubeVirt cluster from a candy/box plan (vm / vmi / wait-ready / guest-info / migration / snapshot / datavolume) | `/charly-kubevirt:check-kubevirt` |
 | KubeVirt / `kind: kubevirt` / a `kubevirt:` or `target: kubevirt` deploy / `deploy:kubevirt` / running a charly VM on a Kubernetes cluster / `charly kubevirt` CLI (build/create/start/stop/restart/destroy/console/ssh/snapshot/migrate/gpu/status) / the VirtualMachine CR lifecycle | `/charly-kubevirt:kubevirt` |
 | installing KubeVirt + CDI on a cluster / `candy/kubevirt-operator` / the kubevirt platform leg of a check bed | `/charly-kubevirt:kubevirt-operator` |

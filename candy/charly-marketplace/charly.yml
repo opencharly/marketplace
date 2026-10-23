@@ -59,7 +59,7 @@ charly-marketplace:
             - '@github.com/opencharly/plugin-pipeline/candy/plugin-pipeline:v2026.295.0740'
             - '@github.com/opencharly/plugin-authoring/candy/plugin-authoring:v2026.294.2142'
             - '@github.com/opencharly/layer-charly-kubernetes:v2026.296.1050'
-            - '@github.com/opencharly/layer-kind:v2026.293.0046'
+            - '@github.com/opencharly/layer-kind:v2026.296.1832'
             - '@github.com/opencharly/layer-charly-image:v2026.296.1050'
             - '@github.com/opencharly/layer-charly-immich:v2026.296.1055'
             - '@github.com/opencharly/pod-charly-mcp:v2026.292.2214'
@@ -263,6 +263,13 @@ charly-marketplace:
             - '@github.com/opencharly/layer-qdrant:v2026.293.0056'
             - '@github.com/opencharly/plugin-qdrant/candy/plugin-qdrant:v2026.294.2125'
             - '@github.com/opencharly/plugin-kubevirt/candy/plugin-kubevirt:v2026.295.2057'
+            # plugin-kube owns the `kubernetes` and `check-k8s` family skills. A
+            # DIRECT ref, for the reason recorded above for plugin-mise/openclaw/
+            # media: without one the corpus published those two bodies from
+            # whichever old carrier tag a sibling pin happened to name (the stale
+            # engine list in that transitive body proved it), instead of from the
+            # repo that actually serves them.
+            - '@github.com/opencharly/plugin-kube/candy/plugin-kube:v2026.296.1732'
             # the containerd integration (plan/nerdctl-integration.md): the layer that
             # installs the nerdctl CLI + containerd stack, plus the out-of-tree
             # engine:containerd plugin; each owns its harness skill.

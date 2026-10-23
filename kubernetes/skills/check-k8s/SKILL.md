@@ -26,7 +26,8 @@ The cluster-probe verb is spelled `kube`; the deploy KIND is spelled
 
 The **local-cluster sibling** is `kindcluster` (`kind: kindcluster`, a
 `kindcluster:` entity): kind provisions the cluster as node containers on the
-operator's own engine (docker / rootless podman / rootless nerdctl) instead of
+operator's own engine (docker / rootless podman / rootless containerd, where
+containerd is driven through its nerdctl CLI) instead of
 a VM. It is the SAME `kube:` probe surface — a `kindcluster:` deploy writes a
 `kind-<cluster>` kubeconfig context, which a `kube:` step addresses with
 `kube_context:`. See `/charly-kubernetes:kind`.
@@ -76,7 +77,7 @@ resolves the `cluster:` profile to a concrete kubeconfig context via the generic
 4. None given → current-context of the default kubeconfig (matches
    `kubectl` with no flags).
 
-`charly fleet add vm:k3s-srv` (or any deploy whose layers include
+`charly deploy add vm:k3s-srv` (or any deploy whose layers include
 `k3s-server`) provisions a cluster whose kubeconfig is merged into the
 default kubeconfig under a context named after the deploy (the plugin-side
 `k3s-post-provision` finalization dispatched by `candy/plugin-fleet`'s
@@ -227,7 +228,7 @@ charly's core binary.
     PLUGIN-SIDE `hostConfigResolveVmState` → `sdk/loaderkit.ResolveVmStateViaExecutor`
     read (the config-resolve HostBuild seam is DELETED, K-wave 2 cone R2 bank D —
     the SAME read `candy/plugin-vm`'s own `hostConfigResolve` + `candy/plugin-deploy-vm`'s
-    `resolvePriorVmState` use, R3 — a FIX-ROUND regression fix: a direct
+    `resolvePriorVmState` use, R2 — a FIX-ROUND regression fix: a direct
     `deploykit.LoadDeployConfigForRead` call from this out-of-process plugin
     silently found nothing every time, since `deploykit.DeployStateHost` is
     wired only by charly-core's own `init()`), then calls `mergeKubeconfig`
@@ -262,7 +263,7 @@ all were removed when the verb was externalized.
   run), the plan-step vocabulary, and how the provider registry dispatches
   declarative verbs.
 - `/charly-kubernetes:kubernetes` — deploying images to a Kubernetes cluster
-  (`kind: kubernetes` cluster templates, Kustomize generation, `charly fleet`).
+  (`kind: kubernetes` cluster templates, Kustomize generation, `charly deploy`).
 - `/charly-internals:plugin` — the Provider model and the out-of-process
   plugin dispatch the `kube:` verb rides on.
 - `/charly-infrastructure:k3s` — the k3s-server / k3s-agent candies whose
