@@ -27,8 +27,7 @@ deliberately NOT part of the key: the Go-module scheme strips the leading zeros 
 `v0.2026296.734` are the same scheme, an hour and a half apart in the same afternoon).
 
 usage:
-  resolve_pin_tag.py --old <tag>             # the repo's tags on stdin, one per line
-  resolve_pin_tag.py --old <tag> --tags <f>  # the repo's tags from a file
+  resolve_pin_tag.py --old <tag>   # the repo's tags on stdin, one per line
 
 exit 0  stdout: the tag to pin
 exit 3  no tag in the pin's scheme            (stderr: why) — the pin stays
@@ -116,13 +115,8 @@ def resolve(old, tags):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--old", required=True, help="the tag the pin currently carries")
-    ap.add_argument("--tags", help="a file of the repo's tags, one per line (default: stdin)")
     a = ap.parse_args(argv)
-    if a.tags:
-        with open(a.tags, encoding="utf-8") as fh:
-            tags = fh.read().splitlines()
-    else:
-        tags = sys.stdin.read().splitlines()
+    tags = sys.stdin.read().splitlines()
     tag, reason, status = resolve(a.old, tags)
     if tag is None:
         print(reason, file=sys.stderr)
