@@ -58,10 +58,7 @@ charly-marketplace:
             - '@github.com/opencharly/plugin-feature/candy/plugin-feature:v2026.294.2205'
             - '@github.com/opencharly/plugin-pipeline/candy/plugin-pipeline:v2026.295.0740'
             - '@github.com/opencharly/plugin-authoring/candy/plugin-authoring:v2026.294.2142'
-            - '@github.com/opencharly/layer-charly-kubernetes:v2026.296.1050'
             - '@github.com/opencharly/layer-kind:v2026.296.1832'
-            - '@github.com/opencharly/layer-charly-image:v2026.296.1050'
-            - '@github.com/opencharly/layer-charly-immich:v2026.296.1055'
             - '@github.com/opencharly/pod-charly-mcp:v2026.292.2214'
             - '@github.com/opencharly/layer-ripgrep:v2026.292.2323'
             - '@github.com/opencharly/layer-supervisord:v2026.288.2336'
@@ -110,18 +107,14 @@ charly-marketplace:
             - '@github.com/opencharly/layer-sherpa-onnx:v2026.293.0053'
             - '@github.com/opencharly/layer-camsnap:v2026.292.2350'
             - '@github.com/opencharly/layer-shortbread:v2026.293.0055'
-            - '@github.com/opencharly/pod-charly-core:v2026.296.1040'
             - '@github.com/opencharly/layer-kde-shell:v2026.293.0040'
-            - '@github.com/opencharly/layer-charly-distros:v2026.296.1050'
             - '@github.com/opencharly/layer-omarchy-base:v2026.294.1845'
             - '@github.com/opencharly/layer-omarchy-shell:v2026.294.1856'
             - '@github.com/opencharly/layer-songsee:v2026.293.0056'
             - '@github.com/opencharly/layer-keepassxc:v2026.293.0040'
             - '@github.com/opencharly/layer-sqlite:v2026.293.0056'
             - '@github.com/opencharly/layer-kimi:v2026.293.0045'
-            - '@github.com/opencharly/layer-charly-languages:v2026.296.1051'
             - '@github.com/opencharly/layer-ssh-client:v2026.293.0057'
-            - '@github.com/opencharly/layer-charly-local:v2026.296.1047'
             - '@github.com/opencharly/pod-labwc:v2026.292.2242'
             - '@github.com/opencharly/pod-sshd:v2026.292.2223'
             - '@github.com/opencharly/layer-libnotify:v2026.293.0046'
@@ -130,12 +123,10 @@ charly-marketplace:
             - '@github.com/opencharly/pod-swaync:v2026.292.2150'
             - '@github.com/opencharly/layer-maplibre-versatiles-styler:v2026.293.0046'
             - '@github.com/opencharly/layer-tailscale:v2026.293.0102'
-            - '@github.com/opencharly/layer-charly-pod:v2026.296.1050'
             - '@github.com/opencharly/pod-testapi:v2026.292.2135'
             - '@github.com/opencharly/layer-charly-tools:v2026.271.2241'
             - '@github.com/opencharly/pod-traefik:v2026.292.2135'
             - '@github.com/opencharly/pod-charly-versa:v2026.289.0041'
-            - '@github.com/opencharly/vm-charly-vm:v2026.296.1041'
             - '@github.com/opencharly/layer-typst:v2026.293.0059'
             - '@github.com/opencharly/layer-mcporter:v2026.293.0047'
             - '@github.com/opencharly/layer-unsloth:v2026.293.0059'
@@ -184,8 +175,6 @@ charly-marketplace:
             - '@github.com/opencharly/layer-yay:v2026.292.2258'
             - '@github.com/opencharly/layer-agent-forwarding:v2026.292.2339'
             - '@github.com/opencharly/layer-agentteams:v2026.292.2338'
-            - '@github.com/opencharly/layer-charly-comfyui:v2026.296.1040'
-            - '@github.com/opencharly/layer-charly-infrastructure:v2026.296.1049'
             - '@github.com/opencharly/pod-cloud-init:v2026.292.2214'
             - '@github.com/opencharly/layer-google-cloud-npm:v2026.293.0032'
             - '@github.com/opencharly/layer-himalaya:v2026.293.0039'
@@ -200,7 +189,6 @@ charly-marketplace:
             - '@github.com/opencharly/layer-tailscale-up:v2026.293.0100'
             - '@github.com/opencharly/pod-unsloth-studio:v2026.296.0939'
             - '@github.com/opencharly/pod-waybar-labwc:v2026.292.2118'
-            - '@github.com/opencharly/layer-charly-filebrowser:v2026.296.1059'
             - '@github.com/opencharly/pod-hermes:v2026.296.0937'
             - '@github.com/opencharly/pod-immich-ml:v2026.296.0940'
             - '@github.com/opencharly/pod-jupyter-ml:v2026.296.0938'
@@ -208,17 +196,12 @@ charly-marketplace:
             - '@github.com/opencharly/pod-openwebui:v2026.296.0939'
             - '@github.com/opencharly/layer-selkies-kde-desktop:v2026.293.0056'
             - '@github.com/opencharly/layer-vectorchord:v2026.293.0100'
-            - '@github.com/opencharly/layer-charly-openwebui:v2026.296.1050'
-            - '@github.com/opencharly/layer-charly-selkies:v2026.296.1050'
             - '@github.com/opencharly/layer-container-nesting:v2026.293.1724'
             - '@github.com/opencharly/layer-hermes-playwright:v2026.296.0937'
             - '@github.com/opencharly/layer-notebook-ollama:v2026.293.0048'
-            - '@github.com/opencharly/layer-charly-coder:v2026.296.1047'
-            - '@github.com/opencharly/layer-charly-hermes:v2026.296.1047'
             - '@github.com/opencharly/pod-github-runner:v2026.292.2208'
             - '@github.com/opencharly/pod-nested-podman-socket:v2026.292.2235'
             - '@github.com/opencharly/layer-notebook-openrouter:v2026.293.0050'
-            - '@github.com/opencharly/layer-charly-jupyter:v2026.296.1051'
             - '@github.com/opencharly/layer-heroic:v2026.293.0038'
             - '@github.com/opencharly/layer-steam:v2026.293.0057'
             - '@github.com/opencharly/layer-sway-desktop:v2026.293.0101'
@@ -296,6 +279,50 @@ charly-marketplace:
             - '@github.com/opencharly/plugin-mise/candy/plugin-mise:v2026.295.0432'
             - '@github.com/opencharly/plugin-openclaw/candy/plugin-openclaw:v2026.295.0432'
             - '@github.com/opencharly/plugin-media/candy/plugin-media:v2026.295.0432'
+            # ------------------------------------------------------------------
+            # The retired-carrier cutover (opencharly/opencharly#600).
+            #
+            # The 17 `layer-charly-*` / `pod-charly-core` / `vm-charly-vm` carriers are
+            # retired and archived: each published a second copy of skills that live
+            # beside the code, plugin or config they describe. Their destinations are
+            # named here DIRECTLY, so the corpus publishes every one from its own repo
+            # instead of through whichever tag a sibling happened to pin
+            # (opencharly/plugin-marketplace#41).
+            # ------------------------------------------------------------------
+            - '@github.com/opencharly/plugin-doctor:v2026.296.0853'
+            - '@github.com/opencharly/plugin-alias:v2026.296.0853'
+            - '@github.com/opencharly/plugin-enc:v2026.296.0853'
+            - '@github.com/opencharly/plugin-status:v2026.296.0854'
+            - '@github.com/opencharly/plugin-clean:v2026.296.0854'
+            - '@github.com/opencharly/plugin-tmux:v2026.296.0854'
+            - '@github.com/opencharly/plugin-udev:v2026.296.0854'
+            - '@github.com/opencharly/plugin-cmd:v2026.296.0855'
+            - '@github.com/opencharly/plugin-fleet:v2026.296.1223'
+            - '@github.com/opencharly/plugin-ssh:v2026.296.0852'
+            - '@github.com/opencharly/plugin-deploy-pod:v2026.296.1251'
+            - '@github.com/opencharly/plugin-vm:v2026.296.1246'
+            - '@github.com/opencharly/plugin-helm:v2026.296.0856'
+            - '@github.com/opencharly/plugin-deploy-local:v2026.296.0856'
+            - '@github.com/opencharly/pod-hermes-full:v2026.296.0938'
+            - '@github.com/opencharly/layer-playwright:v2026.296.0938'
+            - '@github.com/opencharly/layer-kubernetes:v2026.296.0939'
+            - '@github.com/opencharly/pod-dbus:v2026.296.0939'
+            - '@github.com/opencharly/pod-selkies-desktop:v2026.296.0939'
+            - '@github.com/opencharly/layer-tmux:v2026.296.0940'
+            - '@github.com/opencharly/layer-wl-overlay:v2026.296.0940'
+            # The umbrella IS a corpus source: the general-guidance skills with no code,
+            # plugin, or config behind them live at its root `.agents/skills/` and are
+            # owned by its `opencharly-guidance` candy (AGENTS.md Part II #5). This is
+            # what lets `layer-charly-internals` stop publishing its own copies of
+            # `agents`, `cutover-policy` and `root-cause-analyzer`.
+            - '@github.com/opencharly/opencharly:v2026.296.2037'
+            # Two plugins whose skills were reachable ONLY through a manifest template
+            # inside eval-omarchy's closure (`template: |-`). The corpus ref collector
+            # reads DECLARED scalars now, not block scalars (opencharly/sdk#455), so the
+            # accidental path is gone and these become what they should always have been:
+            # a direct pin at the tag each repo's own merge minted.
+            - '@github.com/opencharly/plugin-record:v2026.272.0412'
+            - '@github.com/opencharly/plugin-spice:v2026.272.0430'
         plan:
             - check: the marketplace corpus source resolves via the charly binary
               exit_status: 0
