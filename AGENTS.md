@@ -14,9 +14,11 @@ Canonical files:
   input — change a skill at its source, never the generated copy.
 - `.github/workflows/` — the repo's generation workflow: the SOLE owner of
   generation; builds the pinned charly, regenerates the corpus, FAILS on any
-  drift (including untracked files), and publishes the catalog mirror; plus the
+  drift (including untracked files), runs the repo's own script tests, and
+  publishes the catalog mirror; plus the
   daily refs refresh (advances every pin to its repo's newest tag, regenerates,
-  opens a `chore: refresh the refs list` PR).
+  opens a `chore: refresh the refs list` PR) and REPORTS each recorded consumer's
+  recorded pin's currency.
 - `DISPATCHER.md` — the generated trigger → skill dispatcher (marker-spliced).
 - `README.md`, `AGENTS.md`, `LICENSE`, `CHANGELOG/`, `scripts/`,
   `kimi-user-config.toml` — hand-authored; everything else carries a
@@ -41,7 +43,14 @@ Canonical files:
 - The merge gate is the **org-wide** `charly/pr-validator` (required check
   `validate / validate`, defined in `opencharly/.github`). The repo's generation
   workflow drift gate is what enforces that a refs bump ships its regenerated
-  corpus in the same PR.
+  corpus in the same PR. The same workflow runs the repo's own script tests
+  (`scripts/*_test.sh`, `scripts/pr_body_lint_test.py`) — a script that carries
+  behaviour carries a test that runs in CI.
+- The **consumer set** is the README's `## Consumers` table — ONE record. A
+  consumer is added by adding a row; `scripts/consumer-currency.sh` reads that
+  table, reads each consumer's recorded pin over the public API, and REPORTS
+  whether it is behind this repo's merged main. It never fails: a consumer that
+  is behind is an advance available now, in that consumer's own repo.
 
 ## Modify this repo
 
