@@ -20,7 +20,11 @@ BLOCKs on the body alone):
              ("… were checked"), an equivalence to a named source ("match(es) `…`") — is backed IN
              ITS SECTION by a later fenced block carrying a `$ ` command, or points at its evidence
              ("above"/"below");
-  head       a pasted `Head `<sha>`` equals the commit being pushed;
+  head       a pasted `Head `<sha>`` equals the commit being pushed, and a `git rev-parse HEAD`
+             fence that prints a 40-hex sha names the same commit — the body's TWO anchor
+             forms are one claim about one commit;
+  evidence   the two head findings print the FULL sha, so a body can paste the linter's own
+             output verbatim (the `ellipsis` rule refuses a `…` inside a fenced block);
   ellipsis   no `…` inside a fenced block (pasted output is verbatim, never ellipsized);
   files      the body does not contradict ITSELF about a file: within one section, a file the
              body says CARRIES the change and a file the body says does NOT carry it are the
@@ -81,6 +85,19 @@ NO_MATCH_STATUS = re.compile(r"\b(?:exit|rg exit|grep exit)\s*[:=]\s*1\b", re.IG
 POINTER = re.compile(r"\b(above|below)\b", re.IGNORECASE)
 NA = re.compile(r"\bN/A\b(?P<rest>.*)$")
 HEAD = re.compile(r"\bHead\s+`([0-9a-f]{40})`")
+# The body's SECOND anchor form: a fence that runs `git rev-parse HEAD` and prints the commit
+# it names. The headline `Head:` line and this fence are the SAME claim about the same commit —
+# "the evidence I am pasting belongs to this head" — and the linter compared only the first.
+# Measured: opencharly/charly#1039 round 1 — the head moved when the commit was amended, the
+# headline was re-pasted and the fence was carried over verbatim, the linter reported 0 findings
+# and the validator BLOCKed on that mismatch alone (opencharly/marketplace#551).
+#
+# The command is matched NARROWLY, so the rule stays silent on the legitimate cases: a bare
+# `git rev-parse HEAD` only. A `git rev-parse HEAD^{tree}` prints a TREE, a `git -C <dir>
+# rev-parse HEAD` prints ANOTHER repo's head, and a fence that quotes some other commit (an
+# upstream, a predecessor) is not this PR's anchor at all.
+REV_PARSE_HEAD = re.compile(r"^\s*\$\s*git\s+rev-parse\s+HEAD\s*$")
+COMMIT_SHA = re.compile(r"^[0-9a-f]{40}$")
 
 # --- the DIFFSTAT rule -------------------------------------------------------
 # The body's headline states how big the change is: "2 files, +33 −8". That is a claim about
@@ -433,6 +450,31 @@ def blocks(lines: list[str]):
             i = j
 
 
+def head_fence_anchors(lines: list[str]) -> list[str]:
+    """The commit shas the body's `git rev-parse HEAD` fences print — its OTHER anchor form.
+
+    A fence that runs the bare command and prints a 40-hex sha states which commit its
+    evidence belongs to. The sha on the NEXT non-empty line is the output; a line that is not
+    a sha (a comment, an error) means the command printed nothing usable, and the fence is
+    not an anchor.
+    """
+    out: list[str] = []
+    for kind, _, text in blocks(lines):
+        if kind != "fence":
+            continue
+        for i, ln in enumerate(text):
+            if not REV_PARSE_HEAD.match(ln):
+                continue
+            for nxt in text[i + 1 :]:
+                s = nxt.strip()
+                if not s:
+                    continue
+                if COMMIT_SHA.match(s):
+                    out.append(s)
+                break
+    return out
+
+
 def sections(lines: list[str]) -> dict[str, list[str]]:
     out: dict[str, list[str]] = {}
     cur = None
@@ -639,7 +681,24 @@ def lint(
 
     pasted = HEAD.search(body)
     if pasted and head and pasted.group(1) != head:
-        findings.append(f"head: body pastes Head `{pasted.group(1)[:12]}…` but the commit is `{head[:12]}…`")
+        # The sha is printed in FULL, in both head findings below. A finding is EVIDENCE: a
+        # body that proves a rule works pastes the linter's own output, and the house's
+        # `ellipsis` rule refuses a `…` inside a fence — a truncated sha would make the
+        # linter's own output un-pasteable in the one form a body is allowed to show it.
+        findings.append(f"head: body pastes Head `{pasted.group(1)}` but the commit is `{head}`")
+
+    # The body's OTHER anchor form: a `git rev-parse HEAD` fence that prints a commit which is
+    # not the head being pushed (opencharly/marketplace#551). The headline and the fence are
+    # one claim about one commit, and a body can carry both in the same paste.
+    # The head must be a FULL sha: a caller that passes an abbreviated one is not making the
+    # claim this rule compares, and a rule that fires on every body is worse than no rule.
+    if head and COMMIT_SHA.match(head):
+        for anchor in head_fence_anchors(lines):
+            if anchor != head:
+                findings.append(
+                    f"head-fence: body pastes `git rev-parse HEAD` output `{anchor}` "
+                    f"but the commit is `{head}`"
+                )
 
     # The body's own headline count of the diff, against the diff. `diffstat` is None when
     # the diff could not be read — the rule then SKIPS (visibly, in main()), because a
