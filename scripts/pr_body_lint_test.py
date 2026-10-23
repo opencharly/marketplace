@@ -296,6 +296,109 @@ class Rules(unittest.TestCase):
         self.assertTrue(any(x.startswith("head:") for x in run(text, head="b" * 40)))
 
 
+class HeadFence(unittest.TestCase):
+    """opencharly/marketplace#551 — the body's OTHER anchor form.
+
+    A body has TWO ways of saying which commit its evidence belongs to: the headline
+    `Head: \\`<sha>\\`` and a fence that runs `git rev-parse HEAD` and prints the sha. The
+    linter compared the first against the head and never the second, so a body whose fence
+    named a stale commit passed at 0 findings — and the validator BLOCKed it on exactly
+    that drift (opencharly/charly#1039 round 1: the head moved when the commit was amended,
+    the headline was re-pasted and the fence was carried over verbatim).
+
+    The fixture is the REAL body of opencharly/charly#1039, the round-2 body the validator
+    PASSed. The BLOCKED state is that body's two fence outputs set to the pre-amend commit
+    the validator named in round 1 — the only change the fixture makes, and the drift the
+    rule exists to catch.
+    """
+
+    BODY = (DATA / "charly-1039.md").read_text()
+    HEAD = "f1df920c6d6db67212981eb816b69f1501339ef3"
+    STALE = "6668ef08f03d693970d572dabb8e356cf8eb7324"
+
+    @classmethod
+    def stale_fence(cls, text):
+        """The fixture's fence outputs set to the stale commit — the blocked state."""
+        return "\n".join(
+            cls.STALE if ln.strip() == cls.HEAD else ln for ln in text.split("\n")
+        )
+
+    def test_the_real_body_is_clean(self):
+        self.assertEqual(run(self.BODY, head=self.HEAD), [])
+
+    def test_a_stale_head_fence_is_a_finding(self):
+        f = run(self.stale_fence(self.BODY), head=self.HEAD)
+        self.assertTrue(any(x.startswith("head-fence:") for x in f), f)
+        # The headline rule stays SILENT here: the drift is in the fence, and the headline
+        # still names the head. The two rules see two different claims, and this is the
+        # case only the second one can see.
+        self.assertFalse(any(x.startswith("head: ") for x in f), f)
+
+    def test_a_fence_that_names_the_head_is_not_a_finding(self):
+        f = run(self.BODY, head=self.HEAD)
+        self.assertFalse(any(x.startswith("head-fence:") for x in f), f)
+
+    def test_a_tree_is_not_an_anchor(self):
+        # `git rev-parse HEAD^{tree}` prints a TREE, not the commit under review.
+        text = self.BODY.replace("$ git rev-parse HEAD\n", "$ git rev-parse HEAD^{tree}\n")
+        self.assertEqual(run(text, head=self.HEAD), [])
+
+    def test_another_repos_head_is_not_an_anchor(self):
+        # `git -C <dir> rev-parse HEAD` names a DIFFERENT repository's head.
+        text = self.BODY.replace("$ git rev-parse HEAD\n", "$ git -C other rev-parse HEAD\n")
+        self.assertEqual(run(text, head=self.HEAD), [])
+
+    def test_a_quoted_commit_is_not_an_anchor(self):
+        # A fence that quotes some other commit (an upstream, a predecessor) is not this
+        # PR's anchor: only the OUTPUT of a `git rev-parse HEAD` fence is.
+        text = self.BODY.replace(
+            "$ git rev-parse HEAD\n", f"$ git show {self.STALE}\n"
+        )
+        self.assertEqual(run(text, head=self.HEAD), [])
+
+    def test_an_abbreviated_head_makes_no_claim(self):
+        # A caller that passes an abbreviated head is not making the claim this rule
+        # compares — and a rule that fires on every body is worse than no rule.
+        f = run(self.stale_fence(self.BODY), head=self.HEAD[:12])
+        self.assertFalse(any(x.startswith("head-fence:") for x in f), f)
+
+
+class FindingEvidence(unittest.TestCase):
+    """A linter finding IS evidence, and evidence is pasted into a body.
+
+    A body that proves a rule works pastes the linter's own output — and the house's
+    `ellipsis` rule refuses a `…` inside a fenced block, so a finding that truncates a sha
+    with one cannot be shown in a body at all. The two head findings therefore print the
+    FULL sha: the finding is pasteable verbatim, and the shas in it are the ones a reader
+    can check.
+    """
+
+    BODY = (DATA / "charly-1039.md").read_text()
+    HEAD = "f1df920c6d6db67212981eb816b69f1501339ef3"
+    STALE = "6668ef08f03d693970d572dabb8e356cf8eb7324"
+
+    def test_the_headline_finding_carries_no_ellipsis(self):
+        f = run(self.BODY, head="a" * 40)
+        self.assertTrue(any(x.startswith("head: ") for x in f), f)
+        for x in f:
+            self.assertNotIn("…", x)
+
+    def test_the_head_fence_finding_carries_no_ellipsis(self):
+        text = "\n".join(self.STALE if ln.strip() == self.HEAD else ln for ln in self.BODY.split("\n"))
+        f = run(text, head=self.HEAD)
+        self.assertTrue(any(x.startswith("head-fence:") for x in f), f)
+        for x in f:
+            self.assertNotIn("…", x)
+
+    def test_the_finding_names_the_full_shas(self):
+        text = "\n".join(self.STALE if ln.strip() == self.HEAD else ln for ln in self.BODY.split("\n"))
+        f = [x for x in run(text, head=self.HEAD) if x.startswith("head-fence:")]
+        self.assertTrue(f)
+        for x in f:
+            self.assertIn(self.STALE, x)
+            self.assertIn(self.HEAD, x)
+
+
 class Diffstat(unittest.TestCase):
     """opencharly/marketplace#548, round 2 — the body's own headline count of the diff.
 
