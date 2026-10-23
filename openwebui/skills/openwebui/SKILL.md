@@ -94,7 +94,7 @@ folding them into those lists (`config.py:355-375`).
 |---|---|
 | `OPENROUTER_API_KEY` | `https://openrouter.ai/api/v1` + the key |
 | `OLLAMA_API_KEY` | `https://ollama.com/v1` + the key (Ollama Cloud, additive) |
-| `OPENAI_API_KEY` **and** `OPENAI_API_BASE_URL` | that base URL + the key |
+| `OPENAI_API_KEY` | that key, against `OPENAI_API_BASE_URL` when set — otherwise `https://api.openai.com/v1` (the key alone is enough; requiring the URL made the declared secret silently do nothing) |
 | `OLLAMA_HOST` | `ENABLE_OLLAMA_API=true` + `OLLAMA_BASE_URL` (native Ollama API) |
 
 The three OpenAI-compatible entries stack: the lists are appended in order and stay

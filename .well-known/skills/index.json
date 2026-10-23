@@ -354,6 +354,12 @@
       ]
     },
     {
+      "name": "clawsweeper-review",
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
       "name": "clean",
       "files": [
         "SKILL.md"

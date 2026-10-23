@@ -20,7 +20,7 @@
 | `charly docs` / the opencharly.ai site / the opencharly/docs repo / Starlight/Astro / `candy/plugin-docs` (runtime plugin) or `candy/docs-site` | `/charly-build:docs` |
 | `charly box build` / `charly box generate` / Containerfile | `/charly-build:generate` |
 | `charly box load` / delivering an image into a pod's NESTED podman store / nested-podman-socket / the container twin of `charly vm cp-box` | `/charly-build:load` |
-| `charly migrate` / schema migration / legacy config shape / migration table / adding a migration step | `/charly-build:migrate` |
+| `charly migrate` / schema migration / legacy → latest CalVer / CalVer schema version | `/charly-build:migrate` |
 | `charly box reconcile` / cross-repo `@github` pin alignment / candy-version-mismatch cleanup | `/charly-build:reconcile` |
 | Secret management / `charly secrets` / Secret Service / GPG `.secrets` | `/charly-build:secrets` |
 | `charly box validate` / schema error | `/charly-build:validate` |
@@ -49,7 +49,8 @@
 | Fedora images / `fedora*` / `box/fedora` submodule (incl. the GPU base `nvidia` / `python-ml` + `sway-browser-vnc`) | `/charly-coder:fedora-coder` |
 | Ubuntu images / `ubuntu*` / `box/ubuntu` submodule | `/charly-coder:ubuntu-coder` |
 | `charly clean` / build-artifact retention / `keep_images` / `keep_check_runs` / image-tag pruning / `.check` run cleanup | `/charly-core:clean` |
-| `charly deploy add/del` / pod or container deploys / `kind: android` device / `target: android` deploy / `apk:` package format in candies / installing Android apps declaratively / remote-or-emulator adb endpoint / nested `pod → android` / Disposable-flag semantics / `disposable: true` authorization / preemptible-flag / `requires_exclusive:` / `charly preempt` / exclusive host-resource arbitration (GPU passthrough contention) | `/charly-core:deploy` |
+| `charly fleet add/del` / pod or container deploys / `kind: android` device / `target: android` deploy / `apk:` package format in candies / installing Android apps declaratively / remote-or-emulator adb endpoint / nested `pod → android` / Disposable-flag semantics / `disposable: true` authorization / preemptible-flag / `requires_exclusive:` / `charly preempt` / exclusive host-resource arbitration (GPU passthrough contention) | `/charly-core:deploy` |
+| the local Crabbox coordinator / the `crabbox-coordinator` service on :8080 / `/v1/health` + `/v1/ready` on a fully-local Crabbox broker / deploying or troubleshooting the postgresql-backed Crabbox control plane | `/charly-crabbox:crabbox-coordinator` |
 | CachyOS images / `cachyos*` / `charly-cachyos` workstation profile / `box/cachyos` submodule | `/charly-distros:cachyos` |
 | Fedora images / `fedora*` / `box/fedora` submodule (incl. the GPU base `nvidia` / `python-ml` + `sway-browser-vnc`) | `/charly-distros:charly-fedora` |
 | Debian images / `debian*` / `box/debian` submodule | `/charly-distros:debian` |
@@ -111,7 +112,7 @@
 | the Strata box / the Qwen3.8-Flash-Next inference engine / an OpenAI- or Anthropic-compatible API on port 8080 / deploying a local 125B-class model server on one consumer GPU / a service that needs an OpenAI- or Anthropic-speaking endpoint on the host | `/charly-strata:strata` |
 | the `charly strata` management CLI / the `command:strata` plugin / `candy/plugin-strata` / inspecting a running Strata engine from the host / listing its models, config, or catalogues / `charly strata config get` | `/charly-strata:strata-cli` |
 | the strata layer / composing an image that must SERVE the Strata engine / the Strata engine baked into an image / the setup-choice surface / the env: config overlay | `/charly-strata:strata-layer` |
-| crabbox CLI / crabbox binary / crabbox version / installing or verifying the CLI / composing the crabbox CLI candy into a box or choosing its provider surface | `/charly-tools:crabbox-cli` |
+| crabbox CLI / crabbox binary / crabbox version / installing or verifying the CLI / composing the crabbox CLI candy into a box or choosing its provider surface / the crabbox containerd provider / containerd.image lease config / crabbox providers describe containerd | `/charly-tools:crabbox-cli` |
 | `charly docs` / the opencharly.ai site / the opencharly/docs repo / `candy/docs-site` / the check-docs bed / Starlight/Astro | `/charly-tools:docs-site` |
 | The dsh / DeepSeek Harness CLI or web UI, the `dsh` / `dsh-web` candies, `~/.dsh`, the dsh web UI's launch-token + Host/Origin trust fence, `--trusted-host`, exposing dsh web over Tailscale (`tailscale serve`), or `charly dsh status` web health | `/charly-tools:dsh` |
 | `charly dsh` (status / profile list / plugin list) against a running deepseek-harness deployment, the compiled-in command:dsh plugin, or the `dsh:` check verb | `/charly-tools:dsh-cli` |
