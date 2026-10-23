@@ -32,6 +32,37 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          # The FULL history, not a depth-1 clone: the consumer-currency report judges each
+          # consumer's recorded pin with `git merge-base --is-ancestor`, and on a SHALLOW
+          # history that test answers "not an ancestor" for a commit the clone simply does
+          # not have — indistinguishable from a real divergence. This repo's whole history is
+          # a few hundred commits and a few megabytes, so the honest checkout is the cheap one.
+          fetch-depth: 0
+
+      # The producer-side currency report. It runs on EVERY refresh, whether or not a pin
+      # moved: a corpus landing that moved no refs still moved the corpus, and a consumer
+      # whose pin is behind is an advance available NOW, in that consumer's own repo.
+      #
+      # It NEVER fails the run. A report that could fail the build would be a gate, and this
+      # is not one: the remedy for a consumer that is behind is that consumer's pin-bump PR.
+      - name: Report the recorded consumers' pin currency
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -o pipefail
+          bash scripts/consumer-currency.sh | tee /tmp/consumer-currency.log
+          {
+            echo "## Consumer currency"
+            echo
+            echo "Each recorded consumer's recorded corpus pin, read over the public API and judged"
+            echo "against this repo's merged main. REPORTED, never failed: a consumer that is behind"
+            echo "is an advance available now, in that consumer's own repo."
+            echo
+            echo '```'
+            cat /tmp/consumer-currency.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Advance every pin to its repo's newest tag
         id: bump
@@ -177,6 +208,16 @@ jobs:
             echo '```'
             echo
             echo "</details>"
+            echo
+            echo "## Consumer currency"
+            echo
+            echo "Each recorded consumer's recorded corpus pin, read over the public API and judged"
+            echo "against this repo's merged main. REPORTED, never failed: a consumer that is behind"
+            echo "is an advance available now, in that consumer's own repo."
+            echo
+            echo '```'
+            cat /tmp/consumer-currency.log
+            echo '```'
             echo
             echo "## Change class"
             echo

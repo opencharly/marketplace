@@ -35,7 +35,6 @@ means every skill invocation is `/charly-<plugin>:<skill>` (e.g. `/charly-core:s
 | **Codex CLI / AGENTS** | register the catalog with `codex plugin marketplace add opencharly/marketplace`, then install a catalog entry with `codex plugin add <plugin-name>@charly-plugins` (for example, `codex plugin add charly-internals@charly-plugins`). The catalog is `.agents/plugins/marketplace.json`; `INSTALLED_BY_DEFAULT` entries are installed when the marketplace is added. See the canonical `charly-internals:marketplace` skill for Codex's skill-description budget and fallback when a catalog is too large. |
 | **Kimi Code** | `/plugins marketplace https://opencharly.github.io/marketplace/kimi.json` (or `KIMI_CODE_PLUGIN_MARKETPLACE_URL`), or install the whole repo as one plugin: `/plugins install https://github.com/opencharly/marketplace` — `kimi.plugin.json` lists every family's `skills/` + `agents/`. |
 | **pi** | add `"git:github.com/opencharly/marketplace"` to the project's `.pi/settings.json` `packages` — `package.json` declares the `pi` resource (`./*/skills` glob, `pi-package` keyword), installed automatically at startup. |
-| **Docs** | the opencharly/docs repo pins this repo as a submodule and passes it to `charly docs generate --plugins` — the site's recipe pages are a projection of this corpus. |
 
 The catalog mirror (the raw catalogs + the kimi JSON) is published to
 [GitHub Pages](https://opencharly.github.io/marketplace/).
@@ -51,6 +50,24 @@ files). A refs-list change carries its regenerated corpus in the same change.
 The generator produces the corpus and nothing else. It no longer writes charly's harness
 surface (`.claude/hooks`, a `.claude/settings.json` merge, the R0 dispatcher splice), and the
 `./setup` launcher it used to emit is gone with the local-generation workflow it existed for.
+
+## Consumers
+
+The repos that pin this corpus as a submodule and publish or load a projection of it. Each
+one records the pin as a gitlink in its own `.gitmodules`, at the path in the table — the
+path is what the refresh workflow reads, over the public API, to learn that consumer's
+recorded pin.
+
+| Consumer | Recorded pin | What it does with the corpus |
+|---|---|---|
+| `opencharly/docs` | `marketplace` | passes it to `charly docs generate --plugins` — the site's recipe pages are a projection of this corpus |
+| `opencharly/opencharly` | `marketplace` | the umbrella's task surface splices this corpus's dispatcher and reads its refs list |
+
+A corpus landing does not carry a consumer's leg: advancing a consumer's pin is a manual
+act in that consumer's own repo. The refresh workflow therefore **reports** every consumer
+whose recorded pin is behind this repo's merged main — an advance available now, in that
+consumer's repo, never a failure here. A consumer that is behind is a normal state between
+a corpus landing and the consumer's own PR.
 
 ## Plugins by bucket
 
