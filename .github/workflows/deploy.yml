@@ -42,18 +42,25 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: The repo's own script tests
-        # These scripts carry real behaviour — the refresh's publication block, the PR-body
-        # linter, the coordination grammar, the consumer-currency report, the refs resolver —
+        # These scripts carry real behaviour — the refresh's publication block, the refresh's
+        # report block, the PR-body linter, the coordination grammar, the consumer-currency
+        # report, the refs resolver —
         # and their tests ran NOWHERE: a script could be broken and no gate would notice. They
         # run here, BEFORE the heavy toolchain build, so a broken script fails in seconds.
         #
         # coord_test.sh's LIVE layer skips VISIBLY unless COORD_LIVE_ITEM is set (R7:
         # live-or-skip, never a mock).
+        #
+        # refresh_report_test.sh runs with --self-test, so the red arms are exercised HERE
+        # and not only on a developer's machine: each mutation of the shipped workflow must
+        # turn the suite red, and an arm that fails to be detected must make the PROCESS
+        # exit non-zero. A suite that cannot fail is not coverage.
         run: |
           bash scripts/coord_test.sh
           python3 scripts/pr_body_lint_test.py
           bash scripts/refresh_publish_test.sh
           bash scripts/refresh_refs_test.sh
+          bash scripts/refresh_report_test.sh --self-test
           bash scripts/consumer_currency_test.sh
 
       - name: Build the pinned Charly toolchain
