@@ -58,7 +58,7 @@ one records the pin as a gitlink in its own `.gitmodules`, at the path in the ta
 path is what the refresh workflow reads, over the public API, to learn that consumer's
 recorded pin.
 
-| Consumer | Recorded pin | What it does with the corpus |
+| Consumer | Pin path | What it does with the corpus |
 |---|---|---|
 | `opencharly/docs` | `marketplace` | passes it to `charly docs generate --plugins` — the site's recipe pages are a projection of this corpus |
 | `opencharly/opencharly` | `marketplace` | the umbrella's task surface splices this corpus's dispatcher and reads its refs list |

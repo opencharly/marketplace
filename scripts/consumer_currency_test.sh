@@ -36,7 +36,7 @@ cp "$HERE/consumer-currency.sh" "$FIX/scripts/consumer-currency.sh"
 
 ## Consumers
 
-| Consumer | Recorded pin | What it does with the corpus |
+| Consumer | Pin path | What it does with the corpus |
 |---|---|---|
 | `acme/cur` | `marketplace` | pinned at the tip |
 | `acme/behind` | `marketplace` | pinned two commits back |
