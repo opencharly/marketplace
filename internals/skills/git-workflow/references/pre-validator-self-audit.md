@@ -75,6 +75,18 @@ both body-only, and neither covered by classes 1-5.
    so it never executes in the default mode. Both numbers were true of their own
    runs, and the body paired them as though they were one. Count the arms the
    pasted output shows, and quote the mode you pasted.
+   **And a RELATION over those numbers carries its OPERANDS.** A relation is
+   checkable only if the reader can re-derive it, and the operands are exactly
+   what the reader needs: state it **with its operands**, so a reader can
+   re-derive it by division from the pasted measurements — or drop it. A
+   relation whose operands are not in the paste is the same defect as a
+   quantifier with no command behind it. Measured 2026-10-23: the umbrella PR
+   `opencharly/opencharly#591`'s round-2 body said a bootstrapped tree was
+   "*still three orders of magnitude below the 9.5 G a full checkout occupies*"
+   while the two numbers the same sentence names are 124 M and 9.5 G — and
+   `9500 / 124` is 76.6, under two orders of magnitude. The sentence asserted a
+   relation its own operands contradict, in the PR that exists to delete a false
+   size claim.
 
 ## The preflight (run BEFORE the first push)
 
@@ -136,6 +148,16 @@ both body-only, and neither covered by classes 1-5.
    reading is not a figure at all:** a count that changes as the org's remotes
    advance belongs in the verb's own output, stamped there — never in prose, where
    it is already stale by the time it is read.
+   **And a number that is NOT measured on a head is quoted by its SOURCE.** A
+   constant of a pinned dependency is not a measurement: it is not sampled, and
+   it has no date of its own, so 3f's premise — a MEASURED figure — does not
+   reach it, and quoting it as "*measured: 120 s*" states that something was
+   measured that never was. Name the source instead: the pinned spec's field,
+   the manifest's key, the upstream's constant. Measured 2026-10-23: the
+   umbrella PR `opencharly/opencharly#591`'s round-3 body quoted the never-hang
+   floor as "*measured: 120 s*", when 120 s is `readinessPerAttemptFallback` in
+   the pinned spec's `poll` package. A constant and a measurement are different
+   kinds of number, and the prose says which one it is holding.
 4. Account for EVERY applicable rule (the repo's numbered rules AND R1–R10)
    with a one-line `HOW` or `N/A — <reason>`; never a bare `N/A.`
 5. NEVER surface a failure you cannot own. Either fix it (including the coupled
