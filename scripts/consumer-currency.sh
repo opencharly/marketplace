@@ -19,11 +19,16 @@
 # A gate that FAILED on it would be red on every run until somebody ran the consumer's
 # pin-bump PR, and the remedy is that PR, not a gate.
 #
-# THE STATES ARE THE PIN CONTRACT'S (umbrella AGENTS.md Part II rule 3): `cur`, `behind`,
-# `blocked-by` and `not-on-the-served-line`. A corpus is squash-merged, so a consumer pin
-# that is off the corpus's main line is a SQUASH-ADVANCE — `not-on-the-served-line` — whose
-# one remedy is the same as `behind`'s: the consumer re-pins to the tip. It is NOT a
-# divergence, and this report never calls it one.
+# THE STATES ARE THE PIN CONTRACT'S (umbrella AGENTS.md Part II rule 3): `cur`, `behind` and
+# `not-on-the-served-line` — the three a consumer's recorded pin can be in against this
+# repo's merged main. A corpus is squash-merged, so a consumer pin that is off the corpus's
+# main line is a SQUASH-ADVANCE — `not-on-the-served-line` — whose one remedy is the same as
+# `behind`'s: the consumer re-pins to the tip. It is NOT a divergence, and this report never
+# calls it one. The contract's fourth state, `blocked-by`, names the SOURCE an edge pin waits
+# on; a consumer's recorded pin is read as a plain submodule gitlink and judged against this
+# repo's merged main, so this report does not emit it. It emits two states of its own for the
+# two cases it refuses to guess: `undecidable` (a shallow history cannot judge ancestry) and
+# `unreadable` (the pin, or this repo's merged main, could not be read).
 #
 # THE CONSUMER SET IS THE README's "## Consumers" TABLE — one record, no second list. The
 # table's first cell is the consumer repo and its second cell is the path at which the
