@@ -16,9 +16,9 @@ Canonical files:
   generation; builds the pinned charly, regenerates the corpus, FAILS on any
   drift (including untracked files), runs the repo's own script tests, and
   publishes the catalog mirror; plus the
-  daily refs refresh (advances every pin to its repo's newest tag, regenerates,
-  opens a `chore: refresh the refs list` PR) and REPORTS each recorded consumer's
-  recorded pin's currency.
+  daily refs refresh (advances every pin to its repo's newest tag IN THE PIN'S OWN
+  SCHEME, regenerates, opens a `chore: refresh the refs list` PR) and REPORTS each
+  recorded consumer's recorded pin's currency.
 - `DISPATCHER.md` — the generated trigger → skill dispatcher (marker-spliced).
 - `README.md`, `AGENTS.md`, `LICENSE`, `CHANGELOG/`, `scripts/`,
   `kimi-user-config.toml` — hand-authored; everything else carries a
