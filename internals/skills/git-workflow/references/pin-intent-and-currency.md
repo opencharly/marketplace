@@ -11,16 +11,18 @@ maintenance modes (the task table above; "`task sync` and the commit gate" below
 **`currency` is a first-class mode of the SAME verb**, not a second
 implementation, and it is the mode that answers "is the umbrella current?".
 
-**The mode is the CONTRACT this repository is adopting; it is NOT yet in a
-released binary.** It lands with the pin-contract cutover in the plugin that owns
-the verb, and this repo's own task surface moves onto it in the SAME cutover —
-two halves of one change, producer first. Until both halves land, a released
-build answers `git-submodules: unknown mode "currency"`, so a reader who needs
-the question answered TODAY must MEASURE it — a table of `<path>: <recorded
-gitlink> vs <remote default-branch HEAD>` — and must not assume a verb answers
-it. Everything below therefore describes the contract the cutover lands, which is
-why the shapes and the states are stated as RULES rather than as a release note
-for a version.
+**The mode is the CONTRACT, and it IS in a released binary.** Measured 2026-10-23
+on the built binary (2026.295.1709), the umbrella's own task surface answers the
+question: `charly task pins --param MODE=currency` names each pin's state and
+the producer-first leg order. So a reader who needs the question answered does
+NOT MEASURE it by hand: a hand-built `<path>: <recorded gitlink> vs <remote
+default-branch HEAD>` table is a second implementation of a verb that already
+answers it, and it drifts. Nor should the guidance carry the verb's COUNTS:
+they are a LIVE reading of the org's remotes, not a constant — the same binary
+can report a different number an hour later than it did before, because the
+remotes advanced in between. The counts belong to the verb's own output, where
+they are stamped. Everything below states the shapes and the states as RULES
+rather than as a release note for a version.
 
 **`currency` reads NO checkout state, and that is deliberate rather than
 incidental.** It compares the only two objects that can answer the question — the
@@ -74,7 +76,7 @@ current.**
 **Those two rules are the whole difference from the consistency contract this
 replaces.** A contract that is satisfiable at BOTH ends while both ends are stale
 is not a currency contract, it is a mirror — which is exactly how policy B held
-while five of the six `distro-*` pins were behind their own `main`.
+while the `distro-*` pins were behind their own `main`.
 
 ### The states, and what each obliges
 
