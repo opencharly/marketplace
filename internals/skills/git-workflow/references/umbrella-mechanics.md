@@ -19,7 +19,7 @@ umbrella root; `charly task list` enumerates them, and the umbrella README's
 |---|---|
 | `charly task map` | STATE — list every submodule with its pin and its branch (`mode: status`) |
 | `charly task init` | MATERIALIZE the umbrella's submodules ON DEMAND: the derived WORKING SET by default, `CHARLY_INIT_PATHS=<a,b>` for named paths, `CHARLY_INIT_MODE=all` for every declared path. Blobless, never shallow; the mode travels in the ENVIRONMENT, never as a task param — see "The clone shape is a working set" below |
-| `charly task sync` | bump pins per Policy B. It MATERIALISES each advanced checkout (`switch --detach`) and STAGES its gitlink (`git add`); it does not commit and does not open a PR, and it is **not read-only** — it moves checkouts (`plugin-task#26`). **A PIN WAVE needs the FULL SET**: `bump` fails loud on a path it could not advance, so `CHARLY_INIT_MODE=all charly task init` comes FIRST |
+| `charly task sync` | bump pins per Policy B. A path WITH a checkout is MATERIALISED (`switch --detach`) and its gitlink STAGED (`git add`); a path with NO checkout is advanced IN THE INDEX, because the pin IS the index entry — so **a PIN WAVE needs no full set** (`plugin-task#37`). It does not commit and does not open a PR, and it is **not read-only** — it moves checkouts (`plugin-task#26`). A wave's order is **sync -> init -> verify** |
 | `charly task hooks` | install `hooks/pre-commit` for this clone (once; sets `core.hooksPath hooks`) |
 | `charly task verify` | CONSISTENCY — the FULL pinning audit on demand: policy B, then every checkout clean and at its recorded gitlink, then the per-submodule `git ls-remote` default-branch audit. There is **no CI gate**; this IS the gate. Run it on the final tree and paste the output (R7: a green `git status` proves nothing). **The checkout half covers the MATERIALIZED paths only** — an unmaterialized path is *uninitialized (pin audited, no checkout)*, a notice, not a failure |
 | `charly task org-map` | reconcile the README org-map TABLES against `.gitmodules`. It reads ONLY those two surfaces, so it is NOT an org-vs-umbrella census — see "`org-map` answers the wrong question" below |
@@ -149,15 +149,20 @@ against or edit.
   ancestor" for a healthy pin, which is a silent misclassification. The filter
   must be an EXPLICIT FLAG on the init command: `filter = blob:none` in
   `.gitmodules` is NOT honoured by `git submodule update`.
-- **A pin wave needs the FULL set.** `bump` fails loud on a path it could not
-  advance — a sync over a tree it could not fully advance must never report
-  success — so `CHARLY_INIT_MODE=all charly task init` comes FIRST. The daily
-  tree is light; the maintenance acts are not.
-- **The pin is the INDEX entry; the checkout follows it.** `charly task init` also
-  advances an already-materialized path to its recorded gitlink, which is what
-  makes it the second half of a wave. It advances only a checkout that is a
-  strict ANCESTOR of the recorded gitlink: a dirty checkout, or one carrying
-  commits the pin does not contain, is left alone and reported.
+- **A pin wave needs NO full set.** `bump` advances a path with no checkout IN
+  THE INDEX — a LEAF to the tip its remote serves for its `branch=`, an EDGE to
+  the twin the SOURCE's tree records — and a path WITH a checkout is still rolled
+  in that checkout, so the two keep agreeing (`plugin-task#37`). It still fails
+  loud for every path it CANNOT advance: an unjudgeable path (no `branch=`), a
+  remote that does not serve the branch, a missing url, an unreadable source
+  twin — a sync over a tree it could not fully advance must never report success.
+  The daily tree is light, and so is a wave.
+- **The pin is the INDEX entry; the checkout follows it.** `charly task init` is
+  the second half of a wave: it materializes a path the wave advanced without a
+  checkout AT the pin the index now carries, and it advances an
+  already-materialized path to its recorded gitlink. It advances only a checkout
+  that is a strict ANCESTOR of the recorded gitlink: a dirty checkout, or one
+  carrying commits the pin does not contain, is left alone and reported.
 
 **The MEASURED footprint and wall clock live in ONE place: the umbrella's README
 clone-shape table.** They are BANDs — the range the runs produced — and a band
@@ -243,11 +248,13 @@ and the producer-first leg order: `references/pin-intent-and-currency.md`.
   running, so `POST .../runs/<id>/rerun` answers
   `403 {"message":"This workflow is already running"}`. Wait it out — a run that
   produced no verdict is not a counting verdict, so waiting costs nothing.
-- **`charly task sync`'s selection is also PARTIAL when the tree is not fully
-  initialized**, and it says `rc=1` while doing its job: it skips every
-  `.gitmodules` path with no checkout and then FAILS the run, naming how many
-  and which (`opencharly/charly#917`, `#469`). See "`task sync` and the commit
-  gate" below.
+- **`charly task sync`'s selection was PARTIAL when the tree was not fully
+  initialized**, and it said `rc=1` while doing its job: it skipped every
+  `.gitmodules` path with no checkout and then FAILED the run, naming how many
+  and which (`opencharly/charly#917`, `#469`). It advances those paths IN THE
+  INDEX now (`plugin-task#37`), so a wave over a light tree no longer fails over
+  the paths it has no checkout for — only over the paths it cannot advance at
+  all. See "`task sync` and the commit gate" below.
 - **A pin advance that brings in a NEW marketplace corpus family must bind it in
   BOTH harness-config surfaces, in the same commit.** The umbrella binds the
   corpus by hand in two places — `reasonix.toml`'s `[skills] paths` (one
@@ -267,11 +274,15 @@ and the producer-first leg order: `references/pin-intent-and-currency.md`.
 
 `charly task sync` (git-submodules `bump`) and `charly task verify` are two
 sanctioned verbs that meet at ONE object: the gitlink. `bump` MATERIALISES each
-advance — `switch --quiet --detach <ref>` inside the submodule — and STAGES it
-(`git add <path>` in the superproject), so the index and the checkouts AGREE the
-moment it returns. `verify` reads the recorded gitlink from the superproject's
-**index** (`git ls-files -s <path>`) and compares it with the submodule
-checkout's **HEAD**: two repositories, two objects, maintained by different verbs.
+advance of a path that HAS a checkout — `switch --quiet --detach <ref>` inside
+the submodule — and STAGES it (`git add <path>` in the superproject), so the
+index and the checkouts AGREE the moment it returns. A path with NO checkout has
+no tree to move, so its pin is advanced IN THE INDEX and its checkout follows on
+the next `init` (`plugin-task#37`): after a wave over a light tree the index
+holds pins the tree has no checkouts for yet, by design, and `init` closes that
+gap. `verify` reads the recorded gitlink from the superproject's **index** (`git
+ls-files -s <path>`) and compares it with the submodule checkout's **HEAD**: two
+repositories, two objects, maintained by different verbs.
 
 **So the pair is coherent at `sync`'s exit and conflicts the moment the advances
 are UN-STAGED while the checkouts stay advanced** — which the sanctioned branch
@@ -294,15 +305,20 @@ tree that predates that fix, re-stage the named paths and re-run: measured,
 20 rows of `HEAD != gitlink` became `rc=0` from `git add` alone, nothing else
 changed.
 
-**A fresh session worktree cannot run `sync` to a green exit, by design.** `bump`
-pre-flights every `.gitmodules` path whose checkout is absent, skips them (an
-uninitialized gitlink has no pin to advance), and then FAILS the run, naming the
-count and the paths (`#469`). The bump it did make is real and committable —
-`verify` classifies the same paths as *uninitialized (pin audited, no checkout)*
-and can return PASS — so read the reported set, not the exit code, and let the verb
-decide what to initialize (it never `--init`s a nested checkout). A fresh worktree
-also needs its manifest's imports materialized before the project loads at all
-(`git submodule update --init charly`, plus any other import the manifest needs).
+**A fresh session worktree runs `sync` to a green exit, and its pins live in the
+INDEX until the tree is initialized.** `bump` pre-flights every `.gitmodules` path
+whose checkout is absent and ADVANCES THOSE PINS IN THE INDEX — a leaf to the tip
+its remote serves for its `branch=`, an edge to the twin the source's tree
+records (`plugin-task#37`); before that change it skipped them and FAILED the
+run, naming the count and the paths (`#469`). The path the verb could NOT
+advance — a source with no checkout, whose tree cannot be read — is still refused
+BY NAME, with the command that materializes it. So a wave over a light tree is
+**sync -> init -> verify**: the sync writes the pins, the init materializes the
+checkouts AT those pins, and the verify judges them. `verify` classifies a path
+with no checkout as *uninitialized (pin audited, no checkout)* and can return
+PASS. A fresh worktree also needs its manifest's imports materialized before the
+project loads at all (`git submodule update --init charly`, plus any other import
+the manifest needs).
 
 **And nothing locks the shared checkout.** One index, N sessions: a session that
 measures while another's `sync` holds the tree reads a half-applied set, and one
