@@ -729,6 +729,52 @@ whatsoever. Zero-on-both-sides can also be a true answer to a badly chosen quest
 (the phrase genuinely was never there), so it does not prove the instrument broke —
 it proves the check never DISCRIMINATED, which is sufficient grounds to refuse the
 result either way.
+
+### A control must FIRE, and a red for the wrong reason is not a control
+
+The "before-side is a positive control" rule above is about a *measurement* that returns
+zero. Its sibling is about the **control arm of a gate**: a negative control exists to
+prove that the instrument CAN fail, and a control that has never failed is a control in
+name only. Three ways it goes wrong, each measured:
+
+**1. The control does not fire because the instrument refuses to run at all.** `git grep
+--no-index` is the sweep for "this text is gone", and the control for it is "the same
+pattern on the pre-change file". Run from INSIDE the repository it refuses a path
+outside the work tree (`fatal: … is outside repository`, exit **128**); run from OUTSIDE
+it refuses to run at all (`fatal: not a git repository`, exit **128**). Neither is a
+control — both are the instrument declining. The form that fires **names the work tree
+it searches**:
+
+```bash
+GD="$(git rev-parse --absolute-git-dir)"
+env -C "$scratch" GIT_DIR="$GD" GIT_WORK_TREE="$scratch" \
+  git grep --no-index -nE '<pattern>' -- pre-change-file
+```
+
+**2. The gate is red for the WRONG reason.** "The gate is red without the change" is a
+claim about a REASON, not about a colour. A pre-change tree that was never extracted
+makes the gate red on a *missing file* — a red that proves nothing about the change,
+because the gate never read the code it is supposed to be judging. So the assertion
+counts the findings and checks the reason: no finding may be "the file is missing", and
+more than one finding is required — a red with exactly one finding is a red for one
+reason, and the reason must be named in the paste.
+
+**3. The pre-change tree is not the tree.** It must be EXACTLY the tree, and the
+identity is asserted rather than assumed: extract with `git archive` into a **FRESH**
+directory (`mktemp -d`), then compare the extracted file list against the list of paths
+the tree is supposed to have. A directory that already held an earlier extraction
+carries files the tree does not have — that is a FABRICATION, and a pre-change tree
+built that way silently tests something that never existed. The same care applies to
+the tree under test: a stale directory standing in for a tree is the same defect
+wearing a different hat.
+
+The general shape: **a control is a claim about an instrument, so it is asserted like
+one** — the instrument is pointed at something it must find (and finds), and the
+positive side is checked for the reason it is red, and both trees are named and
+verified by their file lists. A control that has never fired, or a red for a reason
+nobody read, is a gate that cannot fail — the failure mode the rest of this page is
+about, wearing a green checkmark.
+
 ### A claim about an artefact you have not read
 
 Six failures in one session, and every one is the same act: asserting something ABOUT an

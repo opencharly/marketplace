@@ -65,6 +65,17 @@ both body-only, and neither covered by classes 1-5.
    optional and stayed so. No command stood behind the sentence, and the PR's
    own test contradicted it.
 
+   **The PROSE half is the same class: a claim about the change's OWN
+   measurements is checked against the measurements, not against the code.** A
+   body that says "eight mutations" beside a paste that shows seven is the same
+   failure as a quantifier with no command behind it — the number is a claim
+   about a RUN, and the run is what decides it. Measured 2026-10-22: the umbrella
+   PR `opencharly/opencharly#591`'s round-6 body quoted the gate's arm count (eight)
+   while pasting the DEFAULT run (seven); the eighth is guarded by `if (samples)`,
+   so it never executes in the default mode. Both numbers were true of their own
+   runs, and the body paired them as though they were one. Count the arms the
+   pasted output shows, and quote the mode you pasted.
+
 ## The preflight (run BEFORE the first push)
 
 1. `git fetch origin`; if BEHIND, `gh pr update-branch` BEFORE writing the body,
@@ -111,6 +122,20 @@ both body-only, and neither covered by classes 1-5.
    "Expected", "by design" and "the normal producer-first order" explain WHY it
    is red; none of them is a disposition. R1's remedy for a consequence you
    cannot fix in-tree is the filed half, and only the filed half.
+   **3f. A MEASURED FIGURE is a fence about a HEAD too — so it must be a BAND
+   over the samples, or a DATED point; never a bare point estimate.** A number
+   that is true of one run is true of that run. When the change is about
+   measurements (a size, a wall clock, a count of pins), the figure the prose
+   carries is either a BAND over every sample the branch produced, or a dated
+   reading that names what it was measured on. **A band that a sample has
+   outgrown is a defect in the BAND, not in the sample** — the honest band is
+   the union of the samples, and it is re-derived on the tree that carries it.
+   Measured 2026-10-23: the umbrella PR `opencharly/opencharly#591`'s `--all` band
+   was one second narrower than the branch's own samples, and the fix was the union
+   of the samples, re-derived on the tree that carries the band. **And a LIVE
+   reading is not a figure at all:** a count that changes as the org's remotes
+   advance belongs in the verb's own output, stamped there — never in prose, where
+   it is already stale by the time it is read.
 4. Account for EVERY applicable rule (the repo's numbered rules AND R1–R10)
    with a one-line `HOW` or `N/A — <reason>`; never a bare `N/A.`
 5. NEVER surface a failure you cannot own. Either fix it (including the coupled

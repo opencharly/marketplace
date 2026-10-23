@@ -295,15 +295,19 @@ verify` is **consistency** (each checkout matches the recorded gitlink), and
 **currency** — whether each recorded pin is the value its declared INTENT names, read
 from the REMOTE — is a **first-class mode of the ONE pin verb** (`verb: git-submodules`
 with `mode: currency`), never a second implementation and never a hand-measured table.
-**That is the CONTRACT this repository is adopting, and the mode is NOT yet in a
-released binary**: it lands with the pin-contract cutover in the plugin that owns the
-verb, and this repo's task surface moves onto it in the same cutover. Until both halves
-land, MEASURE the question rather than assuming a verb answers it — a build that
-predates the cutover answers `git-submodules: unknown
-mode "currency"`. The command, the shapes and the states are in
-`references/pin-intent-and-currency.md`.
+**That is the CONTRACT, and the mode IS in a released binary**: measured 2026-10-23 on
+the built binary (2026.295.1709), the umbrella's own `charly task pins --param
+MODE=currency` answers the question and names the states. Do not MEASURE the
+question by hand: a hand-built `<path>: <recorded gitlink> vs <remote
+default-branch HEAD>` table is the second implementation of a verb that already
+answers it, and it drifts. Do not quote its COUNTS here either — they are a LIVE
+reading of the org's remotes, not a constant, so the same binary can report a
+different number an hour later than it did before. The rule and its reason are in
+`references/pin-intent-and-currency.md`, which owns the contract; the command,
+the shapes and the states are there too.
 A green `verify` still does NOT answer the currency question — it passes on a tree
-whose submodules are all behind their remotes (measured: five of six `distro-*` were)
+whose submodules are all behind their remotes (measured 2026-10-15; the `distro-*`
+reading is in `references/umbrella-mechanics.md`)
 — which is why the pin contract now has its own reference: the intent model and its
 two structural rules, the states and what each obliges, and the producer-first leg
 order are in `references/pin-intent-and-currency.md`. `charly task hooks` installs the

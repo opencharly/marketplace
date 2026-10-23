@@ -18,16 +18,15 @@ umbrella root; `charly task list` enumerates them, and the umbrella README's
 | command | purpose |
 |---|---|
 | `charly task map` | STATE — list every submodule with its pin and its branch (`mode: status`) |
-| `charly task sync` | bump pins per Policy B. It MATERIALISES each advanced checkout (`switch --detach`) and STAGES its gitlink (`git add`); it does not commit and does not open a PR, and it is **not read-only** — it moves checkouts (`plugin-task#26`) |
+| `charly task init` | MATERIALIZE the umbrella's submodules ON DEMAND: the derived WORKING SET by default, `CHARLY_INIT_PATHS=<a,b>` for named paths, `CHARLY_INIT_MODE=all` for every declared path. Blobless, never shallow; the mode travels in the ENVIRONMENT, never as a task param — see "The clone shape is a working set" below |
+| `charly task sync` | bump pins per Policy B. It MATERIALISES each advanced checkout (`switch --detach`) and STAGES its gitlink (`git add`); it does not commit and does not open a PR, and it is **not read-only** — it moves checkouts (`plugin-task#26`). **A PIN WAVE needs the FULL SET**: `bump` fails loud on a path it could not advance, so `CHARLY_INIT_MODE=all charly task init` comes FIRST |
 | `charly task hooks` | install `hooks/pre-commit` for this clone (once; sets `core.hooksPath hooks`) |
-| `charly task verify` | CONSISTENCY — the FULL pinning audit on demand: policy B, then every checkout clean and at its recorded gitlink, then the per-submodule `git ls-remote` default-branch audit. There is **no CI gate**; this IS the gate. Run it on the final tree and paste the output (R7: a green `git status` proves nothing) |
+| `charly task verify` | CONSISTENCY — the FULL pinning audit on demand: policy B, then every checkout clean and at its recorded gitlink, then the per-submodule `git ls-remote` default-branch audit. There is **no CI gate**; this IS the gate. Run it on the final tree and paste the output (R7: a green `git status` proves nothing). **The checkout half covers the MATERIALIZED paths only** — an unmaterialized path is *uninitialized (pin audited, no checkout)*, a notice, not a failure |
 | `charly task org-map` | reconcile the README org-map TABLES against `.gitmodules`. It reads ONLY those two surfaces, so it is NOT an org-vs-umbrella census — see "`org-map` answers the wrong question" below |
 | `charly task skills` | `scripts/sync-dispatcher.sh`: splice the generated R0 dispatcher into `AGENTS.md` (no-op while the table is hand-curated outside the markers) |
-| `charly task policy-b` | assert Policy B — every `distro-*` gitlink equals charly's own `box/*` gitlink. The cheap, commit-violable half of `verify`; this is what `hooks/pre-commit` runs |
+| `charly task pin-check` | assert the pin contract's cheap half — every `distro-*` gitlink equals charly's own `box/*` gitlink. The cheap, commit-violable half of `verify`; this is what `hooks/pre-commit` runs |
 | `charly task pins` | the Policy-B pin operation over the `distro-*` set (mode via param) |
-| `charly task self-test` | self-test the committed CI body/pin-evidence builders + the dispatcher splice |
-| `charly task omarchy-agents` | gate the committed omarchy PR-eval pi agents (tracked + parseable) |
-| `charly task pi-forks` | sync the opencharly pi-plugin forks from their upstreams (requires `gh` auth) |
+| `charly task self-test` | self-test the committed CI body/pin-evidence builders + the dispatcher splice + the submodule initializer |
 | `charly task prune` | reap merged-upstream session worktrees + branches. The declared `MODE` DEFAULTS to `report`, so **plain `charly task prune` IS the dry run**; a positional `MODE=report` is rejected (`unexpected extra argument`), and the removal is selected through the task's own param (`--param MODE=prune`) |
 
 ### `org-map` answers the wrong question — and this is the fourth instrument
@@ -82,7 +81,8 @@ list does.
 **That is the fourth instrument in this surface whose NAME suggests a question it
 does not answer**, and the pattern is the reason `task map`/`task verify`/currency
 had to be separated in the first place: `task map` is STATE (a listing, not a
-correctness claim), `task verify` is CONSISTENCY (green on a tree 25 pins behind),
+correctness claim), `task verify` is CONSISTENCY (green on a tree whose pins are
+behind their remotes),
 `prune MODE=report` is a parameter the task does not accept while the DEFAULT is
 already the report, and `org-map` is README-vs-`.gitmodules`. **Read every one of
 them by what its output compares, never by its name.**
@@ -95,8 +95,23 @@ another is how a green gate gets mistaken for "everything is current":
 | question | the verb that answers it | what a green answer proves |
 |---|---|---|
 | **STATE** — where is each submodule, on which branch, at which pin? | `charly task map` | a listing, nothing about correctness |
-| **CONSISTENCY** — does each checkout match the gitlink the umbrella records, and does policy B hold? | `charly task verify`, and its commit-time half `charly task policy-b` | that the tree is internally COHERENT — **not that it is current** |
-| **CURRENCY** — is each recorded pin the value its intent names? | the `currency` mode of the ONE pin verb (`verb: git-submodules`) — the mode the pin-contract cutover adds, and **not in a released binary yet** | that every pin is at the ref its intent names, or the exact leg order that would get it there — the contract and its availability are both in `references/pin-intent-and-currency.md` |
+| **CONSISTENCY** — does each checkout match the gitlink the umbrella records, and does policy B hold? | `charly task verify`, and its commit-time half `charly task pin-check` | that the tree is internally COHERENT — **not that it is current** |
+| **CURRENCY** — is each recorded pin the value its intent names? | the `currency` mode of the ONE pin verb (`verb: git-submodules`), reached through the umbrella's own `charly task pins --param MODE=currency` | that every pin is at the ref its intent names, or the exact leg order that would get it there — the contract is in `references/pin-intent-and-currency.md` |
+
+**`currency` is IN A RELEASED BINARY, and the umbrella's own task surface exposes
+it.** Measured 2026-10-23 on the built binary (2026.295.1709):
+`charly task pins --param MODE=currency` answers the question and names the
+states, and it reads NO checkout state (it compares the recorded gitlink against
+the REMOTE), so the index-vs-checkout seam cannot arise in it. **Do not measure
+the question by hand**: a hand-built `<path>: <recorded gitlink> vs <remote
+default-branch HEAD>` table is the second implementation of a verb that already
+answers it, and it drifts. **Do not quote its COUNTS here either** — the counts
+are a LIVE reading of the org's remotes, not a constant; the rule and its reason
+are in `references/pin-intent-and-currency.md`, which owns the contract. The
+earlier claim — that the mode was not yet available to a reader, and that the
+answer had to be measured by hand — was FALSE, and it is deleted here and in
+`SKILL.md` and in `references/pin-intent-and-currency.md`, which carried the same
+sentence.
 
 **`charly task verify` passes on a tree whose submodules are behind their
 remotes.** Measured on the umbrella of 2026-10-15, at the commit that advanced
@@ -106,6 +121,54 @@ six `distro-*` gitlinks were behind their remote `main`**. That is not a defect
 in `verify` — it is `verify` answering its own question — which is why a
 currency claim needs its own measurement, and its honest form is the currency
 mode's own report — never "verify is green".
+
+### The clone shape is a working set, not a checkout per repo
+
+The umbrella is a VIEW over the org: every repo in it is a submodule at the root,
+owned elsewhere. A `--recurse-submodules` clone materializes a checkout for every
+one of them, and the pins live in the umbrella's INDEX — every pin is audited
+FROM THE INDEX, so a checkout is only needed for the repos you actually build
+against or edit.
+
+- **`charly task init` materializes the DERIVED working set.** The set is derived
+  from committed sources — the manifest's `import:` paths, the pin contract, the
+  harness corpus root, and the repos the umbrella's own gates read — never
+  hand-listed, and a derived path that is not a declared submodule FAILS LOUD. A
+  second hand-maintained list would drift silently, and nothing would notice (R2).
+- `CHARLY_INIT_PATHS=<a,b> charly task init` materializes named paths;
+  `CHARLY_INIT_MODE=all` every declared path; `CHARLY_INIT_MODE=list` prints the
+  set and changes nothing.
+- **The mode travels in the ENVIRONMENT, never as a task parameter.** The plan
+  runner substitutes an UPPER-CASE parameter's VALUE into the command's TEXT, and
+  the shell then parses that text, so a parameter carrying a shell metacharacter
+  EXECUTES; a lower-case parameter is not substituted at all and the word
+  VANISHES. A parameter is source, not data.
+- **BLOBLESS, never shallow.** `--filter=blob:none` keeps every commit and every
+  tree, so the ancestry question the pin contract asks stays DECIDABLE. A
+  `--depth 1` clone makes that question undecidable — it answers "not an
+  ancestor" for a healthy pin, which is a silent misclassification. The filter
+  must be an EXPLICIT FLAG on the init command: `filter = blob:none` in
+  `.gitmodules` is NOT honoured by `git submodule update`.
+- **A pin wave needs the FULL set.** `bump` fails loud on a path it could not
+  advance — a sync over a tree it could not fully advance must never report
+  success — so `CHARLY_INIT_MODE=all charly task init` comes FIRST. The daily
+  tree is light; the maintenance acts are not.
+- **The pin is the INDEX entry; the checkout follows it.** `charly task init` also
+  advances an already-materialized path to its recorded gitlink, which is what
+  makes it the second half of a wave. It advances only a checkout that is a
+  strict ANCESTOR of the recorded gitlink: a dirty checkout, or one carrying
+  commits the pin does not contain, is left alone and reported.
+
+**The MEASURED footprint and wall clock live in ONE place: the umbrella's README
+clone-shape table.** They are BANDs — the range the runs produced — and a band
+that no committed script re-derives is a fence about a session: the next edit can
+restate a figure inside it and no control notices. The two scripts that own them
+live in the umbrella's own tree — `scripts/measure-clone.sh` MEASURES and
+`scripts/check-readme-measurements.mjs` holds the comparison and the band.
+**A band that a sample has outgrown is a defect in the BAND, not in the sample:**
+widen the band to the union of the samples and re-derive it on the tree that
+carries it. Do not copy the numbers into this skill — a second copy of a figure
+is a second thing that can go stale.
 
 ### Policy B — the edge mechanism, and the one question it cannot answer
 
