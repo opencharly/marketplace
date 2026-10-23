@@ -25,8 +25,8 @@ def body(how="x", rules=OK_RULES, footer=FOOTER):
     return f"## Summary\nx\n## How tested\n{how}\n## Rulebook compliance\n{rules}\n## Change classification\nx\n\n{footer}\n"
 
 
-def run(text, head=None):
-    return lint(text, head, DEFAULT_RULES)
+def run(text, head=None, diffstat=None):
+    return lint(text, head, DEFAULT_RULES, diffstat)
 
 
 class Fixtures(unittest.TestCase):
@@ -294,6 +294,103 @@ class Rules(unittest.TestCase):
         text = body(how=f"Head `{sha}`")
         self.assertEqual(run(text, head=sha), [])
         self.assertTrue(any(x.startswith("head:") for x in run(text, head="b" * 40)))
+
+
+class Diffstat(unittest.TestCase):
+    """opencharly/marketplace#548, round 2 — the body's own headline count of the diff.
+
+    The body said "2 files, +33 −8" and the diff was "2 files, +32 −5". Nothing else in
+    that body was wrong: the sections were there, the claims were backed, the head was
+    right, and every number the body pasted was true. Only the headline's own number was
+    false, and the validator BLOCKed on it — a body-only BLOCK, which the linter's own
+    docstring calls an ORCHESTRATOR VALIDATION FAILURE: a verdict spent on something a
+    deterministic check could have caught.
+    """
+
+    DIFF = (2, 32, 5)          # files, insertions, deletions
+    SHA = "a" * 40
+
+    def headline(self, stat, extra=""):
+        return body(how=f"Head `{self.SHA}`, {stat}{extra}")
+
+    def findings(self, text):
+        return [x for x in run(text, self.SHA, self.DIFF) if x.startswith("diffstat:")]
+
+    def test_a_headline_diffstat_that_matches_the_diff_passes(self):
+        self.assertEqual(self.findings(self.headline("**2 files, +32 −5**")), [])
+
+    def test_a_headline_diffstat_that_does_not_match_the_diff_fails(self):
+        f = self.findings(self.headline("**2 files, +33 −8**"))
+        self.assertTrue(f, "a headline that contradicts the diff must be reported")
+        self.assertIn("+32 -5", f[0])
+
+    def test_gits_own_shape_is_checked_too(self):
+        """The house writes the diffstat two ways; the rule must read both."""
+        self.assertTrue(self.findings(self.headline("2 files changed, 33 insertions(+), 8 deletions(-)")))
+        self.assertEqual(self.findings(self.headline("2 files changed, 32 insertions(+), 5 deletions(-)")), [])
+
+    def test_a_file_count_that_is_right_but_the_line_counts_are_wrong_fails(self):
+        self.assertTrue(self.findings(self.headline("**2 files, +32 −8**")))
+        self.assertTrue(self.findings(self.headline("**3 files, +32 −5**")))
+
+    def test_a_diffstat_about_another_diff_is_not_judged(self):
+        """A diffstat in ANOTHER paragraph may be about a different diff — an upstream PR, a
+        predecessor this PR supersedes. Judging it would cry wolf on a true body."""
+        text = self.headline("**2 files, +32 −5**", extra="\n\nThe upstream PR carried 3 files, +40 −10.")
+        self.assertEqual(self.findings(text), [])
+
+    def test_a_diffstat_in_a_fence_is_pasted_evidence_not_a_claim(self):
+        text = self.headline(
+            "**2 files, +32 −5**",
+            extra="\n```\n$ git diff --shortstat\n 2 files changed, 30 insertions(+), 5 deletions(-)\n```",
+        )
+        self.assertEqual(self.findings(text), [])
+
+    def test_a_body_without_a_head_is_not_judged(self):
+        """The headline is the anchor; a body that states no head states no claim to check."""
+        self.assertEqual([x for x in run(body(how="**2 files, +33 −8**"), None, self.DIFF) if x.startswith("diffstat:")], [])
+
+    def test_an_unreadable_diff_skips_visibly_rather_than_guessing(self):
+        """`diffstat=None` means the diff could not be read: the rule must not fire."""
+        self.assertEqual([x for x in run(self.headline("**2 files, +33 −8**"), self.SHA, None) if x.startswith("diffstat:")], [])
+
+
+class DiffTotals(unittest.TestCase):
+    """The diffstat rule's own truth: the diff, read with git."""
+
+    def repo(self):
+        import subprocess
+        import tempfile
+
+        tmp = tempfile.mkdtemp(prefix="pr-body-lint-")
+        run = lambda *a: subprocess.run(["git", "-C", tmp, *a], check=True, capture_output=True, text=True)
+        run("init", "-q", "-b", "main")
+        run("config", "user.email", "linter@example.invalid")
+        run("config", "user.name", "linter")
+        Path(tmp, "a.txt").write_text("one\ntwo\n")
+        run("add", "-A")
+        run("commit", "-qm", "first")
+        base = run("rev-parse", "HEAD").stdout.strip()
+        Path(tmp, "a.txt").write_text("one\nthree\n")
+        Path(tmp, "b.txt").write_text("new\n")
+        run("add", "-A")
+        run("commit", "-qm", "second")
+        head = run("rev-parse", "HEAD").stdout.strip()
+        return Path(tmp), base, head
+
+    def test_the_totals_are_the_diff_own_numbers(self):
+        from pr_body_lint import diff_totals
+
+        tmp, base, head = self.repo()
+        self.assertEqual(diff_totals(tmp, base, head), (2, 2, 1))
+
+    def test_an_unresolvable_base_reads_as_no_totals(self):
+        """None, not a guess: the rule skips, visibly, rather than judging against a fiction."""
+        from pr_body_lint import diff_totals
+
+        tmp, _base, head = self.repo()
+        self.assertIsNone(diff_totals(tmp, "no-such-ref", head))
+        self.assertIsNone(diff_totals(Path("/nonexistent-repo"), "main", head))
 
 
 if __name__ == "__main__":

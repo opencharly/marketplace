@@ -32,12 +32,20 @@ BLOCKs on the body alone):
              in the table the body PASTES (a row of `<tag> [<tag>] <path>`) — a count typed by
              hand drifts from the diff it describes (opencharly/marketplace#526 round 3: the
              Summary said "Two of those hunks are carried prose" while the diff carried three,
-             and the validator BLOCKed on the undercount).
+             and the validator BLOCKed on the undercount);
+  diffstat   a diffstat the body's HEADLINE states ("2 files, +33 −8") equals the DIFF's own
+             totals — the same drift, one step out: a hand-written count of the change's own
+             size goes stale the moment the next commit changes the line totals
+             (opencharly/marketplace#548 round 2: the body said "2 files, +33 −8" and the diff
+             was "2 files, +32 −5"; the validator BLOCKed on it). The scope is the paragraph
+             that carries the pasted `Head` sha — that paragraph is the body's statement about
+             THIS commit — so a diffstat quoted about ANOTHER diff, in another paragraph, is
+             left alone, and a diffstat inside a fenced block is pasted evidence, not a claim.
 
 It cannot judge whether evidence is SUFFICIENT — that stays the validator's job. It removes the
 classes that need no judgment.
 
-usage: pr_body_lint.py <body.md> [--head <sha> | --repo <dir>] [--rules R0,R1,…]
+usage: pr_body_lint.py <body.md> [--head <sha>] [--repo <dir>] [--base <ref>] [--rules R0,R1,…]
 exit:  0 clean · 1 findings · 2 usage
 """
 
@@ -73,6 +81,24 @@ NO_MATCH_STATUS = re.compile(r"\b(?:exit|rg exit|grep exit)\s*[:=]\s*1\b", re.IG
 POINTER = re.compile(r"\b(above|below)\b", re.IGNORECASE)
 NA = re.compile(r"\bN/A\b(?P<rest>.*)$")
 HEAD = re.compile(r"\bHead\s+`([0-9a-f]{40})`")
+
+# --- the DIFFSTAT rule -------------------------------------------------------
+# The body's headline states how big the change is: "2 files, +33 −8". That is a claim about
+# the DIFF, and it is a HAND-WRITTEN one: the body is rewritten for each new head, and the
+# number is the part that gets forgotten. Measured: opencharly/marketplace#548 round 2 — the
+# body said "2 files, +33 −8", the diff was "2 files, +32 −5", and the validator BLOCKed on
+# the body's own headline. The diff is the authority and it is readable, so the claim is
+# checkable — the same drift the `counts` rule catches one step in, one step out.
+#
+# TWO shapes, because the house writes both: the inline "N files, +A −B" and git's own
+# "N files changed, A insertions(+), B deletions(-)".
+DIFFSTAT_INLINE = re.compile(
+    r"(?P<files>\d+)\s+files?\b[^0-9\n]{0,24}?\+(?P<ins>\d+)\s*[−–—-]\s*(?P<del>\d+)\b"
+)
+DIFFSTAT_GIT = re.compile(
+    r"(?P<files>\d+)\s+files? changed,\s*(?P<ins>\d+)\s+insertions?\(\+\),\s*"
+    r"(?P<del>\d+)\s+deletions?\(-\)"
+)
 
 # --- the FILE-CLAIM CONSISTENCY rule ------------------------------------------
 # A body states, per file, what the diff does to it. Two statements about the SAME file can
@@ -420,6 +446,75 @@ def sections(lines: list[str]) -> dict[str, list[str]]:
     return out
 
 
+# --- the DIFFSTAT rule's two halves -------------------------------------------
+def _headline_diffstats(lines: list[str]) -> list[re.Match]:
+    """The diffstats the body's HEADLINE states — the paragraph carrying the pasted `Head` sha.
+
+    The PARAGRAPH, not the whole body: a diffstat in another paragraph may be about a
+    DIFFERENT diff (an upstream PR, a predecessor this PR supersedes), and a rule that
+    judged those would cry wolf on a true body. A fenced block is pasted evidence, not a
+    claim, so a headline that opens one is not judged either.
+    """
+    text = "\n".join(lines)
+    head = HEAD.search(text)
+    if not head:
+        return []
+    start = text.rfind("\n\n", 0, head.start()) + 2
+    end = text.find("\n\n", head.end())
+    if end == -1:
+        end = len(text)
+    para = text[start:end]
+    # A fenced block is pasted EVIDENCE, not a claim: a `git diff --shortstat` pasted next to
+    # the headline is the truth the headline is checked against, and judging it would be
+    # judging the evidence. The prose around it is still judged.
+    kept: list[str] = []
+    in_fence = False
+    for ln in para.split("\n"):
+        if ln.lstrip().startswith("```"):
+            in_fence = not in_fence
+            continue
+        if not in_fence:
+            kept.append(ln)
+    prose = "\n".join(kept)
+    found: list[re.Match] = []
+    for pattern in (DIFFSTAT_INLINE, DIFFSTAT_GIT):
+        found.extend(pattern.finditer(prose))
+    return found
+
+
+def diff_totals(repo: Path, base: str, head: str) -> tuple[int, int, int] | None:
+    """The diff's own totals — (files, insertions, deletions) — against `base`.
+
+    None when the diff cannot be read: an unresolvable base, a missing repository, a git
+    that fails. The rule then SKIPS, visibly, rather than guessing — a lint that invents
+    the truth is worse than a lint that stays quiet.
+    """
+
+    def git(*args: str) -> str:
+        return subprocess.run(
+            ["git", "-C", str(repo), *args], check=True, capture_output=True, text=True
+        ).stdout
+
+    try:
+        merge_base = git("merge-base", base, head).strip()
+        numstat = git("diff", "--numstat", merge_base, head)
+    except (subprocess.CalledProcessError, OSError):
+        return None
+    if not merge_base:
+        return None
+    files = insertions = deletions = 0
+    for line in numstat.splitlines():
+        parts = line.split("\t")
+        if len(parts) < 3:
+            continue
+        files += 1
+        if parts[0].isdigit():
+            insertions += int(parts[0])
+        if parts[1].isdigit():
+            deletions += int(parts[1])
+    return files, insertions, deletions
+
+
 # The SWEEP subset of CLAIM: claims about an EXHAUSTIVE SEARCH, where only a command can
 # support the assertion. Ordinary rule bullets ("git status was checked", "the artifact was
 # verified after the build") assert that a STEP WAS DONE, and `## Rulebook compliance` is
@@ -445,7 +540,12 @@ def own_bullet_has_command(section_lines: list[str], start: int) -> bool:
     return False
 
 
-def lint(body: str, head: str | None, rules: tuple[str, ...]) -> list[str]:
+def lint(
+    body: str,
+    head: str | None,
+    rules: tuple[str, ...],
+    diffstat: tuple[int, int, int] | None = None,
+) -> list[str]:
     findings: list[str] = []
     lines = body.rstrip("\n").split("\n")
     secs = sections(lines)
@@ -536,6 +636,18 @@ def lint(body: str, head: str | None, rules: tuple[str, ...]) -> list[str]:
     if pasted and head and pasted.group(1) != head:
         findings.append(f"head: body pastes Head `{pasted.group(1)[:12]}…` but the commit is `{head[:12]}…`")
 
+    # The body's own headline count of the diff, against the diff. `diffstat` is None when
+    # the diff could not be read — the rule then SKIPS (visibly, in main()), because a
+    # lint that invents the truth is worse than a lint that stays quiet.
+    if diffstat is not None:
+        for m in _headline_diffstats(lines):
+            stated = (int(m.group("files")), int(m.group("ins")), int(m.group("del")))
+            if stated != diffstat:
+                findings.append(
+                    f"diffstat: the body states \"{m.group(0).strip()}\" but the diff is "
+                    f"{diffstat[0]} files, +{diffstat[1]} -{diffstat[2]}"
+                )
+
     findings.extend(_file_claims(lines))
     findings.extend(_count_claims(lines))
     return findings
@@ -544,17 +656,26 @@ def lint(body: str, head: str | None, rules: tuple[str, ...]) -> list[str]:
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("body", type=Path)
-    g = ap.add_mutually_exclusive_group()
-    g.add_argument("--head", help="the commit SHA being pushed")
-    g.add_argument("--repo", type=Path, help="read the head from `git -C <repo> rev-parse HEAD`")
+    ap.add_argument("--head", help="the commit SHA being pushed (default: the repository's HEAD)")
+    ap.add_argument("--repo", type=Path, help="the repository the diff is read from")
+    ap.add_argument("--base", default="origin/main", help="the ref the diff is measured against")
     ap.add_argument("--rules", default=",".join(DEFAULT_RULES), help="comma-separated rule ids to require")
     a = ap.parse_args(argv)
     head = a.head
-    if a.repo:
+    if head is None and a.repo:
         head = subprocess.run(
             ["git", "-C", str(a.repo), "rev-parse", "HEAD"], check=True, capture_output=True, text=True
         ).stdout.strip()
-    findings = lint(a.body.read_text(), head, tuple(r for r in a.rules.split(",") if r))
+    diffstat = None
+    if a.repo and head:
+        diffstat = diff_totals(a.repo, a.base, head)
+        if diffstat is None:
+            print(
+                f"pr_body_lint: NOTICE - the diff against {a.base!r} could not be read, so the "
+                f"diffstat rule is SKIPPED",
+                file=sys.stderr,
+            )
+    findings = lint(a.body.read_text(), head, tuple(r for r in a.rules.split(",") if r), diffstat)
     for f in findings:
         print(f"FAIL  {f}")
     print(f"pr_body_lint: {len(findings)} finding(s)")
