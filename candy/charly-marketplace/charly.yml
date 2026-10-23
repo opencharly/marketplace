@@ -263,10 +263,10 @@ charly-marketplace:
             - '@github.com/opencharly/layer-qdrant:v2026.293.0056'
             - '@github.com/opencharly/plugin-qdrant/candy/plugin-qdrant:v2026.294.2125'
             - '@github.com/opencharly/plugin-kubevirt/candy/plugin-kubevirt:v2026.295.2057'
-            # the nerdctl integration (plan/nerdctl-integration.md): the layer that
-            # installs the nerdctl stack + the out-of-tree engine:nerdctl plugin,
-            # each owning its harness skill.
-            - '@github.com/opencharly/layer-nerdctl/candy/layer-nerdctl:v2026.296.1413'
+            # the containerd integration (plan/nerdctl-integration.md): the layer that
+            # installs the nerdctl CLI + containerd stack, plus the out-of-tree
+            # engine:containerd plugin; each owns its harness skill.
+            - '@github.com/opencharly/layer-nerdctl/candy/layer-nerdctl:v2026.296.1649'
             - '@github.com/opencharly/plugin-nerdctl/candy/plugin-nerdctl:v2026.295.1321'
 
             - '@github.com/opencharly/plugin-firecracker/candy/plugin-firecracker:v2026.288.0016'
