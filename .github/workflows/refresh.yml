@@ -7,8 +7,8 @@ name: refresh
 # candy de-submodule cutover, and every entry is a hand-written CalVer pin. Hand-written pins
 # go stale silently: the corpus keeps building, the drift gate stays green, and the published
 # skill is simply an old one. That is precisely the failure the cutover set out to remove —
-# it came from a single stale charly pin, and 176 hand-maintained pins are the same failure
-# with more surface.
+# it came from a single stale charly pin, and a refs list of hand-maintained pins is the same
+# failure with more surface. (No count: the list's size is the thing that drifts.)
 #
 # The content in these PRs is NOT unreviewed. Each pinned repo validated its own change
 # through its own pr-validator before tagging; this workflow republishes what those repos
@@ -196,7 +196,7 @@ jobs:
             echo "The refs list is the ONE generation input, and every entry is a CalVer pin. Hand-maintained"
             echo "pins go stale silently — the corpus keeps building, the drift gate stays green, and the"
             echo "published skill is simply an old one. That is the failure the candy de-submodule cutover"
-            echo "removed for a single charly pin; this workflow removes it for the remaining 176."
+            echo "removed for a single charly pin; this workflow removes it for the rest of them."
             echo
             echo "The content is not unreviewed: each pinned repo validated its own change through its own"
             echo "\`pr-validator\` before tagging. This republishes what those repos already landed."
@@ -249,7 +249,7 @@ jobs:
             echo '   routine per-ref `Downloading …` progress lines (noted below the block):*'
             echo '```'
             # Paste the generator log WITHOUT its routine per-ref `Downloading …` progress lines:
-            # 641 of them on a full refresh, ~44 KB, and every ref they name is already listed by
+            # one per ref on a full refresh, ~44 KB of them, and every ref they name is already listed by
             # the refs-resolution section and the changed-file list above. Everything ELSE is kept
             # verbatim, so the warning this section exists to surface cannot be hidden — a `tail`
             # could drop it, which is the exact failure mode this guards against.
