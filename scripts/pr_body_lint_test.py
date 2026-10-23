@@ -346,6 +346,20 @@ class Diffstat(unittest.TestCase):
         )
         self.assertEqual(self.findings(text), [])
 
+    def test_a_headline_at_the_very_top_of_the_body_is_judged(self):
+        """The headline paragraph must not lose its FIRST character.
+
+        `rfind` returns -1 when the headline paragraph is the body's first, and the old
+        `+ 2` turned that into 1 — the paragraph then began at index 1, so a diffstat that
+        OPENED the paragraph lost its leading digit and the rule matched nothing. The rule
+        silently skipped a wrong headline instead of reporting it, which is the one failure
+        mode a rule like this may not have.
+        """
+        text = f"2 files, +33 −8 — Head `{self.SHA}`\n\n## How tested\nx\n"
+        f = [x for x in run(text, self.SHA, self.DIFF) if x.startswith("diffstat:")]
+        self.assertTrue(f, "a headline at the very top of the body must still be judged")
+        self.assertIn("+32 -5", f[0])
+
     def test_a_body_without_a_head_is_not_judged(self):
         """The headline is the anchor; a body that states no head states no claim to check."""
         self.assertEqual([x for x in run(body(how="**2 files, +33 −8**"), None, self.DIFF) if x.startswith("diffstat:")], [])

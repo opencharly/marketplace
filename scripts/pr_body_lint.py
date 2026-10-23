@@ -459,7 +459,12 @@ def _headline_diffstats(lines: list[str]) -> list[re.Match]:
     head = HEAD.search(text)
     if not head:
         return []
-    start = text.rfind("\n\n", 0, head.start()) + 2
+    # The paragraph starts AFTER the last blank line before the head — or at the very top of
+    # the body when the headline IS the first paragraph. `rfind` returns -1 in that case, and
+    # the old `-1 + 2` made the paragraph start at index 1: its first character was dropped,
+    # and a diffstat that OPENED the paragraph lost its leading digit and matched nothing.
+    sep = text.rfind("\n\n", 0, head.start())
+    start = 0 if sep == -1 else sep + 2
     end = text.find("\n\n", head.end())
     if end == -1:
         end = len(text)
