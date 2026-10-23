@@ -40,28 +40,53 @@ on the live fleet (2026-10-10):
 | Docker pinned to `29.4.0` (`docker-ce=5:29.4.0-…`) and `apt-mark hold` | `setup-test-docker` asserts `docker version = 29.4.0`; a drifted daemon fails that lane and can fail version-sensitive tests |
 | The daemon runs as `docker-ci.service` on `/run/docker-ci.sock`, stock `docker.service`/`docker.socket` inactive | a lane's `systemctl stop docker.service docker.socket` killed the co-tenant daemon: measured 14:07:16 stop → 14:07:28 `buildx create` → *Cannot connect to the Docker daemon* |
 | `/var/run/docker.sock` kept as a symlink to the real socket | lanes, helpers and tests hardcode or mount that path (`runtime-image-fixture.mjs`, `docker-compute-token-retry`, production-compose mounts) |
-| `DOCKER_HOST=unix:///run/docker-ci.sock` in every runner's `*.service.d/docker-host.conf` | a lane that relinks the shared symlink can otherwise redirect its co-tenants |
+| **No `DOCKER_HOST` override** in the runner tree | a job must see the same default socket a hosted runner does. Setting it changed observed behaviour: `TestCreateContainerCanMountDockerSocket` stopped mounting `/var/run/docker.sock` and the scope test read the engine as podman. Co-tenancy is protected by the socket symlink + heal timer instead |
 | `charly-docker-sock-heal.timer` (30 s) | repairs a `/var/run/docker.sock` left dangling by such a lane, without fighting one that legitimately relinked it |
 | `charly-docker-store-gc.timer` (10 min) | every `setup-buildx-action` leaves a RUNNING buildkit builder container with its own cache volume; cancelled lanes leak them — 13 held 84 GB and filled the disk to 100 %. It also repairs the stale docker context/buildx selection such a lane leaves pointing at its deleted job directory (which breaks every later `docker` CLI call that does not set `DOCKER_HOST`) |
 | `journald` capped at 200 MB | a log flood cannot fill the disk |
 | 128 GiB disk, 32 GiB RAM, 16 vCPU, 8 GiB swapfile | four concurrent lanes peaked at ~12 GiB on a 15 GiB VM and produced 44 GiB of docker state on a 61 GiB disk |
 
-## Registration is token-guarded (operator step)
+## Registration is token-guarded (one operator step)
 
-cloud-init installs the runner tree at `/home/ubuntu/actions-runner-base` and
-the exact label sets (`/etc/charly-runner-labels`,
-`/etc/charly-runner-labels-org`). **Registration is deliberately not automated**
-— a registration token lives one hour and is never committed:
+The candy installs the runner tree at `/home/ubuntu/actions-runner-base` and
+`/usr/local/sbin/charly-register-runners`. **Registration is deliberately not
+automated** — a registration token lives one hour and is never committed — and
+it is not a candy `post_enable` hook either: only the pod deploy plugin executes
+candy lifecycle hooks, so a hook here would never run on a VM or KubeVirt
+substrate. ONE parameterised script replaces the per-runner incantations:
 
 ```bash
-TOKEN=$(gh api -X POST /orgs/opencharly/actions/runners/registration-token --jq .token)
-LABELS=$(cat /etc/charly-runner-labels)
-for i in 1 2 3 4; do D=/home/ubuntu/actions-runner/$i; mkdir -p $D
-  cp -a /home/ubuntu/actions-runner-base/. $D/
-  (cd $D && ./config.sh --unattended --url https://github.com/opencharly \
-     --token "$TOKEN" --name charly-githubrunner-ubuntu-$i --labels "$LABELS" \
-     --replace --work _work && sudo ./svc.sh install ubuntu && sudo ./svc.sh start); done
+TOKEN=$(gh api -X POST /orgs/<org>/actions/runners/registration-token --jq .token)
+charly shell ubuntu.ci-runner-vm-1 -c \
+  "sudo env RUNNER_ORG=<org> RUNNER_TOKEN='$TOKEN' \
+     RUNNER_LABELS=ubuntu-latest,opencharly \
+     RUNNER_NAME_PREFIX=charly-ci RUNNER_COUNT=4 \
+     /usr/local/sbin/charly-register-runners"
 ```
+
+| Env | Default | Meaning |
+|---|---|---|
+| `RUNNER_URL` | — | repo scope, `https://github.com/<owner>/<repo>` |
+| `RUNNER_ORG` | — | org scope shorthand, `opencharly` (ignored when `RUNNER_URL` is set) |
+| `RUNNER_TOKEN` | required | registration token; a REMOVE token with `--remove` |
+| `RUNNER_LABELS` | `opencharly` | what a job's `runs-on:` selects |
+| `RUNNER_NAME_PREFIX` | `charly-githubrunner-ubuntu` | each runner is `<prefix>-<n>` |
+| `RUNNER_COUNT` | `4` | runner services on this guest |
+| `RUNNER_USER` | `ubuntu` | runner user / home owner |
+
+**Scope decides the blast radius.** An **org-scoped** runner carrying a GitHub-hosted
+label (`ubuntu-latest`) is matched by EVERY repository in the org — that is deliberate
+here: it is what lets every repository keep its existing workflow unchanged, and the
+Default runner group is already `visibility: all` with `allows_public_repositories: true`.
+A **repo-scoped** runner (`RUNNER_URL`) serves only one repository and is the right choice
+when the intent is a single project rather than the whole org. Narrow an org-wide fleet
+with `RUNNER_GROUP` and a repo selection if the wider trade is no longer wanted.
+
+`--remove` deregisters and stops the units. The script is idempotent: `.runner`
+in a runner root means "already registered", so a re-run neither replaces nor
+re-registers. A fleet that must serve the Blacksmith-shaped workflows passes
+their label set explicitly, e.g.
+`RUNNER_LABELS=opencharly,blacksmith-8vcpu-ubuntu-2404,blacksmith-16vcpu-ubuntu-2404,blacksmith-32vcpu-ubuntu-2404`.
 
 ## R10 gate
 
@@ -70,7 +95,7 @@ charly check run check-githubrunner-ubuntu-vm
 ```
 
 The bed proves the pinned Docker version, the daemon/socket split, the symlink
-and per-runner `DOCKER_HOST`, co-tenant isolation under a simulated lane
-mutation, the store GC collecting a leaked running container plus its volume,
-the runner tree and label sets, the timers and the sizing. It registers no
-runner and needs no secret.
+and the ABSENCE of a `DOCKER_HOST` override in the runner tree, co-tenant isolation under a
+simulated lane mutation, the store GC collecting a leaked running container plus
+its volume, the runner tree and the registration script, the timers and the
+sizing. It registers no runner and needs no secret.

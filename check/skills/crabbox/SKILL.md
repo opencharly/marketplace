@@ -34,7 +34,8 @@ and the coordinator with `/charly-crabbox:crabbox-coordinator`
 
 | Group | Methods |
 |---|---|
-| In-venue CLI — credential-free | `version` (`crabbox --version`) `providers` (`crabbox providers`) `config` (`crabbox config show`) `doctor` (`crabbox doctor` — needs NO broker configured, or a REACHABLE one) |
+| In-venue CLI — credential-free | `version` (`crabbox --version`) `providers` (`crabbox providers`) `describe` (`crabbox providers describe <name> --json`) `config` (`crabbox config show`) `doctor` (`crabbox doctor` — needs NO broker configured, or a REACHABLE one) |
+| In-venue gate — containerd | `containerd-preflight` (read-only dependency probe for a containerd lease; PASS or a visible SKIP naming the exact absent dependency) |
 | Coordinator HTTP probe (host-side, port 8080) | `health` (`/v1/health`) `ready` (`/v1/ready`) |
 | In-venue CLI — broker-backed (requires `crabbox login` in the venue) | `leases` (`crabbox list` — the ID/NAME/STATE/TYPE/IP inventory) `usage` (`crabbox usage`) `events` (`crabbox events <run_id>`) `logs` (`crabbox logs <run_id>`) |
 
@@ -45,7 +46,42 @@ on the pinned v0.79.0: `crabbox status --all` exits *"flag provided but not
 defined: -all"*), so the earlier prose that documented `leases` as
 `crabbox status --all` named a command that cannot run.
 
-All methods are read-only — there are no mutating methods in this first cut.
+All methods are read-only with respect to LEASES — none creates, mutates, or
+releases one. `containerd-preflight`'s only write is a `nerdctl pull` of the
+configured lease image, which proves the ref exists in a registry instead of
+trusting a local cache.
+
+## `describe` — the provider's own description
+
+`describe` takes the provider as its **positional** argument (that CLI command has
+no `--provider` flag) and asks for JSON:
+
+```
+crabbox providers describe containerd --json
+{"provider":{"requested":"containerd","canonical":"containerd",...},"kind":"ssh-lease","runnable":true,...}
+```
+
+Assert one field with `json_path:` (e.g. `provider.canonical`, `kind`, `runnable`)
+rather than pattern-matching the document. A provider the CLI does not have exits
+non-zero and the step FAILS — an unknown name is an authoring error, not a skip.
+
+## `containerd-preflight` — the visible skip for an absent dependency
+
+A containerd lease needs a CLI that carries the provider, a reachable daemon, the
+kernel's `xt_multiport` match (the CNI portmap hook publishes the lease SSH port),
+and a pullable lease image. When any is absent the preflight returns `skip` with the
+first missing dependency named:
+
+- `the in-venue crabbox CLI (version …) does not list the containerd provider` — the
+  venue's `layer-crabbox` predates the source build of `opencharly/crabbox`;
+- `the containerd daemon at <address> (namespace …) is not reachable: …`;
+- `the kernel has no xt_multiport match … (opencharly/layer-containerd#5)`;
+- `the lease image <ref> is not present and cannot be pulled: …`.
+
+A provider that IS present but cannot describe itself, or a CLI whose `providers`
+command fails, is a FAIL, not a skip. Never author a bed that runs a lease without
+this gate: a `run:` step has no conditional SKIP, so the gate is what keeps the leg
+honest while a dependency is missing.
 
 ## Input fields
 
@@ -56,7 +92,9 @@ All methods are read-only — there are no mutating methods in this first cut.
 | `timeout` | HTTP probe timeout (default 10s) |
 | `json_path` | dotted path into the response; stdout becomes that value |
 | `run_id` | run identifier for the `events`/`logs` methods |
-| `provider` | the provider to select for the methods whose CLI command DEFINES `--provider` (`doctor`, `leases`) |
+| `provider` | the provider to select for the methods whose CLI command DEFINES `--provider` (`doctor`, `leases`), and the positional name for `describe` |
+| `containerd` | the containerd provider's own keys, passed as `--containerd-<key> <value>` on `doctor`/`leases`, and read by `containerd-preflight` (address, namespace, runtime, image) |
+| `firecracker` | the firecracker provider's own keys, passed as `--firecracker-<key> <value>` on `doctor`/`leases` |
 
 ## Scalar shorthand
 
@@ -82,17 +120,40 @@ coordinator readiness first.
 ## Selecting a provider
 
 `provider:` is passed through as `--provider <name>` for the two methods whose CLI
-command defines the flag — `doctor` and `leases` (`crabbox list`) — and nowhere
-else, because attaching it to a command that does not define it is an argument
-error, not a selection. Measured on the pinned v0.79.0:
+command defines the flag — `doctor` and `leases` (`crabbox list`) — and becomes the
+POSITIONAL argument for `describe` (`providers describe <name>`); it is attached
+nowhere else, because attaching it to a command that does not define it is an
+argument error, not a selection. Measured on the release the org previously pinned
+(v0.79.0) and on the source build of `opencharly/crabbox` b7b5aaa3:
 
 ```
 $ crabbox doctor --provider local-container   -> ok provider-selection provider=local-container source=flag selected=true
 $ crabbox list   --provider aws              -> the ID/NAME/STATE/TYPE/IP inventory
 $ crabbox usage  --provider aws              -> flag provided but not defined: -provider
 $ crabbox providers --provider aws           -> flag provided but not defined: -provider
+$ crabbox providers describe containerd --json -> {"provider":{"canonical":"containerd",...},"kind":"ssh-lease",...}
 ```
+
+The `containerd:` block rides the SAME allowlist as `--provider` (`doctor`,
+`leases`), because those are the commands that define `--containerd-*`; it is never
+appended to `providers` or `describe`.
 
 Unset, the CLI keeps its own configured/ambient selection — which is what every
 step got before this input existed, so an authored step that does not name a
 provider behaves exactly as it did.
+
+## The config candy
+
+`opencharly/layer-crabbox` ships a SEPARATE candy, `crabbox-containerd-config`,
+that renders `~/.config/crabbox/config.yaml`:
+
+```yaml
+provider: containerd
+containerd:
+    image: ghcr.io/opencharly/pod-crabbox:2026.293.1655
+```
+
+It is referenced by path
+(`@github.com/opencharly/layer-crabbox/candy/crabbox-containerd-config:<tag>`) so
+the root `crabbox` candy keeps its meaning for every current consumer, and the
+rendered bytes are validated against plugin-egress's `crabbox-yaml` schema.

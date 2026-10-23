@@ -29,9 +29,11 @@ my-box:
 
 ## Used In Boxes
 
+- `openclaw-full` (via `openclaw-full` metalayer)
 
 ## Related Candies
 - `/charly-coder:nodejs` -- runtime dependency
+- `/charly-openclaw:openclaw-full` -- parent metalayer that bundles playwright
 - `/charly-selkies:chrome` -- browser commonly driven by playwright
 
 ## Related Commands

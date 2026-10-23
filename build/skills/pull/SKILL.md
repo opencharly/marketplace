@@ -95,8 +95,8 @@ per-call-site code:
    from local storage.
 2. `dispatchBuildEnsure` (`charly/dispatch_build_ensure.go`) dispatches to
    candy/plugin-build's `build:ensure` word (`candy/plugin-build/ensure.go`),
-   which returns the same sentinel when the image is absent from the RUN engine's
-   store (the one every later read resolves it through).
+   which returns the same sentinel when the image is absent from both run and
+   build engines.
 3. `FormatCLIError` in `charly/image.go` unwraps the sentinel at the top-level
    error boundary in `main()` and renders:
 

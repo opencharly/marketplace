@@ -28,11 +28,9 @@ my-box:
 
 ## Used In Boxes
 
-- `openclaw-full` (via `openclaw-full` metalayer)
 
 ## Related Candies
 - `/charly-coder:rust` — required Rust toolchain dependency
-- `/charly-openclaw:openclaw-full` — metalayer that includes himalaya
 - `/charly-infrastructure:gnupg` — pairs with himalaya for PGP-encrypted email
 
 ## Related Commands

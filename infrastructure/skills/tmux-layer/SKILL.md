@@ -33,6 +33,7 @@ my-box:
 
 ## Used In Boxes
 
+- `openclaw-full` (via `openclaw-full` metalayer)
 
 ## Related Skills
 
