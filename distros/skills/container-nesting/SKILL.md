@@ -408,12 +408,15 @@ factor alone is harmless — only the combination breaks it:
 | outside `/tmp` | yes | 1777 |
 | `/tmp/npm-cache` | yes | **755** |
 
-This candy's **pre-pull step is exactly that combination** — a `command:`
-step run as `${USER}` (non-root) to which the emitter attaches a
-`dst=/tmp/npm-cache` cache, whose command is a `podman pull`. So *any* box
-composing `container-nesting` was affected; the trigger is not the box's
+This candy's **pre-pull step used to be exactly that combination** — a
+`command:` step run as `${USER}` (non-root) to which the emitter attached a
+`dst=/tmp/npm-cache` cache, whose command was a `podman pull`. So *any* box
+composing `container-nesting` was affected; the trigger was not the box's
 own steps. The host `/tmp` is untouched (rootless isolation holds — the
-`0755` lives in the image's own overlay layer).
+`0755` lives in the image's own overlay layer). The trigger is retired: the
+pre-pull is now a build-time `skopeo copy … dir:` fetch plus a deploy-time
+`containers-storage:` materialise (see the next section), and the emitter's
+cache no longer lives under `/tmp`.
 
 **Detect** (build scope): `podman run --rm --entrypoint /bin/sh <image> -c
 'stat -c "%a %U:%G" /tmp'` must print `1777 root:root`.
@@ -444,6 +447,38 @@ A `download:` step that stages into `/tmp` as uid 1000 (e.g.
 `to: /tmp/foo-install.sh`) is a downstream **victim** — it fails once the
 pre-pull has already corrupted `/tmp` earlier in the same build; fix the
 trigger (item 1), and keep such staging out of `/tmp`.
+
+## Build-time store population (the sandbox boundary)
+
+The nested store cannot be populated at **build** time on a host whose
+BuildKit worker runs in sandbox mode (`[worker.oci] process-mode =
+"sandbox"` — the charly drive's measured rootless posture). The sandbox
+denies `unshare(CLONE_NEWUSER)` to build processes, so:
+
+- `podman pull` at build time dies at startup with `Error determining
+  cgroups mode` (podman cannot initialise its runtime without the
+  namespaces it would create);
+- `skopeo copy … containers-storage:…` dies with `Error during
+  unshare(CLONE_NEWUSER): Operation not permitted` (every
+  containers-storage driver — overlay + fuse-overlayfs included — needs the
+  user namespace).
+
+A pure **image fetch** needs no user namespace, so the candy splits the work:
+
+| phase | step | command |
+|---|---|---|
+| build (root) | `nesting-smoke-fetch` | `skopeo copy docker://quay.io/libpod/alpine:latest dir:/usr/share/charly/nesting-smoke` |
+| build check | `nesting-smoke-layout` | `file: /usr/share/charly/nesting-smoke/manifest.json` exists |
+| deploy (`${USER}`, `context: [runtime]`) | `nesting-smoke-materialise` | `skopeo copy dir:/usr/share/charly/nesting-smoke containers-storage:quay.io/libpod/alpine:latest` |
+
+The deploy-time copy has no network dependency (the bytes are baked), so a
+host whose outer container cannot resolve `quay.io` still gets a warm
+nested store. The `nested-podman-run` check (`podman run --pull=never`)
+then passes.
+
+**Do not reintroduce a build-time `containers-storage:` write.** A box
+whose build needs one (e.g. an image that bakes its own store) fails on
+every sandboxed drive; the fetch/materialise split is the portable shape.
 
 ## Used In Boxes
 

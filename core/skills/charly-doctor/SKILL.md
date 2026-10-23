@@ -129,7 +129,7 @@ Each check shows the binary path and version when available, or an install hint 
 ## Cross-References
 
 - `/charly-automation:udev` — install udev rules for GPU device access
-- `/charly-core:charly-config` — `engine.run`, `secret_backend` settings, `--no-auto-detect` flag, DRINODE injection via `appendAutoDetectedEnv()`
+- `/charly-core:charly-config` — `engine.build`, `engine.run`, `secret_backend` settings, `--no-auto-detect` flag, DRINODE injection via `appendAutoDetectedEnv()`
 - `/charly-automation:enc` — credential lookup path behind the Secret Service collection + keyring-index checks; iteration-capable ssClient; broken-collection troubleshooting
 - `/charly-build:secrets` — `charly secrets set/list/prune` commands referenced by the keyring-index remediation hint
 - `/charly-build:settings` — `keyring_collection_label`, `secret_backend`, and other runtime config keys surfaced by the Secret Storage checks

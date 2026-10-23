@@ -2,8 +2,12 @@
 name: ubuntu-coder
 description: |-
   Kitchen-sink development box on Ubuntu 24.04 noble: coding + AI-coding
-  CLIs + DevOps tooling in one container. Ubuntu base, 30+ direct candies
-  mirroring fedora-coder's stack. Runs as uid 1000 `ubuntu` — the upstream
+  CLIs + DevOps tooling in one container. Ubuntu base, **26** direct candies —
+  the manifest's own `candy:` list — mirroring fedora-coder's stack. The
+  `## Definition` block below is the box's declared composition and names
+  **32**; the six-ref difference is the `charly#739` ONE-SOURCE ref-dedup,
+  which removed those refs from the manifest while the block still names them
+  (**26 + 6 = 32**). Runs as uid 1000 `ubuntu` — the upstream
   ubuntu:24.04 account, adopted verbatim via the embedded build
   vocabulary's base_user declaration. 142/0/1-skip tests pass.
   Use when working with the ubuntu-coder box — especially when the

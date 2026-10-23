@@ -59,9 +59,9 @@ ci-runner:
 charly-cachyos-app:
   local:
     description: CachyOS DX (placeholder)
-    # Empty placeholder — `candy: []` is the sanctioned explicit-empty
-    # form (use it for staged template name reservation); a missing
-    # `candy:` field is a hard error.
+    # Empty placeholder — `candy: []` is a load-time WARNING (allowed
+    # for staged template name reservation); a missing `candy:` field
+    # is a hard error.
     candy: []
     install_opts: {}
 ```
@@ -70,7 +70,7 @@ charly-cachyos-app:
 
 | Field | Required | Description |
 |---|---|---|
-| `candy` | Yes | Ordered candy stack (the key is `candy`, not `layers`). `[]` is the sanctioned explicit-empty form — it validates with no warning; a MISSING `candy:` field is a hard error. |
+| `candy` | Yes | Ordered candy stack (the key is `candy`, not `layers`). `[]` permitted as a placeholder (warning, not error). |
 | `install_opts` | No | Default install gates. Deployment overrides merge on top. |
 | `env` | No | Shell-profile env vars as a `{KEY: value}` map. Deployment env wins on key collision. |
 | `description` | No | Plain string — the profile's purpose; first line = the summary. |
@@ -88,7 +88,7 @@ steps. The deploy applies host packages + configs only. There is no
 Test-bed image preflight is the **check entry point's** job, not the
 deploy's. When `charly check run --on-host <name>` resolves to a host
 target, the runner walks the bed's plan steps, collects each step's
-venue (derived from its position in the deploy tree — the per-step `pod:`
+venue (derived from its position in the fleet tree — the per-step `pod:`
 field is RETIRED and authoring it is a closed-schema rejection) plus the
 bed's target image, and ensures each
 image is present in local podman storage (LocalImageExists →
@@ -134,7 +134,7 @@ charly-cachyos-app:
     install_opts: {}
 ```
 
-`charly box validate` accepts it with **no** warning — measured: on a template declaring `candy: []` the gate reports `0 warnings, 0 errors`. A missing `candy:` field entirely IS an error, and that error's own message recommends `candy: []` as the fix — its presence is the signal that the author intended a template.
+`charly box validate` emits a WARNING but does not error. A missing `candy:` field entirely IS an error — its presence is the signal that the author intended a template.
 
 ## Cross-References
 

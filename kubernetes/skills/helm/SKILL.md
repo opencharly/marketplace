@@ -60,29 +60,29 @@ an uninstall step yourself.
 ## The authoring law this surfaced: mutating installs live in a CANDY
 
 A bed's own plan runs **verify-only** (mutating steps skipped), and
-`charly deploy add` lowers only **candy** plans' `run:` steps. So any
+`charly fleet add` lowers only **candy** plans' `run:` steps. So any
 mutating install — the `helm-release` invocation itself, and any in-venue
 `kubectl wait` it depends on — MUST live in a candy's `run:` steps, never
 in the bed's own plan. Authoring the install into the bed produces a bed
 that passes while installing nothing.
 
 A second-order trap rides along: a `check:` step does **not** run during
-`deploy add`, so the `k3s-server` candy's own node-ready check cannot gate
+`fleet add`, so the `k3s-server` candy's own node-ready check cannot gate
 your install. An install candy waits for the node itself.
 
 **Two independent mechanisms decide when a step runs, and confusing them
 is the trap.**
 
-First the step KEYWORD. `charly deploy add` lowers `run:` steps and
+First the step KEYWORD. `charly fleet add` lowers `run:` steps and
 nothing else — `check:`, `agent-*:` and `include:` steps are never
 lowered, whatever `context:` they carry
 (`sdk/deploykit/install_build.go:694-697`, which drops non-`run:`
 keywords *before* it looks at context at all). So the `check:` step in
-the example below does not execute during `deploy add` **because it is a
+the example below does not execute during `fleet add` **because it is a
 `check:` step** — not because of its context. Giving it
 `context: [deploy]` would not change that.
 
-(This is about `deploy add` LOWERING. `context:` on a `check:` step is not
+(This is about `fleet add` LOWERING. `context:` on a `check:` step is not
 inert in general — it selects which CHECK MODE the step runs in, which is
 a different walk entirely; see "Author the STEP `context: [runtime]`"
 under `verb:helm` below.)
@@ -147,7 +147,7 @@ helm-chart:
 
 Three things about that readiness step are deliberate. **The `/readyz`
 poll is bounded and condition-driven**, with an explicit deadline and a
-non-zero exit — it is a synchronization primitive, not an R3
+non-zero exit — it is a synchronization primitive, not an R4
 `sleep`-and-hope; a bare `sleep 60` in its place is the workaround the
 rule forbids. **Waiting on the node alone is not enough**: on a cold
 cluster `kubectl wait node` runs before the apiserver answers at all, so
@@ -161,7 +161,7 @@ runs in its own shell, so that export does not reach the
 chain. The candy hardcodes the k3s path because it is a k3s-guest bed
 fixture; a candy for another venue would not.
 
-Note the Agent Driven Evaluation (ADE) split (R2) — ADE is the
+Note the Agent Driven Evaluation (ADE) split (R3) — ADE is the
 spec-is-the-test discipline owned by `/charly-check:check`: the candy that
 installs the release also asserts it exists; the bed's own plan keeps only
 the deeper status/revision assertions.
@@ -194,7 +194,7 @@ makes sense under `charly check live` / `charly check run`.
 **Author the STEP `context: [runtime]`, and understand that this is what
 makes it skip under `charly check box` — not the verb's EXEC nature.**
 
-This does not contradict the `deploy add` rule above, and the two are worth
+This does not contradict the `fleet add` rule above, and the two are worth
 holding apart: THERE, `context:` is irrelevant because a `check:` step is
 never lowered at all; HERE, `context:` is decisive because it selects the
 check mode the step is active in. Different walks, different questions.

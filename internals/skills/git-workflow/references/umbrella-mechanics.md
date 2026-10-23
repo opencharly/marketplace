@@ -310,6 +310,26 @@ that stages on top of it commits both. Check the process table for an in-flight
 `task sync` before measuring or staging, and never run a mutating `sync`
 concurrently with anything else.
 
+**A wave holds ITS OWN worktree's index, for the minutes it rolls the submodules.**
+The bump stages each advanced path with a `git add` in the superproject, and that
+`git add` takes the worktree's index lock; a concurrent `git status` in the SAME
+worktree takes the same lock for an instant, so the wave's own `git add` can lose
+the race. The verb's behaviour is the intended one — it names every contended
+path, it does not abort the walk, and it reports failure rather than success — but
+a contended path is a path the wave could not STAGE, and whether that cost a PIN
+VALUE is a SECOND question: the path may have been at the ref it already serves.
+The wave's own report cannot answer it, and a gate that reads CONSISTENCY cannot
+either — the contract that answers it is in
+`references/pin-intent-and-currency.md`. So: while a wave runs, run no other git
+command in that worktree; and after it, ask the currency question
+(`charly task pins --param MODE=currency`), which names every pin that is not at
+the ref its intent names. The fix belongs HERE and not in the verb: a bounded
+lock-wait is a sleep and a lock-retry is a blind retry, and both are forbidden.
+Measured on 2026-10-23, during an umbrella wave: a wave's staging lost the index
+lock to a concurrent `git status` in its own worktree, the paths the wave named
+were already at the refs they serve, and the currency report — not the wave's own
+report — was what said so.
+
 ### Cross-repo landing order (the umbrella view)
 
 A consumer that pins a producer's artifact (`@github` candy ref, a `spec`/`sdk`

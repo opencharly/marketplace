@@ -58,7 +58,7 @@ beside it.
 
 ## The compact node form (name-first, one kind key)
 
-Every charly.yml is self-describing. A candy flattens to a top-level `<name>:` key (the entity NAME) with EXACTLY ONE kind key — `candy:` — whose value is the COMPLETE body: scalars, every collection (`package`, `env`, `service`, `volume`, …) inline, and the operational steps as an ordered UNNAMED list under `plan:`. A step that needs a stable name for reports/overlays carries an `id:` field. This name-first shape is globally addressable, so candy files stay deploy-mergeable — stack the top-level keys (or concatenate with `---` separators) to form a single file containing many candies. (The only other children an entity may carry are sub-ENTITY members, and only under a deployable kind — see `/charly-core:deploy`; a candy nests no members.)
+Every charly.yml is self-describing. A candy flattens to a top-level `<name>:` key (the entity NAME) with EXACTLY ONE kind key — `candy:` — whose value is the COMPLETE body: scalars, every collection (`package`, `env`, `service`, `volume`, …) inline, and the operational steps as an ordered UNNAMED list under `plan:`. A step that needs a stable name for reports/overlays carries an `id:` field. This name-first shape is globally addressable, so candy files stay fleet-mergeable — stack the top-level keys (or concatenate with `---` separators) to form a single file containing many candies. (The only other children an entity may carry are sub-ENTITY members, and only under a deployable kind — see `/charly-core:deploy`; a candy nests no members.)
 
 ```yaml
 # candy/chrome/charly.yml
@@ -98,7 +98,7 @@ Every editor verb above auto-becomes an MCP tool via Kong reflection (`candy.set
 
 The `charly candy …` group edits `candy/<name>/charly.yml` through the `yaml.v3` Node API, so **comments and key order are preserved** across edits. Unlike unmarshal-then-marshal, nothing gets scrambled when an agent (or a shell script) touches the file:
 
-> The top-level `charly candy` authoring tree is a **COMPILED-IN COMMAND-class plugin** (`candy/plugin-candy`, `command:candy`) that OWNS the entire logic — the `set` / `add-rpm` / `add-deb` / `add-pac` / `add-aur` subcommand grammar AND the comment-preserving `yaml.Node` mutation of `candy/<name>/charly.yml` (`candySet` / `appendCandyPackages` / `candyBodyNode` / `ensureMappingChild` all live IN the plugin, none in core). There is no core candy logic and no HostBuild seam — a plugin editing yaml owns that itself. The ONLY shared pieces are the generic yaml utilities `kit.SetByDotPath` + `kit.MappingChild` (`sdk/kit/yaml.go`), which also back `charly box set` + `charly box scaffold` — ONE copy (R2). Because it is self-contained (no reverse channel), `charly candy` works identically compiled-in OR out-of-process, like `migrate`; the host dispatches the compiled-in placement through `dispatchInProcCommand` → `Invoke(OpRun)` → `runCandyCLI` (which just runs directly). (This is NOT `charly new candy` — a child of `charly new` — which stays a builtin.)
+> The top-level `charly candy` authoring tree is a **COMPILED-IN COMMAND-class plugin** (`candy/plugin-candy`, `command:candy`) that OWNS the entire logic — the `set` / `add-rpm` / `add-deb` / `add-pac` / `add-aur` subcommand grammar AND the comment-preserving `yaml.Node` mutation of `candy/<name>/charly.yml` (`candySet` / `appendCandyPackages` / `candyBodyNode` / `ensureMappingChild` all live IN the plugin, none in core). There is no core candy logic and no HostBuild seam — a plugin editing yaml owns that itself. The ONLY shared pieces are the generic yaml utilities `kit.SetByDotPath` + `kit.MappingChild` (`sdk/kit/yaml.go`), which also back `charly box set` + `charly box scaffold` — ONE copy (R3). Because it is self-contained (no reverse channel), `charly candy` works identically compiled-in OR out-of-process, like `migrate`; the host dispatches the compiled-in placement through `dispatchInProcCommand` → `Invoke(OpRun)` → `runCandyCLI` (which just runs directly). (This is NOT `charly new candy` — a child of `charly new` — which stays a builtin.)
 
 ```bash
 # Append packages (idempotent; handles scaffold's null `package:` value):
@@ -678,8 +678,6 @@ my-app:
 
 **`env:` vs `var:`:** `env:` is container **runtime** environment (emitted as `ENV` and persists into the running container). `var:` is **build-time** substitution for `${VAR}` references inside the candy's `run:`/`check:` steps — also emitted as `ENV` so BuildKit can substitute in COPY paths, but conceptually scoped to the candy's install. There's no hard rule against using `env:` for both purposes, but keeping them separate makes intent clearer.
 
-**`env:` on a MACHINE venue (`target: local` / `target: vm`).** On the pod/container path `env:` becomes a container `ENV`, visible to every process. On a machine venue there is no such process-wide environment: charly writes each candy's `env:` to `~/.config/opencharly/env.d/<candy>.env` and sources it from a managed block in the shell init. Since a NON-interactive command (`ssh <box> <cmd>`, a deploy `run:`/`check:`, or a `command:` check probe) never reads `~/.bashrc`, charly prefixes every non-interactive machine-venue command with a preamble that sources the venue user's own env.d — so a candy's `env:` reaches the SAME places the container `ENV` would (charly#814). Two consequences for authoring: (a) a `check:` that asserts a candy's `env:` (e.g. `command: printenv MY_VAR`) now works identically on a pod and on a VM/local venue; (b) the preamble runs at USER scope only — a `sudo` (root) step does not source the user's env.d, because `sudo` resets `HOME` and a candy's `env:` is the deploying user's, not root's.
-
 **`env:` is a MAP, not a list — everywhere** (candies, boxes, AND deploys). The parser decodes it as `map[string]string`, not `[]string`. Authoring it as `- KEY=value` fails with `cannot unmarshal !!seq into map[string]string` at `charly box validate`. Always use map form:
 
 ```yaml
@@ -792,7 +790,7 @@ sshd:
 | `name` | yes | both | Service identifier; passed to `service_template` as `.Name` |
 | `use_packaged` | form 1 | packaged | Distro-shipped unit name (e.g., `postgresql.service`); mutually exclusive with `exec` |
 | `exec` | form 2 | custom | Command to run (`ExecStart` in systemd, `command` in supervisord) |
-| `distro` | no | both | List of distros this entry renders on — a bare name (`debian`) or a versioned tag (`debian:13`). Empty/absent = every distro (the default). The service analogue of a check step's `exclude_distro:` — it scopes an entry to the distros whose packaging actually ships that unit/binary, so ONE candy carries per-distro-DIVERGENT daemons without a `<name>-host` sibling (R2). Filtered at render time in BOTH the build path (supervisord fragments + bootc `system_enable`) and the deploy path (`compileServiceSteps`). Canonical example: `/charly-infrastructure:virtualization` (modular `virtqemud`/`virtnetworkd` on Fedora/Arch vs monolithic `libvirtd` on Debian/Ubuntu). |
+| `distro` | no | both | List of distros this entry renders on — a bare name (`debian`) or a versioned tag (`debian:13`). Empty/absent = every distro (the default). The service analogue of a check step's `exclude_distro:` — it scopes an entry to the distros whose packaging actually ships that unit/binary, so ONE candy carries per-distro-DIVERGENT daemons without a `<name>-host` sibling (R3). Filtered at render time in BOTH the build path (supervisord fragments + bootc `system_enable`) and the deploy path (`compileServiceSteps`). Canonical example: `/charly-infrastructure:virtualization` (modular `virtqemud`/`virtnetworkd` on Fedora/Arch vs monolithic `libvirtd` on Debian/Ubuntu). |
 | `env` | no | both | Map of env vars; systemd renders as `Environment="K=V"`, supervisord as `environment=K="V",...` |
 | `restart` | no | custom | `no` / `on-failure` / `always` / `unless-stopped`; mapped by init-specific template helper |
 | `working_directory` | no | custom | `WorkingDirectory=` (systemd) / `directory=` (supervisord) |
@@ -1238,7 +1236,7 @@ candies coexist in one rc file:
 # opencharly:end <layer>
 ```
 
-`charly deploy del` strips just the candy's fence pair from the rc file
+`charly fleet del` strips just the candy's fence pair from the rc file
 (without touching unrelated content). Fish always uses a per-candy
 drop-in file (`conf.d/` is auto-sourced — no fence needed).
 
@@ -1291,7 +1289,7 @@ by the single idempotent `charly migrate` — see `/charly-build:migrate`.
 
 ## Cross-kind name reuse
 
-A candy is a top-level **name-first** node, so within a single document the top-level node names are **globally unique**. Cross-FILE name reuse across SEPARATE discovered files IS still permitted: the same identifier (e.g. `charly-cachyos`) MAY exist as a layer at `candy/charly-cachyos/charly.yml` AND an image at `box/charly-cachyos/charly.yml` simultaneously — both are `candy:` nodes (the image carries `base:`/`from:`; there is no `box:` KIND), routed to distinct internal maps (`uf.Candy` vs `uf.Box`). Verbs disambiguate by command context. When `charly deploy add <name>` resolves a ref where both an image AND a layer with that name exist, the image wins (image-first precedence); use `--add-candy <name>` to explicitly select the layer for an overlay. See the project rulebook "cross-FILE cross-kind reuse is fine, but a single document's top-level node names are GLOBALLY UNIQUE" and `/charly-core:deploy`.
+A candy is a top-level **name-first** node, so within a single document the top-level node names are **globally unique**. Cross-FILE name reuse across SEPARATE discovered files IS still permitted: the same identifier (e.g. `charly-cachyos`) MAY exist as a layer at `candy/charly-cachyos/charly.yml` AND an image at `box/charly-cachyos/charly.yml` simultaneously — both are `candy:` nodes (the image carries `base:`/`from:`; there is no `box:` KIND), routed to distinct internal maps (`uf.Candy` vs `uf.Box`). Verbs disambiguate by command context. When `charly fleet add <name>` resolves a ref where both an image AND a layer with that name exist, the image wins (image-first precedence); use `--add-candy <name>` to explicitly select the layer for an overlay. See the project rulebook "cross-FILE cross-kind reuse is fine, but a single document's top-level node names are GLOBALLY UNIQUE" and `/charly-core:deploy`.
 
 ---
 
