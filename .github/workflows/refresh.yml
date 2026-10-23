@@ -169,10 +169,10 @@ jobs:
           # commit carries. The snapshot used to be taken ~200 lines BEFORE the run's
           # `git add -A`, so every file the run produced was still untracked at that
           # moment and read `??` — a code the legend does not define and the commit does
-          # not carry. The COUNTS were right (the counters accept `^??` as well as `^A `),
+          # not carry. The COUNTS were right — `ADDED` accepted `^??` as well as `^A ` —
           # which is the worst combination: the report looked precise while describing
           # something the PR was not. Staging first makes the report's codes the commit's
-          # codes by construction.
+          # codes by construction, and `ADDED` below counts the commit's additions only.
           #
           # ONE staging command, here. Nothing between this snapshot and the commit
           # touches the worktree (the body is assembled into /tmp/pr-body.md), so the
@@ -187,7 +187,14 @@ jobs:
           # generated skill entity (the owning repo changed its own candy manifest), so
           # "the same skills at newer tags" is a false claim whenever a path is not a
           # pure modification. Derive the real class from the porcelain status codes.
-          ADDED=$(printf '%s\n' "$STATUS" | grep -c '^??\|^A ' || true)
+          #
+          # `ADDED` counts the INDEX column's `A` and nothing else. `^??` used to be
+          # accepted here, and that clause is what made the counts agree with a
+          # PRE-STAGING tree: an untracked file was counted as "added" even though the
+          # commit did not carry it. The snapshot is taken after the staging now, so `??`
+          # cannot appear in $STATUS at all, and an untracked file is by definition not an
+          # addition to the commit — counting it would only ever be a way to be wrong.
+          ADDED=$(printf '%s\n' "$STATUS" | grep -c '^A ' || true)
           REMOVED=$(printf '%s\n' "$STATUS" | grep -c '^ D\|^D ' || true)
           MODIFIED=$(printf '%s\n' "$STATUS" | grep -c '^ M\|^M ' || true)
 
