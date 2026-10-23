@@ -29,6 +29,16 @@ charly-marketplace:
             - '@github.com/opencharly/distro-ubuntu:v2026.289.1008'
             # Standalone sources for internals, command and authoring skills.
             - '@github.com/opencharly/layer-charly-internals:v2026.296.0218'
+            # The two CONTRACT repos' skill shelves (opencharly/opencharly#611).
+            # DIRECT refs, deliberately: `plugin-marketplace#41` showed a skill reached
+            # only through the closure publishes whatever tag a sibling happens to name,
+            # and a DIRECT ref makes this list the authority (resolve.go preferEntity
+            # step 2). Both are Go MODULES, so their tags follow the Go-module scheme
+            # `v0.<YYYYDDD>.<HHMM with leading zeros stripped>` — not the superproject's
+            # `v<YYYY.DDD.HHMM>`, which is not a valid Go module version. Each pin below
+            # is the tag that repo's own merge minted.
+            - '@github.com/opencharly/spec:v0.2026296.734'
+            - '@github.com/opencharly/sdk:v0.2026296.803'
             - '@github.com/opencharly/layer-charly-internals-extra:v2026.294.2355'
             - '@github.com/opencharly/layer-charly-build:v2026.292.2017'
             - '@github.com/opencharly/layer-charly-check:v2026.288.1102'
