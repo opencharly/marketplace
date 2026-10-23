@@ -310,12 +310,6 @@ charly-marketplace:
             - '@github.com/opencharly/pod-selkies-desktop:v2026.296.0939'
             - '@github.com/opencharly/layer-tmux:v2026.296.0940'
             - '@github.com/opencharly/layer-wl-overlay:v2026.296.0940'
-            # The umbrella IS a corpus source: the general-guidance skills with no code,
-            # plugin, or config behind them live at its root `.agents/skills/` and are
-            # owned by its `opencharly-guidance` candy (AGENTS.md Part II #5). This is
-            # what lets `layer-charly-internals` stop publishing its own copies of
-            # `agents`, `cutover-policy` and `root-cause-analyzer`.
-            - '@github.com/opencharly/opencharly:v2026.296.2037'
             # Two plugins whose skills were reachable ONLY through a manifest template
             # inside eval-omarchy's closure (`template: |-`). The corpus ref collector
             # reads DECLARED scalars now, not block scalars (opencharly/sdk#455, fixed and
