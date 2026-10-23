@@ -12,35 +12,6 @@ description: |-
 **opencharly.ai** from the sources that already exist in this repository. It is served by
 `candy/plugin-docs`.
 
-## R4 — documentation never routes around a defect
-
-The rulebook states R4 as a mandate (umbrella `AGENTS.md`, "The ground-truth rules
-R1–R10"); this is its operationalization for every page this skill renders and every
-hand-authored page beside it.
-
-- **Fix the product first.** When documented behaviour and the code disagree, establish
-  which side holds the INTENT, then fix the code BEFORE touching the prose. Editing docs
-  to match a bug is forbidden; so is editing them to avoid one.
-- **The tells of a routed-around defect:** a `git clone`, a `cd`, or a `-C` standing in
-  for a flag that should work; an "except on…" caveat; a "known limitation" note in place
-  of a fix. Each describes the defect instead of removing it — and makes it permanent by
-  making it look intended.
-- **Binary-only reader.** Every command a reader is told to run MUST work with nothing but
-  the `charly` binary installed — no clone, no `cd`, no pre-existing project, no unnamed
-  companion tool. Write every page for a reader who installed `charly` as a native package
-  with NO charly checkout on the machine: no `task` target, no `./bin/charly`, no
-  repo-relative path, no verb supplied by a candy that exists only in this repository.
-  `--repo <owner>/<repo>` reads a published project without a clone;
-  `charly box new project <dir>` starts a local one.
-- **The one exception is the INSTALL page**, where the reader obtains charly: it leads
-  with the native package and scopes the checkout to working ON charly. A
-  repository-maintenance command is named as maintenance this project performs, never as
-  a step the reader runs.
-- **Anywhere else, needing more than the binary is a PRODUCT DEFECT** — the missing
-  capability is the bug, and the fix belongs in `charly`. If that fix is genuinely out of
-  scope, file it with its root cause and let the page say nothing rather than something
-  false: silence is recoverable, a documented workaround is taught.
-
 ## Placement: a RUNTIME plugin, deliberately
 
 `plugin-docs` is **not** listed in `charly/charly.yml`'s `compiled_plugins:`. A dev-time
@@ -81,8 +52,8 @@ charly docs generate \
 
 ## What it emits
 
-The generator owns seven top-level entries — `index.md`, `grievances.md`, `vision.md`,
-`liberation.md`, `soul.md`, `reference/` and `recipes/` — and rewrites them wholesale each run, so a deleted
+The generator owns six top-level entries — `index.md`, `grievances.md`, `vision.md`,
+`liberation.md`, `reference/` and `recipes/` — and rewrites them wholesale each run, so a deleted
 source entity disappears from the site instead of lingering as an orphan page. (The table below
 expands `reference/` into its sub-trees plus the single file `reference/providers.md`, so it
 runs to many rows.) What stays hand-authored is the teaching narrative this repository has no
@@ -107,7 +78,6 @@ not the page.**
 | `grievances.md` | `GRIEVANCES.md`, H1 dropped, repo-relative links rewritten for a web reader |
 | `vision.md` | `VISION.md`, H1 dropped, repo-relative links rewritten for a web reader |
 | `liberation.md` | `LIBERATION.md`, H1 dropped, repo-relative links rewritten — the deliberate easter-egg page, entered last in the sidebar as "Liberation" |
-| `soul.md` | `SOUL.md`, H1 dropped, published verbatim — the identity of charly and every charly agent; self-contained, so there are no repo-relative links to rewrite |
 | `reference/cli/` | one page per `command:` provider word |
 | `reference/candy/` | every defined candy: packages, services, and its `plan:` as an acceptance spec |
 | `reference/box/` | every defined box |
@@ -204,7 +174,7 @@ the pinned charly) belongs to the same cutover as the candy edit.
 `candy/*/charly.yml` — but the generator DOES project candy `skill:` entities directly
 from its own remote-aware walk (`collectCandySkills`), the complement that keeps a moved
 candy's recipe references resolving on the site even before the marketplace regeneration
-lands (the stale-marketplace gap `/charly-tools:crabbox-cli` measures — see the tests
+lands (the stale-marketplace gap `/charly-tools:crabbox` measures — see the tests
 section). The long path still holds: a skill is authored as a `skill:` entity in its
 owning candy; `charly marketplace generate` projects that into the
 opencharly/marketplace repo (`<family>/skills/<name>/SKILL.md`), and
@@ -236,7 +206,7 @@ stylistic preference; the obvious surfaces are actively wrong for the purpose:
 - A plugin absent from `compiled_plugins:` still loads out-of-process when a plan references its
   word, so "in the binary" is not the same set as "exists".
 
-So discovery is not the walked trees alone: the catalog is ONE assembly (R2/R5,
+So discovery is not the walked trees alone: the catalog is ONE assembly (R3/R5,
 `assembleCatalog`) unioning three sets —
 
 1. the **walked closure** — remote-ref-aware (`candywalk.CollectEntitiesRemote`):
@@ -324,7 +294,7 @@ describe the bad shape rather than spelling it.
 
 The host renders every dynamic command word with a generic stub description, intercepts the
 depth-1 `--help` itself, and plugin-served help arrives in at least three mutually incompatible
-formats with no machine-readable dump. Parsing that would be the fragile shim R3 forbids. Every
+formats with no machine-readable dump. Parsing that would be the fragile shim R4 forbids. Every
 fact the site needs is already declared: `plugin.providers`, the per-plugin `schema/*.cue`, and
 each candy's `description:`.
 

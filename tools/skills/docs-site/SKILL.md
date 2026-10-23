@@ -102,6 +102,23 @@ That step is what fails if the generator ever narrows to documenting only the de
 that breaks first, because silently omitting everything that is not compiled in is the most
 plausible way for this catalog to go quietly wrong.
 
+### How the pages are located
+
+The two corpus-projected pages — `docs-site-candy-acceptance-plan` and
+`docs-site-runtime-plugin-page` — are resolved **by name**, not by a literal path. The site
+publishes one page per corpus version, under a version-stamped directory
+(`<repo>-<name>-v<calver>/`), so a literal path would redden the bed on the next corpus
+advance — a false alarm about a change that never touched the site. Each resolves the newest
+version and **fails when no page exists at all**: a generator that narrowed to documenting
+nothing would otherwise leave `cat` reading an empty path, and the check would pass on an
+empty stdout.
+
+The unversioned paths this bed used to assert (`/srv/docs/dist/reference/candy/charly/` and
+`/srv/docs/dist/reference/plugin/plugin-cdp/`) are gone from the site: the docs repo dropped
+them in its own #106, and the bed stayed green only because `DOCS_REF` was still pinned to a
+docs commit from before that change. A stale pin can hide a broken assertion, so the pin must
+be the docs repo's current `main` head.
+
 ## The check-docs bed
 
 ```bash
