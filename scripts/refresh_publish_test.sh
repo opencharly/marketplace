@@ -93,7 +93,7 @@ run_case "not-created"  1 ""    1 "did not create a PR" "Open it by hand"
 # at the round-2 defect this harness now guards: a renumbering that drops a bullet's HEADER
 # leaves its body lines printed with no rule id — the artifact this PR exists to fix — and a
 # mapping that emits one rule id twice is equally wrong.
-python3 - "$WF" "$WORK/emitted.txt" "$WORK/emitted-head.txt" <<'PY'
+python3 - "$WF" "$WORK/emitted.txt" "$WORK/emitted-head.txt" "$WORK/emitted-all.txt" <<'PY'
 import re, sys
 src = open(sys.argv[1]).read().split('\n')
 # The body is assembled by runs of `echo` lines. Pick the run that CARRIES rule bullets — the
@@ -116,6 +116,10 @@ def emit(run):
     return out
 block = next((r for r in runs if any(t.startswith('- **R') for t in emit(r))), None)
 open(sys.argv[2], 'w').write('\n'.join(emit(block)) + '\n' if block else '')
+# The WHOLE assembled body — every `echo` run the workflow emits, in order — so a count claim
+# can be asserted at the artifact boundary (what the PR body actually says), not only in the
+# workflow's source text.
+open(sys.argv[4], 'w').write('\n'.join(t for r in runs for t in emit(r)) + '\n')
 # Every log/diff fence-close in the assembled body must be followed by a HEADING — a rule bullet
 # or a `##` section — never by a continuation-only line: a renumbering that drops a bullet's
 # header leaves exactly that orphan, printed with no rule id. Report every offending line.
@@ -143,6 +147,29 @@ while IFS=: read -r n _; do
 done < <(grep -nE '^  ' "$EMITTED" || true)
 [ -z "$orphans" ] && ok "every continuation line follows a rule bullet" \
   || bad "continuation lines with no rule bullet above them: line(s)$orphans"
+
+# ---- the workflow's PROSE must not state the refs list's SIZE as a literal. A hand-written count
+# about a list that changes on every refresh is a claim that drifts: refresh PR #534's body gave
+# TWO different sizes for the same list — how many pins the run advanced, and how many the
+# workflow still had to advance — and the validator read the contradiction there. The CLASS is
+# what is forbidden (a count of pins or of refs, of the refs left over, or of the per-ref
+# progress lines), not one instance of it, so a later list cannot re-introduce the same drift
+# under a different number. The nouns are the sweep's own: the R1 sweep greps for a count of
+# `pins?` OR `refs?`, so the guard covers both — a guard narrower than the sweep would let a
+# "N refs" phrasing through the very hole the sweep is looking for.
+COUNT_PATTERN='\b[0-9]{2,} +(hand-maintained +)?(pins?|refs?)\b|\bthe remaining +[0-9]+\b|\b[0-9]{2,} +of them\b'
+COUNT_CLAIMS="$(grep -nE "$COUNT_PATTERN" "$WF" || true)"
+if [ -z "$COUNT_CLAIMS" ]; then
+  ok "the workflow states the refs list's size without a number"
+else
+  bad "the workflow states a count of the refs list: $(tr '\n' ';' <<<"$COUNT_CLAIMS")"
+fi
+EMITTED_CLAIMS="$(grep -nE "$COUNT_PATTERN" "$WORK/emitted-all.txt" || true)"
+if [ -z "$EMITTED_CLAIMS" ]; then
+  ok "the assembled body states the refs list's size without a number"
+else
+  bad "the assembled body states a count of the refs list: $(tr '\n' ';' <<<"$EMITTED_CLAIMS")"
+fi
 
 echo
 if [ "$FAILS" -eq 0 ]; then echo "PASS — refresh publication block assertions passed"; exit 0; fi
