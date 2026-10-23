@@ -318,7 +318,8 @@ charly-marketplace:
             - '@github.com/opencharly/opencharly:v2026.296.2037'
             # Two plugins whose skills were reachable ONLY through a manifest template
             # inside eval-omarchy's closure (`template: |-`). The corpus ref collector
-            # reads DECLARED scalars now, not block scalars (opencharly/sdk#455), so the
+            # reads DECLARED scalars now, not block scalars (opencharly/sdk#455, fixed and
+            # released as sdk#467), so the
             # accidental path is gone and these become what they should always have been:
             # a direct pin at the tag each repo's own merge minted.
             - '@github.com/opencharly/plugin-record:v2026.272.0412'
