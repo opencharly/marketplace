@@ -1454,7 +1454,7 @@
       ]
     },
     {
-      "name": "plugin-nerdctl",
+      "name": "plugin-containerd",
       "files": [
         "SKILL.md"
       ]
