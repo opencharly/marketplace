@@ -18,7 +18,7 @@ and its optional local Node.js/PostgreSQL coordinator, served
 out-of-process over go-plugin gRPC by `opencharly/plugin-crabbox`.
 Install the CLI with `/charly-tools:crabbox-cli` (opencharly/layer-crabbox)
 and the coordinator with `/charly-crabbox:crabbox-coordinator`
-(opencharly/pod-crabbox).
+(opencharly/pod-crabbox-coordinator).
 
 ## Why it is not the `command:`/`http:` verbs
 

@@ -18,7 +18,7 @@ Crabbox (https://github.com/openclaw/crabbox) leases or selects a runner,
 syncs the current working tree, runs commands remotely, streams output,
 records evidence, and releases the target. In OpenCharly the CLI
 (`layer-crabbox` candy), the Node.js/PostgreSQL coordinator
-(`pod-crabbox` candy, supervised, postgres-backed), and the `crabbox:`
+(`pod-crabbox-coordinator` candy, supervised, postgres-backed), and the `crabbox:`
 check verb (`plugin-crabbox`) compose into a FULLY-LOCAL control plane:
 CLI -> broker at loopback :8080 -> postgres :5432 -> leases via
 `--provider local-container` on the box's nested rootless podman.
@@ -45,7 +45,7 @@ For container lifecycle use `charly` commands -- see `/charly-core:service`.
 - `layer-crabbox` (v2026.247.0855) — the CLI binary at /usr/local/bin/crabbox
   (pinned GoReleaser archive), prerequisites composed (layer-gh /
   layer-ssh-client / rsync / curl), plan checks: version/providers/doctor.
-- `pod-crabbox` (v2026.247.1016) — the coordinator: built from the pinned
+- `pod-crabbox-coordinator` (v2026.247.1016) — the coordinator: built from the pinned
   upstream tag in-image, supervised at priority 20 (after postgres), port
   8080, /v1/health + /v1/ready, start wrapper waiting for the database.
 - `plugin-crabbox` (v2026.247.1021) — the `crabbox:` check verb (three

@@ -16,7 +16,7 @@ charly-marketplace:
             # referenced here … resolved to unknown candy" — described the pre-cutover SUBPATH
             # form's refusal and an older candy-resolution failure. Both are answered: the
             # subpath form stays refused by design, and the repo-root ref is now admitted.
-            - '@github.com/opencharly/pod-charly-hooks:v2026.290.1114'
+            - '@github.com/opencharly/pod-charly-hooks:v2026.297.0523'
             - '@github.com/opencharly/eval-omarchy:v2026.295.0943'
             # The distro-* image families own their OS/base skills (relocated from the
             # layer-charly-distros concept aggregator — this pin is the corpus source for
@@ -257,14 +257,14 @@ charly-marketplace:
             - '@github.com/opencharly/layer-thunar:v2026.293.0058'
             - '@github.com/opencharly/layer-xfce4-terminal:v2026.292.2303'
             - '@github.com/opencharly/layer-punktfunk:v2026.293.0052'
-            - '@github.com/opencharly/pod-charly-automation:v2026.289.1043'
+            - '@github.com/opencharly/pod-charly-automation:v2026.297.0523'
             - '@github.com/opencharly/plugin-agentteams/candy/plugin-agentteams:v2026.294.2143'
             - '@github.com/opencharly/plugin-ollama/candy/plugin-ollama:v2026.294.2127'
             - '@github.com/opencharly/plugin-dsh/candy/plugin-dsh:v2026.294.2110'
             - '@github.com/opencharly/plugin-herdr/candy/plugin-herdr:v2026.292.2256'
             - '@github.com/opencharly/pod-herdr:v2026.292.2249'
             - '@github.com/opencharly/plugin-punktfunk/candy/plugin-punktfunk:v2026.294.2144'
-            # Crabbox wave (Phase 4): the CLI (layer-crabbox) + coordinator (pod-crabbox)
+            # Crabbox wave (Phase 4): the CLI (layer-crabbox) + coordinator (pod-crabbox-coordinator)
             # skill entities. TWO refs declare a `skill:` entity named `crabbox` —
             # layer-crabbox (family: tools) and plugin-crabbox (family: check, owner:
             # plugin-crabbox) — and the emitter's dedupe key is (Kind, Name) WITHOUT the
@@ -282,8 +282,8 @@ charly-marketplace:
             # family. Fixing that belongs there, not here — no pin can express "prefer the
             # check-verb entity" without inventing a rule the emitter does not have.
             - '@github.com/opencharly/layer-crabbox:v2026.296.1129'
-            - '@github.com/opencharly/pod-crabbox:v2026.293.1655'
-            - '@github.com/opencharly/plugin-crabbox/candy/plugin-crabbox:v2026.296.1309'
+            - '@github.com/opencharly/pod-crabbox-coordinator:v2026.297.0523'
+            - '@github.com/opencharly/plugin-crabbox/candy/plugin-crabbox:v2026.297.0524'
             # R0 coverage wave (opencharly/opencharly#382): three repos own `skill:`
             # entities that carry `triggers:` but were never pinned, so the emitter
             # never saw them and their skills were absent from the corpus entirely —
