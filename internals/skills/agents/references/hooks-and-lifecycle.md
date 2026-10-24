@@ -473,10 +473,13 @@ acting without the orchestrator's direct supervision.
 - **Session identity and scope claims are the comment grammar.** When two
   or more agents work one issue/PR, or a scope is a blocking dependency,
   a session speaks through its two-line `Agent:` + `Assisted-by` footer
-  and a scope is claimed or taken over only through the closed verb set
-  (`CLAIM`/`OWNING`/`HANDING OVER`/`TAKING OVER`/`WAITING`/`HOLDING`/
-  `CLEARED`/`STATUS`/`RESOLVED`). Owned by `/charly-internals:git-workflow` B2b —
-  never restated here.
+  and a scope is claimed, handed over, taken over or reported only through
+  the coordination grammar's closed verb set. That set, what each label
+  means (which side of a block speaks, and what the resolution posts), the
+  required comment fields and the takeover window are stated once in
+  `AGENTS.md` Part II #7 and operationalized in
+  `/charly-internals:git-workflow` B2b. The labels are not enumerated here:
+  a copy drifts, the pointer cannot.
 
 ## Todo ledger & interruption safety
 
