@@ -68,7 +68,7 @@ charly-marketplace:
             # (`grep -o 'resolving [^ ]*' <generate log> | sort -u | wc -l`).
             #
             # Standalone sources for internals, command and authoring skills.
-            - '@github.com/opencharly/layer-charly-internals:v2026.297.0301'
+            - '@github.com/opencharly/layer-charly-internals:v2026.297.0850'
             # The internals skills the DRAIN moved to their owning repos
             # (opencharly/layer-charly-internals#142): `egress` -> plugin-egress,
             # `marketplace` -> plugin-marketplace, `vm-deploy-target` -> plugin-deploy-vm.
