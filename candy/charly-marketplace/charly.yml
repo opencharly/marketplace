@@ -44,6 +44,29 @@ charly-marketplace:
             # of the carrier's stale `sdk/schema/*.cue` (`go-quality`'s trigger is identical at
             # both sources, so its row does not move).
             - '@github.com/opencharly/charly:v2026.297.0032'
+            # --- the post-migration source set at this end of the list (opencharly/opencharly#600).
+            #
+            # ONE rule, stated here once for the whole set: a skill reachable ONLY through
+            # the closure is published from whatever tag a sibling pin happens to name,
+            # silently — `plugin-marketplace#41`, which has now bitten twice. So every
+            # source whose body matters is pinned DIRECT, which makes this list the
+            # authority (`resolve.go` preferEntity step 2) instead of the victim of another
+            # repo's tag order. The umbrella pin and the two contract shelves below are
+            # DIRECT for this reason and do not restate it.
+            #
+            # A plugin repo is a SAFE source even though it ships no corpus: the walk reads
+            # the FETCHED tree, never a host checkout, while the generator itself is built
+            # from the LOCAL `tools/marketplace-cli` shim (a remote candy ref does not
+            # register the command word). That is also why `plugin-marketplace` may pin
+            # itself as its own source without recursing — and none of the three pins its
+            # walk again: each declares ZERO `@github.com` refs (their tokens are Go
+            # fixtures, README examples and one line of skill prose, and a block scalar is
+            # not a ref either — declared scalars only, opencharly/sdk#467).
+            #
+            # The closure cost, measured and cheap to re-measure: 890 unique `(repo, tag)`
+            # keys without these three, 893 with them — exactly three, no transitive refs
+            # (`grep -o 'resolving [^ ]*' <generate log> | sort -u | wc -l`).
+            #
             # Standalone sources for internals, command and authoring skills.
             - '@github.com/opencharly/layer-charly-internals:v2026.297.0301'
             # The internals skills the DRAIN moved to their owning repos
@@ -63,8 +86,7 @@ charly-marketplace:
             # The UMBRELLA's OWN general-guidance skills (opencharly/opencharly#600,
             # AGENTS.md Part II #5): `agents`, `cutover-policy`, `root-cause-analyzer` have
             # no code, plugin or config behind them, so their home is the one repo every
-            # consumer shares. DIRECT, deliberately: `plugin-marketplace#41` showed a skill
-            # reached only through the closure publishes whatever tag a sibling names.
+            # consumer shares. DIRECT, for the rule stated above with the other sources.
             #
             # This pin was WITHDRAWN from #566 because a repo with submodules could not be a
             # corpus source at all: `spec/refs.DownloadRepo` initialised every declared
@@ -78,10 +100,8 @@ charly-marketplace:
             # as this pin is the newer one. Draining the carrier's three is its own PR.
             - '@github.com/opencharly/opencharly:v2026.296.2254'
             # The two CONTRACT repos' skill shelves (opencharly/opencharly#611).
-            # DIRECT refs, deliberately: `plugin-marketplace#41` showed a skill reached
-            # only through the closure publishes whatever tag a sibling happens to name,
-            # and a DIRECT ref makes this list the authority (resolve.go preferEntity
-            # step 2). Both are Go MODULES, so their tags follow the Go-module scheme
+            # DIRECT, for the rule stated above. Both are Go MODULES, so their tags follow
+            # the Go-module scheme
             # `v0.<YYYYDDD>.<HHMM with leading zeros stripped>` — not the superproject's
             # `v<YYYY.DDD.HHMM>`, which is not a valid Go module version. Each pin below
             # is the tag that repo's own merge minted.
