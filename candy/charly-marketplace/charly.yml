@@ -305,7 +305,7 @@ charly-marketplace:
             # installs the nerdctl CLI + containerd stack, plus the out-of-tree
             # engine:containerd plugin; each owns its harness skill.
             - '@github.com/opencharly/layer-nerdctl/candy/layer-nerdctl:v2026.296.1649'
-            - '@github.com/opencharly/plugin-nerdctl/candy/plugin-nerdctl:v2026.295.1321'
+            - '@github.com/opencharly/plugin-containerd/candy/plugin-containerd:v2026.297.0523'
 
             - '@github.com/opencharly/plugin-firecracker/candy/plugin-firecracker:v2026.288.0016'
             # plugin-firecracker owns the `firecracker` family skill (microVM substrate). Pinned at the tag its own
