@@ -45,7 +45,21 @@ charly-marketplace:
             # both sources, so its row does not move).
             - '@github.com/opencharly/charly:v2026.297.0032'
             # Standalone sources for internals, command and authoring skills.
-            - '@github.com/opencharly/layer-charly-internals:v2026.296.1907'
+            - '@github.com/opencharly/layer-charly-internals:v2026.297.0301'
+            # The internals skills the DRAIN moved to their owning repos
+            # (opencharly/layer-charly-internals#142): `egress` -> plugin-egress,
+            # `marketplace` -> plugin-marketplace, `vm-deploy-target` -> plugin-deploy-vm.
+            # The carrier's tag no longer holds them, so without these three DIRECT refs
+            # the corpus resolves each of them to a TRANSITIVE twin at an old tag and
+            # publishes a pre-move copy — measured: the projections of all three CHANGE
+            # against the committed corpus, and two of them lose net lines (egress +2/-16,
+            # marketplace +7/-19) (opencharly/marketplace#537). DIRECT, so
+            # they win over the transitive twins (resolve.go preferEntity step 2), and each
+            # body's sha256 equals the copy the carrier held at the drain, so pinning the
+            # owners moves the AUTHORITY, not the bytes.
+            - '@github.com/opencharly/plugin-egress:v2026.296.1538'
+            - '@github.com/opencharly/plugin-marketplace:v2026.296.2345'
+            - '@github.com/opencharly/plugin-deploy-vm:v2026.296.1557'
             # The UMBRELLA's OWN general-guidance skills (opencharly/opencharly#600,
             # AGENTS.md Part II #5): `agents`, `cutover-policy`, `root-cause-analyzer` have
             # no code, plugin or config behind them, so their home is the one repo every

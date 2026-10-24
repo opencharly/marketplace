@@ -201,7 +201,11 @@ compliance`, `## Change classification`); a trailer that is not the LAST line (o
 an `Agent:` line not directly preceding it); a rule with no answer, or a bare
 `N/A` with no reason (class 3); an asserted check with no LATER fenced block
 carrying a `$ ` command (class 6); a pasted head SHA that is not `git rev-parse
-HEAD` (class 1); and any ellipsis character inside a fence. Run it on the body
+HEAD` (class 1); and an AUTHORIAL elision inside a fence — an elided `$ `
+command line, an elided `head` command's output, or a dropped line of the
+paste. An ellipsis character that a PROGRAM printed in its own output is
+ALLOWED: the body pastes the product's output verbatim, so the product's own
+token is not an elision (`opencharly/marketplace#537`). Run it on the body
 file BEFORE the push:
 
 ```

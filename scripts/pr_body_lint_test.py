@@ -20,6 +20,27 @@ FOOTER = "*Assisted-by: Claude Code Anthropic Claude Opus 5.5 (documentation rev
 AGENT = "*Agent: containerd-crabbox-program/w10 · session 8b1c01cf-7f79-4a75-bff8-240415a06208*"
 OK_RULES = "\n".join(f"- **{r}:** answered with how." for r in DEFAULT_RULES)
 
+# The bodies this repo merged BEFORE the `ellipsis` arm existed, and the elisions each
+# one carries.  They are history — the arm cannot un-merge them — and the corpus is this
+# rule's calibration, so they are NAMED here rather than silently tolerated.  Every one
+# of the eighteen was read and judged an authorial elision (thirteen elided command
+# lines, five dropped lines); none is a program's own token.
+LEGACY_ELLIPSIS_BODIES = {
+    "2026.241.0244.md": {"command": 1},
+    "2026.241.0736.md": {"command": 4},
+    "2026.241.1633.md": {"dropped": 1},
+    "2026.241.1700.md": {"command": 1},
+    "2026.241.1743.md": {"command": 1},
+    "2026.241.1752.md": {"command": 2},
+    "2026.243.0624.md": {"dropped": 1},
+    "2026.269.1156.md": {"dropped": 1},
+    "2026.270.0840.md": {"command": 1},
+    "2026.277.2007.md": {"command": 1},
+    "2026.279.0741.md": {"command": 1},
+    "2026.290.1200.md": {"command": 1},
+    "2026.297.0006.md": {"dropped": 2},
+}
+
 
 def body(how="x", rules=OK_RULES, footer=FOOTER):
     return f"## Summary\nx\n## How tested\n{how}\n## Rulebook compliance\n{rules}\n## Change classification\nx\n\n{footer}\n"
@@ -148,8 +169,70 @@ class Rules(unittest.TestCase):
         self.assertEqual(run(body(how=proof)), [])
         self.assertTrue(any("no-match grep/rg claim" in x for x in run(body(how=claim + " (output above)."))))
 
-    def test_ellipsis_in_fence_fails(self):
-        self.assertTrue(any(x.startswith("ellipsis:") for x in run(body(how="```\n$ cmd\nline … cut\n```"))))
+    def test_an_elided_command_line_fails(self):
+        """The author's elision of the evidence the `claims` arm reads.
+
+        A command line in a transcript is the author's own typing — a program never prints
+        one — so a `…` there is the author shortening the very command the claim is
+        backed by. This is the case opencharly/opencharly's own landed body carries
+        (`$ git commit …`).
+        """
+        f = run(body(how="```\n$ git commit …\n```"))
+        self.assertTrue(any(x.startswith("ellipsis:") and "command line" in x for x in f), f)
+
+    def test_a_programs_own_token_is_allowed(self):
+        """opencharly/marketplace#537 — the issue's own case, pasted VERBATIM.
+
+        A program that legitimately prints `…` in its own output could not have that output
+        pasted into a PR body at all, under the old character ban: the rule matched the
+        character and could not see who wrote it. The command line here is clean, and the
+        `…` is the PRODUCT's own token on an OUTPUT line — the body is right to paste it.
+        """
+        f = run(body(how="```\n$ node scripts/check-task-command-vars.mjs\n"
+                          "check-task-command-vars: OK — no command step's text carries a ${…} reference\n```"))
+        self.assertEqual([x for x in f if x.startswith("ellipsis:")], [])
+
+    def test_a_dropped_line_fails(self):
+        """A line that is only an ellipsis is a line dropped from the paste."""
+        f = run(body(how="```\n$ cmd\noutput line\n…\n```"))
+        self.assertTrue(any(x.startswith("ellipsis:") and "dropped" in x for x in f), f)
+
+    def test_an_elided_head_output_fails(self):
+        """An elision in the head command's output hides the head the `head` arm compares."""
+        f = run(body(how="```\n$ git rev-parse HEAD\n3e0318aa9a0840c5…\n```"))
+        self.assertTrue(any(x.startswith("ellipsis:") and "head command" in x for x in f), f)
+
+    def test_an_ellipsis_in_a_table_is_allowed(self):
+        """An abbreviation in a summary table is not a pasted transcript.
+
+        `41bd825a…` is the author's own shorthand for a gitlink in a table of files — the
+        rule's doctrine is about PASTED OUTPUT, and a table is not one.
+        """
+        f = run(body(how="```\n41bd825a…  .agents/skills/agents/SKILL.md\n```"))
+        self.assertEqual([x for x in f if x.startswith("ellipsis:")], [])
+
+    def test_the_ellipsis_arm_discriminates(self):
+        """R7 — the fixtures' failures must DEPEND on the arm, not on the fixture.
+
+        Mutate the arm's FORM to allow-all and the elided-command fixture must lint
+        clean; mutate it to ban-all and the verbatim paste must fail. Each result proves
+        its mutation APPLIED, so neither fixture can pass for a reason the arm does not
+        own.
+        """
+        import pr_body_lint as m
+
+        orig = m.ellipsis_kind
+        try:
+            m.ellipsis_kind = lambda *a, **k: None
+            self.assertEqual(
+                [x for x in run(body(how="```\n$ git commit …\n```")) if x.startswith("ellipsis:")], []
+            )
+            m.ellipsis_kind = lambda line, in_head_output=False: "command" if "…" in line else None
+            self.assertTrue(
+                [x for x in run(body(how="```\n$ cmd\nout … token\n```")) if x.startswith("ellipsis:")]
+            )
+        finally:
+            m.ellipsis_kind = orig
 
     def test_body_must_not_contradict_itself_about_a_file(self):
         """opencharly/marketplace#526, round 2 — the body-only BLOCK the linter could not see.
@@ -289,6 +372,124 @@ class Rules(unittest.TestCase):
             fired = [x for x in run(lg.read_text()) if x.startswith(("files:", "counts:"))]
             self.assertEqual(fired, [], f"{lg.name} must not trip the files or counts rule")
 
+    def test_the_ellipsis_arm_is_calibrated_on_the_landed_corpus(self):
+        """opencharly/marketplace#537 — the arm must fire on the AUTHOR's elision and on
+        nothing else, and the corpus is what says whether it does.
+
+        The corpus is every merged body this repo carries in its own `CHANGELOG/` (each
+        entry IS the body of a merged PR, written at merge time). The thirteen bodies in
+        `LEGACY_ELLIPSIS_BODIES` were merged before this arm existed and carry the
+        author's own elision; they are named, so the corpus is a calibration and not a
+        tolerance. The other 435 stay clean, and THAT is the measurement the issue asked
+        for: a program that legitimately prints `…` in its own output can have that
+        output pasted into a body, verbatim, and the body is right.
+
+        A body that starts firing is a body that reached the corpus without the arm's
+        enforcement — a finding to fix, not a number to re-baseline.
+        """
+        from pr_body_lint import blocks, ellipsis_scan, sections
+
+        logs = sorted((HERE.parent / "CHANGELOG").glob("2026.*.md"))
+        self.assertTrue(logs)
+        self.assertGreaterEqual(len(logs), 400, "the corpus this rule is calibrated against shrank")
+        fired = {}
+        for lg in logs:
+            kinds = {}
+            for _name, sec_lines in sections(lg.read_text().split("\n")).items():
+                for kind_of_block, _a, text in blocks(sec_lines):
+                    if kind_of_block != "fence":
+                        continue
+                    for kind, _line in ellipsis_scan(text):
+                        kinds[kind] = kinds.get(kind, 0) + 1
+            if kinds:
+                fired[lg.name] = kinds
+            # the arm is WIRED: the linter itself must fire exactly where the scan says
+            in_linter = [x for x in run(lg.read_text()) if x.startswith("ellipsis:")]
+            self.assertEqual(
+                len(in_linter), sum(kinds.values()), f"{lg.name}: the arm and the linter disagree"
+            )
+        self.assertEqual(fired, LEGACY_ELLIPSIS_BODIES)
+
+    def test_the_measurement_script_reports_the_calibration(self):
+        """opencharly/marketplace#537 — the corpus measurement is a SHIPPED instrument, so
+        it is measured too: the script must report the numbers the frozen calibration
+        states, over the same corpus.
+
+        A script that drifts from the arm it measures is a finding, not a new number:
+        the arm's behaviour is the calibration, and the script is only its instrument.
+        """
+        import ast
+        import re
+        import subprocess
+
+        script = HERE / "measure_ellipsis_corpus.py"
+        self.assertTrue(script.exists(), "the measurement script is missing")
+        proc = subprocess.run(
+            [sys.executable, str(script)], capture_output=True, text=True, cwd=str(HERE.parent)
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        out = proc.stdout
+
+        summary = re.search(
+            r"corpus: (\d+) body/bodies; (\d+) fire the ellipsis arm; (\d+) stay clean", out
+        )
+        self.assertIsNotNone(summary, f"the script reported no summary:\n{out[-2000:]}")
+        bodies, fired, clean = (int(x) for x in summary.groups())
+        logs = sorted((HERE.parent / "CHANGELOG").glob("2026.*.md"))
+        self.assertEqual(bodies, len(logs), "the script read a different corpus than the test")
+        self.assertEqual(fired, len(LEGACY_ELLIPSIS_BODIES))
+        self.assertEqual(clean, bodies - fired)
+
+        by_kind = re.search(r"findings by kind: (\{.*\})", out)
+        self.assertIsNotNone(by_kind, f"the script reported no kinds:\n{out[-2000:]}")
+        expected = {}
+        for kinds in LEGACY_ELLIPSIS_BODIES.values():
+            for kind, count in kinds.items():
+                expected[kind] = expected.get(kind, 0) + count
+        self.assertEqual(ast.literal_eval(by_kind.group(1)), expected)
+
+    def test_the_measurement_script_summarises_without_the_character(self):
+        """opencharly/marketplace#537 — the instrument must be able to say its numbers
+        WITHOUT quoting a finding, because a body cites the summary.
+
+        The per-body lines quote the corpus's own line, and that line carries the very
+        character this rule is about. A body pastes a gate's output verbatim, so quoting
+        it is allowed; but a SUMMARY is what a body wants to cite, and a summary that
+        carries the character invites a reader to ask whether the paste is the author's
+        elision or the product's token. The `--summary` mode therefore prints the two
+        summary lines and nothing else — and carries no character at all, so nothing in
+        it can be read either way.
+
+        The assertion is discriminating: without the flag the run either treats it as a
+        path (and reports an empty corpus) or prints the per-body lines, and both fail
+        here.
+        """
+        import subprocess
+
+        script = HERE / "measure_ellipsis_corpus.py"
+        full = subprocess.run(
+            [sys.executable, str(script)], capture_output=True, text=True, cwd=str(HERE.parent)
+        )
+        self.assertEqual(full.returncode, 0, full.stderr)
+        proc = subprocess.run(
+            [sys.executable, str(script), "--summary"], capture_output=True, text=True, cwd=str(HERE.parent)
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        out = proc.stdout
+
+        # the summary is the FULL run's own last two lines, unchanged
+        self.assertEqual(
+            out.strip().split("\n"),
+            full.stdout.strip().split("\n")[-2:],
+            "the summary must be the full run's own summary, verbatim",
+        )
+        # and it names no finding, so it quotes no corpus line
+        self.assertNotIn("---", out, "the summary must not print per-body findings")
+        self.assertNotIn("[command]", out)
+        self.assertNotIn("[dropped]", out)
+        # and it carries no character the rule is about
+        self.assertNotIn("…", out, "the summary must carry no ellipsis character at all")
+
     def test_head_mismatch_fails(self):
         sha = "a" * 40
         text = body(how=f"Head `{sha}`")
@@ -366,11 +567,11 @@ class HeadFence(unittest.TestCase):
 class FindingEvidence(unittest.TestCase):
     """A linter finding IS evidence, and evidence is pasted into a body.
 
-    A body that proves a rule works pastes the linter's own output — and the house's
-    `ellipsis` rule refuses a `…` inside a fenced block, so a finding that truncates a sha
-    with one cannot be shown in a body at all. The two head findings therefore print the
-    FULL sha: the finding is pasteable verbatim, and the shas in it are the ones a reader
-    can check.
+    A body that proves a rule works pastes the linter's own output — and a finding that
+    truncates a sha with an ellipsis would make the finding itself unverifiable: the sha
+    in it would be an elision, not a value a reader can check. The two head findings
+    therefore print the FULL sha: the finding is pasteable verbatim, and the shas in it
+    are the ones a reader can check.
     """
 
     BODY = (DATA / "charly-1039.md").read_text()

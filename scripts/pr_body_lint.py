@@ -24,8 +24,12 @@ BLOCKs on the body alone):
              fence that prints a 40-hex sha names the same commit — the body's TWO anchor
              forms are one claim about one commit;
   evidence   the two head findings print the FULL sha, so a body can paste the linter's own
-             output verbatim (the `ellipsis` rule refuses a `…` inside a fenced block);
-  ellipsis   no `…` inside a fenced block (pasted output is verbatim, never ellipsized);
+             output verbatim (the `ellipsis` rule refuses the AUTHOR's elision of a command
+             line, of a head command's output, or of a whole line);
+  ellipsis   the author's elision of the EVIDENCE: an elided command line (`$ `), an elided
+             head command's output, or a dropped line. A `…` in a program's OWN output is
+             ALLOWED — the body pastes it verbatim, and the product, not the body, is what
+             a program's `…` is about (opencharly/marketplace#537);
   files      the body does not contradict ITSELF about a file: within one section, a file the
              body says CARRIES the change and a file the body says does NOT carry it are the
              same file — that is a defect no other check here can see (opencharly/marketplace#526
@@ -587,6 +591,79 @@ def own_bullet_has_command(section_lines: list[str], start: int) -> bool:
     return False
 
 
+HEAD_BEARING = "rev-parse HEAD"
+
+# The `ellipsis` rule's three findings, by the KIND of elision they name.  A command line
+# is the author's own typing; a head command's output is what the `head` arm compares; a
+# line that is only an ellipsis is a line dropped from the paste.
+ELLIPSIS_KINDS = {
+    "command": "the command line is elided",
+    "head": "the head command's output is elided",
+    "dropped": "a line of the paste is dropped",
+}
+
+
+def ellipsis_kind(line: str, *, in_head_output: bool = False) -> str | None:
+    """Classify one fenced line's `…` under the `ellipsis` rule's FORM (marketplace#537).
+
+    The rule bans the AUTHOR's elision of the evidence the other arms read, and ALLOWS a
+    program's own token, which the body pastes verbatim:
+
+      "command"  the line is a command line (it starts with `$ `).  A command line in a
+                  transcript is the author's own typing — a program never prints one — so
+                  a `…` there is the author eliding the very evidence the `claims` arm
+                  reads ("a later pasted `$ ` command").
+      "head"     the line is the output of a head-bearing command in the same fence.  An
+                  elision there hides the head the `head` arm has to compare.
+      "dropped"  the line's whole content is `…` — a line dropped from the paste.
+
+    Everything else is a program's own token (`${…}`, `retrying…`, a path the product
+    abbreviates): the paste is verbatim, the body is right, and if anything is defective
+    it is the PRODUCT that printed the character — not this body.  The validator is the
+    judge there; this is a tool, and a tool that cannot see authorship must not guess.
+    """
+    if "…" not in line:
+        return None
+    stripped = line.strip()
+    if stripped.startswith("$ "):
+        return "command"
+    if stripped == "…":
+        return "dropped"
+    if in_head_output:
+        return "head"
+    return None
+
+
+def ellipsis_scan(text: list[str]) -> list[tuple[str, str]]:
+    """Every `…` in one fenced block that the rule's FORM fires on, as (kind, line).
+
+    The block is walked ONCE, here, and the head-bearing flag is carried across the
+    lines: a command line's output is the output of THAT command, until the next
+    command line. The linter and the corpus measurement both read this, so the
+    classification has one owner.
+    """
+    hits: list[tuple[str, str]] = []
+    in_head_output = False
+    for ln in text:
+        stripped = ln.strip()
+        if stripped.startswith("$ "):
+            kind = ellipsis_kind(ln)
+            in_head_output = HEAD_BEARING in stripped
+        else:
+            kind = ellipsis_kind(ln, in_head_output=in_head_output)
+        if kind:
+            hits.append((kind, stripped))
+    return hits
+
+
+def ellipsis_findings(section: str, text: list[str]) -> list[str]:
+    """Every `ellipsis` finding in one fenced block, under the rule's FORM."""
+    return [
+        f"ellipsis: {ELLIPSIS_KINDS[kind]} in `## {section}`: {line[:80]!r}"
+        for kind, line in ellipsis_scan(text)
+    ]
+
+
 def lint(
     body: str,
     head: str | None,
@@ -647,9 +724,7 @@ def lint(
             _pos += len(_text)
         for k, (kind, _, text) in enumerate(bl):
             if kind == "fence":
-                for ln in text:
-                    if "…" in ln:
-                        findings.append(f"ellipsis: fenced output in `## {name}` contains `…`: {ln.strip()[:80]!r}")
+                findings.extend(ellipsis_findings(name, text))
                 continue
             backed_later = any(
                 kk == "fence" and any(t.lstrip().startswith("$ ") for t in tt) for kk, _, tt in bl[k + 1 :]
