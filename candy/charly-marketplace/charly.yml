@@ -9,11 +9,13 @@ charly-marketplace:
             transitively. The family dirs at this repo's root are the GENERATED corpus,
             not the source — regeneration is a no-op on a clean tree (the drift gate).
         candy:
-            # charly's OWN candies are NOT referenced here: `marketplace generate`
-            # reads them from --root <charly>. The repo-root entry that used to sit
-            # here ('@github.com/opencharly/charly:vTAG') was not a candy node and
-            # resolved to unknown candy "github.com/opencharly/charly" - silently in
-            # this repo, but as a hard validation error in every consumer of the list.
+            # The `@github.com/opencharly/charly` ref below is a CORPUS SOURCE, not a candy
+            # node (opencharly/sdk#468): the repo-root form names the REPO, and charly authors
+            # the skills that describe its own Go module and plugin kernel at `.agents/skills/`
+            # beside that code. The note that used to sit here — "charly's OWN candies are NOT
+            # referenced here … resolved to unknown candy" — described the pre-cutover SUBPATH
+            # form's refusal and an older candy-resolution failure. Both are answered: the
+            # subpath form stays refused by design, and the repo-root ref is now admitted.
             - '@github.com/opencharly/pod-charly-hooks:v2026.290.1114'
             - '@github.com/opencharly/eval-omarchy:v2026.295.0943'
             # The distro-* image families own their OS/base skills (relocated from the
@@ -27,6 +29,21 @@ charly-marketplace:
             - '@github.com/opencharly/distro-omarchy:v2026.294.1828'
             - '@github.com/opencharly/distro-debian:v2026.296.1011'
             - '@github.com/opencharly/distro-ubuntu:v2026.296.1519'
+            # charly ITSELF is a DIRECT corpus source (issue opencharly/sdk#468, landed by
+            # opencharly/sdk#470). It publishes the four skills that describe its own code:
+            # `go`, `go-quality`, `plugin` (family internals) and `charly-version` (family core).
+            # Two twins exist and both lose: `layer-charly-internals:v2026.296.1907` still serves
+            # the internals trio from a tag that predates that carrier's own retirement, and
+            # `pod-charly-core` reaches the corpus at OLD tags through the `distro-fedora` /
+            # `distro-cachyos` closures (opencharly/distro-fedora#107). This ref is DIRECT where
+            # the twins are not, and among DIRECT refs the NEWER tag wins (`resolve.go`
+            # preferEntity steps 2 and 3) — so this pin is the authority while it is the newer
+            # one. All FOUR bodies are byte-identical at both sources, so this moves the
+            # AUTHORITY, not the bytes: the only published change is TWO DISPATCHER rows (`go`
+            # and `plugin`), which carry this pin's corrected `spec/schema/*.cue` trigger instead
+            # of the carrier's stale `sdk/schema/*.cue` (`go-quality`'s trigger is identical at
+            # both sources, so its row does not move).
+            - '@github.com/opencharly/charly:v2026.297.0032'
             # Standalone sources for internals, command and authoring skills.
             - '@github.com/opencharly/layer-charly-internals:v2026.296.1907'
             # The UMBRELLA's OWN general-guidance skills (opencharly/opencharly#600,

@@ -4,7 +4,7 @@ go 1.26.8
 
 require (
 	github.com/opencharly/plugin-marketplace/candy/plugin-marketplace v0.2026296.2345
-	github.com/opencharly/sdk v0.2026296.2152
+	github.com/opencharly/sdk v0.2026297.35
 )
 
 require (
