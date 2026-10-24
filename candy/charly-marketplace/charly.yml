@@ -68,7 +68,6 @@ charly-marketplace:
             # (`grep -o 'resolving [^ ]*' <generate log> | sort -u | wc -l`).
             #
             # Standalone sources for internals, command and authoring skills.
-            - '@github.com/opencharly/layer-charly-internals:v2026.297.0850'
             # The internals skills the DRAIN moved to their owning repos
             # (opencharly/layer-charly-internals#142): `egress` -> plugin-egress,
             # `marketplace` -> plugin-marketplace, `vm-deploy-target` -> plugin-deploy-vm.
@@ -95,10 +94,25 @@ charly-marketplace:
             # fetch (`refs.DownloadRepoFiles`) is what makes this line possible: the walk
             # reads charly.yml and the .agents/ trees and certifies exactly that.
             #
-            # The carrier above still publishes its twin of those three; both are direct, so
-            # the newer tag wins (`resolve.go` preferEntity step 3) — the umbrella's, as long
-            # as this pin is the newer one. Draining the carrier's three is its own PR.
-            - '@github.com/opencharly/opencharly:v2026.296.2254'
+            # While the carrier lived, it published its own twins of those skills and both
+            # refs were DIRECT, so the newer tag won (`resolve.go` preferEntity step 3). The
+            # carrier is archived and its ref is gone: this pin is now the ONLY source of
+            # `agents`, `cutover-policy`, `root-cause-analyzer`, `git-workflow` and
+            # `repo-setup`, which is why advancing it is what keeps them published.
+            #
+            # ONE rule for a RETIRED carrier (opencharly/opencharly#611,
+            # opencharly/layer-charly-internals#149): its ref is dropped and the
+            # umbrella pin advanced in the SAME commit, never one without the other.
+            # The two skills this carrier held last (`git-workflow`, `repo-setup`, its
+            # v2026.297.1043 tree holding ZERO skills) are published by the umbrella,
+            # whose pin below is the tag that carries them. Measured, three arms, each a
+            # one-family probe root — and the two danger arms are SILENT:
+            #   umbrella@v2026.297.1159 alone            rc=0  -> 5 internals skills
+            #   carrier dropped, umbrella still .2254    rc=0  -> 3 skills, no message
+            #   carrier pinned at its post-drain tag     rc=0  -> 0 skills, no message
+            # So the drop is only safe WITH the advance: a silent drop is the failure
+            # this whole migration exists to prevent.
+            - '@github.com/opencharly/opencharly:v2026.297.1159'
             # The two CONTRACT repos' skill shelves (opencharly/opencharly#611).
             # DIRECT, for the rule stated above. Both are Go MODULES, so their tags follow
             # the Go-module scheme
