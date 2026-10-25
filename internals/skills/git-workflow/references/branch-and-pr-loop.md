@@ -106,16 +106,26 @@ directory named in the PR body or the CHANGELOG still points at a superseded tre
 — and it is the PR body that the tag-on-merge workflow writes to the CHANGELOG
 file at merge time.
 
-**Scope — block on what gets TAGGED, report what gets squashed away.** The
+**Scope — block on what SURVIVES the merge, report what gets squashed away.** The
 CHANGELOG entry (written from the PR body at merge) and the PR body are both
-durable: the entry lands in the tagged
-tree, and a merged PR body stays public and quotable long after the branch is
+durable: the entry lands on `main` in the tag-on-merge dispatcher's OWN follow-up
+commit, and a merged PR body stays public and quotable long after the branch is
 deleted. A superseded run directory in either is BLOCKING. An intermediate commit
 message is replaced by the squash merge, so a stale citation there
 is reportable but not blocking. The general form, which outlives the specific
 case: **a claim-keyed sweep runs LAST, once the final tree exists** — a record
 written alongside the change it describes is written before the tree its reader
 will check it against.
+
+**The entry is durable, but it is NOT in the tagged tree.** The org's
+`tag-on-merge` workflow creates the tag AT the merge commit and only THEN writes
+the entry, so the two land in DIFFERENT commits: the tag names the merge, the
+entry arrives in the commit after it. MEASURED on two repos — opencharly/docs'
+`v2026.298.0740` points at the merge commit `dd289db1`, where
+`CHANGELOG/2026.298.0740.md` is ABSENT and the entry arrives in the next commit
+`e5f90075`; opencharly/opencharly's `v2026.298.0430` points at `4ea0846`, the
+entry arriving in `71350f0`. A reader looking for the entry IN the tagged tree
+does not find it, and a rule that says the entry lands there sends them looking.
 
 **Before merging a superproject leg, verify every gitlink is an ANCESTOR of its own repo's
 `origin/main` — not merely that it matches a local checkout.** Those are different questions and
