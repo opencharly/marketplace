@@ -24,11 +24,11 @@ charly-marketplace:
             - '@github.com/opencharly/distro-arch:v2026.296.1011'
             # The remaining distro-* image families own their OS/base skills too
             # (same wave as distro-arch).
-            - '@github.com/opencharly/distro-fedora:v2026.294.2023'
-            - '@github.com/opencharly/distro-cachyos:v2026.296.1011'
+            - '@github.com/opencharly/distro-fedora:v2026.296.2232'
+            - '@github.com/opencharly/distro-cachyos:v2026.297.0523'
             - '@github.com/opencharly/distro-omarchy:v2026.294.1828'
             - '@github.com/opencharly/distro-debian:v2026.296.1011'
-            - '@github.com/opencharly/distro-ubuntu:v2026.296.1519'
+            - '@github.com/opencharly/distro-ubuntu:v2026.296.2114'
             # charly ITSELF is a DIRECT corpus source (issue opencharly/sdk#468, landed by
             # opencharly/sdk#470). It publishes the four skills that describe its own code:
             # `go`, `go-quality`, `plugin` (family internals) and `charly-version` (family core).
@@ -43,7 +43,7 @@ charly-marketplace:
             # and `plugin`), which carry this pin's corrected `spec/schema/*.cue` trigger instead
             # of the carrier's stale `sdk/schema/*.cue` (`go-quality`'s trigger is identical at
             # both sources, so its row does not move).
-            - '@github.com/opencharly/charly:v2026.297.0032'
+            - '@github.com/opencharly/charly:v2026.298.0310'
             # --- the post-migration source set at this end of the list (opencharly/opencharly#600).
             #
             # ONE rule, stated here once for the whole set: a skill reachable ONLY through
@@ -80,7 +80,7 @@ charly-marketplace:
             # body's sha256 equals the copy the carrier held at the drain, so pinning the
             # owners moves the AUTHORITY, not the bytes.
             - '@github.com/opencharly/plugin-egress:v2026.296.1538'
-            - '@github.com/opencharly/plugin-marketplace:v2026.296.2345'
+            - '@github.com/opencharly/plugin-marketplace:v2026.297.1419'
             - '@github.com/opencharly/plugin-deploy-vm:v2026.296.1557'
             # The UMBRELLA's OWN general-guidance skills (opencharly/opencharly#600,
             # AGENTS.md Part II #5): `agents`, `cutover-policy`, `root-cause-analyzer` have
@@ -112,15 +112,15 @@ charly-marketplace:
             #   carrier pinned at its post-drain tag     rc=0  -> 0 skills, no message
             # So the drop is only safe WITH the advance: a silent drop is the failure
             # this whole migration exists to prevent.
-            - '@github.com/opencharly/opencharly:v2026.299.0024'
+            - '@github.com/opencharly/opencharly:v2026.299.0909'
             # The two CONTRACT repos' skill shelves (opencharly/opencharly#611).
             # DIRECT, for the rule stated above. Both are Go MODULES, so their tags follow
             # the Go-module scheme
             # `v0.<YYYYDDD>.<HHMM with leading zeros stripped>` — not the superproject's
             # `v<YYYY.DDD.HHMM>`, which is not a valid Go module version. Each pin below
             # is the tag that repo's own merge minted.
-            - '@github.com/opencharly/spec:v0.2026296.1338'
-            - '@github.com/opencharly/sdk:v0.2026296.1207'
+            - '@github.com/opencharly/spec:v0.2026296.2332'
+            - '@github.com/opencharly/sdk:v0.2026297.1851'
             - '@github.com/opencharly/layer-charly-internals-extra:v2026.294.2355'
             - '@github.com/opencharly/layer-charly-build:v2026.296.0919'
             - '@github.com/opencharly/layer-charly-check:v2026.293.2158'
@@ -158,7 +158,7 @@ charly-marketplace:
             - '@github.com/opencharly/layer-nvidia:v2026.296.0940'
             - '@github.com/opencharly/layer-a11y-tools:v2026.292.2338'
             - '@github.com/opencharly/layer-docker-ce:v2026.293.0018'
-            - '@github.com/opencharly/layer-docs-site:v2026.296.0805'
+            - '@github.com/opencharly/layer-docs-site:v2026.297.0923'
             - '@github.com/opencharly/pod-dsh:v2026.292.2042'
             - '@github.com/opencharly/layer-fastfetch:v2026.293.0024'
             - '@github.com/opencharly/pod-filebrowser:v2026.296.0939'
@@ -295,8 +295,8 @@ charly-marketplace:
             - '@github.com/opencharly/plugin-agentteams/candy/plugin-agentteams:v2026.294.2143'
             - '@github.com/opencharly/plugin-ollama/candy/plugin-ollama:v2026.294.2127'
             - '@github.com/opencharly/plugin-dsh/candy/plugin-dsh:v2026.294.2110'
-            - '@github.com/opencharly/plugin-herdr/candy/plugin-herdr:v2026.292.2256'
-            - '@github.com/opencharly/pod-herdr:v2026.292.2249'
+            - '@github.com/opencharly/plugin-herdr/candy/plugin-herdr:v2026.296.1656'
+            - '@github.com/opencharly/pod-herdr:v2026.296.1706'
             - '@github.com/opencharly/plugin-punktfunk/candy/plugin-punktfunk:v2026.294.2144'
             # Crabbox wave (Phase 4): the CLI (layer-crabbox) + coordinator (pod-crabbox-coordinator)
             # skill entities. TWO refs declare a `skill:` entity named `crabbox` —
@@ -327,7 +327,7 @@ charly-marketplace:
             # umbrella gate `scripts/check-harness-config.mjs` check 12.
             - '@github.com/opencharly/layer-qdrant:v2026.293.0056'
             - '@github.com/opencharly/plugin-qdrant/candy/plugin-qdrant:v2026.294.2125'
-            - '@github.com/opencharly/plugin-kubevirt/candy/plugin-kubevirt:v2026.295.2057'
+            - '@github.com/opencharly/plugin-kubevirt/candy/plugin-kubevirt:v2026.296.2029'
             # plugin-kube owns the `kubernetes` and `check-k8s` family skills. A
             # DIRECT ref, for the reason recorded above for plugin-mise/openclaw/
             # media: without one the corpus published those two bodies from
@@ -339,7 +339,7 @@ charly-marketplace:
             # installs the nerdctl CLI + containerd stack, plus the out-of-tree
             # engine:containerd plugin; each owns its harness skill.
             - '@github.com/opencharly/layer-nerdctl/candy/layer-nerdctl:v2026.296.1649'
-            - '@github.com/opencharly/plugin-containerd/candy/plugin-containerd:v2026.297.0523'
+            - '@github.com/opencharly/plugin-containerd/candy/plugin-containerd:v2026.297.0553'
 
             - '@github.com/opencharly/plugin-firecracker/candy/plugin-firecracker:v2026.288.0016'
             # plugin-firecracker owns the `firecracker` family skill (microVM substrate). Pinned at the tag its own
