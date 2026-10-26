@@ -112,7 +112,7 @@ charly-marketplace:
             #   carrier pinned at its post-drain tag     rc=0  -> 0 skills, no message
             # So the drop is only safe WITH the advance: a silent drop is the failure
             # this whole migration exists to prevent.
-            - '@github.com/opencharly/opencharly:v2026.297.1159'
+            - '@github.com/opencharly/opencharly:v2026.299.0024'
             # The two CONTRACT repos' skill shelves (opencharly/opencharly#611).
             # DIRECT, for the rule stated above. Both are Go MODULES, so their tags follow
             # the Go-module scheme
