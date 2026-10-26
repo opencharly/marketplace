@@ -217,15 +217,24 @@ chronologically under a plain alphanumeric sort.
   the author still ships the `migrations.cue` entry in the same change (the
   table is version-free — there is no `#SchemaVersion` to bump) — but the final CalVer for tag and changelog filename is minted
   at merge, never by the author.
-- **tag-on-merge, at merge:** `VER=$(date -u +%Y.%j.%H%M)` (guard uniqueness — if
-  `v$VER` or `CHANGELOG/$VER.md` already exists on the current `main`, advance to
-  the next free minute); after the squash merge, write `CHANGELOG/$VER.md` on
-  `main` from the merged PR's title + body (a bot token — GitHub App preferred,
-  PAT fallback — authorizes the protected-main write; the App is the ruleset
-  bypass actor for the single CHANGELOG path); then tag the merged HEAD —
-  `git tag -a v$VER -m "<subject>" <merged-HEAD>` and
-  `git push origin refs/tags/v$VER` (every repo;
-  `sdk`, `spec`, and `plugin-gh` substitute their Go-module `v0.<…>` form). A schema cutover
+- **tag-on-merge, at merge:** `VER` is minted from the MERGE COMMIT's committer
+  time (`date -u +%Y.%j.%H%M`; guard uniqueness — if `v$VER` or `CHANGELOG/$VER.md`
+  already exists on the current `main`, advance to the next free minute). The
+  workflow then acts in this order, and the order is the whole point: **(1) it
+  creates the tag AT THE MERGE COMMIT** — `refs/tags/v$VER` → `<merge-commit-sha>`
+  (idempotent, and INDEPENDENT of the CHANGELOG, which is why a tag can exist with
+  no entry beside it); **(2) it writes `CHANGELOG/$VER.md` on `main` from the merged
+  PR's title + body** (a bot token — GitHub App preferred, PAT fallback —
+  authorizes the protected-main write; the App is the ruleset bypass actor for the
+  single CHANGELOG path), which lands as the dispatcher's OWN follow-up commit
+  `docs: add CHANGELOG $VER for PR #<n>`. **So the tag does NOT contain the
+  entry**: the tagged tree is the merge commit, and the entry arrives in the commit
+  after it. MEASURED — opencharly/docs' `v2026.298.0740` → `dd289db1` (the entry
+  is absent from that tree; it arrives in `e5f90075`), and opencharly/opencharly's
+  `v2026.298.0430` → `4ea0846` (the entry arrives in `71350f0`). The entry is
+  still durable — it is on `main` — but a reader must look for it there, not in
+  the tagged tree. (every repo; `sdk`, `spec`, and `plugin-gh` substitute their
+  Go-module `v0.<…>` form). A schema cutover
   ships its `migrations.cue` entry in the change that alters the schema; there is
   no `#SchemaVersion` / `version:` re-stamp.
 
