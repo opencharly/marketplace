@@ -124,10 +124,14 @@ charly-marketplace:
             #   `layer-charly-internals-extra` -> 2 skills + 6 agent definitions, now authored by
             #                                   the umbrella (strict-policy + the roster) and
             #                                   spec (vm-spec)
-            # Eight of those destinations were ALREADY pinned and each was measured to hold
-            # the identical blob at its pinned tag, so the drop is safe for them; the two that
-            # gained a body and the umbrella pin are advanced HERE, with the drop, for the
-            # reason stated above.
+            # SEVEN of those destinations were ALREADY pinned and each was measured to hold the
+            # identical blob at its pinned tag, so the drop is safe for them as they stand.
+            # The other THREE are advanced HERE, with the drop: `distro-cachyos` (it gains
+            # `crabbox-deploy`), `plugin-agent` (it gains the `agent-control-operator`
+            # definition — its `agent` skill was already carried at the old pin, but the body
+            # this leg depends on arrives only with the advance) and this umbrella pin (it
+            # gains `strict-policy` and the six agent definitions). A drop without those
+            # advances is silent, for the reason stated above.
             - '@github.com/opencharly/opencharly:v2026.300.1151'
             # The two CONTRACT repos' skill shelves (opencharly/opencharly#611).
             # DIRECT, for the rule stated above. Both are Go MODULES, so their tags follow
