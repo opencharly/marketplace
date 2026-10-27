@@ -32,7 +32,8 @@ git worktree add .claude/worktrees/<slug> -b feat/<slug> origin/main
 # the PR body IS the changelog — no CHANGELOG file is staged; the
 # org-wide tag-on-merge workflow writes CHANGELOG/<merge-time VER>.md
 # from the merged PR title + body after merge.
-git add <only the cutover's files>
+# stage ONLY the cutover's files — one LITERAL pathspec per file (a path argument is a pathspec)
+git add -- ':(literal)<path>'
 git commit -m "<conventional commit>" \
   -m "Assisted-by: <Harness> <Provider Full Model Name> (<confidence>)"
 git push origin feat/<slug>                       # feat push — allowed by the gate
@@ -133,7 +134,7 @@ only the first discriminates:
 
 ```bash
 git config --file .gitmodules --get-regexp path | awk '{print $2}' | while read -r s; do
-  g=$(git ls-tree HEAD "$s" | awk '{print $3}')
+  g=$(git ls-tree HEAD -- ':(literal)'"$s" | awk '{print $3}')
   (cd "$s" && git fetch -q origin &&
    git merge-base --is-ancestor "$g" origin/main && echo "$s MERGED" || echo "$s NOT ON main")
 done
@@ -162,14 +163,14 @@ compliant recovery is the update-branch EQUIVALENT done LOCALLY: in the feat
 worktree, `git merge origin/main` (git resolves the gitlink to the descendant
 commit automatically), then push the result FAST-FORWARD. A MERGE, never a rebase;
 no force-push — the exact constraints `gh pr update-branch` itself honors. **Then
-VERIFY the merge resolved the gitlink FORWARD** — `git ls-tree HEAD <sub>` (or
+VERIFY the merge resolved the gitlink FORWARD** — `git ls-tree HEAD -- ':(literal)<sub>'` (or
 `git diff --submodule=short origin/main..HEAD`) must show the DESCENDANT commit, never
 the ancestor: a recovery that silently re-pins the OLDER submodule bump is the exact
 regression this class produces (a sibling merge advances `main` mid-validation, then a
 naive recovery reverts the gitlink to the older pointer). Only after the descendant-wins
 check re-post the status and delta-re-gate as above.
 
-**Prefer the whole-tree check over this per-path one.** `git ls-tree HEAD <sub>`
+**Prefer the whole-tree check over this per-path one.** `git ls-tree HEAD -- ':(literal)<sub>'`
 only helps when you already suspect the right submodule, and the failure it misses
 — a gitlink silently reverted by a merge that never conflicted, so the path is
 named nowhere — is the one that actually occurred. Compare the merge result against

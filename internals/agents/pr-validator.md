@@ -169,7 +169,8 @@ gh pr diff <N> --repo <owner>/<repo>
 
 ```bash
 # PER SUBMODULE — git grep does NOT cross a gitlink.
-git -C <repo-or-submodule> grep -lEi "DO[- ]NOT[- ]EDIT" -- <that repo's changed paths>
+# ONE LITERAL pathspec per changed path (a path argument is a pathspec).
+git -C <repo-or-submodule> grep -lEi "DO[- ]NOT[- ]EDIT" -- ':(literal)<changed-path>'
 ```
 
 **This one command has THREE independent ways to return a confident wrong number, and
@@ -399,7 +400,7 @@ entity and regenerate. See the projection chain in `references/multi-repo-coordi
 **And read the REF, not the checkout.** Every claim about a submodule's content is a
 claim about a specific commit, and a working tree is not that commit. Resolve what you
 mean to inspect and read it explicitly — `git -C <sub> show <sha>:<path>`,
-`git ls-tree <head> <sub>` — never the files on disk, which may carry unmerged,
+`git ls-tree <head> -- ':(literal)<sub>'` — never the files on disk, which may carry unmerged,
 uncommitted, or simply different content. This program produced five distinct instances
 in one session, across three people, including a byte-identity check that passed
 cleanly against a checkout holding content that did not exist on `main`. **Byte-identity
