@@ -49,13 +49,13 @@ pointer *before* creating the session worktree (`git worktree add
 .claude/worktrees/<slug> -b feat/<slug> origin/main`, B1 step 0 — the feat branch
 is created there at session start, never by `git switch -c` in the shared main
 tree) — or merely `git -C <sub> checkout <new>` without `git add` — drops it from
-the commit, and a `git add <sub>; git commit` afterward stages nothing because the
+the commit, and a `git add -- ':(literal)<sub>'; git commit` afterward stages nothing because the
 working tree was reset to the old pointer. Always, in order: (a) create the
 session worktree + feat branch FIRST (B1 step 0); (b) THEN `git -C <sub>
-checkout <new-commit>` + `git add <sub>`; (c) VERIFY it is staged — `git diff
---cached --submodule=short <sub>` must print `<old>...<new>`; (d) after committing,
+checkout <new-commit>` + `git add -- ':(literal)<sub>'`; (c) VERIFY it is staged — `git diff
+--cached --submodule=short -- ':(literal)<sub>'` must print `<old>...<new>`; (d) after committing,
 confirm the commit records it — `git show --stat` lists `<sub>` and `git ls-tree
-HEAD <sub>` shows `<new>`. A pointer-bump commit whose `--stat` omits the submodule
+HEAD -- ':(literal)<sub>'` shows `<new>`. A pointer-bump commit whose `--stat` omits the submodule
 is the silent-drop failure.
 
 **Attribution of the pointer-bump commit — derived from what it points at.** When
@@ -702,18 +702,18 @@ the ff-merge is this drift, not lost work.)
 
 **A disposable bed that builds from a submodule builds from the submodule's
 ON-DISK WORKING-TREE checkout, NOT from the committed gitlink alone.** After a
-CLEAN gitlink auto-merge (no conflict), `git ls-tree HEAD <sub>` can already
+CLEAN gitlink auto-merge (no conflict), `git ls-tree HEAD -- ':(literal)<sub>'` can already
 show the correct new pin while the submodule's on-disk `HEAD` is still the OLD
 commit — a gitlink merge does not itself check out the new submodule content;
-that needs its own `git -C <wt> submodule update --checkout <path>` (or
+that needs its own `git -C <wt> submodule update --checkout -- ':(literal)<path>'` (or
 `--recursive` over the initialized set), same as any other post-merge refresh
 in this step. Skipping it means the bed silently builds STALE source even
 though the committed pointer is correct.
 
 **Landing gotchas (each cost real time):** `git merge-base --is-ancestor A B` ERRORS if B's object isn't
 fetched (common for a sibling-worktree submodule) → `git fetch` first; cross-check
-`git ls-tree origin/main <sub>` before concluding "DIVERGED". A `git grep --
-<submodule-path>` from the superproject is a FALSE ZERO (git grep does not cross a
+`git ls-tree origin/main -- ':(literal)<sub>'` before concluding "DIVERGED". A `git grep <pattern> --
+':(literal)<submodule-path>'` from the superproject is a FALSE ZERO (git grep does not cross a
 gitlink) → `git -C <sub> grep` for the R5 sweep. The authoritative feat-branch head
 SHA comes from `git ls-remote origin refs/heads/<branch>` — `gh pr view --json
 headRefOid` LAGS a fresh push and will post the status on a stale SHA. Deriving the
