@@ -25,7 +25,7 @@ charly-marketplace:
             # The remaining distro-* image families own their OS/base skills too
             # (same wave as distro-arch).
             - '@github.com/opencharly/distro-fedora:v2026.294.2023'
-            - '@github.com/opencharly/distro-cachyos:v2026.296.1011'
+            - '@github.com/opencharly/distro-cachyos:v2026.300.1129'
             - '@github.com/opencharly/distro-omarchy:v2026.294.1828'
             - '@github.com/opencharly/distro-debian:v2026.296.1011'
             - '@github.com/opencharly/distro-ubuntu:v2026.296.1519'
@@ -112,7 +112,23 @@ charly-marketplace:
             #   carrier pinned at its post-drain tag     rc=0  -> 0 skills, no message
             # So the drop is only safe WITH the advance: a silent drop is the failure
             # this whole migration exists to prevent.
-            - '@github.com/opencharly/opencharly:v2026.299.0024'
+            #
+            # The LAST TWO skills-only carriers are retired the same way, in this same
+            # commit (opencharly/opencharly#628, opencharly/layer-charly-internals-extra#30):
+            #   `pod-charly-automation`      -> 8 skills + 1 agent definition, now authored by
+            #                                   plugin-agent (agent, agent-control-operator),
+            #                                   plugin-alias, plugin-enc, layer-openclaw,
+            #                                   plugin-deploy-pod, plugin-tmux, plugin-udev and
+            #                                   distro-cachyos (crabbox-deploy, the operator's
+            #                                   four-repo decision, #628)
+            #   `layer-charly-internals-extra` -> 2 skills + 6 agent definitions, now authored by
+            #                                   the umbrella (strict-policy + the roster) and
+            #                                   spec (vm-spec)
+            # Eight of those destinations were ALREADY pinned and each was measured to hold
+            # the identical blob at its pinned tag, so the drop is safe for them; the two that
+            # gained a body and the umbrella pin are advanced HERE, with the drop, for the
+            # reason stated above.
+            - '@github.com/opencharly/opencharly:v2026.300.1151'
             # The two CONTRACT repos' skill shelves (opencharly/opencharly#611).
             # DIRECT, for the rule stated above. Both are Go MODULES, so their tags follow
             # the Go-module scheme
@@ -121,7 +137,6 @@ charly-marketplace:
             # is the tag that repo's own merge minted.
             - '@github.com/opencharly/spec:v0.2026296.1338'
             - '@github.com/opencharly/sdk:v0.2026296.1207'
-            - '@github.com/opencharly/layer-charly-internals-extra:v2026.294.2355'
             - '@github.com/opencharly/layer-charly-build:v2026.296.0919'
             - '@github.com/opencharly/layer-charly-check:v2026.293.2158'
             - '@github.com/opencharly/layer-strata:v2026.294.1902'
@@ -133,7 +148,7 @@ charly-marketplace:
             - '@github.com/opencharly/plugin-cache/candy/plugin-cache:v2026.294.2125'
             - '@github.com/opencharly/plugin-pod/candy/plugin-pod:v2026.296.1416'
             - '@github.com/opencharly/plugin-review/candy/plugin-review:v2026.294.2127'
-            - '@github.com/opencharly/plugin-agent/candy/plugin-agent:v2026.296.0853'
+            - '@github.com/opencharly/plugin-agent/candy/plugin-agent:v2026.300.1133'
             - '@github.com/opencharly/plugin-candy/candy/plugin-candy:v2026.294.2125'
             - '@github.com/opencharly/plugin-cardwire/candy/plugin-cardwire:v2026.294.2124'
             - '@github.com/opencharly/plugin-bpf/candy/plugin-bpf:v2026.294.2128'
@@ -291,7 +306,6 @@ charly-marketplace:
             - '@github.com/opencharly/layer-thunar:v2026.293.0058'
             - '@github.com/opencharly/layer-xfce4-terminal:v2026.292.2303'
             - '@github.com/opencharly/layer-punktfunk:v2026.293.0052'
-            - '@github.com/opencharly/pod-charly-automation:v2026.297.0523'
             - '@github.com/opencharly/plugin-agentteams/candy/plugin-agentteams:v2026.294.2143'
             - '@github.com/opencharly/plugin-ollama/candy/plugin-ollama:v2026.294.2127'
             - '@github.com/opencharly/plugin-dsh/candy/plugin-dsh:v2026.294.2110'
