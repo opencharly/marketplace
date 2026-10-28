@@ -19,13 +19,13 @@ umbrella root; `charly task list` enumerates them, and the umbrella README's
 |---|---|
 | `charly task map` | STATE — list every submodule with its pin and its branch (`mode: status`) |
 | `charly task init` | MATERIALIZE the umbrella's submodules ON DEMAND: the derived WORKING SET by default, `CHARLY_INIT_PATHS=<a,b>` for named paths, `CHARLY_INIT_MODE=all` for every declared path. Blobless, never shallow; the mode travels in the ENVIRONMENT, never as a task param — see "The clone shape is a working set" below |
-| `charly task sync` | bump pins per Policy B. A path WITH a checkout is MATERIALISED (`switch --detach`) and its gitlink STAGED (`git add`); a path with NO checkout is advanced IN THE INDEX, because the pin IS the index entry — so **a PIN WAVE needs no full set** (`plugin-task#37`). It does not commit and does not open a PR, and it is **not read-only** — it moves checkouts (`plugin-task#26`). A wave's order is **sync -> init -> verify** |
+| `charly task sync` | advance EVERY pin the umbrella declares per Policy B — an ORG-WIDE cutover, not a way to move one pin. A path WITH a checkout is MATERIALISED (`switch --detach`) and its gitlink STAGED (`git add`); a path with NO checkout is advanced IN THE INDEX, because the pin IS the index entry — so **a PIN WAVE needs no full set** (`plugin-task#37`). It does not commit and does not open a PR, and it is **not read-only** — it moves checkouts (`plugin-task#26`). A wave's order is **sync -> init -> verify** |
 | `charly task hooks` | install `hooks/pre-commit` for this clone (once; sets `core.hooksPath hooks`) |
-| `charly task verify` | CONSISTENCY — the FULL pinning audit on demand: policy B, then every checkout clean and at its recorded gitlink, then the per-submodule `git ls-remote` default-branch audit. There is **no CI gate**; this IS the gate. Run it on the final tree and paste the output (R7: a green `git status` proves nothing). **The checkout half covers the MATERIALIZED paths only** — an unmaterialized path is *uninitialized (pin audited, no checkout)*, a notice, not a failure |
+| `charly task verify` | CONSISTENCY — the FULL pinning audit on demand: policy B, then every checkout clean and at its recorded gitlink, then the CURRENCY question (a behind pin is REPORTED, not failed), then the per-submodule `git ls-remote` default-branch audit. There is **no CI gate**; this IS the gate. Run it on the final tree and paste the output (R7: a green `git status` proves nothing). **The checkout half covers the MATERIALIZED paths only** — an unmaterialized path is *uninitialized (pin audited, no checkout)*, a notice, not a failure |
 | `charly task org-map` | reconcile the README org-map TABLES against `.gitmodules`. It reads ONLY those two surfaces, so it is NOT an org-vs-umbrella census — see "`org-map` answers the wrong question" below |
 | `charly task skills` | `scripts/sync-dispatcher.sh`: splice the generated R0 dispatcher into `AGENTS.md` (no-op while the table is hand-curated outside the markers) |
 | `charly task pin-check` | assert the pin contract's consistency half — the EDGE (every `pin_map` entry equals its twin in the `pinned_from` checkout) and the CHECKOUT AUDIT (every declared path clean and at its recorded gitlink). It READS the index's gitlinks, the MANIFEST `charly.yml`'s `pins:` block and the DECLARED PATH SET `.gitmodules`, so a commit can violate it by moving a gitlink **or** by editing the manifest **or** by editing the declared path set — a commit that moves NO gitlink can still violate it. It is the half of `verify` that needs no remote (the per-submodule `git ls-remote` default-branch audit is the rest), and it is what `hooks/pre-commit` runs. Checkout DRIFT on its own — a checkout dirty or at another commit, caused by NO commit — stays with `charly task verify` |
-| `charly task pins` | the Policy-B pin operation over the `distro-*` set (mode via param) |
+| `charly task pins` | the pin-contract pin operation over EVERY declared path (mode via param) — the `distro-*` paths are its EDGE subset (Policy B's `pin_map`); `MODE=bump` advances EVERY pin the umbrella declares |
 | `charly task self-test` | self-test the committed CI body/pin-evidence builders + the dispatcher splice + the submodule initializer |
 | `charly task prune` | reap merged-upstream session worktrees + branches. The declared `MODE` DEFAULTS to `report`, so **plain `charly task prune` IS the dry run**; a positional `MODE=report` is rejected (`unexpected extra argument`), and the removal is selected through the task's own param (`--param MODE=prune`) |
 
@@ -185,7 +185,8 @@ them — its builds resolve them from the Go proxy at pinned `go.mod` requires.
 `marketplace`, `docs`, and every `plugin-*` repo are recorded at their own
 default-branch HEAD. Pin only MERGED refs (default branches or gitlinks charly
 records), never a PR branch; a dangling pin is a failure. If pinning changed, the
-fix is `charly task sync` + a PR — never a hand-pin or a branch checkout to
+fix is `charly task sync` + a PR — it advances EVERY pin the umbrella declares, so
+read its scope before running it — never a hand-pin or a branch checkout to
 "catch up".
 
 **Policy B is a CONSISTENCY contract, not a CURRENCY one: it holds while both

@@ -7,7 +7,9 @@ DETACHED and clean. What that recorded value is ALLOWED to be, and whether it is
 the value the owning repo actually SERVES, is the **pin contract**. It lives in
 ONE verb — `verb: git-submodules`, owned by `opencharly/plugin-task` — whose
 `mode` is `status` | `bump` | `verify` | `currency`. The first three are the
-maintenance modes (the task table above; "`task sync` and the commit gate" below).
+maintenance modes (the task table above; "`task sync` and the commit gate" below), and
+`bump` is the ADVANCE — it moves EVERY pin the umbrella declares, and it is the only
+mode of the verb that writes.
 **`currency` is a first-class mode of the SAME verb**, not a second
 implementation, and it is the mode that answers "is the umbrella current?".
 

@@ -595,12 +595,13 @@ in how `charly check run` actually behaves:
   the Containerfile, so a check-only edit rebuilds in seconds (every
   upstream RUN/COPY cache-hits). Write check coverage aggressively; only
   layer/package edits pay a full rebuild.
-- **`context_ignore` and `--podman-jobs` / `--jobs`** are the legitimate
-  build-speed levers (trim the build-context tar; parallelize stages
-  within one build and images across a DAG level). On by default.
+- **`context_ignore` and `--stage-parallelism` / `--jobs`** are the legitimate
+  build-speed levers (trim the build-context tar; raise the limit on how
+  many build steps the builder runs at once, and how many images are built
+  per DAG level). On by default.
 
 **Flag discipline — speed levers vs. scope-shrinking.** A "go faster"
-mandate tempts the forbidden shortcut. Legitimate: `--podman-jobs`,
+mandate tempts the forbidden shortcut. Legitimate: `--stage-parallelism`,
 `--jobs`, `context_ignore`, pre-warming, agent-layer parallelism,
 longest-pole scheduling. R10-scope-shrinking (need explicit per-turn
 operator authorization, the project rulebook's R10 flag-override clause):

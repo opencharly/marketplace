@@ -142,7 +142,16 @@ charly-marketplace:
             # this leg depends on arrives only with the advance) and this umbrella pin (it
             # gains `strict-policy` and the six agent definitions). A drop without those
             # advances is silent, for the reason stated above.
-            - '@github.com/opencharly/opencharly:v2026.301.0144'
+            #
+            # ADVANCED to v2026.301.2157 (opencharly/opencharly#788): the umbrella's own
+            # general-guidance skills were published from a tag that predates TWO of its
+            # landings, so this corpus carried prose the umbrella had already corrected.
+            # The tag carries both — opencharly/opencharly#786 (the podman-era flag
+            # spelling replaced by the contract's `--stage-parallelism`,
+            # opencharly/plugin-box#66) and opencharly/opencharly#788 (the pin-advance
+            # verb's scope is EVERY declared path, not a subset of them). ONE advance
+            # republishes both, so the projection of this pin changes in this commit.
+            - '@github.com/opencharly/opencharly:v2026.301.2157'
             # The two CONTRACT repos' skill shelves (opencharly/opencharly#611).
             # DIRECT, for the rule stated above. Both are Go MODULES, so their tags follow
             # the Go-module scheme

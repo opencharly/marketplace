@@ -134,7 +134,10 @@ an appliance is the defect this step exists to catch.
    for the new repo.
 4. Land the first commit via a PR — never a direct push to `main`.
 5. Add it to the umbrella as a submodule and advance the pin via
-   `charly task sync` + PR (see `/charly-internals:git-workflow` B8).
+   `charly task sync` + PR (see `/charly-internals:git-workflow` B8). **That verb
+   is an ORG-WIDE wave, not a one-repo operation: it advances EVERY pin the
+   umbrella declares** — read its scope before running it, and expect the PR's
+   diff to carry every pin it moved, not only the new repo's.
 
 ## The measured gap this checklist prevents
 
