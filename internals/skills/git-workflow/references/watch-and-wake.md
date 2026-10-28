@@ -68,12 +68,14 @@ Four rules, all enforced by the tools — plus the numbers that motivate them:
   the first. A successor keeps the WATCH alive; the agent's re-arm keeps
   NOTIFICATIONS alive.
 
-**The measured budget.** The account shares a **5000 calls/hr** core budget
-(plus a separate GraphQL points budget, also 5000/hr). MEASURED 2026-09-28:
+**The measured budget.** The account shares a core budget of **at most 5000
+calls/hr** (plus a separate GraphQL points budget, also at most 5000/hr).
+MEASURED 2026-09-28:
 `gh_watch.sh`'s `snapshot()` issued **6 REST calls per ITEM per poll** (a
 `/pulls` type probe, `/issues` state, `/pulls` merged, `/issues/comments`, a
-per-item `gh run list`, and `/issues` updated_at). Over **5 items** that is
-**30 calls per poll**: at `gh_watch.sh`'s own old 30s default (2 polls/min)
+per-item `gh run list`, and `/issues` updated_at) — over **5 items** that is
+**30 calls per poll** (measured 2026-09-28): at `gh_watch.sh`'s own old 30s
+default (2 polls/min)
 that is 6 × 5 × 2 = **3600/hr — 72% of the budget for ONE watcher** — and at
 the then-reachable 20s cadence (the old floor was 1s; `pr_watch_many.sh`
 defaulted to 20s) it is 6 × 5 × 3 = **5400/hr, OVER budget**. Repeated

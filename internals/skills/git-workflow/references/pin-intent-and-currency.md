@@ -118,10 +118,10 @@ currency: <N> of <M> pin(s) NOT current [<tally, e.g. "1 blocked-by <src>:<twin>
 
 **A green run can therefore never read as "everything is fine".** The count is
 the first thing in the string, and `0 of <M>` is the only shape that means
-current. Measured on 2026-10-15 against the REAL umbrella at `96195c1`, with a
-charly built from the implementation at `745f6d7`: **14 of 429 pins not current —
-`415 cur`, `2 behind`, `4 not-on-the-served-line`, `2 differs (no checkout to
-judge ancestry)`, and the five unreachable `distro-*` pins each reporting
+current. Measured against the REAL umbrella at `96195c1`, with a
+charly built from the implementation at `745f6d7`: **14 of 429 pins not current
+as of 2026-10-15 — `415 cur`, `2 behind`, `4 not-on-the-served-line`, `2 differs
+(no checkout to judge ancestry)`, and the five unreachable `distro-*` pins each reporting
 `blocked-by charly:box/<ns> (no ref declared)` — 5 of them STRUCTURAL.** The intent
 counts reconcile exactly — **423 implicit `upstream:` leaves + 6 `derived-from:`
 edges = 429** — and they are IDENTICAL to the counts taken before the round that

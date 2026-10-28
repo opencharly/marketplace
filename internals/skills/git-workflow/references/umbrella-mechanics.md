@@ -114,10 +114,11 @@ answer had to be measured by hand — was FALSE, and it is deleted here and in
 sentence.
 
 **`charly task verify` passes on a tree whose submodules are behind their
-remotes.** Measured on the umbrella of 2026-10-15, at the commit that advanced
-the wave of 20: policy B and the checkout audit were GREEN (`429 submodule(s);
-422 checkout(s) clean at their gitlink; 7 uninitialized`) while **five of the
-six `distro-*` gitlinks were behind their remote `main`**. That is not a defect
+remotes.** Measured on the umbrella at the commit that advanced
+the wave of 20: policy B and the checkout audit were GREEN on 2026-10-15 (`429
+submodule(s); 422 checkout(s) clean at their gitlink; 7 uninitialized`) while
+**five of the six `distro-*` gitlinks were behind their remote `main`**. That is
+not a defect
 in `verify` — it is `verify` answering its own question — which is why a
 currency claim needs its own measurement, and its honest form is the currency
 mode's own report — never "verify is green".
