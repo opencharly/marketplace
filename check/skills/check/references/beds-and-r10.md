@@ -139,7 +139,7 @@ canary", "to fit session bounds", "shorten this run", "skip the heavy leg",
 "faster iteration cycle" — are confessions, not defences. The `iterate:`
 block's `plateau_iteration` and the AI's `progress_no_improvement_timeout` together
 define the AI's recovery budget per phase; narrow neither without explicit
-authorization. Speed levers that do not shrink scope (e.g. `--podman-jobs`, `--jobs`) need
+authorization. Speed levers that do not shrink scope (e.g. `--stage-parallelism`, `--jobs`) need
 no authorization — the lever catalog is `/charly-internals:agents` "Speed
 levers".
 

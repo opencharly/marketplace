@@ -30,7 +30,6 @@ recommendation pointing here.
 | Pull fully-qualified ref | `charly box pull ghcr.io/opencharly/jupyter:2026.108.56` | Pulls as-is, works from anywhere |
 | Pull remote project ref | `charly box pull @github.com/org/repo/image:v1` | Downloads repo, reads its `charly.yml`, pulls registry ref |
 | Override tag (short name) | `charly box pull jupyter --tag 2026.108.1` | Pull a specific CalVer tag |
-| Override platform | `charly box pull jupyter --platform linux/arm64` | Pull a specific platform |
 
 ## Three Input Forms
 
@@ -57,8 +56,9 @@ charly box inspect jupyter --format tag       # ghcr.io/opencharly/jupyter:2026.
 charly box pull ghcr.io/opencharly/jupyter:2026.108.56
 ```
 
-Runs `podman pull <ref>` directly. Useful from any directory, including
-`/tmp`. Supports any registry that the underlying engine (`podman`/`docker`)
+Runs the configured engine's `pull` directly (`podman pull` / `docker pull`, or
+`nerdctl pull` when `engine.run: containerd`). Useful from any directory, including
+`/tmp`. Supports any registry that the underlying engine (`podman`/`docker`/`containerd`)
 can authenticate against.
 
 ### 3. Remote project ref (`@github.com/...`)
@@ -81,7 +81,8 @@ refs are accepted in `charly`. Deploy-mode commands (`charly shell`, `charly sta
   not restart, reconfigure, or touch any running container.
 - **Prints the resolved ref** on success. One line to stderr.
 - **Respects engine selection.** Uses the run engine from
-  `ResolveRuntime` (`podman` by default; `docker` if configured).
+  `ResolveRuntime` (`engine.run`, default `auto`: detects podman, then docker;
+  `containerd` is opt-in and never auto-detected).
 
 ## Interaction with `ErrImageNotLocal` (the sentinel pattern)
 
@@ -95,8 +96,8 @@ per-call-site code:
    from local storage.
 2. `dispatchBuildEnsure` (`charly/dispatch_build_ensure.go`) dispatches to
    candy/plugin-build's `build:ensure` word (`candy/plugin-build/ensure.go`),
-   which returns the same sentinel when the image is absent from both run and
-   build engines.
+   which returns the same sentinel when the image is absent from the RUN engine's
+   store (the one every later read resolves it through).
 3. `FormatCLIError` in `charly/image.go` unwraps the sentinel at the top-level
    error boundary in `main()` and renders:
 
@@ -129,8 +130,6 @@ Use `charly box pull <image>` once to seed local storage; use `charly update
 - `--tag <tag>` (default: `latest`) — Image tag when resolving a short
   name. Ignored for fully-qualified or remote-project refs (the tag is
   embedded in the ref).
-- `--platform <platform>` — Target platform (default: host). Passed to
-  `podman pull --platform`.
 
 ## Typical Workflows
 
