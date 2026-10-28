@@ -330,9 +330,27 @@ check_published_body() {
     return 1
   fi
 
+  # The body block pastes the elision's two outputs (scripts/refresh-elide.sh), so the
+  # harness runs the SHIPPED elision first — against the FIXTURE's capture, into the
+  # fixture's own directory. The body this harness grades is then the body the
+  # workflow actually publishes, and the fixture never depends on a stale /tmp file
+  # left behind by another run.
+  if [ -f "$REPO/scripts/refresh-elide.sh" ]; then
+    if bash "$REPO/scripts/refresh-elide.sh" "$logs/generate.log" \
+         "$logs/elide-block.txt" "$logs/elide-notice.txt" >/dev/null 2>&1; then
+      :
+    else
+      bad "[$label] the shipped elision failed on the fixture capture"
+    fi
+  else
+    bad "[$label] the shipped elision script scripts/refresh-elide.sh is missing"
+  fi
+
   sed -e "s#/tmp/refresh\.log#$logs/refresh.log#g" \
       -e "s#/tmp/generate\.log#$logs/generate.log#g" \
       -e "s#/tmp/consumer-currency\.log#$logs/consumer-currency.log#g" \
+      -e "s#/tmp/elide-block\.txt#$logs/elide-block.txt#g" \
+      -e "s#/tmp/elide-notice\.txt#$logs/elide-notice.txt#g" \
       -e "s#} > /tmp/pr-body\.md#} > $logs/pr-body.md#" \
       "$block" > "$block.run"
 

@@ -198,6 +198,20 @@ jobs:
           REMOVED=$(printf '%s\n' "$STATUS" | grep -c '^ D\|^D ' || true)
           MODIFIED=$(printf '%s\n' "$STATUS" | grep -c '^ M\|^M ' || true)
 
+          # THE ELISION — one implementation, in scripts/refresh-elide.sh, and it is TESTED
+          # (scripts/refresh_elide_test.sh). It is NOT inlined here, because the generator's
+          # routine per-ref progress has TWO shapes, emitted by two different modules
+          # (opencharly/spec refs/git.go and opencharly/sdk candywalk/candywalk.go), and the
+          # elision #413 added covered only ONE of them: five daily runs (2026-10-24 …
+          # 2026-10-28) then assembled a 117 KB body and were rejected by GitHub, and the
+          # published corpus was frozen for five days. opencharly/marketplace#413, #451.
+          #
+          # The script writes the elided block and the notice; both are pasted verbatim
+          # into the body below. It exits non-zero when the capture is missing or empty,
+          # so the run fails loud here rather than publishing a body that claims evidence
+          # it does not have.
+          bash scripts/refresh-elide.sh /tmp/generate.log /tmp/elide-block.txt /tmp/elide-notice.txt
+
           {
             echo "## Summary of changes"
             echo
@@ -274,41 +288,31 @@ jobs:
             sed -n '/->/p' /tmp/refresh.log
             echo '```'
             echo
-            echo '*2. Each changed code path executing — the ACTUAL generator output, minus only its'
-            echo '   routine per-ref `Downloading …` progress lines (noted below the block):*'
+            echo '*2. Each changed code path executing — the ACTUAL generator output, minus the two'
+            echo '   declared classes of routine lines (each counted in the notice below):*'
             echo '```'
-            # Paste the generator log WITHOUT its routine per-ref `Downloading …` progress lines:
-            # one per ref on a full refresh, and every ref they name is already listed by
-            # the refs-resolution section and the changed-file list above. Everything ELSE is kept
-            # verbatim, so the warning this section exists to surface cannot be hidden — a `tail`
-            # could drop it, which is the exact failure mode this guards against.
+            # The elided block is produced by scripts/refresh-elide.sh — ONE implementation,
+            # TESTED by scripts/refresh_elide_test.sh. The classes it declares are stated in
+            # the notice pasted verbatim below this fence, with each class's line count and
+            # byte count, so what this body does not show is MEASURED rather than assumed.
             #
-            # Why an elision is forced at all: GitHub rejects a PR body over 65536 BYTES, and the
-            # full log is ~62 KB of it (measured 2026-10-04, run 37226249924: the body assembled to
-            # 70876 bytes and `gh pr create` was rejected three times). opencharly/marketplace#413.
-            LOG_ELIDED=""
-            LOG_LINES=""
-            if [ ! -s /tmp/generate.log ]; then
-              echo "(ERROR: /tmp/generate.log is missing or empty — the generator capture failed)"
-            else
-              LOG_LINES=$(wc -l < /tmp/generate.log)
-              LOG_ELIDED=$(grep -c '^Downloading ' /tmp/generate.log || true)
-              # `|| true`: this step runs under `bash -e`, and `grep -v` exits 1 when it matches
-              # nothing — i.e. a log consisting solely of progress lines, which would then abort
-              # the step for no reason. The notice below states that case truthfully instead.
-              grep -v '^Downloading ' /tmp/generate.log || true
-            fi
+            # WHY there are TWO classes and not one: the generator writes a routine per-ref
+            # progress line from TWO modules — `Downloading <ref>…` (opencharly/spec,
+            # refs/git.go) and `charly: resolving <ref> (N resolved, M queued)`
+            # (opencharly/sdk, candywalk/candywalk.go) — and #413's elision matched only the
+            # first, so the second was pasted whole. Measured on the 2026-10-28 run's own
+            # log (run 74): 179 835 bytes in, of which 160 742 bytes (1 780 lines) were the
+            # two progress shapes and 19 006 bytes (496 lines) were the generator's
+            # artifact-path list; 87 bytes survive — the toolchain line and the report line.
+            # opencharly/marketplace#413, #451.
+            #
+            # Every warning and every error is pasted VERBATIM: a warning is what this
+            # section exists to surface, so nothing is elided that is not a declared class.
+            cat /tmp/elide-block.txt
             echo "\$ git status --porcelain -uall | wc -l"
             echo "${FILES}"
             echo '```'
-            if [ -n "$LOG_ELIDED" ] && [ "$LOG_ELIDED" -gt 0 ]; then
-              echo
-              echo "> **Elision notice — read this before quoting the block above.** \`${LOG_ELIDED}\` of"
-              echo "> its \`${LOG_LINES}\` log lines are NOT shown: exactly the routine \`Downloading <ref>…\`"
-              echo "> progress lines, and nothing else. Every warning and every other line is present"
-              echo "> verbatim. The complete, unelided log is this run's step log for *Regenerate the"
-              echo "> corpus at the new pins*."
-            fi
+            cat /tmp/elide-notice.txt
             echo
             echo '*3. Docs-only evidence:*'
             echo '```'
@@ -386,10 +390,49 @@ jobs:
             echo
             echo "This body is emitted by the fixed, model-free \`git status --porcelain -uall\` +"
             echo "\`printf/echo\` block in \`.github/workflows/refresh.yml\` (visible in this workflow's"
-            echo "committed source). The runtime identity is the GitHub Actions runner itself."
+            echo "committed source), with the generator's log elided by \`scripts/refresh-elide.sh\`"
+            echo "(visible in this repo's committed source, and covered by \`scripts/refresh_elide_test.sh\`)."
+            echo "The runtime identity is the GitHub Actions runner itself."
             echo
             echo "*Assisted-by: GitHub Actions ubuntu-latest (fully tested and validated)*"
           } > /tmp/pr-body.md
+
+          # GitHub rejects a PR body over 65536 BYTES ("GraphQL: Body is too long") and that
+          # rejection is DETERMINISTIC — nothing below can fix it, and leaving it to GitHub
+          # means reading an opaque error to learn that the body is too long.
+          #
+          # The size gate runs BEFORE the commit and the push, in full: the assembled body
+          # is measured, the measurement is broken down, and the run FAILS HERE if the body
+          # is over the cap. This is this issue's own root-fix line — "pre-push
+          # complete-body validation/size gate" — and the order is not incidental.
+          # opencharly/marketplace#451.
+          #
+          # Nothing is lost when it fires. The next run re-resolves every pin to its repo's
+          # newest tag IN THE PIN'S OWN SCHEME and regenerates the corpus from that refs
+          # list, so an advance is DEFERRED to the next run, never dropped — and what this
+          # gate must never do is publish a body GitHub will refuse.
+          #
+          # The measurement is also the DIAGNOSIS. The old message blamed the elided
+          # `Downloading …` progress lines — the one shape that WAS being elided — so it
+          # pointed the reader at the wrong thing for five consecutive days. The message
+          # now names the byte count of the pasted generator block and of everything else,
+          # so the section that actually grew is obvious from the error alone.
+          PR_BODY_BYTES=$(wc -c < /tmp/pr-body.md)
+          ELIDE_BLOCK_BYTES=$(wc -c < /tmp/elide-block.txt)
+          OTHER_BYTES=$((PR_BODY_BYTES - ELIDE_BLOCK_BYTES))
+
+          if [ "$PR_BODY_BYTES" -gt 65536 ]; then
+            echo "::error title=refresh: the assembled PR body is over GitHub's limit::${PR_BODY_BYTES} bytes; the limit is 65536."
+            echo "Of those, the pasted generator block is ${ELIDE_BLOCK_BYTES} bytes and every other"
+            echo "section together is ${OTHER_BYTES} bytes. The two routine classes (the per-ref"
+            echo "progress lines and the generator's artifact-path list) are ALREADY elided by"
+            echo "scripts/refresh-elide.sh, so the section that grew is the one the elision notice"
+            echo "does not account for — read the notice in the body for the counts."
+            echo "Nothing is lost: nothing was committed and nothing was pushed. The next run"
+            echo "re-resolves every pin to its repo's newest tag and regenerates the corpus from"
+            echo "that refs list, so the advance is deferred to the next run, not dropped."
+            exit 1
+          fi
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -397,31 +440,13 @@ jobs:
           git commit -m "chore: refresh the refs list to the newest tags"
           git push -u origin HEAD
 
-          # GitHub rejects a PR body over 65536 BYTES ("GraphQL: Body is too long") and that
-          # rejection is DETERMINISTIC — the retry loop below cannot fix it, it only burns three
-          # attempts and three sleeps on an error that will never change. Assert the size HERE,
-          # AFTER the push (so an over-long body costs a PR, not the night's refresh — the branch
-          # above is committed and pushed), and fail naming the byte count instead of leaving an
-          # opaque GraphQL error to be misread as a transient 5xx.
-          PR_BODY_BYTES=$(wc -c < /tmp/pr-body.md)
-          if [ "$PR_BODY_BYTES" -gt 65536 ]; then
-            echo "::error title=refresh: the assembled PR body is over GitHub's limit::${PR_BODY_BYTES} bytes; the limit is 65536."
-            echo "The body's largest section is the pasted generator log — check that its"
-            echo "'Downloading …' progress lines are being elided, then trim whatever else grew."
-            echo "Nothing is lost: the refreshed branch is already pushed (see above) — open the"
-            echo "PR by hand with a shorter body."
-            exit 1
-          fi
-
           # The branch is pushed FIRST and the PR attempted second, so a failure here costs
           # a PR rather than a night's refresh — the work is already safe on a branch.
           #
-          # GitHub's GraphQL API returns a transient 504 often enough to have eaten a run
-          # already ("We couldn't respond to your request in time … Please try
-          # resubmitting"). Retry a BOUNDED number of times — but check first whether the
-          # PR now exists, because a 504 can mean the write succeeded and only the response
-          # timed out, in which case a retry would fail with "already exists" and mask a
-          # success.
+          # ONE attempt, then an idempotent READBACK. There is no retry loop: a repeat of
+          # a WRITE cannot make it safe, because a 504 can mean the PR was created and only
+          # the response was lost — the repeat then fails with "already exists" and masks
+          # the success. The readback below is what tells the three states apart.
           BR=$(git rev-parse --abbrev-ref HEAD)
           attempt_log="$(gh pr create --title "chore: refresh the refs list" --body-file /tmp/pr-body.md 2>&1)" && attempt_rc=0 || attempt_rc=$?
           # The readback is the discriminator: "created", "created but the response was lost", and
