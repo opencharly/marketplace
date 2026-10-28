@@ -283,8 +283,9 @@ rulebook's "never by hook regexes".
   above is PROSE an agent self-enforces, and it is NOT executed when a session is
   auto-closed at the validator's block threshold, when a fix lands on a NEW
   branch/PR superseding an abandoned one, or when a session simply ends — so
-  worktrees and branches accumulate without bound (measured 2026-10-03: 108 worktrees and
-  ~900 local branches on one umbrella checkout). `charly task prune` (umbrella
+  worktrees and branches accumulate without bound (measured on 2026-10-03 with 108
+  worktrees and ~900 local branches on one umbrella checkout). `charly task prune`
+  (umbrella
   `verb:prune`, plugin-task) is the ONE mechanical control that contract lacked: it
   collects merged-upstream session worktrees + branches across the umbrella root
   AND every submodule. It is **fail-safe by construction** — a branch is pruned
