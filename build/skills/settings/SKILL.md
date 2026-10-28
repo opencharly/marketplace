@@ -29,9 +29,9 @@ Manage charly's runtime configuration stored in `~/.config/charly/config.yml`. C
 
 | Key | Default | Env Var | Description |
 |-----|---------|---------|-------------|
-| `engine.build` | `auto` | `CHARLY_BUILD_ENGINE` | Build engine (docker/podman) |
-| `engine.run` | `auto` | `CHARLY_RUN_ENGINE` | Run engine (docker/podman) |
-| `run_mode` | `auto` | `CHARLY_RUN_MODE` | Deployment mode (quadlet/direct) |
+| `engine.run` | `auto` | `CHARLY_RUN_ENGINE` | Run engine (`auto`, `podman`, `docker`, `containerd`). `auto` detects podman, then docker; `containerd` is opt-in and never auto-detected. `nerdctl` is containerd's CLI binary, not an engine value. |
+| `containerd.namespace` | `default` | — | containerd namespace for the deploy's images and containers. A per-deploy `namespace:` overrides this setting; this setting overrides the engine capability's built-in default. There is no env mirror. |
+| `run_mode` | `auto` | `CHARLY_RUN_MODE` | Deployment mode (`auto`, `quadlet`, `systemd-unit`, `direct`). `quadlet` is podman's, `systemd-unit` wraps the engine CLI (containerd's `nerdctl`), `direct` is an ephemeral argv launch. |
 | `bind_address` | `127.0.0.1` | `CHARLY_BIND_ADDRESS` | Default bind address for ports |
 | `encrypted_storage_path` | `~/.local/share/charly/encrypted` | `CHARLY_ENCRYPTED_STORAGE_PATH` | Base path for gocryptfs volumes |
 | `volumes_path` | `~/.local/share/charly/volumes` | `CHARLY_VOLUMES_PATH` | Base path for bind-mounted volumes |
@@ -45,13 +45,35 @@ Manage charly's runtime configuration stored in `~/.config/charly/config.yml`. C
 
 ### Engine Selection
 
+`engine.run` selects the engine that RUNS containers; the image builder is BuildKit and is
+not selectable. The closed engine vocabulary is `podman`, `docker`, and `containerd`.
+`auto` (the default) resolves it by detecting podman, then docker; `containerd` is opt-in
+and is never auto-detected. `containerd` is driven through the `nerdctl` CLI, so `nerdctl`
+is the binary, not an engine value.
+
 ```bash
-# Switch to podman for both build and run
-charly settings set engine.build podman
+# Which engine RUNS containers (the builder is BuildKit, and is not selectable)
 charly settings set engine.run podman
 
+# containerd: opt-in, never auto-detected (driven through the nerdctl CLI)
+charly settings set engine.run containerd
+
 # Check current engine
-charly settings get engine.build
+charly settings get engine.run
+```
+
+### Containerd Namespace
+
+The namespace a containerd deploy's images and containers live in. The default is the
+engine capability's namespace fact (`default`). A deploy's own `namespace:` still wins
+over this setting; this setting wins over the capability default.
+
+```bash
+# Pin the namespace for this host (default: the engine capability's namespace)
+charly settings set containerd.namespace k8s.io
+
+# Which namespace is in effect
+charly settings get containerd.namespace
 ```
 
 ### Storage Paths
@@ -84,6 +106,10 @@ charly secrets migrate-secrets --dry-run
 ### Resolution Chain
 
 Settings resolve in this order: environment variable > config.yml > default value.
+
+`containerd.namespace` is the one setting with no environment mirror: its levels are a
+per-deploy `namespace:` (highest) > `config.yml` (`containerd.namespace`) > the engine
+capability's built-in namespace default.
 
 ## Cross-References
 

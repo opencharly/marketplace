@@ -80,7 +80,17 @@ charly-marketplace:
             # body's sha256 equals the copy the carrier held at the drain, so pinning the
             # owners moves the AUTHORITY, not the bytes.
             - '@github.com/opencharly/plugin-egress:v2026.296.1538'
-            - '@github.com/opencharly/plugin-marketplace:v2026.296.2345'
+            # `plugin-marketplace` ADVANCED to v2026.301.1736 (opencharly/plugin-marketplace#55,
+            # merged as 8e1ce58): that tag carries the `marketplace` skill's rewrite — the
+            # family -> owning-repo TABLE is deleted (the refs list IS the map, and the table
+            # was a hand-maintained copy of it that every later drain falsified), the
+            # "agent definitions are HAND-AUTHORED" sentence is corrected (every one of them
+            # carries the GENERATED banner), the edit site is corrected from the owning
+            # CANDY dir to the owning REPO root (extract.go resolves a body against the repo
+            # root), and the authored body's EOF byte is normalized so the source and its
+            # projection agree byte for byte. The projection of this pin therefore changes
+            # in this commit.
+            - '@github.com/opencharly/plugin-marketplace:v2026.301.1736'
             - '@github.com/opencharly/plugin-deploy-vm:v2026.296.1557'
             # The UMBRELLA's OWN general-guidance skills (opencharly/opencharly#600,
             # AGENTS.md Part II #5): `agents`, `cutover-policy`, `root-cause-analyzer` have
@@ -141,8 +151,40 @@ charly-marketplace:
             # is the tag that repo's own merge minted.
             - '@github.com/opencharly/spec:v0.2026296.1338'
             - '@github.com/opencharly/sdk:v0.2026296.1207'
-            - '@github.com/opencharly/layer-charly-build:v2026.296.0919'
-            - '@github.com/opencharly/layer-charly-check:v2026.293.2158'
+            # The `build` family's SIX owners, DIRECT (opencharly/marketplace#587).
+            #
+            # The `build` family's fifteen skills used to live in `layer-charly-build`.
+            # That candy is DRAINED — it declares no `skill:` entity any more (the skills
+            # moved to the repos that hold the verbs they document), so the ref below used
+            # to carry NO family at all. The closure still reached the drained candy's
+            # OLD tag (`v2026.271.2134`, named by `distro-cachyos`' generated refs list),
+            # whose manifest carries the fifteen bodies INLINE, so the generator's inline
+            # fallback published them verbatim and the family was regenerated — in the
+            # pre-BuildKit shape — on every run. Measured: the published bodies still
+            # document the retired `engine.build` key and the podman drive, and the
+            # current owners' bodies already say "there is no `engine.build`" and that
+            # the builder is BuildKit (opencharly/marketplace#466 is the prose symptom;
+            # opencharly/plugin-marketplace#41 is the generator-side class).
+            #
+            # So the six owners are named DIRECT here, and the drained ref is DROPPED in
+            # the same commit: a dead pin is the same class of defect as the stale body
+            # it holds up. DIRECT wins over the closure twin (resolve.go preferEntity
+            # step 2 — a ref the project's own manifests name beats a twin that merely
+            # arrived through the closure), and the authority is keyed by (repo, tag),
+            # so the subpath of a ref does not matter here.
+            - '@github.com/opencharly/plugin-box:v2026.301.1542'
+            - '@github.com/opencharly/plugin-migrate:v2026.295.2044'
+            - '@github.com/opencharly/plugin-docs:v2026.295.2045'
+            - '@github.com/opencharly/plugin-secrets:v2026.295.2046'
+            - '@github.com/opencharly/plugin-settings:v2026.296.1209'
+            - '@github.com/opencharly/plugin-mcp:v2026.295.2058'
+            # `layer-charly-check` ADVANCED to v2026.301.1748 (opencharly/layer-charly-check#55,
+            # merged as ac220ea): that tag carries the `check` family's `beds-and-r10`
+            # reference with the retired podman-era flag spelling replaced by the contract's
+            # `--stage-parallelism` (opencharly/plugin-box#66 renamed the flag; the old tag
+            # still published the pre-rename prose). The projection of this pin therefore
+            # changes in this commit.
+            - '@github.com/opencharly/layer-charly-check:v2026.301.1748'
             - '@github.com/opencharly/layer-strata:v2026.294.1902'
             - '@github.com/opencharly/plugin-strata/candy/plugin-strata:v2026.294.2123'
             - '@github.com/opencharly/layer-android-sdk:v2026.292.2338'

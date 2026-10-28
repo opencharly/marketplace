@@ -57,7 +57,8 @@ Canonical files:
 - Never hand-edit a generated file. A skill is authored as a `skill:` entity in
   its OWNING candy repo, projected here by `charly marketplace generate`, and the
   refs list is bumped in the same change. See `/charly-internals:marketplace` for
-  the family → owning-repo table.
+  the ownership split — the refs list IS the map: the owner of a published skill
+  is the source whose body matches the published one byte for byte.
 - Regenerate ONLY the projections of the sources you edited: a wholesale
   regeneration from a tree that lacks a pending source drags that projection
   backwards silently (audit `git diff --numstat` for files losing net lines).
