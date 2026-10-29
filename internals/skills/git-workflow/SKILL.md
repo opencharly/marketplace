@@ -137,6 +137,18 @@ blocks PRs: in one leg, five verdicts on one PR turned on prose while the code a
 here, the two cannot both be the disposition.* **Grep the body for every statement about a responsibility and reconcile
 them before the push — being scrupulous is not the same as being consistent.**
 
+### The `!` marker and the body's breaking-change answer
+
+**The subject's `!` and the body's "Breaking change + rollback" line answer ONE question, and the body must answer it whenever the subject carries the marker.** The subject's Conventional Commits `!` says the change is part of a **HARD CUTOVER** — the whole phase lands in one change, with no shim, no dual path and no follow-up (`/charly-internals:cutover-policy`). The body's `## Change classification` says **what breaks for THIS repo's consumers, and how to roll it back**. The body's side is therefore:
+
+- **Under a `!`, `## Change classification` MUST carry a `**Breaking change + rollback:**` line.** It names the breakage this repo's consumers see, and the way back.
+- **A bare `none` is NOT an answer.** A cutover that breaks nothing HERE must say WHY it breaks nothing here — *"none — the pointers move to commits the org has already merged"* is an answer; *"none"* alone is not.
+- **Without a `!`, the line is optional.** A body that declares a breakage without the marker is judged on its own merits, and the marker is never inferred from the line.
+
+**Why the section's CONTENT is required, not only its NAME.** The body's sections are checked for FORM — the four required headings, the trailer's position, the head SHA, the file table — so a body can carry a perfectly well-formed `## Change classification` that says nothing about the change. Under a `!` that is the one thing the merged changelog must not do: the record would carry a cutover marker and a silent answer side by side. Measured org-wide: of the **53 bang-marked merged pull requests** in the scanned window, **51 carry no breaking-change answer at all**; the two that do (opencharly/opencharly#801 and opencharly/plugin-box#66) both answer with a REASONED `none`, and **not one of the 53 carries a bare `none`** — so the silence is the measured defect, and the bare-`none` rule is the one that must hold BEFORE the org writes such a body. The gap the silence left is opencharly/opencharly#802.
+
+**The umbrella's own reconciler checks the relation mechanically.** `scripts/check-pr-body-diff.mjs` reads the head's subject (`git log -1 --format=%s <head>`) and the body's `## Change classification`, and blocks a bang-marked head whose body carries no answer, or a bare `none`. It runs in the pre-push gate (`hooks/pre-push`), so the relation is settled BEFORE the push rather than by a reviewer afterwards. Its self-test carries all three directions: the bang-marked head with no answer and the bang-marked head with a bare `none` go RED, and the bang-marked head with a reasoned `none` stays GREEN.
+
 ### The POISON state — green verdict, still BLOCKED
 
 A branch protection rule requires ALL same-name `validate / validate` check runs on

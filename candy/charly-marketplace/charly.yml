@@ -151,7 +151,21 @@ charly-marketplace:
             # opencharly/plugin-box#66) and opencharly/opencharly#788 (the pin-advance
             # verb's scope is EVERY declared path, not a subset of them). ONE advance
             # republishes both, so the projection of this pin changes in this commit.
-            - '@github.com/opencharly/opencharly:v2026.302.1105'
+            #
+            # ADVANCED to v2026.302.1338 (opencharly/opencharly#805): the umbrella's own
+            # general-guidance skills were published from a tag that predates the `!`
+            # marker landing, so this corpus carried guidance that stated the marker's
+            # meaning and NEVER related it to the body's breaking-change answer. The tag
+            # carries both halves of that relation — the `cutover-policy` skill (the
+            # marker's side) and the `git-workflow` skill (the body's side) — and those
+            # TWO files are the only projections that change.
+            #
+            # The advance from #788's tag to the one before this was PROJECTION-NEUTRAL: the
+            # range carried the umbrella's own six PRs (#790, #791, #794, #796, #798,
+            # #801 — pin bumps, gate fixes and changelogs), which touch no `.agents/`
+            # file. So the projection had not moved since #788's advance, and the
+            # corpus's projection was current for its pin until this one.
+            - '@github.com/opencharly/opencharly:v2026.302.1338'
             # The two CONTRACT repos' skill shelves (opencharly/opencharly#611).
             # DIRECT, for the rule stated above. Both are Go MODULES, so their tags follow
             # the Go-module scheme
