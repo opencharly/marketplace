@@ -348,7 +348,7 @@ charly-marketplace:
             - '@github.com/opencharly/pod-openwebui:v2026.296.0939'
             - '@github.com/opencharly/layer-selkies-kde-desktop:v2026.293.0056'
             - '@github.com/opencharly/layer-vectorchord:v2026.293.0100'
-            - '@github.com/opencharly/layer-container-nesting:v2026.293.1724'
+            - '@github.com/opencharly/layer-container-nesting:v2026.302.0925'
             - '@github.com/opencharly/layer-hermes-playwright:v2026.296.0937'
             - '@github.com/opencharly/layer-notebook-ollama:v2026.293.0048'
             - '@github.com/opencharly/pod-github-runner:v2026.292.2208'
