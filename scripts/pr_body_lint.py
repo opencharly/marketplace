@@ -983,8 +983,14 @@ def main(argv: list[str]) -> int:
         # given a repository to read one from. A caller that forgets `--repo` cannot tell
         # "the body is fine" from "the rule never looked", and a skip nobody can see is a
         # skip nobody can trust (opencharly/marketplace#607).
+        #
+        # The NOTICE names the argument that was MISSING, and the name comes from the
+        # condition this branch tests — so it cannot go stale if the head's derivation ever
+        # changes. Today `--repo` without `--head` DERIVES the head (see above), so this
+        # branch is reached only when `--repo` is absent, and the name it prints is `--repo`.
+        missing = "--repo" if not a.repo else "--head"
         print(
-            f"pr_body_lint: NOTICE - no --repo was given, so the head's subject cannot be read "
+            f"pr_body_lint: NOTICE - no {missing} was given, so the head's subject cannot be read "
             f"and the bang rule is SKIPPED",
             file=sys.stderr,
         )

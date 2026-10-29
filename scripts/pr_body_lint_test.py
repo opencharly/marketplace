@@ -867,6 +867,38 @@ class BangMarker(unittest.TestCase):
         self.assertEqual(rc, 0)
         self.assertNotIn("bang rule is SKIPPED", err.getvalue())
 
+    def test_the_rule_derives_the_head_when_only_the_repository_is_given(self):
+        """The NOTICE names the argument that was MISSING, and it must name the right one.
+        With `--repo` and no `--head`, the head is DERIVED from the repository, so the rule
+        RAN — it must neither claim to have skipped nor skip the check it was given
+        (opencharly/marketplace#607)."""
+        import contextlib
+        import io
+        import subprocess
+        import tempfile
+
+        from pr_body_lint import main
+
+        tmp = tempfile.mkdtemp(prefix="pr-body-lint-")
+        g = lambda *a: subprocess.run(
+            ["git", "-C", tmp, *a], check=True, capture_output=True, text=True
+        )
+        g("init", "-q", "-b", "main")
+        g("config", "user.email", "linter@example.invalid")
+        g("config", "user.name", "linter")
+        Path(tmp, "a.txt").write_text("one\n")
+        g("add", "-A")
+        g("commit", "-qm", "feat(scope)!: the cutover")
+        p = Path(tmp) / "body.md"
+        p.write_text(body())
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(out):
+            rc = main([str(p), "--repo", tmp])
+        # The rule RAN: the marked subject and the body's missing answer are the finding.
+        self.assertEqual(rc, 1)
+        self.assertIn("carries NO breaking-change answer", out.getvalue())
+        self.assertNotIn("bang rule is SKIPPED", err.getvalue())
+
     def test_the_subject_is_read_from_the_commit(self):
         """The rule's other half is the COMMIT's subject, read with git."""
         import subprocess
