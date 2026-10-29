@@ -242,7 +242,8 @@ jobs:
           # --porcelain` would add: this job stages the regenerated corpus on purpose, so
           # the index differs from HEAD by design and that comparison is true by
           # construction. Measured 2026-10-29 on this tree: a check built on it aborted with
-          # DRIFT on a tree that had not moved, and no PR would ever have been opened.
+          # DRIFT on a tree that had not moved. A gate built on that comparison fails on
+          # this job's tree shape, every time it runs here.
           #
           # The generation is deterministic given the refs list: the refs list is committed
           # and unchanged, and every pin names a MERGED tag, so the second run resolves the

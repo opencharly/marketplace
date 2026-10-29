@@ -34,9 +34,12 @@
 # not use `git status --porcelain`, which reports the index column as well as the worktree
 # column. The refresh job stages the regenerated corpus on purpose, so the index differs
 # from HEAD by design and `git status --porcelain` is non-empty by CONSTRUCTION: a gate
-# built on it fails every refresh run and no PR is ever opened. Measured 2026-10-29 on the
-# refresh's own tree: the check aborted with DRIFT and listed the whole staged corpus,
-# while the tree had not moved at all (no unstaged change, no untracked file).
+# built on it fails on the refresh job's tree shape, every time it runs there, and no PR
+# would open. Measured 2026-10-29 on the refresh's own tree: a check built on it aborted
+# with DRIFT and listed the whole staged corpus, while the tree had not moved at all (no
+# unstaged change, no untracked file). That is a property of the INSTRUMENT, measured on
+# that tree shape — the refresh job ran NO gate before 2026-10-29 (it pasted deploy.yml's
+# gate SOURCE into its body), so no refresh ever aborted on it.
 # `scripts/drift_gate_test.sh` holds the arm that catches it.
 #
 # usage: drift-gate.sh [work-dir]
