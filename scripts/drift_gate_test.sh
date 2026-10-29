@@ -8,9 +8,9 @@
 #                the index — PASSES. This is the refresh job's own situation: it stages
 #                the regenerated corpus on purpose, so the index differs from HEAD by
 #                design. A check built on `git status --porcelain` fails here, because
-#                that command also reports the index column: the gate would abort every
-#                refresh run and no PR would ever be opened. Measured 2026-10-29 on the
-#                refresh's own tree — DRIFT on a tree that had not moved.
+#                that command also reports the index column: a gate built on it fails on
+#                the refresh job's tree shape, every time it runs there. Measured
+#                2026-10-29 on the refresh's own tree — DRIFT on a tree that had not moved.
 #   D-MOVED      a tracked file that differs from the index FAILS.
 #   D-UNTRACKED  a file that is in no index at all FAILS too. This is the half
 #                `git diff` alone misses: a generator that emits NEW artifacts recreates
@@ -105,7 +105,7 @@ check_suite() {
   if [ "$RC" -eq 0 ]; then
     ok "[$label] a STAGED corpus with an unmoved tree passes the gate (the refresh's own shape)"
   else
-    bad "[$label] a STAGED corpus with an unmoved tree FAILED the gate (rc=$RC) — the gate compares the index with HEAD and every refresh run would abort: $OUT"
+    bad "[$label] a STAGED corpus with an unmoved tree FAILED the gate (rc=$RC) — the gate compares the index with HEAD, and the refresh job's tree shape is STAGED by design, so a gate like that fails on every run of that job: $OUT"
   fi
 
   # --- D-MOVED -----------------------------------------------------------------------

@@ -27,6 +27,10 @@
 #               is deferred to the next run rather than dropped.
 #   E-FAIL      a missing or empty capture fails loud (exit 1) instead of publishing a
 #               body that claims evidence it does not have.
+#   E-CALLERS  BOTH callers of the shared drift gate call the SAME script — the refresh
+#               job and the `marketplace` workflow. The published skill claims "one
+#               implementation, two callers"; that claim is checked here, not asserted
+#               in prose (opencharly/marketplace#595).
 #
 # HOW IT PROVES IT. The elision is EXTRACTED from the shipped files, never re-written:
 # the suite runs the shipped `scripts/refresh-elide.sh`, and it runs the shipped body
@@ -40,8 +44,9 @@
 # dropped, the workflow's call replaced by the pre-fix inline elision, the size gate
 # moved back behind the push, the notice's false claim restored, the drift gate's result
 # dropped from the body, the drift gate moved before the staging, and the shared drift
-# gate copied back into the workflow. An arm that does NOT turn the suite red is a
-# FINDING, and the process exits non-zero.
+# gate copied back into the workflow — or into the `marketplace` workflow, the other
+# caller. An arm that does NOT turn the suite red is a FINDING, and the process exits
+# non-zero.
 #
 # THE META-ARM proves that failure path at the PROCESS boundary: this script re-runs
 # ITSELF as a subprocess with its arms made undetectable, and requires that subprocess
@@ -73,6 +78,10 @@ ELIDE="$REPO/scripts/refresh-elide.sh"
 # `marketplace` workflow. Its own control is `scripts/drift_gate_test.sh`; this suite
 # only checks that the WORKFLOW calls it and that the body quotes it.
 DRIFT="$REPO/scripts/drift-gate.sh"
+# The OTHER caller of that one gate: the `marketplace` workflow. The published skill
+# claims "ONE implementation, TWO callers", so this suite checks BOTH callers — a claim
+# about a workflow's behaviour is CHECKED, not asserted (opencharly/marketplace#595).
+DEPLOY="$REPO/.github/workflows/deploy.yml"
 SELFTEST=0
 # RET_FORCE_NOOP_ARM: the arms are made undetectable on purpose. It exists for ONE
 # caller — this script's own meta-arm, which re-runs this script as a subprocess to
@@ -85,10 +94,11 @@ while [ $# -gt 0 ]; do
     --workflow) WF="${2:?--workflow needs a file}"; shift 2 ;;
     --elide) ELIDE="${2:?--elide needs a file}"; shift 2 ;;
     --drift) DRIFT="${2:?--drift needs a file}"; shift 2 ;;
+    --deploy) DEPLOY="${2:?--deploy needs a file}"; shift 2 ;;
     --self-test) SELFTEST=1; shift ;;
     --force-noop-arm) RET_FORCE_NOOP_ARM=1; shift ;;
     -h|--help) sed -n '2,50p' "${BASH_SOURCE[0]}"; exit 0 ;;
-    *) echo "usage: bash scripts/refresh_elide_test.sh [--workflow FILE] [--elide FILE] [--drift FILE] [--self-test]" >&2; exit 2 ;;
+    *) echo "usage: bash scripts/refresh_elide_test.sh [--workflow FILE] [--elide FILE] [--drift FILE] [--deploy FILE] [--self-test]" >&2; exit 2 ;;
   esac
 done
 
@@ -176,10 +186,11 @@ extract_elide_call() {
 }
 
 # --------------------------------------------------------------------- the checker
-# check_suite <workflow> <elide-script> <label> — 0 when every rule holds.
+# check_suite <workflow> <elide-script> <label> [marketplace-workflow] — 0 when every
+# rule holds.
 # The return value is the NUMBER of findings, so "red" and "how red" are one number.
 check_suite() {
-  local wf="$1" elide="$2" label="$3"
+  local wf="$1" elide="$2" label="$3" deploy="${4:-$DEPLOY}"
   local before=$FAILS
 
   if [ ! -f "$wf" ]; then
@@ -275,7 +286,7 @@ check_suite() {
     bad "[$label] the shared drift gate is NOT fail-closed — it must check the diff AND the untracked set"
   fi
   if printf '%s\n' "$drift_code" | grep -qF 'git status --porcelain'; then
-    bad "[$label] the shared drift gate uses 'git status --porcelain' — that also compares the INDEX with HEAD, and this job stages the corpus on purpose, so the gate would fail every run"
+    bad "[$label] the shared drift gate uses 'git status --porcelain' — that also compares the INDEX with HEAD, and this job stages the corpus on purpose, so a gate like that fails on every run of this job"
   else
     ok "[$label] the shared drift gate does NOT compare the index with HEAD"
   fi
@@ -283,6 +294,21 @@ check_suite() {
     ok "[$label] the workflow pastes the drift gate's OWN RESULT into the body"
   else
     bad "[$label] the workflow does NOT paste the drift gate's result into the body"
+  fi
+
+  # --- E-CALLERS: the OTHER caller runs the SAME gate ---------------------------------
+  # The published skill claims "ONE implementation, TWO callers": the refresh job and the
+  # `marketplace` workflow. The refresh side is checked above; this is the other half. If
+  # the `marketplace` workflow stopped calling the shared script — or grew its own copy of
+  # the check — the gate would have a second implementation (R2) and the claim in the
+  # published prose would be false. A claim about a workflow's behaviour is CHECKED here,
+  # not asserted in prose (opencharly/marketplace#595).
+  if [ ! -f "$deploy" ]; then
+    bad "[$label] the marketplace workflow does not exist: $deploy"
+  elif grep -qF 'bash scripts/drift-gate.sh' "$deploy"; then
+    ok "[$label] the marketplace workflow runs the SHARED drift gate (scripts/drift-gate.sh)"
+  else
+    bad "[$label] the marketplace workflow does NOT run the shared drift gate — the gate has a second implementation"
   fi
 
   # --- E-GATE-ORDER: the gate compares the tree this PR commits ---------------------
@@ -640,6 +666,22 @@ mutate_inline_drift_gate() {
   ' "$1" > "$2"
 }
 
+# The OTHER caller gets the shared gate COPIED back into it: the `marketplace` workflow's
+# step becomes a second implementation of the check, the gate has two implementations (R2),
+# and the published claim "one gate, two callers" is false. The suite must catch that.
+mutate_inline_drift_gate_deploy() {
+  awk '
+    { if ($0 ~ /run: bash scripts\/drift-gate\.sh/) {
+        print "        run: |";
+        print "          if ! git diff --quiet || [ -n \"$(git ls-files --others --exclude-standard)\" ]; then";
+        print "            echo \"DRIFT: the committed corpus does not match the generator.\"";
+        print "            exit 1";
+        print "          fi";
+        next }
+      print }
+  ' "$1" > "$2"
+}
+
 # run_self_test — 0 when every arm turned the suite red.
 # The arms' findings are EXPECTED here, so they do not touch the outer counter; an arm
 # that did NOT turn the suite red is the finding, and it is counted here and returned,
@@ -650,10 +692,11 @@ run_self_test() {
 
   local m1="mutate_second_shape" m2="mutate_drop_artifact_class" m3="mutate_inline_elision" m4="mutate_verdict_after_push"
   local m5="mutate_false_notice" m6="mutate_drop_drift_gate" m7="mutate_gate_before_staging"
-  local m8="mutate_inline_drift_gate"
+  local m8="mutate_inline_drift_gate" m9="mutate_inline_drift_gate_deploy"
   if [ "$RET_FORCE_NOOP_ARM" -eq 1 ]; then
     m1="mutate_noop"; m2="mutate_noop"; m3="mutate_noop"; m4="mutate_noop"
     m5="mutate_noop"; m6="mutate_noop"; m7="mutate_noop"; m8="mutate_noop"
+    m9="mutate_noop"
   fi
 
   "$m1" "$ELIDE" "$WORK/arm-second-shape.sh"
@@ -718,6 +761,14 @@ run_self_test() {
     SELF_TEST_FAILS=$((SELF_TEST_FAILS + 1))
   else
     ok "red arm 'the shared gate copied back into the workflow' turns the suite red"
+  fi
+
+  "$m9" "$DEPLOY" "$WORK/arm-inline-drift-gate-deploy.yml"
+  if check_suite "$WF" "$ELIDE" "arm:inline-drift-gate-deploy" "$WORK/arm-inline-drift-gate-deploy.yml" >/dev/null 2>&1; then
+    printf '  FAIL  red arm %s did NOT turn the suite red\n' "'the shared gate copied back into the marketplace workflow'" >&2
+    SELF_TEST_FAILS=$((SELF_TEST_FAILS + 1))
+  else
+    ok "red arm 'the shared gate copied back into the marketplace workflow' turns the suite red"
   fi
 
   local rc=$SELF_TEST_FAILS
