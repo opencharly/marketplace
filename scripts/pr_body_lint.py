@@ -48,7 +48,16 @@ BLOCKs on the body alone):
              was "2 files, +32 −5"; the validator BLOCKed on it). The scope is the paragraph
              that carries the pasted `Head` sha — that paragraph is the body's statement about
              THIS commit — so a diffstat quoted about ANOTHER diff, in another paragraph, is
-             left alone, and a diffstat inside a fenced block is pasted evidence, not a claim.
+             left alone, and a diffstat inside a fenced block is pasted evidence, not a claim;
+  bang       the head's SUBJECT and the body's ANSWER are two halves of ONE question. The
+             Conventional Commits `!` marker says "this change is a hard cutover — it breaks a
+             consumer"; the body's `## Change classification` says what breaks for THIS repo's
+             consumers and how to roll it back. So under a `!` the body MUST carry a
+             `**Breaking change + rollback:**` line, and a bare `none` is not an answer: a
+             cutover that breaks nothing HERE must say WHY it breaks nothing here (the org
+             rulebook, "Commit, push, land"; opencharly/opencharly#802). Without a `!` the
+             line is optional, and a body that declares a breakage without the marker is
+             judged on its own merits.
 
 It cannot judge whether evidence is SUFFICIENT — that stays the validator's job. It removes the
 classes that need no judgment.
@@ -120,6 +129,28 @@ DIFFSTAT_GIT = re.compile(
     r"(?P<files>\d+)\s+files? changed,\s*(?P<ins>\d+)\s+insertions?\(\+\),\s*"
     r"(?P<del>\d+)\s+deletions?\(-\)"
 )
+
+# --- the BANG-MARKER rule ----------------------------------------------------
+# The head's SUBJECT carries the Conventional Commits breaking-change marker, and the body's
+# `## Change classification` carries the ANSWER to the question the marker asks. They are two
+# halves of ONE question — "does this change break a consumer?" — and the merged changelog
+# holds them side by side, so a marker with a silent answer leaves the reader holding two
+# signals and one of them missing (opencharly/opencharly#802).
+#
+# Only the Conventional Commits HEADER is read — the part before the first colon — because a
+# subject's PROSE may carry a colon and a bang of its own: `docs: correct the 2026.299.0822
+# entry's false clause about the FAIL: marker` is a documentation fix, not a cutover. The
+# marker sits at the END of the header, where Conventional Commits puts it: `feat(scope)!: …`.
+#
+# The answer's KEY is the org's own — `**Breaking change + rollback:**` — the form the org
+# rulebook names. It is read from a line that OPENS with the key, so a prose mention of the
+# words is not read as an answer, and the value is what follows the first colon after it.
+BREAKING_ANSWER = re.compile(r"^\s*(?:[-*+]\s+)?\**\s*breaking change\b", re.IGNORECASE)
+# A "none" answer with nothing after it is BARE: the merged changelog then holds a `!` beside
+# a `none`, which is exactly the sentence a reader cannot resolve. "none — this change only
+# carries another repo's cutover" is an ANSWER, because it names the reason.
+NONE_ANSWER = re.compile(r"^(none|no|nothing)\b", re.IGNORECASE)
+NONE_ANSWER_REST = re.compile(r"^[\s.,:;—–-]+")
 
 # --- the FILE-CLAIM CONSISTENCY rule ------------------------------------------
 # A body states, per file, what the diff does to it. Two statements about the SAME file can
@@ -566,6 +597,100 @@ def diff_totals(repo: Path, base: str, head: str) -> tuple[int, int, int] | None
     return files, insertions, deletions
 
 
+# --- the BANG-MARKER rule's three halves --------------------------------------
+def subject_carries_marker(subject: str) -> bool:
+    """Does the head's SUBJECT carry the Conventional Commits breaking-change marker?
+
+    Only the HEADER is read — the part before the first colon — because a subject's prose may
+    carry a colon and a bang of its own. The marker sits at the END of the header, where
+    Conventional Commits puts it: `feat(scope)!: …`.
+    """
+    header = subject.split(":")[0]
+    return bool(re.search(r"!\s*$", header))
+
+
+def breaking_change_answer(section_lines: list[str]) -> dict | None:
+    """The body's breaking-change ANSWER: the line under `## Change classification` that
+    OPENS with the key, so a prose mention of the words is not read as an answer.
+
+    The key is the org's own — `**Breaking change + rollback:**`. The value is what follows
+    the first colon after the key. Returns the line's 1-based number within the section, the
+    value, and the whole text, or None when the section carries no answer at all.
+    """
+    for i, ln in enumerate(section_lines):
+        m = BREAKING_ANSWER.match(ln)
+        if not m:
+            continue
+        after = ln[m.end() :]
+        colon = after.find(":")
+        value = (after if colon == -1 else after[colon + 1 :]).strip()
+        return {"line": i + 1, "value": value, "text": ln.strip()}
+    return None
+
+
+def none_answer(plain: str) -> str | None:
+    """Is the answer a "none", and does it say WHY?
+
+    "none" alone is not an answer under a marker: the merged changelog carries the subject and
+    the body side by side, and a bare "none" next to a `!` is exactly the sentence a reader
+    cannot resolve. "none — this change only carries another repo's cutover" is an answer,
+    because it names the reason. Returns "bare", "reasoned", or None when the answer is not a
+    "none" at all.
+    """
+    m = NONE_ANSWER.match(plain)
+    if not m:
+        return None
+    rest = NONE_ANSWER_REST.sub("", plain[m.end() :]).strip()
+    return "bare" if not rest else "reasoned"
+
+
+def bang_findings(section_lines: list[str], subject: str) -> list[str]:
+    """The `bang` findings: the head's subject marker and the body's answer must agree.
+
+    `section_lines` is the body's `## Change classification` section — empty when the body
+    carries no such section, which is the `sections` rule's own finding; this arm reports the
+    missing ANSWER, which is a different statement.
+    """
+    if not subject_carries_marker(subject):
+        return []
+    answer = breaking_change_answer(section_lines)
+    if answer is None:
+        return [
+            f"bang: the head's subject carries the breaking-change marker (`{subject}`) and the "
+            f"body's `## Change classification` carries NO breaking-change answer — the marker says "
+            f"this change is part of a hard cutover, so the body must say what breaks for this "
+            f"repo's consumers and how to roll it back"
+        ]
+    plain = re.sub(r"[*_`]", "", answer["value"]).strip()
+    if none_answer(plain) == "bare":
+        return [
+            f"bang: the head's subject carries the breaking-change marker (`{subject}`) and the "
+            f"body's answer is a bare `none` (line {answer['line']}) — a cutover that breaks "
+            f"nothing HERE must say WHY it breaks nothing here (for example: this change only "
+            f"carries another repo's cutover)"
+        ]
+    return []
+
+
+def head_subject(repo: Path, head: str) -> str | None:
+    """The head's SUBJECT — the half of the bang relation that lives in the commit.
+
+    None when it cannot be read: an unresolvable commit, a missing repository, a git that
+    fails. The rule then SKIPS, visibly, rather than guessing — a lint that invents the truth
+    is worse than a lint that stays quiet.
+    """
+    try:
+        out = subprocess.run(
+            ["git", "-C", str(repo), "log", "-1", "--format=%s", head],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout
+    except (subprocess.CalledProcessError, OSError):
+        return None
+    return out.strip() or None
+
+
 # The SWEEP subset of CLAIM: claims about an EXHAUSTIVE SEARCH, where only a command can
 # support the assertion. Ordinary rule bullets ("git status was checked", "the artifact was
 # verified after the build") assert that a STEP WAS DONE, and `## Rulebook compliance` is
@@ -669,6 +794,7 @@ def lint(
     head: str | None,
     rules: tuple[str, ...],
     diffstat: tuple[int, int, int] | None = None,
+    subject: str | None = None,
 ) -> list[str]:
     findings: list[str] = []
     lines = body.rstrip("\n").split("\n")
@@ -789,6 +915,16 @@ def lint(
 
     findings.extend(_file_claims(lines))
     findings.extend(_count_claims(lines))
+
+    # The head's SUBJECT and the body's ANSWER are two halves of ONE question. The subject is
+    # None when it could not be read: the rule then SKIPS, visibly (in main()), rather than
+    # guessing — a lint that invents the truth is worse than a lint that stays quiet.
+    if subject is not None:
+        classification = next(
+            (v for k, v in secs.items() if k.strip().lower() == "change classification"), []
+        )
+        findings.extend(bang_findings(classification, subject))
+
     return findings
 
 
@@ -814,7 +950,22 @@ def main(argv: list[str]) -> int:
                 f"diffstat rule is SKIPPED",
                 file=sys.stderr,
             )
-    findings = lint(a.body.read_text(), head, tuple(r for r in a.rules.split(",") if r), diffstat)
+    subject = None
+    if a.repo and head:
+        subject = head_subject(a.repo, head)
+        if subject is None:
+            print(
+                f"pr_body_lint: NOTICE - the head's subject could not be read, so the bang rule "
+                f"is SKIPPED",
+                file=sys.stderr,
+            )
+    findings = lint(
+        a.body.read_text(),
+        head,
+        tuple(r for r in a.rules.split(",") if r),
+        diffstat,
+        subject,
+    )
     for f in findings:
         print(f"FAIL  {f}")
     print(f"pr_body_lint: {len(findings)} finding(s)")
