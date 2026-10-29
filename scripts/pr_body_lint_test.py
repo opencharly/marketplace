@@ -7,13 +7,27 @@ the finding the validator named. `clean-*` is a body the validator PASSed and mu
 Run: python3 scripts/pr_body_lint_test.py
 """
 
+import shutil
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from pr_body_lint import DEFAULT_RULES, lint  # noqa: E402
+
+
+def temp_dir(case: unittest.TestCase) -> str:
+    """A temporary directory that is REMOVED when the test ends.
+
+    These tests build REAL git repositories on disk. `tempfile.mkdtemp` on its own leaves
+    every one of them behind, so a test run filled the temp directory with dead
+    repositories that nothing collected (opencharly/marketplace#608)."""
+    tmp = tempfile.mkdtemp(prefix="pr-body-lint-")
+    case.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
+    return tmp
+
 
 DATA = HERE / "testdata" / "pr_body_lint"
 FOOTER = "*Assisted-by: Claude Code Anthropic Claude Opus 5.5 (documentation reviewed)*"
@@ -678,9 +692,8 @@ class DiffTotals(unittest.TestCase):
 
     def repo(self):
         import subprocess
-        import tempfile
 
-        tmp = tempfile.mkdtemp(prefix="pr-body-lint-")
+        tmp = temp_dir(self)
         run = lambda *a: subprocess.run(["git", "-C", tmp, *a], check=True, capture_output=True, text=True)
         run("init", "-q", "-b", "main")
         run("config", "user.email", "linter@example.invalid")
@@ -735,6 +748,36 @@ class BangMarker(unittest.TestCase):
         self.assertTrue(f, "a bare `none` under a marker must fail")
         self.assertIn("bare `none`", f[0])
 
+    def test_a_marked_subject_with_an_empty_answer_fails(self):
+        """An answer line whose value is EMPTY is as silent as no line at all: the merged
+        changelog then holds a `!` beside a line that says nothing (opencharly/marketplace#607).
+        """
+        f = self.bangs(body(classification="**Breaking change + rollback:**"))
+        self.assertTrue(f, "an EMPTY answer under a marker must fail")
+        self.assertIn("answer is EMPTY", f[0])
+
+    def test_an_empty_answer_is_refused_as_silence_not_as_a_none(self):
+        """The empty value is not a `none` — it is silence, and it is reported as silence, so
+        the finding names the shape the author actually wrote."""
+        f = self.bangs(body(classification="**Breaking change + rollback:**   "))
+        self.assertTrue(f, "a whitespace-only answer must fail")
+        self.assertIn("answer is EMPTY", f[0])
+
+    def test_a_line_that_opens_a_different_key_is_not_an_answer(self):
+        """The anchor is the PUBLISHED key in full. `**Breaking change policy:**` is a
+        DIFFERENT key, and reading its value as the answer is a false positive waiting to
+        happen (opencharly/marketplace#607)."""
+        f = self.bangs(body(classification="**Breaking change policy:** none"))
+        self.assertTrue(f, "a different key must not answer the question")
+        self.assertIn("carries NO breaking-change answer", f[0])
+
+    def test_a_different_key_with_a_real_answer_is_still_not_an_answer(self):
+        """Tightening the anchor is not a loophole: a real answer under a different key is
+        still no answer."""
+        f = self.bangs(body(classification="**Breaking change policy:** the flag is gone"))
+        self.assertTrue(f, "a different key must not answer the question")
+        self.assertIn("carries NO breaking-change answer", f[0])
+
     def test_a_marked_subject_with_a_reasoned_none_passes(self):
         f = self.bangs(
             body(
@@ -787,14 +830,118 @@ class BangMarker(unittest.TestCase):
         judge against a fiction."""
         self.assertEqual([x for x in run(body(), subject=None) if x.startswith("bang:")], [])
 
+    def test_the_rule_skips_visibly_when_no_repository_is_given(self):
+        """A skip nobody can see is a skip nobody can trust. With no `--repo` the rule never
+        RAN — it was not given a repository to read a subject from — and that is NOTICED, so
+        a caller cannot mistake "the body is fine" for "the rule never looked"
+        (opencharly/marketplace#607)."""
+        import contextlib
+        import io
+
+        from pr_body_lint import main
+
+        tmp = temp_dir(self)
+        p = Path(tmp) / "body.md"
+        p.write_text(body())
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            rc = main([str(p)])
+        self.assertEqual(rc, 0)
+        self.assertIn("NOTICE", err.getvalue())
+        self.assertIn("bang rule is SKIPPED", err.getvalue())
+
+    def test_the_rule_does_not_notice_a_skip_it_did_not_take(self):
+        """The NOTICE names an ABSENT repository. With a repository and a readable head the
+        rule RAN, so it must not claim to have skipped."""
+        import contextlib
+        import io
+        import subprocess
+
+        from pr_body_lint import main
+
+        tmp = temp_dir(self)
+        g = lambda *a: subprocess.run(
+            ["git", "-C", tmp, *a], check=True, capture_output=True, text=True
+        )
+        g("init", "-q", "-b", "main")
+        g("config", "user.email", "linter@example.invalid")
+        g("config", "user.name", "linter")
+        Path(tmp, "a.txt").write_text("one\n")
+        g("add", "-A")
+        g("commit", "-qm", "feat(scope): an ordinary change")
+        head = g("rev-parse", "HEAD").stdout.strip()
+        p = Path(tmp) / "body.md"
+        p.write_text(body())
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            rc = main([str(p), "--repo", tmp, "--head", head])
+        self.assertEqual(rc, 0)
+        self.assertNotIn("bang rule is SKIPPED", err.getvalue())
+
+    def test_the_rule_derives_the_head_when_only_the_repository_is_given(self):
+        """The NOTICE names the argument that was MISSING, and it must name the right one.
+        With `--repo` and no `--head`, the head is DERIVED from the repository, so the rule
+        RAN — it must neither claim to have skipped nor skip the check it was given
+        (opencharly/marketplace#607)."""
+        import contextlib
+        import io
+        import subprocess
+
+        from pr_body_lint import main
+
+        tmp = temp_dir(self)
+        g = lambda *a: subprocess.run(
+            ["git", "-C", tmp, *a], check=True, capture_output=True, text=True
+        )
+        g("init", "-q", "-b", "main")
+        g("config", "user.email", "linter@example.invalid")
+        g("config", "user.name", "linter")
+        Path(tmp, "a.txt").write_text("one\n")
+        g("add", "-A")
+        g("commit", "-qm", "feat(scope)!: the cutover")
+        p = Path(tmp) / "body.md"
+        p.write_text(body())
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(out):
+            rc = main([str(p), "--repo", tmp])
+        # The rule RAN: the marked subject and the body's missing answer are the finding.
+        self.assertEqual(rc, 1)
+        self.assertIn("carries NO breaking-change answer", out.getvalue())
+        self.assertNotIn("bang rule is SKIPPED", err.getvalue())
+
+    def test_the_notice_names_the_head_when_the_repositories_head_cannot_be_read(self):
+        """The NOTICE names the argument its OWN condition found missing, so it must name
+        `--head` when the repository was given but its HEAD could not be read — an UNBORN
+        head, or a path that is not a repository at all. And the linter must SAY that
+        instead of dying on a traceback (opencharly/marketplace#608)."""
+        import contextlib
+        import io
+        import subprocess
+
+        from pr_body_lint import main
+
+        tmp = temp_dir(self)
+        subprocess.run(
+            ["git", "-C", tmp, "init", "-q", "-b", "main"], check=True, capture_output=True, text=True
+        )
+        p = Path(tmp) / "body.md"
+        p.write_text(body())
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            rc = main([str(p), "--repo", tmp])
+        self.assertEqual(rc, 0)
+        self.assertIn("NOTICE", err.getvalue())
+        self.assertIn("bang rule is SKIPPED", err.getvalue())
+        self.assertIn("--head", err.getvalue())
+        self.assertNotIn("--repo", err.getvalue())
+
     def test_the_subject_is_read_from_the_commit(self):
         """The rule's other half is the COMMIT's subject, read with git."""
         import subprocess
-        import tempfile
 
         from pr_body_lint import head_subject
 
-        tmp = tempfile.mkdtemp(prefix="pr-body-lint-")
+        tmp = temp_dir(self)
         g = lambda *a: subprocess.run(
             ["git", "-C", tmp, *a], check=True, capture_output=True, text=True
         )

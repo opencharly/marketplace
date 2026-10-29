@@ -55,7 +55,10 @@ BLOCKs on the body alone):
              consumers and how to roll it back. So under a `!` the body MUST carry a
              `**Breaking change + rollback:**` line, and a bare `none` is not an answer: a
              cutover that breaks nothing HERE must say WHY it breaks nothing here (the org
-             rulebook, "Commit, push, land"; opencharly/opencharly#802). Without a `!` the
+             rulebook, "Commit, push, land"; opencharly/opencharly#802). An answer whose value
+             is EMPTY is not an answer either — it is as silent as no line at all — and the
+             key is matched in FULL, so a line that opens a DIFFERENT key
+             (`**Breaking change policy:**`) is not read as the answer. Without a `!` the
              line is optional, and a body that declares a breakage without the marker is
              judged on its own merits.
 
@@ -143,9 +146,15 @@ DIFFSTAT_GIT = re.compile(
 # marker sits at the END of the header, where Conventional Commits puts it: `feat(scope)!: …`.
 #
 # The answer's KEY is the org's own — `**Breaking change + rollback:**` — the form the org
-# rulebook names. It is read from a line that OPENS with the key, so a prose mention of the
-# words is not read as an answer, and the value is what follows the first colon after it.
-BREAKING_ANSWER = re.compile(r"^\s*(?:[-*+]\s+)?\**\s*breaking change\b", re.IGNORECASE)
+# rulebook names, and the anchor is that WHOLE key and not its first two words: a line that
+# opens `**Breaking change policy:**` is a DIFFERENT key, and reading its value as the answer
+# is a false positive waiting to happen (measured: `**Breaking change policy:** none` was read
+# as the answer "none" — opencharly/marketplace#607). The key is read from a line that OPENS
+# with it, so a prose mention of the words is not read as an answer either, and the value is
+# what follows the first colon after it.
+BREAKING_ANSWER = re.compile(
+    r"^\s*(?:[-*+]\s+)?\**\s*breaking change\s*\+\s*rollback\b", re.IGNORECASE
+)
 # A "none" answer with nothing after it is BARE: the merged changelog then holds a `!` beside
 # a `none`, which is exactly the sentence a reader cannot resolve. "none — this change only
 # carries another repo's cutover" is an ANSWER, because it names the reason.
@@ -611,11 +620,12 @@ def subject_carries_marker(subject: str) -> bool:
 
 def breaking_change_answer(section_lines: list[str]) -> dict | None:
     """The body's breaking-change ANSWER: the line under `## Change classification` that
-    OPENS with the key, so a prose mention of the words is not read as an answer.
+    OPENS with the PUBLISHED key, so a prose mention of the words is not read as an answer,
+    and a line that opens a DIFFERENT key is not read as one either.
 
-    The key is the org's own — `**Breaking change + rollback:**`. The value is what follows
-    the first colon after the key. Returns the line's 1-based number within the section, the
-    value, and the whole text, or None when the section carries no answer at all.
+    The key is the org's own — `**Breaking change + rollback:**` — in full. The value is what
+    follows the first colon after the key. Returns the line's 1-based number within the
+    section, the value, and the whole text, or None when the section carries no answer at all.
     """
     for i, ln in enumerate(section_lines):
         m = BREAKING_ANSWER.match(ln)
@@ -649,7 +659,9 @@ def bang_findings(section_lines: list[str], subject: str) -> list[str]:
 
     `section_lines` is the body's `## Change classification` section — empty when the body
     carries no such section, which is the `sections` rule's own finding; this arm reports the
-    missing ANSWER, which is a different statement.
+    missing ANSWER, which is a different statement. THREE shapes of silence are refused: no
+    answer line at all, an answer line whose value is EMPTY, and an answer whose value is a
+    bare `none`.
     """
     if not subject_carries_marker(subject):
         return []
@@ -662,6 +674,13 @@ def bang_findings(section_lines: list[str], subject: str) -> list[str]:
             f"repo's consumers and how to roll it back"
         ]
     plain = re.sub(r"[*_`]", "", answer["value"]).strip()
+    if not plain:
+        return [
+            f"bang: the head's subject carries the breaking-change marker (`{subject}`) and the "
+            f"body's answer is EMPTY (line {answer['line']}) — an answer that says nothing is as "
+            f"silent as no answer at all: a cutover must say what breaks for this repo's "
+            f"consumers and how to roll it back"
+        ]
     if none_answer(plain) == "bare":
         return [
             f"bang: the head's subject carries the breaking-change marker (`{subject}`) and the "
@@ -938,9 +957,16 @@ def main(argv: list[str]) -> int:
     a = ap.parse_args(argv)
     head = a.head
     if head is None and a.repo:
-        head = subprocess.run(
-            ["git", "-C", str(a.repo), "rev-parse", "HEAD"], check=True, capture_output=True, text=True
-        ).stdout.strip()
+        # The derivation FAILS LOUDLY but GRACEFULLY. A `--repo` whose HEAD cannot be read —
+        # a path that is not a git repository, or a repository with an UNBORN head — must
+        # REACH the NOTICE below, which names the argument that is actually missing. With
+        # `check=True` the linter raised instead, so the NOTICE's `--head` arm was DEAD CODE:
+        # the only way to reach that branch with a repository given was the very call that
+        # crashed first (opencharly/marketplace#608).
+        derived = subprocess.run(
+            ["git", "-C", str(a.repo), "rev-parse", "HEAD"], check=False, capture_output=True, text=True
+        )
+        head = derived.stdout.strip() if derived.returncode == 0 else None
     diffstat = None
     if a.repo and head:
         diffstat = diff_totals(a.repo, a.base, head)
@@ -959,6 +985,25 @@ def main(argv: list[str]) -> int:
                 f"is SKIPPED",
                 file=sys.stderr,
             )
+    else:
+        # The rule never RAN — it did not read a subject and find it unreadable; it never got
+        # as far as reading one. A caller that forgets `--repo`, or that points it at a
+        # repository whose HEAD cannot be read, cannot tell "the body is fine" from "the rule
+        # never looked", and a skip nobody can see is a skip nobody can trust
+        # (opencharly/marketplace#607).
+        #
+        # The NOTICE names the argument that was MISSING, and the name comes from the
+        # condition this branch tests — so it cannot go stale if the head's derivation ever
+        # changes. The branch is reached two ways, and each names the argument it really
+        # lacked: `--repo` ABSENT (there was nothing to read a head from), and `--repo` GIVEN
+        # but its HEAD unreadable (the derivation above left the head unset — the caller gave
+        # the repository and did not give the head).
+        missing = "--repo" if not a.repo else "--head"
+        print(
+            f"pr_body_lint: NOTICE - no {missing} was given, so the head's subject cannot be read "
+            f"and the bang rule is SKIPPED",
+            file=sys.stderr,
+        )
     findings = lint(
         a.body.read_text(),
         head,
