@@ -28,9 +28,16 @@
 # one place, so a new shape is one line rather than a re-derivation.
 #
 #   CLASS 1 — routine per-ref progress: `Downloading <ref>…` and `charly: resolving
-#     <ref> (N resolved, M queued)`. One pair per ref, on stderr. Every ref they name is
-#     already listed by the body's pins-advanced section and by its changed-file list, so
-#     they carry no information the body does not already publish.
+#     <ref> (N resolved, M queued)`. One pair per ref, on stderr. They name EVERY ref the
+#     generator resolved — the whole corpus, not only the pins this refresh advanced — so
+#     the pins advanced are a SUBSET of the refs they name, and the body's changed-file
+#     list names PATHS, not refs. What a progress line asserts is only that a ref was
+#     being resolved; the OUTCOME of each resolution is carried by the lines that are
+#     kept. (The earlier wording here said every ref they name "is already listed by the
+#     body's pins-advanced section and by its changed-file list". That was false, and the
+#     opencharly/marketplace#588 validator BLOCKed the body over it: the pins-advanced
+#     list carries only the pins THIS refresh advanced, and the changed-file list carries
+#     paths. The 1 780 progress lines of the 2026-10-28 run named refs outside both.)
 #
 #   CLASS 2 — the generator's own artifact-path list. The generator prints every artifact
 #     it wrote as `  <path>` (plugin-marketplace, generate.go: `fmt.Printf("  %s\n", …)`).
@@ -116,9 +123,11 @@ done < "$LOG"
   echo ">"
   echo "> - **routine per-ref progress** — ${progress_lines} line(s), ${progress_bytes} byte(s):"
   echo ">   \`Downloading <ref>…\` and \`charly: resolving <ref> (N resolved, M queued)\` — one line"
-  echo ">   per ref from each of the two emitters. Every ref they name is already listed above"
-  echo ">   — by the pins advanced and by the changed-file list — so they carry no information"
-  echo ">   the body does not publish."
+  echo ">   per ref from each of the two emitters. They name EVERY ref the generator resolved"
+  echo ">   — the whole corpus, not only the pins this refresh advanced — so the pins advanced"
+  echo ">   above are a SUBSET of the refs these lines name, and the changed-file list names"
+  echo ">   PATHS, not refs. What a progress line asserts is only that a ref was being"
+  echo ">   resolved; the OUTCOME of each resolution is carried by the lines shown above."
   echo "> - **the generator's own artifact-path list** — ${artifact_lines} line(s),"
   echo ">   ${artifact_bytes} byte(s): every artifact the generator wrote. Every artifact that"
   echo ">   CHANGED is named in the changed-file list above, and the full list grows with the"

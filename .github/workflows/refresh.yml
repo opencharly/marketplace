@@ -115,6 +115,30 @@ jobs:
           set -o pipefail
           "${{ steps.charly.outputs.binary }}" marketplace generate --root "$GITHUB_WORKSPACE" --out "$GITHUB_WORKSPACE" 2>&1 | tee /tmp/generate.log
 
+      # THE DRIFT GATE runs in the PR step BELOW — after that step's ONE staging command.
+      #
+      # WHY IT LIVES THERE. The body claims the R10 tier "fully tested and validated"
+      # and promises "exact gate, commands, and pasted output", but until now the only
+      # gate material it carried was the gate STEP's SOURCE, pasted out of deploy.yml.
+      # The drift gate itself runs on the PR — and the PR is created AFTER this body is
+      # written, so the body asserted a tier it could not back at the moment it asserted
+      # it. The opencharly/marketplace#588 validator BLOCKed the body for exactly that
+      # ("the supplied PR state contains no drift-gate run result or check status"), and
+      # it would block every later refresh the same way, because the validator reads the
+      # body while the build check is still running.
+      #
+      # So the gate is RUN in the PR step, on the tree this PR commits, and its OWN
+      # output is pasted into the body as item 4.
+      #
+      # WHY IT IS NOT A STEP OF ITS OWN. The run stages exactly ONCE (the repo's
+      # R-ONE-STAGE invariant: one implementation of a step, not several). A second
+      # staging command in a step of its own would both break that invariant and — worse
+      # — move the staging BEFORE the PR step's status snapshot, so the snapshot would
+      # describe the UNSTAGED tree and every generated file would read `??` instead of
+      # the `A ` the commit carries. That is precisely the defect
+      # scripts/refresh_report_test.sh exists to catch, and a second staging command
+      # reintroduced it.
+
       # GITHUB_TOKEN cannot open a pull request: "Allow GitHub Actions to create and
       # approve pull requests" is off across this org, deliberately — the same switch also
       # lets a workflow APPROVE pull requests, which would let automation bypass review.
@@ -152,6 +176,7 @@ jobs:
         if: steps.bump.outputs.changed == 'true' && steps.skip.outputs.skip == 'false'
         env:
           GH_TOKEN: ${{ steps.bot-token-app.outputs.token || steps.bot-token-pat.outputs.token }}
+          CHARLY_BIN: ${{ steps.charly.outputs.binary }}
         run: |
           # `-uall` is LOAD-BEARING, both for the file list and the count. Plain
           # `git status --porcelain` collapses a brand-new directory to one `?? dir/`
@@ -175,8 +200,10 @@ jobs:
           # codes by construction, and `ADDED` below counts the commit's additions only.
           #
           # ONE staging command, here. Nothing between this snapshot and the commit
-          # touches the worktree (the body is assembled into /tmp/pr-body.md), so the
-          # commit is byte-identical to what the late `git add -A` produced.
+          # touches the worktree in a way that CAN change what is committed: the body is
+          # assembled into /tmp/pr-body.md, and the drift gate below re-runs the
+          # generator and PROVES that the second generation did not move the tree, so
+          # the commit stays byte-identical to what the late `git add -A` produced.
           git add -A
           STATUS=$(git status --porcelain -uall)
           SKILLS=$(printf '%s\n' "$STATUS" | grep -c 'SKILL.md' || true)
@@ -197,6 +224,57 @@ jobs:
           ADDED=$(printf '%s\n' "$STATUS" | grep -c '^A ' || true)
           REMOVED=$(printf '%s\n' "$STATUS" | grep -c '^ D\|^D ' || true)
           MODIFIED=$(printf '%s\n' "$STATUS" | grep -c '^ M\|^M ' || true)
+
+          # THE DRIFT GATE, RUN HERE — on the tree this PR is about to commit, so the body
+          # can carry the gate's OWN RESULT and not only its source.
+          #
+          # The check is `scripts/drift-gate.sh` — ONE implementation, shared with the
+          # `marketplace` workflow (deploy.yml), which runs the same gate on every PR. A
+          # copy of a gate in each workflow drifts apart silently, and the copy nobody runs
+          # is the one that goes stale; so the check is a script and both workflows run it.
+          # Its control is `scripts/drift_gate_test.sh`.
+          #
+          # It runs AFTER the single staging command, so the index holds the FIRST
+          # generation and the comparison asks the drift gate's own question of the tree
+          # this PR commits: "the tree did not move since the index was set". The gate
+          # compares the WORKING TREE with the INDEX and the files that are in no index at
+          # all — it does NOT compare the index with HEAD, which is what `git status
+          # --porcelain` would add: this job stages the regenerated corpus on purpose, so
+          # the index differs from HEAD by design and that comparison is true by
+          # construction. Measured 2026-10-29 on this tree: a check built on it aborted with
+          # DRIFT on a tree that had not moved, and no PR would ever have been opened.
+          #
+          # The generation is deterministic given the refs list: the refs list is committed
+          # and unchanged, and every pin names a MERGED tag, so the second run resolves the
+          # same refs from the git metadata the first run cached. A difference here is
+          # DRIFT, and it fails the run BEFORE a PR is opened — a corpus that cannot be
+          # reproduced is not published.
+          #
+          # FAIL CLOSED, and fail LOUD: the gate's own output is written to a log the body
+          # pastes (item 4), and a DRIFT aborts the step before the body is written, so no
+          # PR can claim a gate result it does not have. `|| drift_rc=$?` and NOT a bare
+          # call: under the step's `bash -e` a bare call would abort AT the gate, and the
+          # gate's output — redirected to a file — would never reach the CI log.
+          "$CHARLY_BIN" marketplace generate --root "$GITHUB_WORKSPACE" --out "$GITHUB_WORKSPACE" > /tmp/generate2.log 2>&1
+          drift_rc=0
+          bash scripts/drift-gate.sh "$GITHUB_WORKSPACE" > /tmp/drift-gate.out 2>&1 || drift_rc=$?
+          {
+            echo '$ git add -A    # the FIRST generation is staged'
+            echo '$ marketplace generate --root . --out .    # the SECOND generation'
+            echo
+            cat /tmp/drift-gate.out
+          } > /tmp/drift-gate.log 2>&1
+          if [ "$drift_rc" -ne 0 ]; then
+            {
+              echo "--- the second generation's own log:"
+              cat /tmp/generate2.log
+            } >> /tmp/drift-gate.log 2>&1
+          fi
+          cat /tmp/drift-gate.log
+          if [ "$drift_rc" -ne 0 ]; then
+            echo "DRIFT: the corpus this PR would commit does not match the generator. No PR is opened." >&2
+            exit 1
+          fi
 
           # THE ELISION — one implementation, in scripts/refresh-elide.sh, and it is TESTED
           # (scripts/refresh_elide_test.sh). It is NOT inlined here, because the generator's
@@ -277,7 +355,8 @@ jobs:
             echo "## How R10-tested — exact gate, commands, and pasted output"
             echo
             echo "- **The gate:** this repo's \`marketplace\` workflow, whose drift gate fails closed if the"
-            echo "  committed corpus does not match the refs list. It runs on this PR."
+            echo "  committed corpus does not match the refs list. It runs on this PR — and it RAN in this"
+            echo "  job, on the tree this PR commits, so its own result is pasted below (item 4)."
             echo "- **Eval beds run:** \`N/A (pin refresh)\`."
             echo "- **Fresh rebuild:** the binary was built from the pinned charly checkout in this run."
             echo "- **Did the CHANGED code path execute live?** **Yes** — generation ran at the new pins and"
@@ -319,27 +398,40 @@ jobs:
             echo "N/A — pins plus regenerated artifacts."
             echo '```'
             echo
-            echo "**The drift gate.** This repo's \`marketplace\` workflow (\`deploy.yml\`) regenerates and"
-            echo "FAILS CLOSED if the committed corpus does not match the refs list. Its gate step, from"
-            echo "\`.github/workflows/deploy.yml\` in this repo:"
+            echo "**The drift gate.** This repo's drift gate is \`scripts/drift-gate.sh\` — ONE implementation,"
+            echo "run by the \`marketplace\` workflow (\`deploy.yml\`) on every PR and by this refresh job on"
+            echo "the tree this PR commits. It FAILS CLOSED if the committed corpus does not match the refs"
+            echo "list. Its source, from this repo:"
             echo
             echo '```'
-            # FAIL LOUD: a `sed -n '/A/,/B/p'` emits NOTHING when the anchors do not match, so a
-            # reworded anchor in deploy.yml would silently emit an EMPTY fence under prose that
-            # still asserts the gate fails closed — evidence loss with no signal. Capture it and
-            # refuse to emit an empty block.
-            GATE_STEP=$(sed -n '/# git diff --exit-code alone is NOT fail-closed/,/^          echo "corpus: committed tree/p' .github/workflows/deploy.yml)
-            if [ -z "$GATE_STEP" ]; then
-              echo "(ERROR: could not extract the drift-gate step from deploy.yml — anchors moved)" >&2
-              GATE_STEP="(extraction failed: the deploy.yml gate anchors moved; fix refresh.yml)"
+            # FAIL LOUD: a `cat` of a file that is not there emits NOTHING under prose that still
+            # asserts the gate fails closed — evidence loss with no signal. Capture it and refuse
+            # to emit an empty block.
+            GATE_SCRIPT=$(cat scripts/drift-gate.sh 2>/dev/null || true)
+            if [ -z "$GATE_SCRIPT" ]; then
+              echo "(ERROR: could not read scripts/drift-gate.sh — it is missing)" >&2
+              GATE_SCRIPT="(extraction failed: scripts/drift-gate.sh is missing; fix refresh.yml)"
             fi
-            printf '%s\n' "$GATE_STEP"
+            printf '%s\n' "$GATE_SCRIPT"
+            echo '```'
+            echo
+            echo '*4. The drift gate — RUN in this job, on the tree this PR commits. Its own output:*'
+            echo '```'
+            # FAIL LOUD, the same way the gate step above does: if the run did not write the
+            # log, the body must not claim a gate result it does not have.
+            if [ ! -s /tmp/drift-gate.log ]; then
+              echo "(ERROR: the drift gate did not run — no result to publish)" >&2
+              echo "(the drift gate did not run — there is no result to publish)"
+            else
+              cat /tmp/drift-gate.log
+            fi
             echo '```'
             echo
             echo "## Attribution tier"
             echo
             echo "**fully tested and validated** — regeneration ran in CI at the new pins (output pasted"
-            echo "above) and the repo's fail-closed drift gate re-runs on this PR."
+            echo "above), and the repo's fail-closed drift gate RAN in this job on the tree this PR"
+            echo "commits, with its own output pasted above as item 4. The same gate re-runs on this PR."
             echo
             echo "## Harness rulebook compliance"
             echo
