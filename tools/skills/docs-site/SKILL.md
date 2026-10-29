@@ -48,23 +48,31 @@ exact source Cloudflare builds.
 
 **Ordering consequence.** The candy fetches an IMMUTABLE COMMIT, never a branch, so `DOCS_REF`
 must be re-pinned to each new docs merge before this box — and the `check-docs` bed above it —
-prove the new content. `task docs:pin` fails when `DOCS_REF` is not the docs repo's current
-`main` head (it fetches `ls-remote` and compares — charly has no `docs` gitlink anymore: the
-docs repo is standalone, and this candy's pin is the only thing that fixes what the bed tests).
+prove the new content. `charly task docs-pin` REPORTS that state: it fetches `ls-remote` and
+compares `DOCS_REF` against the docs repo's current `main` head, and a pin that is **behind**
+is reported and stays green — charly has no `docs` gitlink anymore (the docs repo is
+standalone, and this candy's pin is the only thing that fixes what the bed tests), so the
+advance is available NOW in `opencharly/docs` and this repo's pin moves when someone takes
+it. A report that reddened the gate on every docs merge that has not been re-pinned here
+would be a nuisance that gets bypassed; the org pin contract draws the same line — a pin
+that is behind is REPORTED, a pin the workflow cannot JUDGE is a FAILURE.
 That re-pin is a CONFIG edit and changes the landing's gate and attribution tier — see
 `/charly-internals:git-workflow` (B6a step 4, and B2 "the derivation stops at the gitlink" for
 the general rule), which owns landing mechanics.
 
-**The pin is TWO occurrences, and both are asserted.** The sha appears once as `DOCS_REF`
+**The pin is TWO occurrences, and both are checked.** The sha appears once as `DOCS_REF`
 (the clone's cache key) and once as a LITERAL in the `docs-site-pinned-commit` check's
 `contains:` matcher. The duplication is deliberate and cannot be collapsed: a check step's
 substitution does not resolve a candy `var:`, so writing `${DOCS_REF}` in the matcher makes
 charly SKIP the step with "unresolved variables: DOCS_REF" — turning the anti-staleness guard
 into a non-event while the bed still reports PASS, which is the exact failure the guard exists
-to catch. `task docs:pin` therefore asserts BOTH: it compares `DOCS_REF` against the docs
-repo's current `main` head AND requires the sha to occur at least twice in the file, so a
-re-pin that updates only one of them fails the gate instead of leaving the check asserting a
-commit nobody builds. Re-pinning means editing both.
+to catch. `charly task docs-pin` therefore checks BOTH, and it draws the line between them by
+what each one MEANS. The **currency** of the pin — is `DOCS_REF` the docs repo's current
+`main` head — is REPORTED, because a pin that is behind is a state and the advance lives in
+another repo. The **agreement** of the two occurrences — does the sha occur at least twice in
+`charly.yml` — FAILS, because that is this tree contradicting itself, and a re-pin that
+updated only one of them would leave the check asserting a commit nobody builds. Re-pinning
+means editing both.
 
 A branch name here is a correctness bug, not a convenience: `var:` values are emitted as `ENV`
 above the steps, so with `main` the clone layer's cache key never moves and the bed silently
@@ -75,6 +83,39 @@ proving stale content until review caught it.
 |---|---|
 | `DOCS_REPO` | `https://github.com/opencharly/docs.git` |
 | `DOCS_REF` | the docs repo commit this bed tests — an immutable commit, **never a branch** (see above) |
+
+## The pin report — `charly task docs-pin`
+
+The bed proves the IMAGE holds the pin; nothing in the org proved the pin is the docs repo's
+CURRENT head, and nothing proved the two occurrences agree. That control lives HERE — this
+repo owns the pin, and the control that reads it is a **task**, not a candy check, so it runs
+over this repo's own sources rather than inside the image.
+
+```bash
+charly task docs-pin
+```
+
+It reads `DOCS_REF` and `DOCS_REPO` from this repo's `charly.yml`, fetches the docs repo's
+`main` head with `git ls-remote`, and reports one of four states:
+
+| State | Meaning | Exit |
+|---|---|---|
+| **current** | `DOCS_REF` IS the docs repo's `main` head, and both occurrences are present | 0 |
+| **BEHIND** | the pin is not the current head — the advance is available NOW in `opencharly/docs` | 0 |
+| **DISAGREE** | the sha does not occur at least twice in `charly.yml` — this tree contradicts itself | 1 |
+| **UNJUDGEABLE** | the head could not be fetched, or no `DOCS_REF` is declared | 1 |
+
+`scripts/docs-pin-report.sh` owns the logic, and `--self-test` proves each state
+discriminates against fixtures. Each case asserts the state's own REPORT, not only an
+exit status: `current` and `BEHIND` both exit 0, so only the message tells them apart.
+The task runs both.
+
+Every report NAMES the state it is in, so the state is greppable in the output — and the
+self-test proves this table stays the report's own list: the count the sentence above
+claims, the rows above, and the states the script declares are asserted equal, and four
+mutations (a wrong count, a missing row, a row this script never declares, and a state
+this script declares that this table does not name) each turn the check red. A fifth
+state therefore cannot be added silently, in either direction.
 
 ## Verification
 
@@ -138,7 +179,8 @@ pinned charly is gated by the docs repo's own deploy workflow, not here.
 | Symptom | Cause |
 |---|---|
 | `docs-site-pinned-commit` FAILS | the clone layer is stale, or `DOCS_REF` was re-pinned without rebuilding |
-| `task docs:pin` fails | `DOCS_REF` (or the check's literal sha) is not the docs repo's current `main` head — bump it in a charly PR |
+| `charly task docs-pin` REPORTS "DOCS_REF is BEHIND" | the pin is not the docs repo's current `main` head — the advance is available NOW in `opencharly/docs`; re-pin BOTH occurrences in `charly.yml` to take it. The report is green on purpose: a pin that is behind is a state, not a defect |
+| `charly task docs-pin` FAILS | the two occurrences of the sha in `charly.yml` do not AGREE (the `docs-site-pinned-commit` matcher still names an older commit), or the docs repo's head could not be fetched, so the pin's currency is UNJUDGEABLE. The first is this tree contradicting itself — fix the matcher; the second is a gate that cannot judge, never a pass |
 | fetch fails `upload-pack: not our ref <sha>` | `DOCS_REF` names a commit not reachable from ANY ref in the docs repo — never pushed, or garbage-collected |
 | fetch fails `couldn't find remote ref <x>` | `DOCS_REF` is not a FULL 40-hex sha — either a ref name (which the pinned-commit contract forbids) or an abbreviated sha, which `git fetch` rejects even when the commit exists |
 | `npm ci` fails on a lockfile mismatch | `package.json` and `package-lock.json` disagree — regenerate the lockfile in the docs repo |
