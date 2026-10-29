@@ -90,7 +90,7 @@ charly-marketplace:
             # root), and the authored body's EOF byte is normalized so the source and its
             # projection agree byte for byte. The projection of this pin therefore changes
             # in this commit.
-            - '@github.com/opencharly/plugin-marketplace:v2026.302.0533'
+            - '@github.com/opencharly/plugin-marketplace:v2026.302.0634'
             - '@github.com/opencharly/plugin-deploy-vm:v2026.296.1557'
             # The UMBRELLA's OWN general-guidance skills (opencharly/opencharly#600,
             # AGENTS.md Part II #5): `agents`, `cutover-policy`, `root-cause-analyzer` have
@@ -151,7 +151,7 @@ charly-marketplace:
             # opencharly/plugin-box#66) and opencharly/opencharly#788 (the pin-advance
             # verb's scope is EVERY declared path, not a subset of them). ONE advance
             # republishes both, so the projection of this pin changes in this commit.
-            - '@github.com/opencharly/opencharly:v2026.302.0124'
+            - '@github.com/opencharly/opencharly:v2026.302.1105'
             # The two CONTRACT repos' skill shelves (opencharly/opencharly#611).
             # DIRECT, for the rule stated above. Both are Go MODULES, so their tags follow
             # the Go-module scheme
