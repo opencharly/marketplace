@@ -957,9 +957,16 @@ def main(argv: list[str]) -> int:
     a = ap.parse_args(argv)
     head = a.head
     if head is None and a.repo:
-        head = subprocess.run(
-            ["git", "-C", str(a.repo), "rev-parse", "HEAD"], check=True, capture_output=True, text=True
-        ).stdout.strip()
+        # The derivation FAILS LOUDLY but GRACEFULLY. A `--repo` whose HEAD cannot be read —
+        # a path that is not a git repository, or a repository with an UNBORN head — must
+        # REACH the NOTICE below, which names the argument that is actually missing. With
+        # `check=True` the linter raised instead, so the NOTICE's `--head` arm was DEAD CODE:
+        # the only way to reach that branch with a repository given was the very call that
+        # crashed first (opencharly/marketplace#608).
+        derived = subprocess.run(
+            ["git", "-C", str(a.repo), "rev-parse", "HEAD"], check=False, capture_output=True, text=True
+        )
+        head = derived.stdout.strip() if derived.returncode == 0 else None
     diffstat = None
     if a.repo and head:
         diffstat = diff_totals(a.repo, a.base, head)
@@ -979,15 +986,18 @@ def main(argv: list[str]) -> int:
                 file=sys.stderr,
             )
     else:
-        # The rule never RAN — it did not read a subject and find it unreadable; it was never
-        # given a repository to read one from. A caller that forgets `--repo` cannot tell
-        # "the body is fine" from "the rule never looked", and a skip nobody can see is a
-        # skip nobody can trust (opencharly/marketplace#607).
+        # The rule never RAN — it did not read a subject and find it unreadable; it never got
+        # as far as reading one. A caller that forgets `--repo`, or that points it at a
+        # repository whose HEAD cannot be read, cannot tell "the body is fine" from "the rule
+        # never looked", and a skip nobody can see is a skip nobody can trust
+        # (opencharly/marketplace#607).
         #
         # The NOTICE names the argument that was MISSING, and the name comes from the
         # condition this branch tests — so it cannot go stale if the head's derivation ever
-        # changes. Today `--repo` without `--head` DERIVES the head (see above), so this
-        # branch is reached only when `--repo` is absent, and the name it prints is `--repo`.
+        # changes. The branch is reached two ways, and each names the argument it really
+        # lacked: `--repo` ABSENT (there was nothing to read a head from), and `--repo` GIVEN
+        # but its HEAD unreadable (the derivation above left the head unset — the caller gave
+        # the repository and did not give the head).
         missing = "--repo" if not a.repo else "--head"
         print(
             f"pr_body_lint: NOTICE - no {missing} was given, so the head's subject cannot be read "
