@@ -31,7 +31,7 @@ can compose it.
 | `security_opt` | `unmask=/proc/*` |
 | `devices` | `/dev/fuse`, `/dev/net/tun` |
 | Volumes | `storage` at `/var/lib/containers/storage` (only used by root images) |
-| Env | `CHARLY_BUILD_ENGINE=podman`, `CHARLY_RUN_ENGINE=podman`, `_CONTAINERS_USERNS_CONFIGURED=""`, `BUILDAH_ISOLATION=chroot` |
+| Env | `CHARLY_RUN_ENGINE=podman`, `_CONTAINERS_USERNS_CONFIGURED=""`, `BUILDAH_ISOLATION=chroot` |
 
 ## Packages
 
