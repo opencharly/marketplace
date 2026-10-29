@@ -35,11 +35,13 @@
 # artifact, so the artifact is what is graded.
 #
 # THE RED ARMS mutate a COPY of the shipped files and require each mutation to turn
-# this suite RED. A test that cannot fail proves nothing (R7). The four mutations are
-# the four ways the change can be undone: the second progress shape admitted, the
-# artifact class dropped, the workflow's call replaced by the pre-fix inline elision,
-# and the size gate moved back behind the push. An arm that does NOT turn the suite red
-# is a FINDING, and the process exits non-zero.
+# this suite RED. A test that cannot fail proves nothing (R7). Each mutation is one way
+# the change can be undone: the second progress shape admitted, the artifact class
+# dropped, the workflow's call replaced by the pre-fix inline elision, the size gate
+# moved back behind the push, the notice's false claim restored, the drift gate's result
+# dropped from the body, the drift gate moved before the staging, and the shared drift
+# gate copied back into the workflow. An arm that does NOT turn the suite red is a
+# FINDING, and the process exits non-zero.
 #
 # THE META-ARM proves that failure path at the PROCESS boundary: this script re-runs
 # ITSELF as a subprocess with its arms made undetectable, and requires that subprocess
@@ -67,6 +69,10 @@ WORK="$(mktemp -d)"; trap 'rm -rf "$WORK"' EXIT
 
 WF="$REPO/.github/workflows/refresh.yml"
 ELIDE="$REPO/scripts/refresh-elide.sh"
+# The shared drift gate — ONE implementation, run by the refresh job and by the
+# `marketplace` workflow. Its own control is `scripts/drift_gate_test.sh`; this suite
+# only checks that the WORKFLOW calls it and that the body quotes it.
+DRIFT="$REPO/scripts/drift-gate.sh"
 SELFTEST=0
 # RET_FORCE_NOOP_ARM: the arms are made undetectable on purpose. It exists for ONE
 # caller — this script's own meta-arm, which re-runs this script as a subprocess to
@@ -78,10 +84,11 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --workflow) WF="${2:?--workflow needs a file}"; shift 2 ;;
     --elide) ELIDE="${2:?--elide needs a file}"; shift 2 ;;
+    --drift) DRIFT="${2:?--drift needs a file}"; shift 2 ;;
     --self-test) SELFTEST=1; shift ;;
     --force-noop-arm) RET_FORCE_NOOP_ARM=1; shift ;;
     -h|--help) sed -n '2,50p' "${BASH_SOURCE[0]}"; exit 0 ;;
-    *) echo "usage: bash scripts/refresh_elide_test.sh [--workflow FILE] [--elide FILE] [--self-test]" >&2; exit 2 ;;
+    *) echo "usage: bash scripts/refresh_elide_test.sh [--workflow FILE] [--elide FILE] [--drift FILE] [--self-test]" >&2; exit 2 ;;
   esac
 done
 
@@ -143,6 +150,13 @@ make_body_logs() {
     printf 'refresh-refs: 2 pin(s) advanced, 0 unresolved\n'
   } > "$d/refresh.log"
   printf 'consumer-currency: 1 consumer(s) read, 0 behind\n' > "$d/consumer-currency.log"
+  # The drift gate's OWN result, as the refresh job writes it: the gate ran on the tree
+  # the PR commits, and this is its output.
+  {
+    printf '$ git add -A    # the FIRST generation is staged\n'
+    printf '$ marketplace generate --root . --out .    # the SECOND generation\n'
+    printf 'corpus: committed tree matches the pinned charly (regeneration is a no-op).\n'
+  } > "$d/drift-gate.log"
 }
 
 # The shipped body-assembly block: the `{ … } > /tmp/pr-body.md` group. It is
@@ -219,6 +233,79 @@ check_suite() {
     bad "[$label] the size-gate order is wrong (measure=$m verdict=$g push=$p) — the body must be measured and the verdict must land before the push"
   fi
 
+  # --- E-GATE: the drift gate is RUN here, and its RESULT is pasted -----------------
+  # The body used to promise the R10 gate's "exact gate, commands, and pasted output"
+  # and carry only the gate STEP's SOURCE, pasted out of deploy.yml. The gate itself
+  # runs on the PR — and the PR is created after the body is written, so the body
+  # asserted a tier ("fully tested and validated") it could not back at the moment it
+  # asserted it. The opencharly/marketplace#588 validator BLOCKed the body for exactly
+  # that. The gate is therefore RUN in this job, on the tree the PR commits, and its
+  # own output is pasted.
+  #
+  # The check itself is `scripts/drift-gate.sh` — ONE implementation, shared with the
+  # `marketplace` workflow (deploy.yml). A copy of a gate in each workflow drifts apart
+  # silently, so the check is a script and both workflows run it.
+  if grep -qF '> /tmp/generate2.log' "$wf"; then
+    ok "[$label] the workflow runs the SECOND generation the drift gate compares against"
+  else
+    bad "[$label] the workflow does NOT run a second generation — the drift gate has nothing to compare"
+  fi
+  if grep -qF 'bash scripts/drift-gate.sh' "$wf"; then
+    ok "[$label] the workflow runs the SHARED drift gate (scripts/drift-gate.sh)"
+  else
+    bad "[$label] the workflow does NOT run the shared drift gate — the check has a second implementation"
+  fi
+  # The gate the workflow calls must be the fail-closed one, and it must use the RIGHT
+  # instrument. This is a WIRING check, not a second run of the gate's behaviour: that is
+  # `scripts/drift_gate_test.sh`'s job, and two suites testing one behaviour is the
+  # duplication R2 forbids. What this asserts is that the body can quote a source that
+  # really is fail-closed.
+  #
+  # The instrument is checked in the CODE, not in the prose: the gate's own header says
+  # why it does not use `git status --porcelain`, and a check that could not tell the
+  # comment from the call would flag its own explanation.
+  local drift_code
+  drift_code="$(grep -vE '^[[:space:]]*#' "$DRIFT" 2>/dev/null || true)"
+  if [ ! -f "$DRIFT" ]; then
+    bad "[$label] the shared drift gate does not exist: $DRIFT"
+  elif printf '%s\n' "$drift_code" | grep -qF 'git ls-files --others --exclude-standard' \
+       && printf '%s\n' "$drift_code" | grep -qF 'git diff --quiet'; then
+    ok "[$label] the shared drift gate is fail-closed (the worktree-vs-index diff AND the untracked set)"
+  else
+    bad "[$label] the shared drift gate is NOT fail-closed — it must check the diff AND the untracked set"
+  fi
+  if printf '%s\n' "$drift_code" | grep -qF 'git status --porcelain'; then
+    bad "[$label] the shared drift gate uses 'git status --porcelain' — that also compares the INDEX with HEAD, and this job stages the corpus on purpose, so the gate would fail every run"
+  else
+    ok "[$label] the shared drift gate does NOT compare the index with HEAD"
+  fi
+  if grep -qF 'cat /tmp/drift-gate.log' "$wf"; then
+    ok "[$label] the workflow pastes the drift gate's OWN RESULT into the body"
+  else
+    bad "[$label] the workflow does NOT paste the drift gate's result into the body"
+  fi
+
+  # --- E-GATE-ORDER: the gate compares the tree this PR commits ---------------------
+  # The gate asks "the tree does not move when the generator runs again", so the SECOND
+  # generation has to be compared against the STAGED tree: run before the run's one
+  # staging command, it would compare against the unstaged tree and answer a different
+  # question. And it has to land BEFORE the body is assembled, or the body carries no
+  # gate result to paste — the state the validator BLOCKed. So: stage < second
+  # generation < body.
+  local stage_l gen2_l body_l
+  stage_l="$(grep -nE '^[[:space:]]*git add -A[[:space:]]*$' "$wf" | cut -d: -f1 | tr -d ' ')"
+  gen2_l="$(grep -nF '> /tmp/generate2.log' "$wf" | cut -d: -f1 | tr -d ' ')"
+  body_l="$(grep -nF '} > /tmp/pr-body.md' "$wf" | cut -d: -f1 | tr -d ' ')"
+  local sl gl bl
+  sl="$(printf '%s' "$stage_l" | cut -d' ' -f1)"
+  gl="$(printf '%s' "$gen2_l" | cut -d' ' -f1)"
+  bl="$(printf '%s' "$body_l" | cut -d' ' -f1)"
+  if [ -n "$sl" ] && [ -n "$gl" ] && [ -n "$bl" ] && [ "$sl" -lt "$gl" ] && [ "$gl" -lt "$bl" ]; then
+    ok "[$label] the drift gate runs after the staging and before the body is assembled"
+  else
+    bad "[$label] the drift gate's order is wrong (stage=$sl second-generation=$gl body=$bl) — the gate must compare the STAGED tree and land before the body is assembled"
+  fi
+
   # --- E-SCRIPT: the shipped elision, on every shape ---------------------------------
   local sm logs
   sm="$(mktemp -d "$WORK/small.XXXXXX")"
@@ -283,6 +370,28 @@ check_suite() {
     bad "[$label] the elision wrote to stdout (or its measurement did not reach stderr)"
   fi
 
+  # --- E-NOTICE: the notice tells the truth about WHAT it elided --------------------
+  # The notice used to say every ref the progress lines name "is already listed above —
+  # by the pins advanced and by the changed-file list". That was FALSE: the pins-advanced
+  # list carries only the pins THIS refresh advanced, and the changed-file list carries
+  # PATHS, not refs. The opencharly/marketplace#588 validator BLOCKed the body over it,
+  # and it would block every later refresh the same way. The notice must now say what
+  # the lines actually name: EVERY ref the generator resolved, of which the pins
+  # advanced are a subset.
+  if grep -qF 'Every ref they name is already listed' "$sm/notice.txt"; then
+    bad "[$label] the notice still claims every ref it names is already listed above — the false claim that BLOCKed #588"
+  else
+    ok "[$label] the notice does NOT claim every ref it names is already listed above"
+  fi
+  if grep -qF 'EVERY ref the generator resolved' "$sm/notice.txt" \
+     && grep -qF 'SUBSET of the refs these lines name' "$sm/notice.txt" \
+     && grep -qF 'PATHS, not refs' "$sm/notice.txt"; then
+    ok "[$label] the notice says the progress lines name EVERY resolved ref, and that the pins advanced are a subset of them"
+  else
+    bad "[$label] the notice does NOT state that the progress lines name every resolved ref (and that the advanced pins are a subset)"
+    sed -n '1,20p' "$sm/notice.txt" >&2
+  fi
+
   # --- E-FAIL: a missing or empty capture fails loud --------------------------------
   rc=0
   bash "$elide" "$sm/does-not-exist.log" "$sm/b.txt" "$sm/n.txt" >/dev/null 2>&1 || rc=$?
@@ -321,11 +430,11 @@ check_suite() {
   make_full_log "$fl"
   cp "$fl/generate.log" "$logsdir/generate.log"
 
-  # The run directory holds what the body block reads by a RELATIVE path: the drift
-  # gate's step out of deploy.yml, and the elision script under test. It is NOT the
-  # repo, and it is not the fixture: scaffolding must never land in either.
-  mkdir -p "$run/.github/workflows" "$run/scripts"
-  cp "$REPO/.github/workflows/deploy.yml" "$run/.github/workflows/deploy.yml"
+  # The run directory holds what the body block reads by a RELATIVE path: the shared
+  # drift gate it quotes, and the elision script under test. It is NOT the repo, and it
+  # is not the fixture: scaffolding must never land in either.
+  mkdir -p "$run/scripts"
+  cp "$DRIFT" "$run/scripts/drift-gate.sh"
   cp "$elide" "$run/scripts/refresh-elide.sh"
 
   # The elision runs the way the WORKFLOW runs it: the shipped call line, with the
@@ -350,6 +459,7 @@ check_suite() {
       -e "s#/tmp/consumer-currency\.log#$logsdir/consumer-currency.log#g" \
       -e "s#/tmp/elide-block\.txt#$logsdir/elide-block.txt#g" \
       -e "s#/tmp/elide-notice\.txt#$logsdir/elide-notice.txt#g" \
+      -e "s#/tmp/drift-gate\.log#$logsdir/drift-gate.log#g" \
       -e "s#} > /tmp/pr-body\.md#} > $logsdir/pr-body.md#" \
       "$block" > "$block.run"
   rc2=0
@@ -396,6 +506,22 @@ check_suite() {
     ok "[$label] the PUBLISHED body carries the elision notice"
   else
     bad "[$label] the PUBLISHED body does NOT carry the elision notice"
+  fi
+  # E-GATE at the artifact boundary: the body must carry the gate's own RESULT, not
+  # only the gate step's source.
+  if grep -qF 'corpus: committed tree matches the pinned charly (regeneration is a no-op).' "$body"; then
+    ok "[$label] the PUBLISHED body carries the drift gate's own result"
+  else
+    bad "[$label] the PUBLISHED body does NOT carry the drift gate's result"
+  fi
+  # E-GATE-SOURCE at the artifact boundary: the body must also carry the gate's SOURCE,
+  # and that source must be the fail-closed check — the untracked half included. A body
+  # that asserts "it FAILS CLOSED" while quoting a source that does not check the
+  # untracked set is the claim the validator BLOCKed, one level down.
+  if grep -qF 'git ls-files --others --exclude-standard' "$body"; then
+    ok "[$label] the PUBLISHED body carries the drift gate's SOURCE, fail-closed half included"
+  else
+    bad "[$label] the PUBLISHED body does NOT carry the drift gate's fail-closed source"
   fi
 
   # E-CAP: the body fits, and the capture does not — the suite is at the scale that
@@ -447,6 +573,41 @@ mutate_noop() {
   cp "$1" "$2"
 }
 
+# The notice's class-1 claim goes back to the false one: the progress lines are said
+# to name only refs the body already lists. This is the wording the
+# opencharly/marketplace#588 validator BLOCKed.
+mutate_false_notice() {
+  sed -e 's#They name EVERY ref the generator resolved#Every ref they name is already listed#' "$1" > "$2"
+}
+
+# The drift gate's RESULT is no longer pasted into the body — the gate step's source
+# stays, which is exactly the state the validator BLOCKed: a tier asserted, a gate
+# promised, and no gate result.
+mutate_drop_drift_gate() {
+  awk '
+    { if ($0 ~ /^[[:space:]]*cat \/tmp\/drift-gate\.log$/) next
+      print }
+  ' "$1" > "$2"
+}
+
+# The drift gate is moved BEFORE the run's staging command: the staging command is
+# re-inserted after the SECOND generation, so the gate compares that generation against
+# the UNSTAGED tree — a different question from the one the gate asks.
+mutate_gate_before_staging() {
+  awk '
+    /^[[:space:]]*git add -A[[:space:]]*$/ { next }
+    { print }
+  ' "$1" > "$1.tmp"
+  awk '
+    { print }
+    index($0, "marketplace generate --root") && index($0, "/tmp/generate2.log") && !done {
+      print "          git add -A"
+      done = 1
+    }
+  ' "$1.tmp" > "$2"
+  rm -f "$1.tmp"
+}
+
 # The size gate moves back BEHIND the push: the verdict is lifted out of the workflow and
 # re-inserted after `git push -u origin HEAD`, which is the order this change removed.
 mutate_verdict_after_push() {
@@ -463,6 +624,22 @@ mutate_verdict_after_push() {
   ' "$1" > "$2"
 }
 
+# The shared gate is COPIED back into the workflow instead of being called: the drift
+# check becomes a second implementation, which is what R2 forbids — and two
+# implementations of a gate drift apart silently, the copy nobody runs being the one that
+# goes stale.
+mutate_inline_drift_gate() {
+  awk '
+    { if ($0 ~ /bash scripts\/drift-gate\.sh/) {
+        print "          drift_rc=0";
+        print "          {";
+        print "            if ! git diff --quiet || [ -n \"$(git ls-files --others --exclude-standard)\" ]; then drift_rc=1; fi";
+        print "          } > /tmp/drift-gate.out 2>&1";
+        next }
+      print }
+  ' "$1" > "$2"
+}
+
 # run_self_test — 0 when every arm turned the suite red.
 # The arms' findings are EXPECTED here, so they do not touch the outer counter; an arm
 # that did NOT turn the suite red is the finding, and it is counted here and returned,
@@ -472,8 +649,11 @@ run_self_test() {
   SELF_TEST_FAILS=0
 
   local m1="mutate_second_shape" m2="mutate_drop_artifact_class" m3="mutate_inline_elision" m4="mutate_verdict_after_push"
+  local m5="mutate_false_notice" m6="mutate_drop_drift_gate" m7="mutate_gate_before_staging"
+  local m8="mutate_inline_drift_gate"
   if [ "$RET_FORCE_NOOP_ARM" -eq 1 ]; then
     m1="mutate_noop"; m2="mutate_noop"; m3="mutate_noop"; m4="mutate_noop"
+    m5="mutate_noop"; m6="mutate_noop"; m7="mutate_noop"; m8="mutate_noop"
   fi
 
   "$m1" "$ELIDE" "$WORK/arm-second-shape.sh"
@@ -508,11 +688,42 @@ run_self_test() {
     ok "red arm 'the size gate moved back behind the push' turns the suite red"
   fi
 
+  "$m5" "$ELIDE" "$WORK/arm-false-notice.sh"
+  if check_suite "$WF" "$WORK/arm-false-notice.sh" "arm:false-notice" >/dev/null 2>&1; then
+    printf '  FAIL  red arm %s did NOT turn the suite red\n' "'the notice's false claim restored'" >&2
+    SELF_TEST_FAILS=$((SELF_TEST_FAILS + 1))
+  else
+    ok "red arm 'the notice's false claim restored' turns the suite red"
+  fi
+
+  "$m6" "$WF" "$WORK/arm-drop-drift-gate.yml"
+  if check_suite "$WORK/arm-drop-drift-gate.yml" "$ELIDE" "arm:drop-drift-gate" >/dev/null 2>&1; then
+    printf '  FAIL  red arm %s did NOT turn the suite red\n' "'the drift gate's result dropped from the body'" >&2
+    SELF_TEST_FAILS=$((SELF_TEST_FAILS + 1))
+  else
+    ok "red arm 'the drift gate's result dropped from the body' turns the suite red"
+  fi
+
+  "$m7" "$WF" "$WORK/arm-gate-before-staging.yml"
+  if check_suite "$WORK/arm-gate-before-staging.yml" "$ELIDE" "arm:gate-before-staging" >/dev/null 2>&1; then
+    printf '  FAIL  red arm %s did NOT turn the suite red\n' "'the drift gate moved before the staging'" >&2
+    SELF_TEST_FAILS=$((SELF_TEST_FAILS + 1))
+  else
+    ok "red arm 'the drift gate moved before the staging' turns the suite red"
+  fi
+
+  "$m8" "$WF" "$WORK/arm-inline-drift-gate.yml"
+  if check_suite "$WORK/arm-inline-drift-gate.yml" "$ELIDE" "arm:inline-drift-gate" >/dev/null 2>&1; then
+    printf '  FAIL  red arm %s did NOT turn the suite red\n' "'the shared gate copied back into the workflow'" >&2
+    SELF_TEST_FAILS=$((SELF_TEST_FAILS + 1))
+  else
+    ok "red arm 'the shared gate copied back into the workflow' turns the suite red"
+  fi
+
   local rc=$SELF_TEST_FAILS
   SELF_TEST_FAILS="$saved"
   return "$rc"
 }
-
 printf 'refresh_elide_test.sh — workflow: %s\n' "$WF"
 printf '                        elision: %s\n' "$ELIDE"
 check_suite "$WF" "$ELIDE" "shipped" || true
