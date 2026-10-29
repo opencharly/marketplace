@@ -42,12 +42,12 @@ LEGACY_ELLIPSIS_BODIES = {
 }
 
 
-def body(how="x", rules=OK_RULES, footer=FOOTER):
-    return f"## Summary\nx\n## How tested\n{how}\n## Rulebook compliance\n{rules}\n## Change classification\nx\n\n{footer}\n"
+def body(how="x", rules=OK_RULES, footer=FOOTER, classification="x"):
+    return f"## Summary\nx\n## How tested\n{how}\n## Rulebook compliance\n{rules}\n## Change classification\n{classification}\n\n{footer}\n"
 
 
-def run(text, head=None, diffstat=None):
-    return lint(text, head, DEFAULT_RULES, diffstat)
+def run(text, head=None, diffstat=None, subject=None):
+    return lint(text, head, DEFAULT_RULES, diffstat, subject)
 
 
 class Fixtures(unittest.TestCase):
@@ -709,6 +709,105 @@ class DiffTotals(unittest.TestCase):
         tmp, _base, head = self.repo()
         self.assertIsNone(diff_totals(tmp, "no-such-ref", head))
         self.assertIsNone(diff_totals(Path("/nonexistent-repo"), "main", head))
+
+
+class BangMarker(unittest.TestCase):
+    """The `bang` rule: the head's SUBJECT and the body's ANSWER are two halves of ONE question.
+
+    The Conventional Commits `!` marker says "this change is a hard cutover — it breaks a
+    consumer"; the body's `## Change classification` says what breaks for THIS repo's
+    consumers and how to roll it back. A marker with a silent answer leaves the merged
+    changelog holding two signals and one of them missing (opencharly/opencharly#802).
+    """
+
+    MARKED = "feat(scope)!: the cutover"
+
+    def bangs(self, text, subject=MARKED):
+        return [x for x in run(text, subject=subject) if x.startswith("bang:")]
+
+    def test_a_marked_subject_without_an_answer_fails(self):
+        f = self.bangs(body())
+        self.assertTrue(f, "a bang-marked subject with no breaking-change answer must fail")
+        self.assertIn("carries NO breaking-change answer", f[0])
+
+    def test_a_marked_subject_with_a_bare_none_fails(self):
+        f = self.bangs(body(classification="**Breaking change + rollback:** none"))
+        self.assertTrue(f, "a bare `none` under a marker must fail")
+        self.assertIn("bare `none`", f[0])
+
+    def test_a_marked_subject_with_a_reasoned_none_passes(self):
+        f = self.bangs(
+            body(
+                classification="**Breaking change + rollback:** none — the pointers move to "
+                "commits the org has already merged"
+            )
+        )
+        self.assertEqual(f, [])
+
+    def test_a_marked_subject_with_a_real_answer_passes(self):
+        f = self.bangs(
+            body(
+                classification="**Breaking change + rollback:** the `--old` flag is deleted; "
+                "roll back by reverting this commit"
+            )
+        )
+        self.assertEqual(f, [])
+
+    def test_an_unmarked_subject_needs_no_answer(self):
+        """Without a `!` the line is optional — a body that declares a breakage without the
+        marker is judged on its own merits, not by this arm."""
+        self.assertEqual(self.bangs(body(), subject="feat(scope): an ordinary change"), [])
+
+    def test_a_bang_in_the_prose_after_a_colon_is_not_a_marker(self):
+        """Only the Conventional Commits HEADER is read: a subject whose PROSE carries a colon
+        and a bang of its own is not a cutover."""
+        subject = "docs: correct the 2026.299.0822 entry's false clause about the FAIL: marker"
+        self.assertEqual(self.bangs(body(), subject=subject), [])
+
+    def test_an_answer_outside_change_classification_is_not_an_answer(self):
+        """The answer belongs to `## Change classification`; the same line under another
+        section does not answer the question."""
+        text = body().replace(
+            "## Change classification\nx",
+            "## Change classification\nx\n\n## Notes\n**Breaking change + rollback:** the flag is gone",
+        )
+        f = self.bangs(text)
+        self.assertTrue(f, "an answer outside `## Change classification` must not count")
+        self.assertIn("carries NO breaking-change answer", f[0])
+
+    def test_a_bulleted_answer_is_an_answer(self):
+        """The house writes the answer as a list item too."""
+        f = self.bangs(
+            body(classification="- **Breaking change + rollback:** none — the pointers move")
+        )
+        self.assertEqual(f, [])
+
+    def test_an_unreadable_subject_skips_the_rule(self):
+        """None means the subject could not be read: the rule must skip, visibly, rather than
+        judge against a fiction."""
+        self.assertEqual([x for x in run(body(), subject=None) if x.startswith("bang:")], [])
+
+    def test_the_subject_is_read_from_the_commit(self):
+        """The rule's other half is the COMMIT's subject, read with git."""
+        import subprocess
+        import tempfile
+
+        from pr_body_lint import head_subject
+
+        tmp = tempfile.mkdtemp(prefix="pr-body-lint-")
+        g = lambda *a: subprocess.run(
+            ["git", "-C", tmp, *a], check=True, capture_output=True, text=True
+        )
+        g("init", "-q", "-b", "main")
+        g("config", "user.email", "linter@example.invalid")
+        g("config", "user.name", "linter")
+        Path(tmp, "a.txt").write_text("one\n")
+        g("add", "-A")
+        g("commit", "-qm", "feat(scope)!: the cutover")
+        head = g("rev-parse", "HEAD").stdout.strip()
+        self.assertEqual(head_subject(Path(tmp), head), "feat(scope)!: the cutover")
+        self.assertIsNone(head_subject(Path(tmp), "no-such-commit"))
+        self.assertIsNone(head_subject(Path("/nonexistent-repo"), head))
 
 
 if __name__ == "__main__":
