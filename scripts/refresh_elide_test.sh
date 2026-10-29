@@ -185,6 +185,25 @@ extract_elide_call() {
   grep -m 1 -E '^[[:space:]]*bash scripts/refresh-elide\.sh ' "$1" | sed -e 's/^[[:space:]]*//'
 }
 
+# assert_shared_gate_caller <file> <name> <label> — a caller of the SHARED drift gate.
+#
+# ONE rule, ONE implementation, for BOTH callers (the refresh job and the `marketplace`
+# workflow): the gate lives in scripts/drift-gate.sh, and a workflow that does not call
+# it either LOST the call or grew its OWN copy of the check. The check cannot tell those
+# two apart from the call alone, so the failure message names BOTH causes instead of
+# asserting the one it cannot know — a message that named only one of them sent the
+# reader after the wrong thing (opencharly/marketplace#596's validator observation).
+assert_shared_gate_caller() {
+  local file="$1" name="$2" label="$3"
+  if [ ! -f "$file" ]; then
+    bad "[$label] $name does not exist: $file"
+  elif grep -qF 'bash scripts/drift-gate.sh' "$file"; then
+    ok "[$label] $name runs the SHARED drift gate (scripts/drift-gate.sh)"
+  else
+    bad "[$label] $name does NOT run the shared drift gate — either the call to the shared gate is missing, or the check has a second implementation here"
+  fi
+}
+
 # --------------------------------------------------------------------- the checker
 # check_suite <workflow> <elide-script> <label> [marketplace-workflow] — 0 when every
 # rule holds.
@@ -261,11 +280,7 @@ check_suite() {
   else
     bad "[$label] the workflow does NOT run a second generation — the drift gate has nothing to compare"
   fi
-  if grep -qF 'bash scripts/drift-gate.sh' "$wf"; then
-    ok "[$label] the workflow runs the SHARED drift gate (scripts/drift-gate.sh)"
-  else
-    bad "[$label] the workflow does NOT run the shared drift gate — the check has a second implementation"
-  fi
+  assert_shared_gate_caller "$wf" "the workflow" "$label"
   # The gate the workflow calls must be the fail-closed one, and it must use the RIGHT
   # instrument. This is a WIRING check, not a second run of the gate's behaviour: that is
   # `scripts/drift_gate_test.sh`'s job, and two suites testing one behaviour is the
@@ -303,13 +318,7 @@ check_suite() {
   # the check — the gate would have a second implementation (R2) and the claim in the
   # published prose would be false. A claim about a workflow's behaviour is CHECKED here,
   # not asserted in prose (opencharly/marketplace#595).
-  if [ ! -f "$deploy" ]; then
-    bad "[$label] the marketplace workflow does not exist: $deploy"
-  elif grep -qF 'bash scripts/drift-gate.sh' "$deploy"; then
-    ok "[$label] the marketplace workflow runs the SHARED drift gate (scripts/drift-gate.sh)"
-  else
-    bad "[$label] the marketplace workflow does NOT run the shared drift gate — the gate has a second implementation"
-  fi
+  assert_shared_gate_caller "$deploy" "the marketplace workflow" "$label"
 
   # --- E-GATE-ORDER: the gate compares the tree this PR commits ---------------------
   # The gate asks "the tree does not move when the generator runs again", so the SECOND
