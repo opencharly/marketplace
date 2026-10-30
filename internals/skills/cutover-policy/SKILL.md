@@ -137,7 +137,7 @@ One PR, one commit, with these deliverables:
 
 The commit uses the Conventional Commits `!` breaking-change marker; the body lists every deleted identifier, every removed YAML field, and every updated test. `charly migrate` is runnable against old projects from that commit forward, with no additional steps.
 
-**The marker is the subject's half of the cutover's question — "does this change break a consumer?" — and the body's `## Change classification` answers the other half: what breaks for THIS repo's consumers, and how to roll it back.** So a marker-carrying subject MUST come with a `**Breaking change + rollback:**` line, and a bare `none` is not an answer: a cutover that breaks nothing here must say WHY it breaks nothing here (for example: *"none — the pointers move to commits the org has already merged"*). *Detail:* `/charly-internals:git-workflow` ("The `!` marker and the body's breaking-change answer").
+**The marker is the subject's half of the cutover's question — "does this change break a consumer?" — and the body's `## Change classification` answers the other half: what breaks for THIS repo's consumers, and how to roll it back.** So a marker-carrying subject MUST come with a `**Breaking change + rollback:**` line that CARRIES AN ANSWER: a bare `none` is not an answer, and an EMPTY value is not an answer either — a cutover that breaks nothing here must say WHY it breaks nothing here (for example: *"none — the pointers move to commits the org has already merged"*). *Detail:* `/charly-internals:git-workflow` ("The `!` marker and the body's breaking-change answer").
 
 See `CHANGELOG/` for the catalog of past cutovers that followed this shape — each took the same steps: **delete old surface + publish migration + hard load error**.
 

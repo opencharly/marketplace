@@ -43,7 +43,7 @@ charly-marketplace:
             # and `plugin`), which carry this pin's corrected `spec/schema/*.cue` trigger instead
             # of the carrier's stale `sdk/schema/*.cue` (`go-quality`'s trigger is identical at
             # both sources, so its row does not move).
-            - '@github.com/opencharly/charly:v2026.302.0357'
+            - '@github.com/opencharly/charly:v2026.303.0223'
             # --- the post-migration source set at this end of the list (opencharly/opencharly#600).
             #
             # ONE rule, stated here once for the whole set: a skill reachable ONLY through
@@ -165,14 +165,14 @@ charly-marketplace:
             # #801 — pin bumps, gate fixes and changelogs), which touch no `.agents/`
             # file. So the projection had not moved since #788's advance, and the
             # corpus's projection was current for its pin until this one.
-            - '@github.com/opencharly/opencharly:v2026.302.1338'
+            - '@github.com/opencharly/opencharly:v2026.303.0455'
             # The two CONTRACT repos' skill shelves (opencharly/opencharly#611).
             # DIRECT, for the rule stated above. Both are Go MODULES, so their tags follow
             # the Go-module scheme
             # `v0.<YYYYDDD>.<HHMM with leading zeros stripped>` — not the superproject's
             # `v<YYYY.DDD.HHMM>`, which is not a valid Go module version. Each pin below
             # is the tag that repo's own merge minted.
-            - '@github.com/opencharly/spec:v0.2026302.327'
+            - '@github.com/opencharly/spec:v0.2026303.754'
             - '@github.com/opencharly/sdk:v0.2026297.1851'
             # The `build` family's SIX owners, DIRECT (opencharly/marketplace#587).
             #
@@ -195,7 +195,7 @@ charly-marketplace:
             # step 2 — a ref the project's own manifests name beats a twin that merely
             # arrived through the closure), and the authority is keyed by (repo, tag),
             # so the subpath of a ref does not matter here.
-            - '@github.com/opencharly/plugin-box:v2026.302.0047'
+            - '@github.com/opencharly/plugin-box:v2026.303.0407'
             - '@github.com/opencharly/plugin-migrate:v2026.295.2044'
             - '@github.com/opencharly/plugin-docs:v2026.295.2045'
             - '@github.com/opencharly/plugin-secrets:v2026.295.2046'
