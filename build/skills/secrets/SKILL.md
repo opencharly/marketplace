@@ -34,21 +34,36 @@ Resolution order (first match wins):
 
 | Priority | Backend | When used |
 |----------|---------|-----------|
-| 1 | Environment variable | `CHARLY_VNC_PASSWORD`, etc. |
+| 1 | Environment variable | the credential's OWN variable name — `VNC_PASSWORD`, `OPENAI_API_KEY`, `K3S_CLUSTER_TOKEN`. Bare, never `CHARLY_`-prefixed: `CHARLY_SECRET_BACKEND` picks the backend and is not a credential |
 | 2 | System keyring (Secret Service) | GNOME Keyring, KDE Wallet, KeePassXC (FdoSecrets) |
 | 3 | Config file | Plaintext fallback in `config.yml` (headless last-resort) |
 
 `secret_backend` ∈ {`auto` (default; keyring then config), `keyring`, `config`}.
 
-**Iteration-capable keyring read path:** when the system
-keyring backend is active, `charly`'s read path (`KeyringStore.Get` →
-`keyringGetViaSSClient` → `ssClient.findItemAnyCollection`) does NOT rely on
-the Secret Service `default` alias alone. It iterates all healthy collections,
-skipping any that return DBus errors on property reads. This makes charly
-resilient to broken `default` alias stubs (commonly seen in KeePassXC
-FdoSecrets setups) — credentials stored in a non-default collection are still
-findable. Set `keyring_collection_label` via `/charly-build:settings` to pin charly to a
-specific collection by label. When every candidate collection is locked
+**One collection resolution for every operation:** when the system keyring
+backend is active, `charly`'s read path (`KeyringStore.Get` →
+`keyringGetViaSSClient` → `findItemByAttrsAcrossCollections`) does NOT rely on
+the Secret Service `default` alias alone. It tries the `default` alias, then the
+collection labelled `keyring_collection_label` (set it via `/charly-build:settings`),
+then every other healthy collection, skipping any that return DBus errors on
+property reads. This makes charly resilient to broken `default` alias stubs
+(commonly seen in KeePassXC FdoSecrets setups) — credentials stored in a
+non-default collection are still findable.
+
+`Set` and `Delete` resolve the collection through the SAME order
+(`resolveTargetCollection` → `ssClient.createItem` / `deleteItem`), so a write
+lands where a read looks, deleting a credential finds it wherever it lives, and
+the label pins the whole store rather than half of it.
+
+**Shadow-index drift and `charly secrets prune`.** The Secret Service has no cheap
+list-by-service call, so `config.yml` keeps a key-NAME-only shadow index
+(`keyring_keys`) of what the keyring is believed to hold. A belief can outlive its
+fact (a credential deleted outside charly, a wiped collection), and `list`/`export`
+are index-driven — so they keep advertising a credential `get` cannot return.
+`charly secrets prune [--dry-run]` reconciles the index against the live store: it
+drops the entries that resolve in no healthy collection and never touches a value.
+A keyring that cannot be READ (broken, locked) is an error, never "the credentials
+are gone". When every candidate collection is locked
 (requires interactive unlock), `source=locked` is returned and
 `charly config mount` waits indefinitely via event-driven DBus signal
 subscription (zero CPU) until the user unlocks the keyring. See `/charly-automation:enc`
@@ -68,6 +83,8 @@ or the config-file fallback) — never a `.kdbx` file.
 | Generate value | `charly secrets set <service> <key> --generate` | Generate 32-char hex random value |
 | Delete entry | `charly secrets delete <service> <key>` | Remove an entry |
 | Import | `charly secrets import [--dry-run]` | Copy config.yml + keyring credentials into the active store |
+| Migrate | `charly secrets migrate-secrets [--dry-run]` | MOVE config.yml plaintext into the keyring, strip the plaintext, back up config.yml |
+| Prune | `charly secrets prune [--dry-run]` | Drop shadow-index entries whose credential exists in no healthy collection |
 | Export | `charly secrets export [--format yaml\|json]` | Export all entries (plaintext!) |
 
 ## Subcommand Details
@@ -167,8 +184,9 @@ charly secrets set charly/api-key immich <immich-key-from-web-ui>
 
 **Auto-generated `secret_require:` tokens.**
 `secret_require:` entries that miss everywhere (env + credential
-store) auto-generate a 32-byte hex token via `generateRandomHex(32)` +
-`DefaultCredentialStore.Set`, persisted at `charly/secret/<NAME>` (or the
+store) auto-generate a 32-byte url-safe base64 token — 44 characters, Fernet-key
+compatible — via `GenerateAndStoreSecret` → `deploykit.GenerateRandomSecretToken(32)` +
+`verb:credential` `set`, persisted at `charly/secret/<NAME>` (or the
 declared `key:` override). The first deploy that resolves the secret
 writes; every subsequent deploy reads the persisted value. Race-free
 across multi-layer declarations because `DefaultCredentialStore` caches
@@ -251,7 +269,7 @@ rotation semantics differ. See `/charly-image:layer` (secret_accept / secret_req
 | Key | Description |
 |-----|-------------|
 | `secret_backend` | Force backend: `auto` (default; keyring then config), `keyring`, or `config` |
-| `keyring_collection_label` | Preferred Secret Service collection label (empty = iterate naturally). Pin charly to a specific collection in multi-database setups. |
+| `keyring_collection_label` | Preferred Secret Service collection label (empty = iterate naturally). Pins BOTH halves: writes and deletes resolve the collection through the same order as reads — `default` alias, then this label, then every healthy collection. |
 
 ## Project-Level Secrets (.secrets + direnv)
 
@@ -510,11 +528,13 @@ For GPG agent forwarding into containers (so `gpg --decrypt` works inside), use 
 ## Source
 
 The credential store + the `charly secrets` CLI are EXTERNALIZED into the out-of-process
-`candy/plugin-secrets` plugin (the C2 dep-shed that removed `go-keyring` from
-`charly/go.mod`): `candy/plugin-secrets/command.go` (the `charly secrets` CLI: list/get/set/
-delete/import/export/migrate-secrets), `candy/plugin-secrets/secrets_gpg.go` (GPG `.secrets`
-commands + key management + diagnostics), `candy/plugin-secrets/{store,config_store,
-credential_keyring,credential_config,secret_service,verb_credential,credential_admin}.go`
+`candy/plugin-secrets` plugin (the C2 dep-shed: no keyring library lives in `charly/go.mod`,
+and this plugin needs none either — it speaks the Secret Service directly over
+`github.com/godbus/dbus/v5`): `candy/plugin-secrets/command.go` (the `charly secrets` CLI:
+list/get/set/delete/import/export/migrate-secrets/prune), `candy/plugin-secrets/secrets_gpg.go`
+(GPG `.secrets` commands + key management + diagnostics), `candy/plugin-secrets/{store,
+config_store,credential_keyring,credential_config,credential_prune,secret_service,
+verb_credential,credential_admin}.go`
 (the `verb:credential` backends + the env-less resolve + the doctor health probe). charly's
 core keeps only the thin adapter `charly/credential_plugin.go` (`ResolveCredential` /
 `DefaultCredentialStore` → the `credentialResolver` interface → `verb:credential`; the former

@@ -196,7 +196,7 @@ charly-marketplace:
             - '@github.com/opencharly/plugin-box:v2026.317.2259'
             - '@github.com/opencharly/plugin-migrate:v2026.314.0714'
             - '@github.com/opencharly/plugin-docs:v2026.314.0712'
-            - '@github.com/opencharly/plugin-secrets:v2026.314.0715'
+            - '@github.com/opencharly/plugin-secrets:v2026.319.2321'
             - '@github.com/opencharly/plugin-settings:v2026.314.0715'
             - '@github.com/opencharly/plugin-mcp:v2026.314.0714'
             # `layer-charly-check` ADVANCED to v2026.301.1748 (opencharly/layer-charly-check#55,
