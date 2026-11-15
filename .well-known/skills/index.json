@@ -1385,6 +1385,12 @@
       ]
     },
     {
+      "name": "openwebui-cli",
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
       "name": "openwebui-layer",
       "files": [
         "SKILL.md"
@@ -1539,6 +1545,12 @@
     },
     {
       "name": "quickshell",
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "qwen3-tts",
       "files": [
         "SKILL.md"
       ]

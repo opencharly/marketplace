@@ -92,7 +92,7 @@
 | Agent Driven Evaluation (ADE) / `charly box feature run` / `charly check feature run` / `charly feature list/pending/validate` / authoring a candy's `plan:` + `description:` string / the agent grader for `agent-check:` steps / Engineering-discipline triggers (failure surfaced / dup pattern / ad-hoc fix tempting / "out of scope" framing) / Go code-quality / AGENTS.md-compliance audit / `golangci-lint` / `dupl` / duplication or dead-code check / `.golangci.yml` | `/charly-internals:strict-policy` |
 | `charly update` / `charly vm *` / VM entities in `vm.yml` or `vm:` | `/charly-internals:vm-deploy-target` |
 | VmSpec / libvirt / cloud-init / OVMF internals | `/charly-internals:vm-spec` |
-| the `kube:` check verb / Kubernetes cluster probing from a candy/box plan (out-of-process plugin; nodes, pods, ingress, wait-ready, storageclass, addons, apply/delete, raw resource GETs) | `/charly-kubernetes:check-k8s` |
+| the `kube:` check verb / Kubernetes cluster probing from a candy/box plan (out-of-process plugin; nodes, pods, ingress, wait-ready, storageclass, addons, raw resource GETs — every method observes, none changes state) | `/charly-kubernetes:check-k8s` |
 | `step:helm-release` / `verb:helm` / installing a Helm chart from a candy plan / the `helm_charts:` deploy field and its kustomize `helmCharts:` emission / the `--enable-helm` apply path | `/charly-kubernetes:helm` |
 | kind (Kubernetes-in-Docker) / kindcluster deploy / local Kubernetes-in-Docker / a kind cluster on podman/docker/containerd / KIND_EXPERIMENTAL_PROVIDER / composing the kind candy | `/charly-kubernetes:kind` |
 | the `kubevirt:` check verb / probing a running KubeVirt cluster from a candy/box plan (vm / vmi / wait-ready / guest-info / migration / snapshot / datavolume) | `/charly-kubevirt:check-kubevirt` |
@@ -101,6 +101,10 @@
 | CachyOS images / `cachyos*` / `charly-cachyos` workstation profile / `box/cachyos` submodule | `/charly-local:charly-cachyos` |
 | local-target deploy / `target: local` / `host: local` (default) / SSH-host deploys / `user:` / `ssh_arg:` / Managed `~/.config/charly/ssh_config` fragment / `charly vm create` writes Host stanza | `/charly-local:local-deploy` |
 | Editing `local.yml` / authoring `kind: local` templates | `/charly-local:local-spec` |
+| the ClawHub CLI / searching and installing OpenClaw skills from the ClawHub registry / the `clawhub` candy or its `clawdhub` alias | `/charly-openclaw:clawhub` |
+| the headless OpenClaw gateway image / the `openclaw` box on the CachyOS base / deploying OpenClaw with no desktop or browser / the `check-openclaw-pod` bed / probing a running gateway from a plan | `/charly-openclaw:openclaw` |
+| the OpenClaw gateway candy / the npm `openclaw@2026.11.3` pin and its node engine floor / the supervised `openclaw` service on :18789 and its `data` volume at `~/.openclaw` / the loopback-bound gateway and its socat port relay | `/charly-openclaw:openclaw-layer` |
+| the `charly openwebui` management CLI / the `command:openwebui` + `kind:openwebui` plugin / `candy/plugin-openwebui` / saving or deploying a deployed Open WebUI configuration (models, connections, tool servers, code execution, RAG) through its HTTP API / an `openwebui:` config entity in a project charly.yml | `/charly-openwebui:openwebui-cli` |
 | `charly pipeline` / agent workflow engine / kind:pipeline / pipeline run | `/charly-pipeline:pipeline` |
 | `charly cp` / copy a file into a container / copy out of a container / podman cp | `/charly-pod-verbs:cp` |
 | `charly restart` / restart a deployment / cycle a container | `/charly-pod-verbs:restart` |
