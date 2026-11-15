@@ -695,6 +695,26 @@
       "category": "images"
     },
     {
+      "name": "charly-qwen3-tts",
+      "source": "./qwen3-tts",
+      "description": "Self-contained skills for the Qwen3-TTS speech-service family: the OpenAI-compatible speech API (POST /v1/audio/speech, GET /v1/audio/voices) that Open WebUI's `openai` TTS engine calls, served over the upstream qwen-tts python API by a charly-owned shim.",
+      "author": {
+        "name": "opencharly"
+      },
+      "homepage": "https://github.com/opencharly/charly",
+      "repository": "https://github.com/opencharly/marketplace",
+      "license": "MIT",
+      "keywords": [
+        "charly",
+        "qwen3-tts",
+        "tts",
+        "speech",
+        "audio",
+        "openwebui"
+      ],
+      "category": "images"
+    },
+    {
       "name": "charly-review",
       "source": "./review",
       "description": "The `charly review` read-only GitHub PR review engine — verb:pr tools, the chat-completions review loop, verdict emission.",

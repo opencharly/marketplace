@@ -1,0 +1,22 @@
+{
+  "name": "charly-qwen3-tts",
+  "description": "Self-contained skills for the Qwen3-TTS speech-service family: the OpenAI-compatible speech API (POST /v1/audio/speech, GET /v1/audio/voices) that Open WebUI's `openai` TTS engine calls, served over the upstream qwen-tts python API by a charly-owned shim.",
+  "author": {
+    "name": "opencharly"
+  },
+  "repository": "https://github.com/opencharly/marketplace",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "OpenCharly Qwen3-tts",
+    "shortDescription": "Self-contained skills for the Qwen3-TTS speech-service family: the OpenAI-compatible speech API (POST /v1/audio/speech, GET /v1/audio/voices) that Open WebUI's `openai` TTS engine calls, served over the upstream qwen-tts python API by a charly-owned shim.",
+    "longDescription": "Self-contained skills for the Qwen3-TTS speech-service family: the OpenAI-compatible speech API (POST /v1/audio/speech, GET /v1/audio/voices) that Open WebUI's `openai` TTS engine calls, served over the upstream qwen-tts python API by a charly-owned shim.",
+    "developerName": "opencharly",
+    "category": "images",
+    "capabilities": [
+      "Instructions"
+    ],
+    "defaultPrompt": [
+      "Use OpenCharly Qwen3-tts for this OpenCharly task."
+    ]
+  }
+}
