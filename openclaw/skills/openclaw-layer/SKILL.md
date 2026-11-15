@@ -2,7 +2,7 @@
 name: openclaw-layer
 description: |-
   OpenClaw AI gateway service on port 18789 via npm with persistent data
-  (OpenClaw 2.0, npm openclaw@2026.9.8). Use when working with the OpenClaw gateway
+  (OpenClaw 2.0, npm openclaw@2026.11.3). Use when working with the OpenClaw gateway
   layer, AI gateway configuration, or model routing.
 ---
 
@@ -31,7 +31,7 @@ description: |-
 
 ## The package pin and the engine floor
 
-The npm pin lives in `package.json` (`openclaw@2026.9.8`) and the candy's own plan asserts
+The npm pin lives in `package.json` (`openclaw@2026.11.3`) and the candy's own plan asserts
 it, together with the engine range the package declares — `>=24.16.0 <25 || >=26.1.0`. The
 floor moved at 2026.9.3 and excludes node 22 and node 25.x, so the check fails on a base
 whose node is outside the range instead of running an unsupported runtime. The Arch

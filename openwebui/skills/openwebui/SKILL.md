@@ -11,7 +11,7 @@ description: |-
 
 Open WebUI with auto-configured LLM providers (Ollama, OpenRouter), MCP server discovery, and Jupyter code execution. No manual setup needed — secrets are credential-backed and auto-wired.
 
-Pinned to **Open WebUI 0.12.3** (`pixi.toml`). The upstream contract this candy
+Pinned to **Open WebUI 0.13.3** (`pixi.toml`). The upstream contract this candy
 depends on is recorded under "Upstream contract" below — read it before changing
 the entrypoint or any `env:` value, and re-verify it against the real source on
 every version bump.
@@ -86,9 +86,9 @@ charly start ollama jupyter selkies-desktop openwebui
 
 The entrypoint re-detects providers on every start and builds Open Web UI's
 semicolon-separated provider lists — `OPENAI_API_BASE_URLS` / `OPENAI_API_KEYS` are
-the only thing that configures chat providers (`open_webui/config.py:341-355`); the
+the only thing that configures chat providers (`open_webui/config.py:325-337`); the
 singular `OPENAI_API_KEY` / `OPENAI_API_BASE_URL` are aliases upstream resets after
-folding them into those lists (`config.py:355-375`).
+folding them into those lists (`config.py:351-357`).
 
 | Trigger env | Projection |
 |---|---|
@@ -135,7 +135,7 @@ charly secrets gpg set OPENROUTER_API_KEY sk-or-new-key
 charly config openwebui --env-file .secrets --update-all
 ```
 
-`WEBUI_SECRET_KEY` is a **hard requirement** in 0.12.3: with `WEBUI_AUTH=true` and an
+`WEBUI_SECRET_KEY` is a **hard requirement** in 0.13.3: with `WEBUI_AUTH=true` and an
 empty key the backend refuses to start (`open_webui/env.py` raises `SystemExit` at
 import; 0.9.5 silently fell back to `t0p-s3cr3t`). `open-webui serve` dodges that only
 by writing `.webui_secret_key` into the current directory — the candy never relies on
@@ -183,18 +183,65 @@ UI's `ToolServerConnection` model accepts (`routers/configs.py`):
 }]
 ```
 
-- `url` is the **full** MCP endpoint — it is passed to the MCP client verbatim; `path`
-  is only appended for `openapi` servers, so it stays empty here.
+- `url` is the **full** MCP endpoint — it is passed to the MCP client verbatim
+  (`utils/tools.py:250` hands it to `MCPClient.connect`), and `utils/mcp/client.py:140`
+  is the Streamable-HTTP transport; `path` is only read for `openapi` servers
+  (`utils/tools.py:1467`), so it stays empty here.
 - `path`, `auth_type`, `key` and `config` have no model default — they must be present.
   `spec_type`/`spec` are carried as extra fields and are inert for MCP.
-- `config.enable` must be `true`; a connection without it is ignored.
+- `config.enable` must be `true`; a connection without it is ignored
+  (`routers/tools.py:159`, `utils/tools.py:222`).
 - **`info.id` is the server's identity**, not decoration. Open Web UI builds the tool
-  id as `server:mcp:<info.id>`, keys the connected-client map, the OAuth client, and
-  the access-control lookup on it — so it must be unique per server. The entrypoint
-  sets it to the server name, which is unique by charly's `mcp_provide` contract.
+  id as `server:mcp:<info.id>` (`routers/tools.py:173`), keys the connected-client map,
+  the OAuth client, and the access-control lookup on it — so it must be unique per
+  server. The entrypoint sets it to the server name, which is unique by charly's
+  `mcp_provide` contract.
 - MCP connections without `config.access_grants` are **admin-only** by default
-  (`utils/access_control/__init__.py:167-172`). That is sufficient here: creating the
+  (`utils/access_control/__init__.py:164-169`). That is sufficient here: creating the
   admin from env disables signup, so the deployment has exactly one account.
+
+## Vector store: Qdrant as the RAG backend
+
+The RAG vector store is configured **by environment only** — `VECTOR_DB`, `QDRANT_URI` and
+`QDRANT_API_KEY` are plain module-level `os.getenv` reads upstream (`config.py:483,593-601`),
+not `PersistentConfig` rows, so `ENABLE_PERSISTENT_CONFIG=false` neither helps nor hurts and
+the admin panel cannot persist a vector-store choice. The candy maps the qdrant pod's provide
+onto them in the entrypoint:
+
+| Side | Name | How it arrives |
+|---|---|---|
+| provider (`layer-qdrant`) | `QDRANT_URL` | `env_provide: http://{{.ContainerName}}:6333` |
+| consumer (this candy) | `QDRANT_URL` | `env_accept` — the PROVIDER's name; provides are name-matched, so `QDRANT_URI` here would inject nothing |
+| Open Web UI | `QDRANT_URI` | the entrypoint's one hop: `export QDRANT_URI="$QDRANT_URL"` |
+| credential | `QDRANT_API_KEY` | `secret_accept` with `key: charly/api-key/qdrant` (podman secret) |
+| Open Web UI | `VECTOR_DB=qdrant` | the entrypoint, only when the URL resolved |
+
+```bash
+charly config qdrant                     # provider FIRST: records QDRANT_URL + generates the key
+charly config openwebui                  # consumer: injects QDRANT_URL + QDRANT_API_KEY
+charly start qdrant openwebui
+```
+
+Rules that are load-bearing:
+
+- **Both or neither.** `QDRANT_URL` without a resolvable `QDRANT_API_KEY` makes the entrypoint
+  exit non-zero with the remedy — an optional `secret_accept` that misses is silently omitted,
+  and a keyless Qdrant only fails later as a 401 behind a 503.
+- **`qdrant-client` must be in the pixi env.** Upstream declares it only under the `all` extra;
+  `VECTOR_DB=qdrant` without the package fails the CONNECTOR IMPORT at startup (the client is
+  built while `routers/retrieval` is imported), so the server does not boot at all. `pixi.toml`
+  pins `qdrant-client` explicitly — never `open-webui[all]`.
+- **The provider must be configured before the consumer** (the provide lives in the per-host
+  deploy state), and both containers must share the `charly` podman network for
+  `http://charly-qdrant:6333` to resolve. `charly update <consumer>` re-injects provides.
+- **Embeddings are a second axis.** Upstream defaults to
+  `sentence-transformers/all-MiniLM-L6-v2` (384-dim) and downloads it on first use; the
+  official image pre-bakes it, this candy does not, so an offline host needs the model baked or
+  `RAG_EMBEDDING_ENGINE` pointed at a provider. The collection dimension is fixed at the FIRST
+  upsert, so changing the model later means deleting the `open-webui_*` collections.
+- Collections are multi-tenant by default (`ENABLE_QDRANT_MULTITENANCY_MODE=true`):
+  `open-webui_knowledge`, `open-webui_files`, `open-webui_memories`, `open-webui_web-search`,
+  `open-webui_hash-based`, tenanted by a payload `tenant_id`.
 
 ## Key Candies
 
@@ -229,39 +276,47 @@ runtime witness. The readable source of the value is the credential backend
 (`~/.config/charly/config.yml` → `keyring_keys: charly/secret/<NAME>`); the
 `charly secrets get` read-back needs the `secrets` command plugin (#995).
 
-## Upstream contract (Open WebUI 0.12.3)
+## Upstream contract (Open WebUI 0.13.3)
 
-Every surface the entrypoint projects, with the evidence in the 0.12.3 source. The
+Every surface the entrypoint projects, with the evidence in the 0.13.3 source. The
 plumbing was rewritten between 0.9.5 and 0.12.3 — `PersistentConfig` objects and
 `/opt/data/config.json` are gone, replaced by a per-key `config` table plus a
 `DEFAULT_CONFIG` dict built from the environment at import time (`config.py`,
 `models/config.py`) — but **the env-var names and their meaning did not move**:
 
-| Surface | Verdict | Evidence in 0.12.3 |
+| Surface | Verdict | Evidence in 0.13.3 |
 |---|---|---|
-| `DATA_DIR` | unchanged | `env.py:228` (`DATA_DIR`, `/opt/data` honoured; the `FROM_INIT_PY` block at `env.py:231-250` is a no-op when old and new dirs are equal) |
-| `PORT` | **not read by upstream** (also not in 0.9.5) | `__init__.py:38-41` — `serve(host='0.0.0.0', port: int = 8080)` is a Typer option; the entrypoint therefore passes `--port "${PORT:-8080}"` |
-| `DOCKER` | unchanged | `env.py:44` |
-| `ENABLE_DIRECT_CONNECTIONS` | unchanged | `config.py:236` |
-| `ENABLE_CODE_EXECUTION` | unchanged | `config.py:415` |
-| `ENABLE_PERSISTENT_CONFIG` | name/semantics unchanged, mechanism rewritten | `config.py:3334` → `models/config.py:119-149`: disabled ⇒ `Config.get()` answers from the env-built defaults, so env wins on every read; admin-panel writes then apply to process memory only (`models/config.py:200-208`) |
-| `ENABLE_VERSION_UPDATE_CHECK` | unchanged | `env.py:1212` |
-| `WEBUI_AUTH` | unchanged | `env.py:757` |
-| `WEBUI_ADMIN_EMAIL` / `WEBUI_ADMIN_PASSWORD` / `WEBUI_ADMIN_NAME` | unchanged (first-run admin path intact) | `env.py:804-806`, `main.py:401-405`, `utils/auth.py:631-662` |
-| `WEBUI_SECRET_KEY` | **now a hard requirement** | `env.py:770-786` raises `SystemExit` when `WEBUI_AUTH` and the key is empty (0.9.5 silently defaulted to `t0p-s3cr3t`) |
-| `OLLAMA_BASE_URL` / `ENABLE_OLLAMA_API` | unchanged | `config.py:243,247,298-313` |
-| `OPENAI_API_KEY` / `OPENAI_API_BASE_URL` | unchanged — still aliases that feed the plural lists, then get reset | `config.py:328-375` |
-| `OPENAI_API_BASE_URLS` / `OPENAI_API_KEYS` | unchanged (semicolon lists; providers without an `OPENAI_API_CONFIGS` entry take the legacy path) | `config.py:341-355`, `routers/openai.py:594-608` |
-| `TOOL_SERVER_CONNECTIONS` | unchanged shape (superset: optional `forward_cookies`; model is `extra='allow'`) | `config.py:388-394`, `routers/configs.py:222-233` |
-| `CODE_EXECUTION_ENGINE` + `CODE_EXECUTION_JUPYTER_*` | unchanged | `config.py:417-447`, `routers/utils.py:49-64` |
-| `ENABLE_TOOL_SERVERS` | now master-gated by `ENABLE_PLUGINS` (both default `true`) | `env.py:1194-1198` |
+| `DATA_DIR` | unchanged | `env.py:220` (`DATA_DIR`, `/opt/data` honoured; the `FROM_INIT_PY` block at `env.py:222-242` is a no-op when old and new dirs are equal) |
+| `PORT` | **not read by upstream** (also not in 0.9.5) | `__init__.py:37-40` — `serve(host='0.0.0.0', port: int = 8080)` is a Typer option; the entrypoint therefore passes `--port "${PORT:-8080}"` |
+| `DOCKER` | unchanged | `env.py:42` |
+| `ENABLE_DIRECT_CONNECTIONS` | unchanged | `config.py:224`, which becomes the `direct.enable` default (`config.py:2965`) |
+| `ENABLE_CODE_EXECUTION` | unchanged | `config.py:391`, which becomes the `code_execution.enable` default (`config.py:2978`) |
+| `ENABLE_PERSISTENT_CONFIG` | name/semantics unchanged, mechanism rewritten | `config.py:3421` → `models/config.py:120-129` (`configure`), `models/config.py:136-150`: disabled ⇒ `Config.get()` answers from the env-built defaults, so env wins on every read; admin-panel writes then apply to process memory only (`models/config.py:200-209`) |
+| `ENABLE_VERSION_UPDATE_CHECK` | unchanged | `env.py:1198` |
+| `WEBUI_AUTH` | unchanged | `env.py:765` |
+| `WEBUI_ADMIN_EMAIL` / `WEBUI_ADMIN_PASSWORD` / `WEBUI_ADMIN_NAME` | unchanged (first-run admin path intact) | `env.py:808-810`, `main.py:416-419`, `utils/auth.py:637-664` |
+| `WEBUI_SECRET_KEY` | **still a hard requirement** | `env.py:774-777,792-800` raises `SystemExit` when `WEBUI_AUTH` and the key is empty (0.9.5 silently defaulted to `t0p-s3cr3t`) |
+| `OLLAMA_BASE_URL` / `ENABLE_OLLAMA_API` | unchanged | `config.py:229,233,288-292`, which become the `ollama.enable` / `ollama.base_urls` defaults (`config.py:2967-2968`) |
+| `OPENAI_API_KEY` / `OPENAI_API_BASE_URL` | unchanged — still aliases that feed the plural lists, then get reset | `config.py:312-313,351-357` |
+| `OPENAI_API_BASE_URLS` / `OPENAI_API_KEYS` | unchanged (semicolon lists; providers without an `OPENAI_API_CONFIGS` entry take the legacy path) | `config.py:325-337`, `routers/openai.py:588-608` |
+| `TOOL_SERVER_CONNECTIONS` | unchanged shape (superset: optional `forward_cookies` and `headers`; model is `extra='allow'`); the MCP transport is now **Streamable HTTP only** — 0.13.3 pins `mcp==2.3.0` and the SSE client is gone | `config.py:368-374`, `routers/configs.py:232-243`, `utils/tools.py:250` → `utils/mcp/client.py:140` |
+| `CODE_EXECUTION_ENGINE` + `CODE_EXECUTION_JUPYTER_*` | env names unchanged, but the consumer now reads the per-key config table (`code_execution.*`), and 0.13.3 adds a `CODE_INTERPRETER_*` twin that defaults from these — the entrypoint already sets **both** | `config.py:393-404` (+ the `CODE_INTERPRETER_*` twin at `config.py:415-441`), `routers/utils.py:43-64` |
+| `ENABLE_TOOL_SERVERS` | now master-gated by `ENABLE_PLUGINS` (both default `true`) | `env.py:1182-1186` |
 
 Two consequences worth remembering:
 
-- A stale `/opt/data/config.json` from a pre-0.12 deployment is imported into the
-  config table on first start (`config.py:86-93`). `ENABLE_PERSISTENT_CONFIG=false`
-  is what keeps it from overriding the environment afterwards — that is the whole
-  reason the candy sets it, and it matters more now than it did in 0.9.5.
+- A stale `/opt/data/config.json` from a pre-0.12 deployment is imported once per
+  deployment on first start (`config.py:84-90`, called unconditionally at
+  `main.py:390`, then renamed to `old_config.json`). With
+  `ENABLE_PERSISTENT_CONFIG=false` that import does **not** land in the config table —
+  `Config.upsert` writes non-persistent keys into the **in-memory** `DEFAULTS`
+  (`models/config.py:200-209`), and `seed_defaults` then skips those keys
+  (`models/config.py:264-266`) instead of restoring the env-built values. So any key the
+  legacy file carries that overlaps a dotted config key shadows the environment for that
+  one start, and the rename is what bounds it to one start. `ENABLE_PERSISTENT_CONFIG=false`
+  is what keeps *admin-panel writes* from outliving the process (the table row above);
+  it does not cover this one-shot legacy import, so `charly restart openwebui` is the
+  remedy if a migrated volume comes up holding a stale provider list.
 - The entrypoint runs on **every** start and re-derives every value from env, which
   is what makes a changed provider/secret take effect without touching data.
 

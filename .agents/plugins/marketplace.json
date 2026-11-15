@@ -449,6 +449,18 @@
       "category": "images"
     },
     {
+      "name": "charly-qwen3-tts",
+      "source": {
+        "source": "local",
+        "path": "./qwen3-tts"
+      },
+      "policy": {
+        "installation": "INSTALLED_BY_DEFAULT",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "images"
+    },
+    {
       "name": "charly-review",
       "source": {
         "source": "local",

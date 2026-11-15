@@ -39,6 +39,7 @@
     "./pod-verbs/skills",
     "./punktfunk/skills",
     "./qdrant/skills",
+    "./qwen3-tts/skills",
     "./review/skills",
     "./selkies/skills",
     "./strata/skills",

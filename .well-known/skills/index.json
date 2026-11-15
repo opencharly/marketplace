@@ -1283,54 +1283,6 @@
       ]
     },
     {
-      "name": "omarchy",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "omarchy-base",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "omarchy-cstream",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "omarchy-eval",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "omarchy-eval-cold-reader",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "omarchy-eval-oracle",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "omarchy-shell",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "omarchy-vm",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
       "name": "openclaw",
       "files": [
         "SKILL.md"
@@ -1380,6 +1332,12 @@
     },
     {
       "name": "openwebui",
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "openwebui-cli",
       "files": [
         "SKILL.md"
       ]
@@ -1539,6 +1497,12 @@
     },
     {
       "name": "quickshell",
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "qwen3-tts",
       "files": [
         "SKILL.md"
       ]

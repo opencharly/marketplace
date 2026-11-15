@@ -1,7 +1,7 @@
 ---
 name: openclaw
 description: |-
-  Headless OpenClaw AI gateway box (OpenClaw 2.0, npm openclaw@2026.9.8) on the
+  Headless OpenClaw AI gateway box (OpenClaw 2.0, npm openclaw@2026.11.3) on the
   CachyOS base — the gateway layer plus the `openclaw:` check verb, nothing
   else. Use when working with the headless gateway image, deploying OpenClaw
   without a desktop, or probing a running gateway from a plan.
@@ -11,7 +11,7 @@ description: |-
 
 # openclaw
 
-Headless OpenClaw AI gateway (OpenClaw 2.0, npm openclaw@2026.9.8) — no desktop, no browser, just the gateway service.
+Headless OpenClaw AI gateway (OpenClaw 2.0, npm openclaw@2026.11.3) — no desktop, no browser, just the gateway service.
 
 ## Box Properties
 
@@ -28,7 +28,7 @@ Headless OpenClaw AI gateway (OpenClaw 2.0, npm openclaw@2026.9.8) — no deskto
 
 1. `cachyos` (docker.io/cachyos/cachyos-v3, digest-pinned, Arch-derived)
 2. `nodejs` → `socat` → `supervisord` (transitive via the `openclaw` layer)
-3. `openclaw` — the gateway layer: npm `openclaw@2026.9.8`, the supervised service, the `data` volume at `~/.openclaw`, the port relay
+3. `openclaw` — the gateway layer: npm `openclaw@2026.11.3`, the supervised service, the `data` volume at `~/.openclaw`, the port relay
 4. `plugin-openclaw` — the out-of-process `openclaw:` check verb, composed so this box's plans can author `openclaw:` steps
 
 Nothing else is composed. The family owns the gateway and its bed; a consumer that wants a desktop, a browser or a tool bundle composes those candies itself beside this one.
