@@ -302,7 +302,7 @@ charly-marketplace:
             - '@github.com/opencharly/layer-notebook-templates:v2026.314.0708'
             - '@github.com/opencharly/pod-versatiles-frontend:v2026.314.0718'
             - '@github.com/opencharly/layer-versatiles-style:v2026.314.0710'
-            - '@github.com/opencharly/pod-ollama:v2026.314.0717'
+            - '@github.com/opencharly/pod-ollama:v2026.320.1029'
             - '@github.com/opencharly/pod-virtualization:v2026.314.0718'
             - '@github.com/opencharly/layer-vscode:v2026.314.0710'
             - '@github.com/opencharly/layer-openclaw:v2026.318.2243'
