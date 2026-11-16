@@ -42,8 +42,9 @@ description: |-
 
 `K3S_CLUSTER_TOKEN` auto-generates on first deploy. The resolver
 (`sdk/deploykit/secret_candy_resolve.go` — `EnsureCandySecret`) detects the missing
-`secret_require:` entry, generates a 32-byte hex token via
-`GenerateAndStoreSecret` (`sdk/deploykit/secret_provision.go`), and persists it to the active credential
+`secret_require:` entry, generates one via `GenerateAndStoreSecret`
+(`sdk/deploykit/secret_provision.go`) — 32 random bytes as url-safe base64, 44
+characters — and persists it to the active credential
 backend (keyring / config-file fallback). Every subsequent
 `k3s-server` and `k3s-agent` deploy reads the same persisted value —
 zero operator setup, server and agents automatically share the token.

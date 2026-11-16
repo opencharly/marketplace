@@ -38,8 +38,10 @@ candy:
   `QDRANT__SERVICE__HTTP_PORT`, `QDRANT__SERVICE__GRPC_PORT`,
   `QDRANT__TELEMETRY_DISABLED`.
 - **Auth** is the admin API key, resolved from the credential store at
-  `charly/api-key/qdrant` and injected as `QDRANT__SERVICE__API_KEY`.
-  Auto-generated 32-byte hex on first deploy. `/healthz`, `/livez`,
+  `charly/api-key/qdrant` and injected as `QDRANT__SERVICE__API_KEY`. When no
+  value is configured the deploy generates one — 32 random bytes as url-safe
+  base64, 44 characters — and persists it at that coordinate (a pod deploy
+  generates only with `--password=auto`). `/healthz`, `/livez`,
   `/readyz` are always unauthenticated; `/collections`, `/telemetry`,
   `/metrics` require the key.
 

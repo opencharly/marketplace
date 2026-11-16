@@ -342,8 +342,8 @@ charly-marketplace:
             - '@github.com/opencharly/layer-himalaya:v2026.314.0706'
             - '@github.com/opencharly/pod-immich:v2026.314.0717'
             - '@github.com/opencharly/pod-jupyter:v2026.314.0717'
-            - '@github.com/opencharly/vm-k3s-agent:v2026.314.0719'
-            - '@github.com/opencharly/vm-k3s-server:v2026.314.0719'
+            - '@github.com/opencharly/vm-k3s-agent:v2026.320.0528'
+            - '@github.com/opencharly/vm-k3s-server:v2026.320.0528'
             - '@github.com/opencharly/pod-kde-selkies:v2026.314.0717'
             - '@github.com/opencharly/layer-language-runtimes:v2026.314.0707'
             - '@github.com/opencharly/layer-python-ml:v2026.314.0709'
@@ -404,7 +404,7 @@ charly-marketplace:
             # whole fix: `charly marketplace generate` emits one row per
             # `triggers:`-bearing `type: skill` entity of a PINNED repo. See the
             # umbrella gate `scripts/check-harness-config.mjs` check 12.
-            - '@github.com/opencharly/layer-qdrant:v2026.314.0709'
+            - '@github.com/opencharly/layer-qdrant:v2026.320.0515'
             - '@github.com/opencharly/plugin-qdrant/candy/plugin-qdrant:v2026.314.0715'
             - '@github.com/opencharly/plugin-kubevirt/candy/plugin-kubevirt:v2026.318.2126'
             # plugin-kube owns the `kubernetes` and `check-k8s` family skills. A
