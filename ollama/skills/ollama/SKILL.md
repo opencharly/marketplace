@@ -42,7 +42,7 @@ The `ollama` **candy** installs the Ollama binary and a supervisord
 `ollama serve` service, and carries **no GPU dependency** — it only
 `require:`s `supervisord`. Two install paths converge on one layout
 (`/usr/bin/ollama` plus backends under `/usr/lib/ollama`): on Arch and its
-derivatives the packaged `ollama` (66 MiB installed) is installed, and elsewhere
+derivatives the packaged `ollama` (75 MiB installed) is installed, and elsewhere
 the upstream release tarball is extracted to `/usr`. The step is gated on
 whether the binary already exists rather than on a distro name, so any distro
 that gains an ollama package is picked up without an edit.
@@ -50,31 +50,32 @@ that gains an ollama package is picked up without an edit.
 GPU support is a **composition choice made at the box level** — but only on the
 PACKAGED path is it also a size choice, and conflating the two is easy to do:
 
-- **Packaged distros** (Arch and derivatives) install a 66 MiB CPU-only base, and a
+- **Packaged distros** (Arch and derivatives) install a 75 MiB CPU-only base, and a
   backend is strictly opt-in. This is where the split earns its keep.
-- **Tarball distros** get one archive (1.32 GiB compressed) that already contains
+- **Tarball distros** get one archive (1.44 GiB compressed) that already contains
   the CUDA backend, so there is nothing to opt out of. ROCm is the exception in the
   other direction: it is NOT in that archive — upstream publishes it as a separate
   `ollama-linux-amd64-rocm` download, which this candy does not select. That is why
   `ollama-rocm` is packaged for Arch only — it has no candy page of its own to say so
   on, since it declares no `skill:` entity, so the constraint is stated here.
 
-Every size on this page is INSTALLED except ONE: the 1.32 GiB tarball figure, which
-is a COMPRESSED DOWNLOAD. (The 66 MiB figures above are installed sizes, so the axis
+Every size on this page is INSTALLED except ONE: the 1.44 GiB tarball figure, which
+is a COMPRESSED DOWNLOAD. (The 75 MiB figures above are installed sizes, so the axis
 does not split by position on the page — it splits by which figure.) The download is
 deliberately not compared against the installed numbers: the tarball's installed size
-is not stated anywhere here, so weighing 1.32 GiB against them would compare two
+is not stated anywhere here, so weighing 1.44 GiB against them would compare two
 different axes. Read it as what a tarball build FETCHES. The two
 figures in the bullets below are the two ALTERNATIVE BACKENDS, not the cost of a
-packaged build: a packaged image pays the 66 MiB base plus AT MOST ONE of them, and
+packaged build: a packaged image pays the 75 MiB base plus AT MOST ONE of them, and
 pays neither if it composes neither. Both are Arch figures — off Arch `ollama-cuda`
-adds no package at all, so its ~988 MiB is not a cost a tarball image pays on top.
+adds no package at all, so its ~496 MiB is not a cost a tarball image pays on top.
 (They are bullets, not a table — this page's only tables are Box Properties, Ports
 and Volumes.)
 
-- A GPU box composes `ollama-cuda` (~988 MiB) beside this candy for the
-  CUDA backend, or `ollama-rocm` (~2.9 GiB) for AMD. Both are candies in this
-  repository and BOTH package only on Arch (`distro: {arch: …}` and nothing
+- A GPU box composes `ollama-cuda` (~496 MiB) beside this candy for the
+  CUDA backend, or `ollama-rocm` (~1.0 GiB) for AMD. Both are sibling candies in
+  their own repositories (`layer-ollama-cuda` / `layer-ollama-rocm`), not candies of
+  this one, and BOTH package only on Arch (`distro: {arch: …}` and nothing
   else), which means the two behave differently off it: `ollama-cuda` degrades
   into an ASSERTION that the tarball's bundled CUDA is present, while
   `ollama-rocm` has no tarball path at all and its check correctly fails rather
@@ -143,7 +144,7 @@ See `/charly-ollama:ollama-cli` for the full command tree.
 
 ## Pinning the upstream version
 
-`OLLAMA_VERSION` is PINNED to a release tag (`v0.32.14` today) and must
+`OLLAMA_VERSION` is PINNED to a release tag (`v0.40.16` today) and must
 stay one — this is not a default you can swap for `latest`. The download
 cache is content-addressed by the sha256 of the URL, so a `latest` URL
 hashes to a single key forever and keeps serving the first tarball it ever

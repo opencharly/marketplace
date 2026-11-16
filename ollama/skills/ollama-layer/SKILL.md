@@ -34,7 +34,7 @@ description: |-
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `OLLAMA_VERSION` | `v0.32.14` | Upstream release for the TARBALL path only, and it must be a release TAG — the download cache is content-addressed by the sha256 of the URL, so a `latest` URL would hash to one key forever and keep serving the first tarball it ever fetched. Ignored on Arch, where the packaged `ollama` is installed and pacman owns the version |
+| `OLLAMA_VERSION` | `v0.40.16` | Upstream release for the TARBALL path only, and it must be a release TAG — the download cache is content-addressed by the sha256 of the URL, so a `latest` URL would hash to one key forever and keep serving the first tarball it ever fetched. Ignored on Arch, where the packaged `ollama` is installed and pacman owns the version |
 
 ## GPU backends (opt-in, box level)
 
@@ -45,12 +45,20 @@ backend, so there is nothing to opt out of there; ROCm is never in it:
 
 | Candy | Adds | Installed size |
 |-------|------|----------------|
-| `ollama-cuda` | NVIDIA CUDA backend (`libggml-cuda.so`) | ~988 MiB |
-| `ollama-rocm` | AMD ROCm/HIP backend (`libggml-hip.so`) | ~2.9 GiB |
+| `ollama-cuda` | NVIDIA CUDA backend (`libggml-cuda.so`) | ~496 MiB |
+| `ollama-rocm` | AMD ROCm/HIP backend (`libggml-hip.so`) | ~1.0 GiB |
 
-On Arch these are the split `ollama-cuda` / `ollama-rocm` packages, which
-depend on `ollama` and drop their backend into the same
-`/usr/lib/ollama/` runner directory rather than replacing anything.
+Both figures are each package's OWN installed size (`pacman`'s `size =`, from the
+0.40.16 packages), and neither includes that package's dependencies —
+`ollama-cuda` depends on `cuda` and `ollama-rocm` on `hipblas`, so a real image pays
+more than the table says. The ROCm row is the one that moves most between ollama
+releases (~2.9 GiB at v0.32.14, ~1.0 GiB at v0.40.16) — and it is the package's
+CONTENT that moved, not its dependency list, because both of those releases declare
+the same `hipblas` dependency. Measure it per release rather than carrying a number
+forward: `tar --zstd -xOf ollama-rocm-<ver>-<rel>-x86_64.pkg.tar.zst .PKGINFO`.
+
+Both are the split Arch packages: each depends on `ollama` and drops its backend
+into the same `/usr/lib/ollama/` runner directory rather than replacing anything.
 
 ## Service Environment (injected into other containers)
 
@@ -93,6 +101,12 @@ step — and its `context:` list gates where it runs:
 
 - **ungated** (no `context:`, so it runs wherever the plan runs):
   - `/usr/bin/ollama` exists
+  - `ollama --version` output contains the pinned release (`0.40.16`), `id:
+    ollama-version-pinned` — the ONE probe that can go red on an `OLLAMA_VERSION`
+    bump, because every other step here passes at ANY upstream version. It carries
+    `exclude_distro: [arch, cachyos]`, so it SKIPS on the packaged path, where
+    pacman owns the version and this candy's pin does not bind. That skip is the
+    design, not a missing assertion.
 - **`context: [runtime]`** (run against a live service;
   uses `127.0.0.1:${HOST_PORT:11434}` — the host-side form, not `${CONTAINER_IP}`, so port remapping
   works unchanged):
