@@ -20,6 +20,11 @@
 #
 # USAGE
 #   coord.sh <VERB> <owner/repo#num> [--body TEXT | --body-file FILE] [OPTIONS]
+#   coord.sh --footer [OPTIONS]
+#
+#   --footer prints ONLY the two-line session footer, for a PR body, an issue, or a
+#   commit-adjacent note, on any harness — the same lines a coordination comment ends
+#   with, from the same code (opencharly/opencharly#1119). No verb, no target, no GitHub.
 #
 #   <VERB>        one of CLAIM OWNING HANDING OVER TAKING OVER WAITING HOLDING
 #                 CLEARED STATUS RESOLVED. Case-insensitive; `-`, `_` and runs of
@@ -41,8 +46,14 @@
 #   --body TEXT          comment body (GitHub Markdown). May be omitted (verb-only).
 #   --body-file FILE     read the body from FILE instead.
 #   --agent SLUG         the work slug for the `Agent:` line.       env COORD_AGENT
+#   --parent SLUG        the parent slug, for a subagent.           env COORD_PARENT
 #   --session SES_ID     this session's id (the `Agent:` line).     env COORD_SESSION
 #   --harness NAME       e.g. OpenCode.                             env COORD_HARNESS
+#                        When BOTH --harness and --session are unset, they are read
+#                        from the harness's own environment: CLAUDE_CODE_SESSION_ID
+#                        (Claude Code) or DSH_SESSION_ID (DeepSeek Harness). A harness
+#                        that exposes its id only to its plugins (OpenCode, pi) passes
+#                        it through COORD_HARNESS + COORD_SESSION.
 #   --model NAME         the provider model name.                   env COORD_MODEL
 #   --confidence TIER    one of:
 #                          fully tested and validated
@@ -53,6 +64,7 @@
 #                                                                   env COORD_CONFIDENCE
 #   --assign             also assign the posting account (the CLAIM action).
 #   --dry-run, --print   print the comment, do NOT call GitHub.
+#   --footer             print only the two-line session footer (see USAGE).
 #   -h, --help           print this help and exit 0.
 #
 # OUTPUT  the posted comment URL (or, with --dry-run, the comment itself).
@@ -92,10 +104,10 @@ canon_verb() {
 }
 
 verb= target= body= body_file=
-agent=${COORD_AGENT:-} session=${COORD_SESSION:-}
+agent=${COORD_AGENT:-} parent=${COORD_PARENT:-} session=${COORD_SESSION:-}
 harness=${COORD_HARNESS:-} model=${COORD_MODEL:-}
 confidence=${COORD_CONFIDENCE:-}
-assign=0 dry=0 literal=0
+assign=0 dry=0 literal=0 footer_only=0
 
 positional() {
   if [ -z "$verb" ]; then verb=$1
@@ -127,24 +139,41 @@ while [ "$#" -gt 0 ]; do
     --body) need "$@"; body=$2; shift 2 ;;
     --body-file) need "$@"; body_file=$2; shift 2 ;;
     --agent) need "$@"; agent=$2; shift 2 ;;
+    --parent) need "$@"; parent=$2; shift 2 ;;
     --session) need "$@"; session=$2; shift 2 ;;
     --harness) need "$@"; harness=$2; shift 2 ;;
     --model) need "$@"; model=$2; shift 2 ;;
     --confidence) need "$@"; confidence=$2; shift 2 ;;
     --assign) assign=1; shift ;;
     --dry-run | --print) dry=1; shift ;;
+    --footer) footer_only=1; shift ;;
     --) literal=1; shift ;;
     -*) die "unknown option: $1 (try --help)" ;;
     *) positional "$1"; shift ;;
   esac
 done
 
-[ -n "$verb" ] || { usage >&2; exit 2; }
-[ -n "$target" ] || die "missing <owner/repo#num> (try --help)"
+if [ "$footer_only" = 1 ]; then
+  [ -z "$verb" ] || die "--footer takes no verb or target (got '$verb')"
+else
+  [ -n "$verb" ] || { usage >&2; exit 2; }
+  [ -n "$target" ] || die "missing <owner/repo#num> (try --help)"
 
-# --- canonicalise + validate the verb (the closed set) ----------------------
-canon=$(canon_verb "$verb")
-in_list "$canon" "${VERBS[@]}" || die "invalid verb '$verb' — one of: ${VERBS[*]}"
+  # --- canonicalise + validate the verb (the closed set) --------------------
+  canon=$(canon_verb "$verb")
+  in_list "$canon" "${VERBS[@]}" || die "invalid verb '$verb' — one of: ${VERBS[*]}"
+fi
+
+# --- the harness's own session id, when the caller named neither half -------
+# Both halves come from ONE source or neither does: a harness named by the caller
+# beside a session id read from another harness's environment would be a false line.
+if [ -z "$harness" ] && [ -z "$session" ]; then
+  if [ -n "${CLAUDE_CODE_SESSION_ID:-}" ]; then
+    harness="Claude Code" session=$CLAUDE_CODE_SESSION_ID
+  elif [ -n "${DSH_SESSION_ID:-}" ]; then
+    harness="DeepSeek Harness" session=$DSH_SESSION_ID
+  fi
+fi
 
 # --- validate the confidence tier -------------------------------------------
 [ -n "$confidence" ] || die "missing --confidence (or COORD_CONFIDENCE); one of: ${TIERS[*]}"
@@ -156,6 +185,20 @@ for pair in "agent:$agent" "session:$session" "harness:$harness" "model:$model";
   val=${pair#*:}
   [ -n "$val" ] || die "missing --$key (or COORD_$(printf '%s' "$key" | tr '[:lower:]' '[:upper:]'))"
 done
+
+# --- the session footer (canonical order: Agent FIRST, Assisted-by LAST) ----
+# The ONE shape pr_body_lint.py's SESSION_LINE accepts: slug, optional parent, the
+# harness the trailer names, and that harness's own session id.
+if [ -n "$parent" ]; then
+  footer_agent="*Agent: \`$agent\` (subagent of \`$parent\`) · $harness session \`$session\`*"
+else
+  footer_agent="*Agent: \`$agent\` · $harness session \`$session\`*"
+fi
+footer_assisted="*Assisted-by: $harness $model ($confidence)*"
+if [ "$footer_only" = 1 ]; then
+  printf '%s\n%s\n' "$footer_agent" "$footer_assisted"
+  exit 0
+fi
 
 # --- body (optional; --body-file wins) --------------------------------------
 if [ -n "$body_file" ]; then
@@ -173,9 +216,7 @@ else
   die "unrecognised target '$target' — want owner/repo#num or owner/repo/pull/num"
 fi
 
-# --- build the comment (canonical order: Agent FIRST, Assisted-by LAST) -----
-footer_agent="*Agent: \`$agent\` · session \`$session\`*"
-footer_assisted="*Assisted-by: $harness $model ($confidence)*"
+# --- build the comment (the footer above closes it) -------------------------
 if [ -n "$body" ]; then
   comment=$(printf '%s\n\n%s\n\n%s\n%s' "$canon" "$body" "$footer_agent" "$footer_assisted")
 else

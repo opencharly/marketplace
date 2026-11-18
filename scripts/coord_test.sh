@@ -322,6 +322,37 @@ assist_line=$(printf '%s\n' "$out" | grep -n '^\*Assisted-by:' | cut -d: -f1)
 printf '%s\n' "$out" | grep -q 'session `ses_test`' && ok "Agent: line carries the session" || bad "Agent: line carries the session"
 printf '%s\n' "$out" | grep -q 'waiting on the producer pin' && ok "the body is included" || bad "the body is included"
 
+# 6b. the SESSION footer (opencharly/opencharly#1119): the Agent line names the harness,
+#     --footer prints exactly the two footer lines, both halves come from the harness's
+#     own environment when the caller names neither, and the line is the ONE shape
+#     pr_body_lint.py's SESSION_LINE accepts.
+printf '%s\n' "$out" | grep -q '· OpenCode session `ses_test`' && ok "Agent: line names the harness" || bad "Agent: line names the harness"
+ftr=$("$COORD" --footer "${common[@]}" 2>/dev/null)
+eq "$(printf '%s\n' "$ftr" | wc -l | tr -d ' ')" "2" "--footer prints exactly two lines"
+eq "$(printf '%s\n' "$ftr" | head -1)" '*Agent: `slug-x` · OpenCode session `ses_test`*' "--footer prints the session line"
+eq "$(printf '%s\n' "$ftr" | tail -1)" "*Assisted-by: OpenCode DeepSeek V4.1 Flash (documentation reviewed)*" "--footer prints the trailer last"
+nohs=(--agent slug-x --model M --confidence "documentation reviewed")
+got=$(env -u DSH_SESSION_ID CLAUDE_CODE_SESSION_ID=cc-1 "$COORD" --footer "${nohs[@]}" 2>/dev/null | head -1)
+eq "$got" '*Agent: `slug-x` · Claude Code session `cc-1`*' "--footer reads Claude Code's own session id"
+got=$(env -u CLAUDE_CODE_SESSION_ID DSH_SESSION_ID=dsh-1 "$COORD" --footer "${nohs[@]}" 2>/dev/null | head -1)
+eq "$got" '*Agent: `slug-x` · DeepSeek Harness session `dsh-1`*' "--footer reads the DeepSeek Harness session id"
+env -u CLAUDE_CODE_SESSION_ID -u DSH_SESSION_ID -u COORD_SESSION -u COORD_HARNESS "$COORD" --footer "${nohs[@]}" >/dev/null 2>&1
+eq "$?" "2" "--footer with no session source exits 2"
+got=$(env -u DSH_SESSION_ID CLAUDE_CODE_SESSION_ID=cc-1 "$COORD" --footer --harness OpenCode "${nohs[@]}" 2>&1 >/dev/null)
+printf '%s' "$got" | grep -q 'missing --session' && ok "a named harness never borrows another harness's session id" || bad "a named harness never borrows another harness's session id ($got)"
+got=$("$COORD" --footer --parent lead "${common[@]}" 2>/dev/null | head -1)
+eq "$got" '*Agent: `slug-x` (subagent of `lead`) · OpenCode session `ses_test`*' "--footer names the parent of a subagent"
+"$COORD" --footer STATUS "${common[@]}" >/dev/null 2>&1
+eq "$?" "2" "--footer refuses a verb"
+if command -v python3 >/dev/null 2>&1; then
+  for ln in "$ftr" "$("$COORD" --footer --parent lead "${common[@]}" 2>/dev/null)"; do
+    printf '%s\n' "$ln" | head -1 | python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); from pr_body_lint import SESSION_LINE; sys.exit(0 if SESSION_LINE.fullmatch(sys.stdin.read().strip()) else 1)' "$HERE" \
+      && ok "the session line is the shape pr_body_lint.py accepts" || bad "the session line is the shape pr_body_lint.py accepts"
+  done
+else
+  printf '  SKIP  pr_body_lint grammar agreement (python3 not on PATH)\n'
+fi
+
 # 7. verb normalisation: handing-over / handing_over / handing over → HANDING OVER.
 for form in "handing-over" "handing_over" "Handing Over"; do
   got=$("$COORD" "$form" acme/widget#1 "${common[@]}" --dry-run 2>/dev/null | head -1)
