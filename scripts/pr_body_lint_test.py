@@ -31,7 +31,8 @@ def temp_dir(case: unittest.TestCase) -> str:
 
 DATA = HERE / "testdata" / "pr_body_lint"
 FOOTER = "*Assisted-by: Claude Code Anthropic Claude Opus 5.5 (documentation reviewed)*"
-AGENT = "*Agent: containerd-crabbox-program/w10 · session 8b1c01cf-7f79-4a75-bff8-240415a06208*"
+AGENT = "*Agent: `containerd-crabbox-program/w10` · Claude Code session `8b1c01cf-7f79-4a75-bff8-240415a06208`*"
+SESSION_FOOTER = AGENT + "\n" + FOOTER
 OK_RULES = "\n".join(f"- **{r}:** answered with how." for r in DEFAULT_RULES)
 
 # The bodies this repo merged BEFORE the `ellipsis` arm existed, and the elisions each
@@ -56,7 +57,16 @@ LEGACY_ELLIPSIS_BODIES = {
 }
 
 
-def body(how="x", rules=OK_RULES, footer=FOOTER, classification="x"):
+def charly_1039() -> str:
+    """The REAL charly#1039 body. It predates the session line (opencharly/opencharly#1119),
+    so its bare `Agent: charly` is upgraded to the canonical shape in memory; the recorded
+    fixture stays the body as it was posted, and only the head-fence behaviour is under test."""
+    text = (DATA / "charly-1039.md").read_text()
+    assert text.count("Agent: charly\n") == 1
+    return text.replace("Agent: charly\n", "*Agent: `charly` · Claude Code session `charly-1039`*\n")
+
+
+def body(how="x", rules=OK_RULES, footer=SESSION_FOOTER, classification="x"):
     return f"## Summary\nx\n## How tested\n{how}\n## Rulebook compliance\n{rules}\n## Change classification\n{classification}\n\n{footer}\n"
 
 
@@ -75,8 +85,15 @@ class Fixtures(unittest.TestCase):
         self.assertTrue(any("does not answer R1" in x for x in f), f)
 
     def test_clean_body_passes(self):
-        # Use the canonical merged PR body instead of a duplicate historical fixture.
-        self.assertEqual(run((HERE.parent / "CHANGELOG/2026.275.0418.md").read_text()), [])
+        # A merged PR body the validator PASSed. It predates the session line's harness
+        # (opencharly/opencharly#1119), so the session-line finding is its ONLY finding.
+        f = run((HERE.parent / "CHANGELOG/2026.275.0418.md").read_text())
+        self.assertEqual(len(f), 1, f)
+        self.assertIn("is not the session line", f[0])
+        upgraded = (HERE.parent / "CHANGELOG/2026.275.0418.md").read_text().replace(
+            "*Agent: `readme-truth` · session", "*Agent: `readme-truth` · Claude Code session"
+        )
+        self.assertEqual(run(upgraded), [])
 
 
 class Rules(unittest.TestCase):
@@ -91,7 +108,7 @@ class Rules(unittest.TestCase):
         self.assertEqual(run(body(footer="*Note: no attribution here*")), [])
 
     def test_footer_last_is_clean(self):
-        # Coverage arm 2: a human body whose footer IS present and sits last passes.
+        # Coverage arm 2: an agent body whose session footer IS present and sits last passes.
         self.assertEqual(run(body()), [])
 
     def test_agent_body_requires_the_trailer(self):
@@ -108,7 +125,40 @@ class Rules(unittest.TestCase):
     def test_agent_body_with_trailer_last_is_clean(self):
         # Coverage arm 4: the correct agent form — `Agent:` then the trailer as the last line.
         self.assertEqual(run(body(footer=AGENT + "\n" + FOOTER)), [])
-        self.assertEqual(run(body(footer="Agent: containerd-crabbox-program/w10\n" + FOOTER)), [])
+        sub = "*Agent: `w10` (subagent of `lead`) · Claude Code session `ses_9`*"
+        self.assertEqual(run(body(footer=sub + "\n" + FOOTER)), [])
+
+    def test_attributed_body_requires_the_session_line(self):
+        # opencharly/opencharly#1119: the Assisted-by trailer marks an agent-authored body, so
+        # the session line is REQUIRED before it — a PR must be traceable to its session.
+        f = run(body(footer=FOOTER))
+        self.assertTrue(any("must carry the session line" in x for x in f), f)
+
+    def test_agent_line_must_be_the_session_line(self):
+        # Every older or partial shape is refused: no backticks, no harness, a bare slug.
+        for bad in (
+            "Agent: containerd-crabbox-program/w10",
+            "*Agent: containerd-crabbox-program/w10 · session 8b1c01cf*",
+            "*Agent: `readme-truth` · session `2a317871`*",
+            "*Agent: `lead`*",
+        ):
+            f = run(body(footer=bad + "\n" + FOOTER))
+            self.assertTrue(any("is not the session line" in x for x in f), (bad, f))
+
+    def test_a_fenced_footer_is_evidence_not_the_footer(self):
+        # A body that pastes `coord.sh --footer` output (or the shape itself) inside a fence is
+        # quoting a command, not ending with it; only the PROSE footer is judged.
+        pasted = "```\n$ coord.sh --footer\n*Agent: `<slug>` · <Harness> session `<id>`*\n" + FOOTER + "\n```"
+        self.assertEqual(run(body(how=pasted)), [])
+        # ...and a fence cannot stand in for a missing prose footer.
+        f = run(body(how=pasted, footer=""))
+        self.assertEqual(f, [])
+        f = run(body(how=pasted, footer=FOOTER))
+        self.assertTrue(any("must carry the session line" in x for x in f), f)
+
+    def test_session_line_harness_matches_the_trailer(self):
+        f = run(body(footer=AGENT.replace("Claude Code session", "OpenCode session") + "\n" + FOOTER))
+        self.assertTrue(any("names harness 'OpenCode'" in x for x in f), f)
 
     def test_agent_body_with_trailer_not_last_fails(self):
         # Coverage arm 5: the agent body's trailer must be LAST, not merely present.
@@ -527,7 +577,7 @@ class HeadFence(unittest.TestCase):
     rule exists to catch.
     """
 
-    BODY = (DATA / "charly-1039.md").read_text()
+    BODY = charly_1039()
     HEAD = "f1df920c6d6db67212981eb816b69f1501339ef3"
     STALE = "6668ef08f03d693970d572dabb8e356cf8eb7324"
 
@@ -588,7 +638,7 @@ class FindingEvidence(unittest.TestCase):
     are the ones a reader can check.
     """
 
-    BODY = (DATA / "charly-1039.md").read_text()
+    BODY = charly_1039()
     HEAD = "f1df920c6d6db67212981eb816b69f1501339ef3"
     STALE = "6668ef08f03d693970d572dabb8e356cf8eb7324"
 

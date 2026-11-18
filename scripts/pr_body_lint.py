@@ -8,11 +8,15 @@ the validator (opencharly/marketplace#404 — distro-fedora#79 and docs#142, bot
 BLOCKs on the body alone):
 
   sections   the four required `## ` sections are present;
-  footer     OPTIONAL for a human-authored body: a body with no trailer passes. REQUIRED when
-             the body carries an `Agent:` line (the mechanical agent marker): the italic
-             `Assisted-by` trailer must then be the LAST line, with the `Agent:` line directly
-             preceding it. A trailer buried mid-text always fails. The trailer grammar is
-             squash_body.py's (one definition);
+  footer     OPTIONAL for a human-authored body: a body with neither an `Agent:` line nor an
+             `Assisted-by` trailer passes. An AGENT-authored body (either marker present) ends
+             with the two-line SESSION FOOTER: the canonical session line
+             `*Agent: `<slug>` · <Harness> session `<id>`*` (optionally
+             `(subagent of `<parent>`)` after the slug) directly followed by the italic
+             `Assisted-by` trailer as the LAST line, and the trailer names the same harness.
+             The session line is how a PR is traced to the session that made it, on every
+             harness (opencharly/opencharly#1119). A trailer buried mid-text always fails. The
+             trailer grammar is squash_body.py's (one definition);
   rules      `## Rulebook compliance` answers EVERY rule id in --rules, each with a HOW or an
              `N/A — <reason>` (a bare `N/A` fails);
   claims     an asserted check — a sweep result ("only occurrence"), a no-match grep/rg result,
@@ -79,6 +83,16 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from squash_body import TRAILER  # noqa: E402  (the ONE Assisted-by grammar)
+
+# The ONE session-line grammar (opencharly/opencharly#1119): the work slug, an optional
+# parent slug, the harness the Assisted-by trailer names, and THAT harness's own session id —
+# the id a reader resumes or inspects the session by, on every harness.
+SESSION_LINE = re.compile(
+    r"\*Agent: `(?P<slug>[A-Za-z0-9][A-Za-z0-9._/-]*)`"
+    r"(?: \(subagent of `(?P<parent>[A-Za-z0-9][A-Za-z0-9._/-]*)`\))?"
+    r" · (?P<harness>\S(?:[^`]*\S)?) session `(?P<session>[^`\s]+)`\*"
+)
+SESSION_SHAPE = "`*Agent: `<slug>` · <Harness> session `<id>`*`"
 
 REQUIRED_SECTIONS = ("Summary", "How tested", "Rulebook compliance", "Change classification")
 DEFAULT_RULES = tuple(f"R{i}" for i in range(11))
@@ -823,12 +837,17 @@ def lint(
         if name not in secs:
             findings.append(f"sections: missing `## {name}`")
 
-    tail = [ln for ln in lines if ln.strip()]
+    # The footer is PROSE: a trailer or an `Agent:` line pasted inside a fence is evidence
+    # (a command's own output, such as `coord.sh --footer`), never the body's footer.
+    tail = [ln for kind, _, text in blocks(lines) if kind == "text" for ln in text if ln.strip()]
     last = tail[-1].strip() if tail else ""
 
     def is_trailer(ln: str) -> bool:
         s = ln.strip()
         return len(s) > 2 and s.startswith("*") and s.endswith("*") and bool(TRAILER.match(s[1:-1]))
+
+    def is_session_line(ln: str) -> bool:
+        return bool(SESSION_LINE.fullmatch(ln.strip()))
 
     def is_agent_line(ln: str) -> bool:
         # The mechanical agent marker: `Agent:` opens the line, in its plain or emphasis-wrapped
@@ -849,6 +868,16 @@ def lint(
         findings.append("footer: a body carrying an `Agent:` line must end with the italic Assisted-by trailer")
     if has_trailer and any(is_agent_line(ln) for ln in tail[:-1]) and not is_agent_line(tail[-2]):
         findings.append("footer: the `Agent:` line must directly precede the Assisted-by trailer")
+    if has_trailer and not has_agent:
+        findings.append(f"footer: an attributed body must carry the session line {SESSION_SHAPE} directly before the Assisted-by trailer")
+    for ln in tail:
+        if is_agent_line(ln) and not is_session_line(ln):
+            findings.append(f"footer: the `Agent:` line is not the session line {SESSION_SHAPE}: {ln.strip()[:80]!r}")
+    if len(tail) >= 2 and is_trailer(tail[-1]) and is_session_line(tail[-2]):
+        harness = SESSION_LINE.fullmatch(tail[-2].strip()).group("harness")
+        identity = TRAILER.match(tail[-1].strip()[1:-1]).group("identity")
+        if not identity.startswith(harness + " "):
+            findings.append(f"footer: the session line names harness {harness!r}, but the Assisted-by trailer names {identity!r}")
 
     rc = secs.get("Rulebook compliance", [])
     for rule in rules:
