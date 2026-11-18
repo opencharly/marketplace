@@ -18,6 +18,5 @@
     "defaultPrompt": [
       "Use OpenCharly Versa for this OpenCharly task."
     ]
-  },
-  "mcpServers": "./.mcp.json"
+  }
 }

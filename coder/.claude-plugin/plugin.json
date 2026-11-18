@@ -13,6 +13,5 @@
     "claude-code",
     "codex",
     "mcp"
-  ],
-  "mcpServers": "./.mcp.json"
+  ]
 }

@@ -18,6 +18,5 @@
     "defaultPrompt": [
       "Use OpenCharly Jupyter for this OpenCharly task."
     ]
-  },
-  "mcpServers": "./.mcp.json"
+  }
 }
