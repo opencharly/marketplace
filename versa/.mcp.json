@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "marimo": {
-      "type": "http",
-      "url": "http://localhost:22718/mcp/server"
-    }
-  }
-}

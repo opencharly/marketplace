@@ -18,6 +18,5 @@
     "defaultPrompt": [
       "Use OpenCharly Coder for this OpenCharly task."
     ]
-  },
-  "mcpServers": "./.mcp.json"
+  }
 }

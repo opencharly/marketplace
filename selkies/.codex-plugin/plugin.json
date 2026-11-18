@@ -18,6 +18,5 @@
     "defaultPrompt": [
       "Use OpenCharly Selkies for this OpenCharly task."
     ]
-  },
-  "mcpServers": "./.mcp.json"
+  }
 }

@@ -15,6 +15,5 @@
     "vnc",
     "chrome",
     "mcp"
-  ],
-  "mcpServers": "./.mcp.json"
+  ]
 }

@@ -22,6 +22,5 @@
     "maplibre-versatiles-styler",
     "tilemaker",
     "mcp"
-  ],
-  "mcpServers": "./.mcp.json"
+  ]
 }
