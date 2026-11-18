@@ -152,9 +152,20 @@ class Rules(unittest.TestCase):
         self.assertEqual(run(body(how=pasted)), [])
         # ...and a fence cannot stand in for a missing prose footer.
         f = run(body(how=pasted, footer=""))
-        self.assertEqual(f, [])
+        self.assertTrue(any("must end with its own prose session footer" in x for x in f), f)
         f = run(body(how=pasted, footer=FOOTER))
         self.assertTrue(any("must carry the session line" in x for x in f), f)
+
+    def test_the_refresh_bot_footer_is_the_session_footer(self):
+        # The model-free refresh bot is an attributed body too: its footer, as
+        # .github/workflows/refresh.yml emits it, names the workflow, GitHub Actions and the run.
+        import re as _re
+
+        wf = (HERE.parent / ".github" / "workflows" / "refresh.yml").read_text()
+        echoed = _re.findall(r'^\s*echo "(\*(?:Agent|Assisted-by):.*)"\s*$', wf, _re.M)
+        self.assertEqual(len(echoed), 2, echoed)
+        footer = "\n".join(e.replace("\\`", "`").replace("${GITHUB_RUN_ID}", "1234567890") for e in echoed)
+        self.assertEqual(run(body(footer=footer)), [])
 
     def test_session_line_harness_matches_the_trailer(self):
         f = run(body(footer=AGENT.replace("Claude Code session", "OpenCode session") + "\n" + FOOTER))

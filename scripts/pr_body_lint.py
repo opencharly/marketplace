@@ -9,14 +9,18 @@ BLOCKs on the body alone):
 
   sections   the four required `## ` sections are present;
   footer     OPTIONAL for a human-authored body: a body with neither an `Agent:` line nor an
-             `Assisted-by` trailer passes. An AGENT-authored body (either marker present) ends
-             with the two-line SESSION FOOTER: the canonical session line
+             `Assisted-by` trailer passes. An ATTRIBUTED body (either marker present) ends with
+             the two-line SESSION FOOTER — an agent session's body and a model-free bot's alike
+             (a bot names its workflow as the slug, `GitHub Actions` as the harness, and its run
+             id as the session) — the canonical session line
              `*Agent: `<slug>` · <Harness> session `<id>`*` (optionally
              `(subagent of `<parent>`)` after the slug) directly followed by the italic
              `Assisted-by` trailer as the LAST line, and the trailer names the same harness.
              The session line is how a PR is traced to the session that made it, on every
-             harness (opencharly/opencharly#1119). A trailer buried mid-text always fails. The
-             trailer grammar is squash_body.py's (one definition);
+             harness (opencharly/opencharly#1119). The footer is judged on the body's PROSE: a
+             trailer pasted inside a fence is evidence, never the footer, and it never excuses a
+             missing prose footer. A trailer buried mid-text always fails. The trailer grammar is
+             squash_body.py's (one definition);
   rules      `## Rulebook compliance` answers EVERY rule id in --rules, each with a HOW or an
              `N/A — <reason>` (a bare `N/A` fails);
   claims     an asserted check — a sweep result ("only occurrence"), a no-match grep/rg result,
@@ -855,6 +859,9 @@ def lint(
         return ln.strip().lstrip("*").startswith("Agent:")
 
     has_trailer = any(is_trailer(ln) for ln in tail)
+    fenced = [ln for kind, _, text in blocks(lines) if kind == "fence" for ln in text]
+    if any(is_trailer(ln) for ln in fenced) and not has_trailer:
+        findings.append("footer: a body that pastes an Assisted-by trailer in a fence must end with its own prose session footer")
     has_agent = any(is_agent_line(ln) for ln in tail)
 
     # The footer is OPTIONAL for a body with no `Agent:` line (as far as the linter can tell, a

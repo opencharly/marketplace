@@ -485,8 +485,10 @@ jobs:
             echo "\`printf/echo\` block in \`.github/workflows/refresh.yml\` (visible in this workflow's"
             echo "committed source), with the generator's log elided by \`scripts/refresh-elide.sh\`"
             echo "(visible in this repo's committed source, and covered by \`scripts/refresh_elide_test.sh\`)."
-            echo "The runtime identity is the GitHub Actions runner itself."
+            echo "The runtime identity is the GitHub Actions runner itself; the session line names"
+            echo "this workflow and its run, so the PR traces to the run that wrote it."
             echo
+            echo "*Agent: \`refresh\` · GitHub Actions session \`${GITHUB_RUN_ID}\`*"
             echo "*Assisted-by: GitHub Actions ubuntu-latest (fully tested and validated)*"
           } > /tmp/pr-body.md
 
