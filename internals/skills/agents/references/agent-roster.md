@@ -156,28 +156,29 @@ as an agent-team teammate.
 - **`/audit-deploy-configs [image|deploy …]`** — validates, runs `charly
   check box` and optionally `charly check live`, and calls `deploy-verifier`
   over a set of deploy configs; aggregates a health report.
-- **`/triage-check-failure <bed>`** — competing-hypotheses RCA of a failed
-  bed run: parallel `root-cause-analyzer`-style agents each validate a
-  hypothesis on the live bed, cross-check adversarially, converge on the
-  root cause, and hand back a fix to re-run the real bed (per R1).
-- **`/verify-status [substrate …]`** — a substrate-coverage plan for the
-  unified `charly status` surface. It runs no beds — every substrate bed is
-  disqualified from sub-agent ownership (`check-pod` measured ≥600s,
-  `check-k3s-vm` is a VM bed, `check-android-emulator-pod` is an android
-  bed, `check-local-vm` is a VM bed and the `check-*-local` beds are host-local), so a runner form would be invalid by
-  construction. It emits, per substrate, the exact `charly check run <bed>`
-  command, the `summary.yml` path to read, and the `status-shows-*`
-  deploy-scope assertion that bed proves; the persistent session owns each
-  run as a `run_in_background` task, and the `local` bed runs inside the
-  disposable eval VM, never on the host. `gateComplete` is `false` by
-  construction. The bed-safety classifier lives in one place — the native
-  `kind:check-roster` engine — and is not duplicated here.
+- **`/triage-verify-failure [invariant]`** — competing-hypotheses RCA of a
+  FAILING umbrella pinning gate (`./charly/bin/charly task verify`, R1): it
+  reproduces the failure, fans out independent root-cause hypotheses that
+  each validate against the live checkout's gitlinks, cross-checks them
+  adversarially, and returns the surviving root cause plus a concrete fix to
+  apply before re-running the gate. It probes read-mostly and never edits
+  source or commits. A failed BED is triaged by `charly check run`'s own
+  report and the root-cause-analyzer, not by this workflow.
+- **`/verify-status`** — a pinning-gate PLAN for the umbrella: it emits,
+  per README invariant (the branch is the real default, the pins are
+  reachable and clean, the pin contract holds, charly's nested submodules
+  are initialized), the exact command that proves it and what that command
+  proves. It runs nothing and never mutates; the gate is fast and local, so
+  the persistent session owns the runs.
 
-## Agent teams (experimental — enabled in committed settings)
+## Agent teams (experimental — opt-in per session)
 
-Agent teams (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`) are enabled in the
-committed `.claude/settings.json` (`env` block). The experimental caveats
-remain: no in-process session resume (`/resume`/`/rewind` don't restore
+Agent teams (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`) are NOT enabled by
+the umbrella's committed `.claude/settings.json`: it carries no `env` block,
+and never has (`git log -S CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS --
+.claude/settings.json` is empty). A session that wants a team sets the
+variable in its own environment before it starts `claude`. The experimental
+caveats: no in-process session resume (`/resume`/`/rewind` don't restore
 teammates), one team at a time (clean up before creating another), no
 nested teams (only the lead manages the team), and the lead is fixed for
 the team's lifetime. Enabling requires a `claude` restart, because the
