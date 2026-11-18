@@ -158,7 +158,7 @@ both body-only, and neither covered by classes 1-5.
    floor as "*measured: 120 s*", when 120 s is `readinessPerAttemptFallback` in
    the pinned spec's `poll` package. A constant and a measurement are different
    kinds of number, and the prose says which one it is holding.
-4. Account for EVERY applicable rule (the repo's numbered rules AND R1–R10)
+4. Account for EVERY applicable rule (the repo's numbered rules AND R1–R11)
    with a one-line `HOW` or `N/A — <reason>`; never a bare `N/A.`
 5. NEVER surface a failure you cannot own. Either fix it (including the coupled
    pin/migrate, not just the manifest) or omit it and paste only the repo's

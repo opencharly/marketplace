@@ -144,6 +144,26 @@ against or edit.
   the shell then parses that text, so a parameter carrying a shell metacharacter
   EXECUTES; a lower-case parameter is not substituted at all and the word
   VANISHES. A parameter is source, not data.
+- **A braced reference in a command's TEXT is the same trap, one step later.** The
+  plan runner claims a `${NAME}` it finds in a step's command and expands it against
+  the task's merged env, and an UNRESOLVABLE reference does not fail the step: it
+  SKIPS it, so the gate reads green over a check that never ran. A command step's
+  text therefore carries NO value. Read the environment at run time, out of the
+  process environment, so the expander never sees it: a bare `$NAME`, or, under
+  `set -eu`, `$(printenv NAME 2>/dev/null || true)`, so an unset variable cannot
+  abort the step before it runs. `node scripts/check-task-command-vars.mjs` holds
+  that line, in the pre-commit gate and in `charly task verify`.
+- **A fresh clone bootstraps in one order.** `bash scripts/init-submodules.sh` runs
+  first, because the project cannot load before its `import:` paths exist. Then
+  `./charly/scripts/bootstrap-charly.sh` builds the binary from the `charly` checkout.
+  `bash scripts/bootstrap.sh` runs that order, then installs the clone's hooks,
+  checks the skill binding and writes each harness's install records — ONE entrypoint
+  for a fresh clone, because an enabled harness plugin that was never installed loads
+  nothing. `charly task init` is the SAME materialization through the binary. Both
+  need `git` and `python3`, which the script DECLARES and CHECKS: a missing
+  requirement fails loud with its name and never becomes a silently empty working set.
+  The script is the PRE-bootstrap path; it cannot be the binary's own implementation,
+  because it runs before the binary exists.
 - **BLOBLESS, never shallow.** `--filter=blob:none` keeps every commit and every
   tree, so the ancestry question the pin contract asks stays DECIDABLE. A
   `--depth 1` clone makes that question undecidable — it answers "not an
@@ -158,6 +178,10 @@ against or edit.
   remote that does not serve the branch, a missing url, an unreadable source
   twin — a sync over a tree it could not fully advance must never report success.
   The daily tree is light, and so is a wave.
+- **A wave's order is sync → init → verify.** The sync writes the pins, the init
+  materializes the checkouts at those pins, and the verify judges them. On a tree
+  that was never materialized, the materialization comes FIRST, because the
+  project cannot load before its `import:` paths exist.
 - **The pin is the INDEX entry; the checkout follows it.** `charly task init` is
   the second half of a wave: it materializes a path the wave advanced without a
   checkout AT the pin the index now carries, and it advances an

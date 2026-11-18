@@ -44,7 +44,7 @@ gh pr create --base main --head feat/<slug> \     # fill the PR template complet
 ```
 
 **Step 2 — Org-wide gate** (`marketplace/internals/agents/pr-validator.md`, the fresh
-evaluator in NEW context): it independently re-validates the PR vs R0–R10 + the
+evaluator in NEW context): it independently re-validates the PR vs R0–R11 + the
 relevant skills and certifies `Verdict: PASS|BLOCK` for the ORG-WIDE
 `charly/pr-validator` GitHub Actions workflow (`opencharly/.github`), whose
 check run is the branch-protection context (green on PASS, red on BLOCK). On

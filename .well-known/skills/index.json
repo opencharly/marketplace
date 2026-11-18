@@ -528,6 +528,13 @@
       ]
     },
     {
+      "name": "design",
+      "files": [
+        "SKILL.md",
+        "references/crosswalk.md"
+      ]
+    },
+    {
       "name": "desktop-fonts",
       "files": [
         "SKILL.md"

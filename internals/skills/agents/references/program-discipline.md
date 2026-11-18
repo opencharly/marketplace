@@ -223,6 +223,12 @@ the work survived only because the ledger and hand-over were current.
 - **Size the cap to the work.** One owner turn per PR per verdict
   round, plus one bed per runtime change. Never below the harness
   default without a stated reason.
+- **A disarmed-but-active goal means the REARM is broken — say so; do not ask
+  the operator for a word.** Activation is process-local and never persisted
+  (`@deepseek-ai/dsh-goal/README.md:99`), and positive rounds advance only on
+  goal-sourced `user/message` events (`:100`) — the same event the org plugin's
+  re-arm seam keys on. So an `active` goal whose continuation was armed but which
+  reads `disarmed` is a defect in the re-arm, not a request for consent.
 - **Ask before the cap, do not narrate an ending.** Once a goal passes
   ~80% of its budget with work remaining, STOP and ask the operator how
   to proceed, with options — the driver's only signal is the hard block,

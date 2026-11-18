@@ -100,7 +100,7 @@ work.
   full schema to `/charly-image:layer` + `charly box validate`.
 - **`pr-validator`** — the fresh PR evaluator (the validating half of the
   two-step landing). Spawned with new context, it independently
-  re-validates a PR against R0–R10 and the relevant skills and certifies
+  re-validates a PR against R0–R11 and the relevant skills and certifies
   `Verdict: PASS|BLOCK` for the ORG-WIDE `charly/pr-validator` GitHub
   Actions gate, whose check run is the branch-protection context. The
   landing (native auto-merge squash, then the tag-on-merge workflow's

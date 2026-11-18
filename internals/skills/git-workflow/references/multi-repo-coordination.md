@@ -209,33 +209,56 @@ comments → owning session answers/acts → blocked session re-checks and react
 
 ### B2b.1 — agent identity and the coordination verb grammar
 
-**Identity is in the footers; authority is in the verb.** An agent
-identifies itself with TWO italic lines at the END of a comment or PR
-body — the `Agent:` line naming the WORK and the session, then the
-`Assisted-by` trailer. **One canonical order on BOTH surfaces: `Agent:`
-FIRST, `Assisted-by:` LAST** (in a PR body this also satisfies the
-validator, which requires the `Assisted-by` trailer to be the FINAL line).
-The slug is NEVER appended to `Assisted-by`:
+**Identity is in the footers; authority is in the verb.** Every
+agent-authored PR body, issue and comment ends with the two-line SESSION
+FOOTER: the `Agent:` line naming the WORK, the harness and the harness's own
+session id, then the `Assisted-by` trailer. **One canonical order on every
+surface: `Agent:` FIRST, `Assisted-by:` LAST** (in a PR body this also
+satisfies the validator, which requires the `Assisted-by` trailer to be the
+FINAL line). The slug is NEVER appended to `Assisted-by`:
 
 ```markdown
-*Agent: `<slug>` · session `<ses_…>`*
+*Agent: `<slug>` · <Harness> session `<session-id>`*
 *Assisted-by: <Harness> <Provider Model> (<confidence>)*
 ```
 
 - **agent slug** — a stable, human-readable, kebab-case name the session
   chooses for the WORK (`c7-plugin-adoption`), never the harness or the
-  GitHub account. It is the authority key.
-- **session** — the harness session id.
+  GitHub account. It is the AUTHORITY key: who is doing the work.
+- **harness** — the same harness name the `Assisted-by` trailer opens with.
+- **session id** — the harness's OWN id for this session, the one a reader
+  resumes or inspects the session by. It is the PROVENANCE key: which session
+  made this PR. Many sessions share one GitHub account, so without it a PR
+  cannot be traced to the session that made it.
 
-**Optional by default; MANDATORY on the trigger.** Neither the `Agent:`
-line nor the verb grammar is required of a solo agent on an uncontended PR
-— never tax every comment. They become MANDATORY the moment EITHER holds:
+**The footer is MANDATORY on every agent-authored PR body, issue and
+comment** — contended or not (opencharly/opencharly#1119). The org's body
+linter (`marketplace/scripts/pr_body_lint.py`, `SESSION_LINE`) refuses an
+attributed body without it, and the validator's COORD check blocks on it.
+The **verb grammar** below stays scoped: a coordination comment opens with a
+verb whenever it coordinates, and the verbs are MANDATORY the moment EITHER
+holds:
 
 1. **two or more agents work the same issue or PR**, or
 2. **the scope is a blocking dependency** (any `WAITING` / `HOLDING` / `CLEARED` is in play).
 
-On a triggered scope, EVERY agent-authored comment and PR body carries the
-two-line footer, and coordination comments open with the verb.
+**Write the footer with the harness's own writer, never by hand.** One shape,
+four bindings, each proven byte-identical to the others by a gate:
+
+| Harness | Writer | Where the session id comes from |
+|---|---|---|
+| Claude Code | `marketplace/scripts/coord.sh --footer --agent <slug> --model <model> --confidence <tier>` | `CLAUDE_CODE_SESSION_ID`, read by `coord.sh` |
+| DeepSeek Harness (dsh) | the same `coord.sh --footer` | `DSH_SESSION_ID`, read by `coord.sh` |
+| OpenCode | the `coord_footer` tool (`.opencode/plugins/coord.ts`) | the live tool context's `sessionID` |
+| pi | the `coord_footer` tool (`.pi/extensions/footer.ts`) | `ctx.sessionManager.getSessionId()` |
+| a model-free bot | its committed `echo` block (e.g. marketplace `refresh.yml`) | `GITHUB_RUN_ID`; the slug is the workflow and the harness `GitHub Actions` |
+
+A harness whose id reaches only its plugins (OpenCode, pi) can also hand it to
+`coord.sh` through `COORD_HARNESS` + `COORD_SESSION`. `coord.sh` reads both halves
+from one source or neither, so a named harness never borrows another
+harness's id. A commit carries the same line as a plain trailer
+(`Agent: <slug> · <Harness> session <session-id>`) directly before its
+`Assisted-by:` trailer.
 
 **The first non-blank line of a coordination comment is ONE label from a
 CLOSED set**, uppercase, then sharp prose in proper GitHub Markdown
@@ -265,7 +288,7 @@ Rendered example — a claim on a PR:
 
 Claiming the `git-workflow` B2b identity/grammar slice; will push `feat/agent-coord-grammar`.
 
-*Agent: `agent-coord-grammar` · session `ses_f1ca67065ffe71KOr87cfv8aNw`*
+*Agent: `agent-coord-grammar` · OpenCode session `ses_f1ca67065ffe71KOr87cfv8aNw`*
 *Assisted-by: OpenCode opencode-go/deepseek-v4.1-flash (analysed on a live system)*
 ```
 
@@ -399,7 +422,7 @@ EVERY action the subagent takes (pushes, PRs, comments, takeovers, sign-offs);
 responsibility does NOT delegate away with the task — the parent cannot disclaim
 a subagent's error. An action taken by a subagent MUST identify itself and name
 its parent, so the chain of responsibility is followable — the footer extends to
-`*Agent: <slug> (subagent of <parent-slug>) · session <ses_…>*` + the
+`*Agent: `<slug>` (subagent of `<parent-slug>`) · <Harness> session `<session-id>`*` + the
 `Assisted-by:` trailer (`Agent:` FIRST, `Assisted-by:` LAST). `CLAIM` /
 `TAKING OVER` / `HANDING OVER` / `WAITING` / `HOLDING` are addressed to the accountable PARENT,
 not merely a subagent. A `CLAIM` carries a PRODUCE-OR-HAND-OVER duty: produce an
