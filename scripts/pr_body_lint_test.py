@@ -57,11 +57,21 @@ LEGACY_ELLIPSIS_BODIES = {
 }
 
 
+def answer_r11(text: str) -> str:
+    """A recorded body that predates R11 (opencharly/opencharly#1119) answers R0–R10 only; its
+    `## Rulebook compliance` gains an R11 line in memory, and the recorded file is untouched."""
+    assert text.count("## Rulebook compliance\n") == 1
+    return text.replace(
+        "## Rulebook compliance\n", "## Rulebook compliance\n\n- **R11:** N/A — the body predates the rule.\n"
+    )
+
+
 def charly_1039() -> str:
-    """The REAL charly#1039 body. It predates the session line (opencharly/opencharly#1119),
-    so its bare `Agent: charly` is upgraded to the canonical shape in memory; the recorded
-    fixture stays the body as it was posted, and only the head-fence behaviour is under test."""
-    text = (DATA / "charly-1039.md").read_text()
+    """The REAL charly#1039 body. It predates the session line and R11 (opencharly/opencharly#1119),
+    so its bare `Agent: charly` is upgraded to the canonical shape and an R11 answer is added, in
+    memory; the recorded fixture stays the body as it was posted, and only the head-fence
+    behaviour is under test."""
+    text = answer_r11((DATA / "charly-1039.md").read_text())
     assert text.count("Agent: charly\n") == 1
     return text.replace("Agent: charly\n", "*Agent: `charly` · Claude Code session `charly-1039`*\n")
 
@@ -85,12 +95,13 @@ class Fixtures(unittest.TestCase):
         self.assertTrue(any("does not answer R1" in x for x in f), f)
 
     def test_clean_body_passes(self):
-        # A merged PR body the validator PASSed. It predates the session line's harness
-        # (opencharly/opencharly#1119), so the session-line finding is its ONLY finding.
+        # A merged PR body the validator PASSed. It predates the session line's harness and R11
+        # (opencharly/opencharly#1119), so those two are its ONLY findings.
         f = run((HERE.parent / "CHANGELOG/2026.275.0418.md").read_text())
-        self.assertEqual(len(f), 1, f)
-        self.assertIn("is not the session line", f[0])
-        upgraded = (HERE.parent / "CHANGELOG/2026.275.0418.md").read_text().replace(
+        self.assertEqual(len(f), 2, f)
+        self.assertTrue(any("is not the session line" in x for x in f), f)
+        self.assertTrue(any("does not answer R11" in x for x in f), f)
+        upgraded = answer_r11((HERE.parent / "CHANGELOG/2026.275.0418.md").read_text()).replace(
             "*Agent: `readme-truth` · session", "*Agent: `readme-truth` · Claude Code session"
         )
         self.assertEqual(run(upgraded), [])
@@ -99,6 +110,13 @@ class Fixtures(unittest.TestCase):
 class Rules(unittest.TestCase):
     def test_minimal_valid_body_is_clean(self):
         self.assertEqual(run(body()), [])
+
+    def test_r11_is_a_required_rule(self):
+        # R11 — conform to DESIGN (opencharly/opencharly#1119) — is a ground-truth rule, so an
+        # unanswered R11 is a finding like any other rule.
+        self.assertIn("R11", DEFAULT_RULES)
+        f = run(body(rules=OK_RULES.replace("- **R11:** answered with how.", "")))
+        self.assertTrue(any("does not answer R11" in x for x in f), f)
 
     def test_body_without_footer_is_clean(self):
         # Coverage arm 1: the footer is OPTIONAL for a human body — no `Agent:` line, no trailer,
@@ -166,6 +184,15 @@ class Rules(unittest.TestCase):
         self.assertEqual(len(echoed), 2, echoed)
         footer = "\n".join(e.replace("\\`", "`").replace("${GITHUB_RUN_ID}", "1234567890") for e in echoed)
         self.assertEqual(run(body(footer=footer)), [])
+
+    def test_the_refresh_bot_answers_every_rule(self):
+        # The model-free refresh bot's body answers every ground-truth rule the linter
+        # requires, R11 included, as .github/workflows/refresh.yml emits it.
+        import re as _re
+
+        wf = (HERE.parent / ".github" / "workflows" / "refresh.yml").read_text()
+        answered = set(_re.findall(r'^\s*echo "- \*\*(R\d+)\b', wf, _re.M))
+        self.assertEqual(sorted(set(DEFAULT_RULES) - answered), [])
 
     def test_session_line_harness_matches_the_trailer(self):
         f = run(body(footer=AGENT.replace("Claude Code session", "OpenCode session") + "\n" + FOOTER))

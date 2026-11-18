@@ -110,6 +110,15 @@ The full class → name → "may hold" mapping is the umbrella `README.md`
 is in the umbrella `AGENTS.md` ("Repo classes and naming"). Do not copy either
 table into this skill: they are the canonical surfaces, and a copy drifts.
 
+**A repo whose only content is skills is not a class.** No prefix exists for it, and
+none may be invented. A `layer-*`, `distro-*`, `plugin-*`, `pod-*`, `vm-*`, `charly-*` or
+`pkg-*` repo must hold the code, plugin or config its name promises, with its skills
+beside that content (umbrella `AGENTS.md` Part II #5). A `*-skills` carrier REPO that
+exists only to own prose is retired by this rule. Its skills move to the repo of the
+entity they describe, or to the umbrella when they are general guidance. A carrier
+CANDY inside a repo that already holds code is a different thing and is unaffected:
+it is the shape image-owned skills need (`/charly-internals:skills`).
+
 Worked counter-example, because it happened: a product family was created as a
 bare `openclaw`. It held a box, a candy, a disposable bed and two skills — a
 `layer-<family>` shape — so the name did not fit its class and the repo was

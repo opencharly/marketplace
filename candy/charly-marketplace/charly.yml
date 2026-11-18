@@ -163,7 +163,7 @@ charly-marketplace:
             # #801 — pin bumps, gate fixes and changelogs), which touch no `.agents/`
             # file. So the projection had not moved since #788's advance, and the
             # corpus's projection was current for its pin until this one.
-            - '@github.com/opencharly/opencharly:v2026.322.1429'
+            - '@github.com/opencharly/opencharly:v2026.322.2220'
             # The two CONTRACT repos' skill shelves (opencharly/opencharly#611).
             # DIRECT, for the rule stated above. Both are Go MODULES, so their tags follow
             # the Go-module scheme

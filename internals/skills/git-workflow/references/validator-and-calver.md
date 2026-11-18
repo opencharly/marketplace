@@ -285,16 +285,29 @@ For every harness, the enforced trailer form is exactly
 composing a squash-merge trailer preserves the authoring harness, full provider
 model name, and proof-supported confidence.
 
-**A model-free bot body is the `<Harness> <Runtime>` form** (defined by the A1
-amendment in `opencharly/action-review:prompt/validator.md`). A body emitted by a
-fixed, model-free generator — the nightly `sync.yml` / `refresh.yml` bots, a
-committed CI `printf/echo` block with no LLM in the loop — has no AI provider and
-no AI model, so the AI form cannot be truthfully filled. Such a body MUST END with
-the italicized `*Assisted-by: <Harness> <Runtime> (<confidence>)*` (e.g.
-`*Assisted-by: GitHub Actions ubuntu-latest (fully tested and validated)*`),
-naming the automation and the runner identity. `N/A` in the provider slot and a
-fabricated AI model name are BOTH forbidden — AI-authored (AI form) or model-free
-(this form), never a hybrid; a 100% human-authored body omits the line.
+**A model-free bot body is the `<Harness> <Runtime>` form** (defined by A1 in the
+validator rulebook, `opencharly/action-review`'s `charly.yml` `AI_REVIEW_PROMPT`). A
+body emitted by a fixed, model-free generator — the marketplace `refresh.yml` bot, a
+committed CI `printf/echo` block with no LLM in the loop — has no AI provider and no
+AI model, so the AI form cannot be truthfully filled. Such a body MUST END with the
+session footer in its model-free form: the session line naming the workflow and its
+run, then the italicized `*Assisted-by: <Harness> <Runtime> (<confidence>)*` LAST:
+
+```markdown
+*Agent: `refresh` · GitHub Actions session `<GITHUB_RUN_ID>`*
+*Assisted-by: GitHub Actions ubuntu-latest (fully tested and validated)*
+```
+
+The trailer names the automation and the runner identity, and the run id is the
+session a reader traces the PR to. `N/A` in the provider slot and a fabricated AI model
+name are BOTH forbidden — AI-authored (AI form) or model-free (this form), never a
+hybrid; a 100% human-authored body omits both lines.
+
+**A merge commit is judged by its message, not by its content.** It brings upstream's
+commits in and adds no content of its own; those commits keep their own trailers. Its
+own message is the agent's authorship, so a merge the agent WRITES ends with the trailer
+like any other commit. A merge whose message the agent did NOT write — the one
+`gh pr update-branch` writes on GitHub's behalf — carries no trailer and owes none.
 
 The canonical constructor is `marketplace/scripts/squash_body.py` in the
 superproject. It receives prose on standard input plus the concrete trailer via

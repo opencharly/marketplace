@@ -308,7 +308,7 @@ of the original ruling were never recorded in the wave's ledger and are delibera
 - `/charly-internals:root-cause-analyzer` agent — the R1 mandatory-invocation target. The agent's 8-step process is the only authorized first response to a failure.
 - `/charly-internals:disposable` — R10's verification target. Strict-policy R5 (cutover) cooperates with R10 (verification) to ensure the post-rename state is both clean and live.
 - `/charly-internals:skills` — the meta-skill for skill maintenance. R5's stale-reference sweep includes skill paragraphs; the skills meta-skill has a "When to Update Skills" row dedicated to R5 self-test failures.
-- The project rulebook's "The ground-truth rules R1–R10" section (umbrella `AGENTS.md`) defines R1–R10. Strict-policy operationalizes R1–R5 specifically.
+- The project rulebook's "The ground-truth rules R1–R11" section (umbrella `AGENTS.md`) defines R1–R11. Strict-policy operationalizes R1–R5 specifically.
 - the project rulebook "Prioritize Clean Architecture Above All Else" — the architectural-philosophy framing of R2 + R3. Both framings (procedural rules R2+R3 AND architectural-philosophy section) are binding.
 - the project rulebook "AI Attribution" and "Commit, push, land" — the no-push-on-violation clause that gives R1–R5 their teeth. Any violation FORBIDS the push. No tier downgrade. No "ship at lower tier". Fix or escalate.
 

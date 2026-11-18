@@ -384,7 +384,7 @@ the hooks.
 | `pre-push-gate.sh` | `PreToolUse(Bash)` in `.claude/settings.json` (Claude Code), `.reasonix` / kimi | blocks force-push and a direct push to `main` |
 
 Attribution identity/confidence, change class, CHANGELOG coverage,
-architecture, and R0–R10 evidence belong exclusively to the fresh
+architecture, and R0–R11 evidence belong exclusively to the fresh
 `pr-validator`; the hooks contain no duplicate policy regexes. The honest
 division of labor: **hooks guard command mechanics; agents judge policy and
 proof.**
