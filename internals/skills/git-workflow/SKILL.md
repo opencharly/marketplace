@@ -84,7 +84,9 @@ newest check run per name, so a passing re-run supersedes the failure and the
 corrected body is re-read — MEASURED on opencharly/docs#142 (head `041625863`):
 `check-runs?filter=all` lists `110609410070 failure` and `110611257957 success`,
 `filter=latest` only the success, and the PR merged. Because it keeps the head SHA it
-is the cheaper choice.
+is the cheaper choice. **Watch the re-run with `node scripts/gh/cli.ts watch <owner>/<repo>#<pr>`**:
+the re-run creates a new check run on the head, which the watcher's `verdict` sees
+(`references/watch-and-wake.md`).
 
 **There is no automatic `rerun`-label channel any more.** The org-wide `rerun` label
 plus scheduled sweep was RETIRED: a label can be added for ANY reason — including a
@@ -216,24 +218,23 @@ The two root causes, and how to tell them apart from the diagnostics tail:
 heading and a `### Blocks` list you MUST fix; an **INCONCLUSIVE** has neither and
 must NOT be treated as a review finding (reporting it as one, or "fixing" code to
 satisfy it, is an R1 misdiagnosis). The gate's own workflow classifies INCONCLUSIVE
-as exit 3 and keeps the check RED; `pr_state_watch.sh` reports it distinctly from a
-verdict BLOCK. **Never merge around the red check** — an INCONCLUSIVE is an
+as exit 3 and keeps the check RED; the watcher reports it as `VERDICT … INCONCLUSIVE`,
+distinctly from a verdict BLOCK. **Never merge around the red check** — an INCONCLUSIVE is an
 environment/provider condition to fix or escalate, not a licence to bypass the
 gate. The only merge under a red required check is an explicit, operator-issued
 override decision, taken by the operator on evidence THEY accept — it is never an
 agent's call, and never a documented standing procedure.
 
-### `pr_state_watch.sh` — STOP on a terminal state, never poll in a loop
+### Watch your PR — STOP on its verdict, never poll in a loop
 
-`marketplace/scripts/pr_state_watch.sh <owner>/<repo> <pr-number>` watches the
-required check across ALL its same-name runs on the head and exits the instant a
-terminal state is reached, distinguishing a real verdict BLOCK from POISON.
-Exit codes: `0` MERGED · `2` BLOCKED · `3` CLOSED · `4` TIMEOUT · `5` ERROR. It is
-the ONLY sanctioned poll — `gh pr checks --watch` cannot see POISON (it reads the
-collapsed rollup), and a hand-rolled `while`/`sleep` loop is the R3 band-aid this
-replaces. On exit 2: read the verdict, fix, re-finalize the body, push a NEW
-commit — never re-dispatch the same head. Detail: the reference + the script header.
-
+`node scripts/gh/cli.ts watch <owner>/<repo>#<pr>` waits for your PR's next FINAL verdict
+(`VERDICT … PASS|BLOCK|INCONCLUSIVE`, a REST re-run included) or its merge or close, and exits.
+Run it as a managed background command; its exit is the wake. It is the ONLY sanctioned wait —
+`gh pr checks --watch` reads the collapsed rollup, and a hand-rolled `while`/`sleep` loop is the
+R3 band-aid it replaces. On `VERDICT … BLOCK`: read the verdict in full, fix, re-finalize the
+body, push a NEW commit — never re-dispatch the same head. `node scripts/gh/cli.ts status
+<owner>/<repo>#<pr>` reads the current verdict once without waiting. Detail:
+`references/watch-and-wake.md`.
 
 ## Non-negotiable invariants
 
@@ -248,7 +249,7 @@ commit — never re-dispatch the same head. Detail: the reference + the script h
 - **FINISH THE BODY BEFORE THE PUSH.** The validator validates the PR — the diff at the branch head and the body — each time it runs, and fetches the PR live. The org REQUIRED workflow fires only on the default push-driven types (`opened`/`synchronize`/`reopened`) and IGNORES `on.types` (MEASURED); because the head SHA is content-addressed and therefore known BEFORE the push (`git rev-parse HEAD`), write the body first: commit → compute head/diff-stats → write the WHOLE body (footer last) → push. A body-only fix after the push needs no empty commit — re-run the gate MANUALLY with the REST call **`gh api -X POST repos/<owner>/<repo>/actions/runs/<run-id>/rerun`** on the failed run (find it with `gh run list --repo <r> --json databaseId,headSha,conclusion`; `gh run rerun` 404s on the org-required workflow and re-runs nothing; the re-run is a new attempt on the same `GITHUB_SHA` whose newer check run supersedes the failure — measured on opencharly/docs#142). An empty re-freeze commit ALSO re-fires the gate (the ruleset `workflows` rule acts on the push-driven `synchronize` type) but mints a NEW head SHA — equally valid, just re-key the body to it. Full mechanics: "THE BODY-BEFORE-PUSH RULE" above. Corollary: a PR whose diff is EMPTY because the base already contains the change (you branched from a stale snapshot) is a no-op — close it rather than re-pushing (the validator flags it as body-truthfulness violation: body describes files the diff does not carry). Always `git fetch origin main` + diff against CURRENT main before opening or finalizing a PR.
 - **BEFORE ANY UPDATE PUSH: read everything, fix everything, RCA every failure, then write the body** (the project rulebook "Before every update push: read everything, fix everything"). Before ANY push that updates an existing PR — a fix commit, a body edit, or `gh pr update-branch` — do ALL of these, in THIS order:
   - **(a) Read EVERY new comment IN FULL.** That means every PR comment, review, and review thread since your last push, plus every comment on every ISSUE this PR closes or relates to. Paginate and track ids: `gh api 'repos/<o>/<r>/issues/<n>/comments?per_page=100'`, `gh api 'repos/<o>/<r>/pulls/<n>/reviews?per_page=100'`, `gh api 'repos/<o>/<r>/pulls/<n>/comments?per_page=100'`, and `gh issue view <N> --comments`. The default page is 30 comments, so `.[-1]` on a busy PR is NOT the newest comment. Never use a truncated view.
-  - **(b) Read the latest validator result IN FULL.** Read the whole `## Review — BLOCK`/`PASS`/`INCONCLUSIVE` comment and its `### Blocks` list, not the check's one-line status. Do the same for every red check on the head (via `marketplace/scripts/pr_state_watch.sh`, then the run's comment).
+  - **(b) Read the latest validator result IN FULL.** Read the whole `## Review — BLOCK`/`PASS`/`INCONCLUSIVE` comment and its `### Blocks` list, not the check's one-line status. Do the same for every red check on the head (the watcher's `VERDICT` line names it; then read the run's comment).
   - **(c) Fix EVERY finding.** Every validator block and every reviewer finding is fixed in the new head, or rebutted in-thread with evidence. Never fix a subset, and never file a finding raised ON the PR away as an issue.
   - **(d) RCA every validation failure.** A BLOCK, an `INCONCLUSIVE`, a red CI check, or an auto-close is an R1 anomaly. Run a fresh `/charly-internals:root-cause-analyzer` pass BEFORE the fix, and name the **missed control**: why your own pre-push gate did not catch it. Put the root fix into that control (your self-audit, a gate, a skill) as well as into the code. Post the RCA summary in the round's PR comment. An `INCONCLUSIVE` has no code finding: classify its engine or provider cause from the diagnostics and escalate it (see "The INCONCLUSIVE class" above).
   - **(e) Answer coordination first.** A `WAITING`, a `HOLDING`, a `TAKING OVER`, or a question addressed to your slug is answered in-thread before your push (B2b.1).
@@ -272,10 +273,10 @@ commit — never re-dispatch the same head. Detail: the reference + the script h
 - **A closing keyword inside BACKTICKS does not close an issue.** GitHub's closing-keyword parser ignores a reference that is code-formatted, so `Closes \`<owner>/<repo>#N\`` in a PR body merges the PR and leaves the issue OPEN - silently, with no error anywhere. **Verify the ISSUE, not only the PR: a merge and a closure are two artefacts.** Measured: a fully green cutover landed and its issue stayed open until it was closed explicitly with a RESOLVED comment naming the merged PR and the merge tag. *When you find one left open this way, the honest repair is that comment plus the close - the automatic path did not run, and nothing else will notice.*
 - **A body claim must be one you RAN. "I checked X and found none" is not evidence without the command and its output - and pasting an empty result is a trap when the result is not empty.** Measured: a claim that a sibling package had no such error format, when the grep matched twice (in an unrelated package). **Paste the real output and state what it supports, including the hits that exist.**
 - **A monitor's alarm must have a CLEARING CONDITION, and its window must match the cadence of what it watches.** A state-shaped alarm fires at arm time while its condition holds, so on an item whose silence is permanent - a peer's PR nobody is pushing - the condition never clears, every re-arm re-fires immediately, and the watch never actually waits. *An alarm whose condition cannot clear is not an alarm; it is a loop with a label.* **Where nothing can clear it, do not arm it - record the state instead.** And for a long-lived backlog item, minutes of silence are the normal state: a window shorter than the item's expected cadence manufactures the alarm it claims to detect.
-- **A monitor must be a MANAGED background command, and re-arming REPLACES rather than adds.** A detached watcher cannot be waited on, so the harness is never woken by it and every round becomes a poll. Arm the watch as a managed job over the whole item list in ONE invocation (a batched poll costs one request for N items), then block on that job - *a completed job IS the wake.* **And check the per-args lock before trusting it: a changed item list is a DIFFERENT argument list, so "re-arming with the new list" starts a parallel watcher instead of replacing the live peer - duplicate polls and duplicate wakes. Stop the live watcher first, then arm one.** `ps` over the process table is the authority; a job listing is not, because an auto-rearming watcher detaches a successor and reads as finished while it is alive.
+- **A monitor must be a MANAGED background command, and re-arming REPLACES rather than adds.** A detached watcher cannot be waited on, so the harness is never woken by it and every round becomes a poll. Arm the watch as a managed job over the whole item list in ONE invocation (a batched poll costs one request for N items), then block on that job - *a completed job IS the wake.* **And check the per-args lock before trusting it: a changed item list is a DIFFERENT argument list, so "re-arming with the new list" starts a parallel watcher instead of replacing the live peer - duplicate polls and duplicate wakes. Stop the live watcher first, then arm one.** `ps` over the process table is the authority: exactly one watcher per session, counted on the `node` process itself (`pgrep -fa '^node .*scripts/gh/cli\.ts watch'`; an unanchored pattern also counts the wrapper shells).
 - **Search existing issues/PRs before starting; file ONE proper issue if none; claim it before branching.** Before any non-trivial work — and before filing anything — search the whole org (`gh search issues <terms>` / `gh search prs <terms>` / `gh issue list -S <terms>`) and ADD to the existing issue/PR thread rather than creating a duplicate. If none exists, file ONE proper issue (specific title, the problem, the evidence, the intended scope) and reference it from the PR (`Closes #N` / `relates to #N`). The issue is the coordination point: check its owner (assignee / claim comment / status label) and CLAIM it (comment + assign) BEFORE you create a branch; if another session already owns it, coordinate on the thread instead of opening a competing PR. **Every issue resolved by a PR MUST be closed by an agent once that PR merges** (with a comment linking the merge); never leave a resolved issue open. Full protocol: B2b.
 - **Filter a PR list on `merged_at`, never on `merged`.** The GitHub pull-list API returns `merged: null` for PRs that HAVE merged, so a session that reads it as "not merged" reports landed work as in flight and then rebuilds it. *Measured: a fix called "unpushed" that had landed hours earlier, which understated a whole clause of a wave.* `merged_at` carries the timestamp or nothing at all, and `state=all` is what finds a merged PR; use those. The same shape applies to any bounded query: **a field that is null for "unknown" and null for "no" cannot be counted with**, and `per_page` is a window, not an inventory.
-- **Identity is in the footers; authority is in the comment verb.** EVERY agent-authored PR body, issue and comment ends with the two-line SESSION FOOTER in ONE canonical order, **`Agent:` FIRST and `Assisted-by:` LAST** — the `Agent:` line is `*Agent: `<slug>` · <Harness> session `<session-id>`*` — (a PR body thereby also satisfies the validator's "`Assisted-by` FINAL line" requirement) — so every PR traces to the session that made it (opencharly/opencharly#1119); write it with the harness's own writer (`coord.sh --footer`, or the `coord_footer` tool in OpenCode and pi — the table is B2b.1). On a triggered scope — two or more agents on one issue/PR, OR a blocking dependency (any `WAITING`/`HOLDING`/`CLEARED` in play) — a coordination comment also OPENS with a label from the CLOSED set — `CLAIM` · `OWNING` · `HANDING OVER` · `TAKING OVER` · `WAITING` · `HOLDING` · `CLEARED` · `STATUS` · `RESOLVED`. The slug is NEVER appended to `Assisted-by`. Because same-account sessions are indistinguishable by comment author, the SLUG is authoritative for COORDINATION IDENTITY (who is doing the work), not the GitHub author: the LATEST `OWNING` (or `TAKING OVER`) for a scope wins, and you MUST NOT push to another slug's claimed branch/PR without a `HANDING OVER` addressed to you, a `TAKING OVER` naming your `authority:`, or operator sign-off. **The sign-off authority is a SEPARATE axis and is ACCOUNT-gated** — a maintainer sign-off is valid ONLY when the comment is posted by a maintainer-set account (`atrawog`/`aitrawog`), verified by the author label (`by @<login>`), never the prose; the two rules do not conflict (the slug governs WHO, the account governs the sign-off's VALIDITY). **Progress is a COMPLETED `charly/pr-validator` run, never session activity; takeover is comment-FIRST over a 60-minute FLOOR window; the auto-close carry-forward touches FOUR surfaces (closed PR, successor body, the issue, ownership transfer); and there is no R10 class exemption for a library/schema change.** An agent NEVER impersonates the operator. Full mechanics + rendered examples: B2b "agent identity and the coordination verb grammar".
+- **Identity is in the footers; authority is in the comment verb.** EVERY agent-authored PR body, issue and comment ends with the two-line SESSION FOOTER in ONE canonical order, **`Agent:` FIRST and `Assisted-by:` LAST** — the `Agent:` line is `*Agent: `<slug>` · <Harness> session `<session-id>`*` — (a PR body thereby also satisfies the validator's "`Assisted-by` FINAL line" requirement) — so every PR traces to the session that made it (opencharly/opencharly#1119); write it with the ONE writer (`node scripts/gh/cli.ts footer`, or the `coord_footer` tool in OpenCode and pi, which call the same builder — the table is B2b.1). On a triggered scope — two or more agents on one issue/PR, OR a blocking dependency (any `WAITING`/`HOLDING`/`CLEARED` in play) — a coordination comment also OPENS with a label from the CLOSED set — `CLAIM` · `OWNING` · `HANDING OVER` · `TAKING OVER` · `WAITING` · `HOLDING` · `CLEARED` · `STATUS` · `RESOLVED`. The slug is NEVER appended to `Assisted-by`. Because same-account sessions are indistinguishable by comment author, the SLUG is authoritative for COORDINATION IDENTITY (who is doing the work), not the GitHub author: the LATEST `OWNING` (or `TAKING OVER`) for a scope wins, and you MUST NOT push to another slug's claimed branch/PR without a `HANDING OVER` addressed to you, a `TAKING OVER` naming your `authority:`, or operator sign-off. **The sign-off authority is a SEPARATE axis and is ACCOUNT-gated** — a maintainer sign-off is valid ONLY when the comment is posted by a maintainer-set account (`atrawog`/`aitrawog`), verified by the author label (`by @<login>`), never the prose; the two rules do not conflict (the slug governs WHO, the account governs the sign-off's VALIDITY). **Progress is a COMPLETED `charly/pr-validator` run, never session activity; takeover is comment-FIRST over a 60-minute FLOOR window; the auto-close carry-forward touches FOUR surfaces (closed PR, successor body, the issue, ownership transfer); and there is no R10 class exemption for a library/schema change.** An agent NEVER impersonates the operator. Full mechanics + rendered examples: B2b "agent identity and the coordination verb grammar".
 - **A dispatched workflow defaults to the DEFAULT BRANCH — `--ref` is MANDATORY.** `gh workflow run <wf> --ref <branch>` is required to dispatch CI on a PR head; a dispatch with no `--ref` runs on `main`, so its check registers there and counts for nothing on the PR's required checks. There is NO self-heal: the reusable workflow's `head_ref` output is never consumed and no dispatcher re-dispatches itself. For run-on-head diagnostics, target the PR's branch explicitly.
 - **Tree-safety before destructive actions (R6).** Check `git status` + `git stash list` before any destructive working-tree action — `git stash` discards in-progress work; `rm` on a tracked file is destructive. When the sandbox blocks an action, find a non-destructive alternative rather than working around it. The stash/pop cycle can itself silently un-stage a `git rm`: a stash taken while a deletion is staged restores the deletion as unstaged on `pop`, so a `git status` right after the cycle that shows the deleted file back as a plain unstaged change (rather than the staged deletion you left) has quietly lost the staging — re-stage it (`git rm -- ':(literal)<path>'` again, or `git add -u`) before committing. A stash/pop round-trip is never a no-op on a mixed add+rm working tree.
 - **Right worktree — pin one absolute path for the whole edit→commit→push sequence.** Before branching, staging, or committing, confirm the worktree you are driving is the same one your edits landed in: `git -C <path> rev-parse --show-toplevel` must equal the path you edited, and `git -C <path> status --short` must list those edits. Under symlinked or near-twin sibling worktrees — a parent dir that is itself a symlink (`~/projects` → `~/Sync/projects`), or look-alike names such as `…/charly` vs `…/<other-worktree>` — `cd`-ing to the wrong sibling makes `git switch -c` + `git commit` run against a clean tree and report "nothing to commit", silently landing nothing (or landing in the wrong repo). Never change the path spelling mid-sequence. An unexpected "nothing to commit" right after editing a file is the signature of this mistake — stop and re-verify `--show-toplevel` before retrying (blind retry is an R1 violation).
@@ -344,7 +345,7 @@ pipe`). Full detail: `references/umbrella-mechanics.md`.
 | Evidence discipline — provenance vs plausibility of a pasted gate, the three freshness surfaces (head / body / pasted output), positive-vs-negative claim decay, sweeping for claims a fix invalidated, the merged-tree gate for a `BEHIND` PR, source-and-regeneration as one cross-repo cutover, submodule pointers reverted by a non-conflicting merge, and why status-absence on a known head proves nothing | `references/evidence-and-freshness.md` |
 | The pin contract — a pin declares its INTENT (`upstream:<ref>` leaf vs `derived-from:<path>` edge), the two structural rules (an edge may not point at an edge; every leaf remote-verifiable), the states with what each obliges, why `behind` and `blocked-by` PASS by design, and the producer-first leg order | `references/pin-intent-and-currency.md` |
 | Umbrella mechanics — the ~400-submodule view, the pin contract's umbrella side (policy B is its edge mechanism), the full `charly task` maintenance table, session worktrees, the no-edit-in-submodule rule, pin discipline | `references/umbrella-mechanics.md` |
-| Watch-and-wake — the self-sustaining watcher family (`--auto-rearm`, the single-instance lock, rate-limit backoff) and the arm → wake → act → re-arm runbook | `marketplace/scripts/pr_state_watch.sh`, `marketplace/scripts/pr_watch_many.sh`, `marketplace/scripts/gh_watch.sh` (run one — never hand-roll a poll) + `references/watch-and-wake.md` |
+| Watch-and-wake — the ONE watcher every harness uses (`scripts/gh/cli.ts`), which one to arm for which wait, what a verdict is, the wake lines and exit codes, and the arm → wake → act → re-arm runbook | `references/watch-and-wake.md` |
 | The pre-validator self-audit — the six BLOCK classes detectable before the first push, the ten-step preflight that removes them, and the delegating-parent duties | `references/pre-validator-self-audit.md` |
 
 ## The pre-validator self-audit — one pass before the first push
@@ -364,98 +365,31 @@ that table: the validator only enforces what the rulebook states.
 A parent that spawns a worker MUST embed it in the brief (see
 `/charly-internals:agents`), and the worker MUST run it before its first push.
 
-## The watcher family — a self-sustaining loop
+## Waiting — the ONE watcher
 
-Three generic watcher scripts under `scripts/` in the **`opencharly/marketplace`**
-repo (addressed as `marketplace/scripts/<name>` from the umbrella checkout), plus a
-shared helper library `_watch_common.sh`, turn a landing into a background command
-that EXITS — and, because the harness notifies the owning agent when a background
-command finishes, **exiting IS the notification**.
+Every wait on GitHub — your PR's verdict, its merge, another session's blocker, a reply — is
+ONE watch of the umbrella's `scripts/gh/cli.ts` (opencharly/opencharly#1140), run as the
+harness's managed background command: its exit is the wake. OpenCode and pi run the same
+engine (`scripts/gh/lib/watch.ts`) through their bindings. Which events to arm, by situation:
 
-**The harness constraint: an agent is woken ONLY when a background command
-COMPLETES.** A watcher (or a `while true` loop) that never exits gives NO wake, and a
-one-shot watcher that exits leaves nothing watching until an agent re-arms — the
-dropped step this family exists to remove. Two patterns:
+- **your own PR**, including after a REST re-run: `node scripts/gh/cli.ts watch <owner>/<repo>#<pr>`
+  (the default `verdict,merged,closed,conflict`: a PR that conflicts with its base gets no
+  validator run, so the watch wakes on the conflict instead of waiting);
+- **several of your own PRs**: the same command, every PR in ONE watch;
+- **another session's PR or issue that blocks you**: `… watch --events merged,closed,stall <item>`;
+- **a reply on a thread**: `… watch --events comment <item>`;
+- **a bed or a long command**: the command itself, as a managed background job.
 
-- **per-event notify** (`--no-rearm`, the default) — one-shot; the agent re-arms on
-  each wake;
-- **durability** (`--auto-rearm`) — on a non-terminal exit the watcher detaches a
-  **lock-guarded successor with the SAME args BEFORE it prints and exits**, so a
-  watch is ALWAYS alive independent of the agent. `--auto-rearm` keeps a WATCH alive;
-  the agent's re-arm keeps NOTIFICATIONS alive. A durable supervisor never exits, so
-  it is NOT the answer.
-
-**THE RE-ARM INVARIANT.** An agent that acts on a wake MUST leave a watcher armed —
-`--auto-rearm` makes that automatic; a per-event agent re-arms in the same turn. An
-agent that fires an event and does not re-arm has silently stopped watching.
-
-**Single instance; rate limits.** A per-args **lockfile** (flock + a holder PID)
-means repeated arms never stack — a foreground arm takes over a live peer cleanly.
-Before each poll the remaining core quota is read from the FREE `/rate_limit`
-endpoint; below `WATCH_RATE_MIN` (default 200) the watcher **backs off** (4x, capped)
-rather than hammering into the observed HTTP-403 wall.
-
-| Arm this | To watch | Wake event |
-|---|---|---|
-| `pr_state_watch.sh <owner>/<repo> <pr>` | ONE PR's terminal state, across ALL same-name check-runs on the head | `0` MERGED · `2` BLOCKED · `3` CLOSED · `4` TIMEOUT · `5` ERROR — and it names **POISON** (a green re-dispatch stuck behind an older same-name FAILURE) distinctly from a verdict BLOCK |
-| `pr_watch_many.sh [--repos R,…] [--interval S] [--stallmin M] [--validator NAME] [--auto-rearm] <owner>/<repo> <pr> …` | a CROSS-REPO **PR batch** | the first of: a PR terminal (above, delegated); a **NEW verdict** — a new `<validator>` run COMPLETING on any watched repo; a **STALL** — no new verdict for the window while scopes stay open+unmerged |
-| `gh_watch.sh [--events L] [--interval S] [--stallmin M] [--workflow NAME] [--auto-rearm] <owner>/<repo>#<num> …` | a per-item list of PRs **and/or issues** | a NEW `comment`; a NEW `verdict`; `merged` (unblocked); `closed` without merge (find the successor); or a `stall` (takeover candidate) |
-
-Both batch watchers poll every `--interval` and exit when a new `--workflow` run
-(default `charly/pr-validator`) **COMPLETES**; the STALL layer fires only when **no
-new verdict lands within the window** while the scope is still open+unmerged. That
-is the B2b.1 progress-signal rule applied to a monitor — progress is a completed
-validator run, never session activity (a looping agent never falls quiet; a peer
-WAITING on a running validator looks quiet but is working). Watch the scopes
-actually in flight — a stale watch list produces false stalls.
-
-**`gh_watch.sh` events are DELTA or STATE.** `comment` and `verdict` are DELTA:
-arming seeds the current comment-count / newest run id, so a pre-existing comment
-or verdict never wakes you. `merged`, `closed`, and `stall` are STATE: they fire
-while the item IS in that state — arming `merged` on an already-merged PR wakes
-immediately (exactly how "has my blocker landed?" reads). STATE `stall` additionally
-requires the item to be **open+unmerged**, so a closed/merged item never emits a
-false `(open, unmerged)` alarm.
-
-**Three field-learned watcher requirements — mandatory, not tips:**
-
-- **Silence is an ALARM.** A blocked item with no pushes emits **no validator runs and
-  no events**, so an event-only watcher is blind to the worst case. Every watcher MUST
-  carry a per-item **stall/silence alarm** — no progress (no new commit, comment, or
-  completed `charly/pr-validator` run; i.e. `updated_at` unchanged) for the window
-  while the item is open+unmerged. `gh_watch.sh`'s `stall` is therefore **ON BY
-  DEFAULT**. The events tell you when something HAPPENED; the stall alarm tells you
-  when something SHOULD have and did not. (Measured: a PR sat silently unchanged for
-  ~2 hours with NO alert; the instant `stall` was armed it fired.)
-- **Watch the OUTCOME, not every event.** Waking on every comment of an actively
-  iterating owner is noise. The DEFAULT event set is the terminal outcomes
-  (`merged`,`closed`) **plus the `stall` alarm**; add `comment`/`verdict` ONLY for a
-  wait that genuinely needs them (`EVENTS=comment` on an issue you asked a question
-  on and want the moment anyone replies).
-- **Liveness ≠ progress.** Judge progress by **artifacts** — a pushed branch, a new
-  commit, an opened PR, a merged tag — never by a session heartbeat or "still
-  investigating". The stall alarm is the mechanism: it keys on the item's
-  `updated_at`, so its silence is measured against artifacts, not activity.
-
-**On exit 2 of `pr_state_watch.sh`, read the verdict, fix, re-finalize the body,
-push a NEW commit — never re-dispatch the same head** to "see if it clears". It is
-preferred over `gh pr checks --watch` (which reads the collapsed rollup and cannot
-see POISON) and over any hand-rolled loop.
-
-The wake feeds the coordination protocol (B2b.1): a `stall` wake makes the scope a
-**TAKEOVER candidate** — post a coordination comment FIRST, wait the window, then
-`TAKING OVER — authority: window-expired` **BEFORE** any push. A `merged` wake is
-the **UNBLOCK** signal. The full arm → wake → act → re-arm loop, the event
-catalog, and the takeover it feeds: `references/watch-and-wake.md`.
+One watcher per session, re-armed by replacement after every wake you act on; never `&`/`disown`.
+The decision table, the verdict model, the wake lines, the exit codes and the takeover each wake
+drives: `references/watch-and-wake.md`.
 
 ## Cross-References
 
 - the project rulebook "Commit, push, land" — the mandate this skill operationalizes.
 - `marketplace/internals/agents/pr-validator.md` — the fresh evaluator's full spec.
-- `marketplace/scripts/pr_state_watch.sh` — the per-PR terminal-state poll (stop, never loop).
-- `marketplace/scripts/pr_watch_many.sh` — the cross-repo PR-batch watcher (terminal / new verdict / stall).
-- `marketplace/scripts/gh_watch.sh` — the per-item PR/issue event watcher (comment / verdict / merged / closed / stall).
-- `references/watch-and-wake.md` — when to arm which watcher, the event semantics, and the re-arm-after-wake loop.
+- `scripts/gh/cli.ts` — the ONE watcher (`watch`, `status`) and coordination (`comment`, `footer`) CLI.
+- `references/watch-and-wake.md` — when to arm which watch, the event semantics, and the re-arm-after-wake loop.
 - `opencharly/.github/scripts/org-ruleset.sh` — the sole organization-wide owner
   of the ONE branch ruleset (required workflow + branch rules) apply/verify.
 - `/charly-internals:repo-setup` — the org/dotgithub configuration, the landing
