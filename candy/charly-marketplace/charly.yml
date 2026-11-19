@@ -169,7 +169,7 @@ charly-marketplace:
             # `node scripts/gh/cli.ts` (opencharly/opencharly#1160, #1163), and this repo's
             # shell watcher family and `coord.sh` are deleted in the same change. The
             # range touches exactly seven `.agents/skills/` files, all from those two PRs.
-            - '@github.com/opencharly/opencharly:v2026.323.1156'
+            - '@github.com/opencharly/opencharly:v2026.323.2100'
             # The two CONTRACT repos' skill shelves (opencharly/opencharly#611).
             # DIRECT, for the rule stated above. Both are Go MODULES, so their tags follow
             # the Go-module scheme
@@ -211,7 +211,7 @@ charly-marketplace:
             # `--stage-parallelism` (opencharly/plugin-box#66 renamed the flag; the old tag
             # still published the pre-rename prose). The projection of this pin therefore
             # changes in this commit.
-            - '@github.com/opencharly/layer-charly-check:v2026.314.0704'
+            - '@github.com/opencharly/layer-charly-check:v2026.323.2043'
             # The Strata POD's split (opencharly/opencharly#1174): `layer-strata` now carries only
             # the ENGINE LAYER (`candy/strata`) and the `strata-layer` skill beside it, and the POD
             # — the image, the bed and the BOX SKILL — is `pod-strata`. Both are named here, and

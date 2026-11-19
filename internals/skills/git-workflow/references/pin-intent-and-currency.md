@@ -97,6 +97,20 @@ while the `distro-*` pins were behind their own `main`.
 | `no-gitlink` / `no-url` | YES | the objects the contract rests on are missing from the index / `.gitmodules`. |
 | `blocked-by <source> (not a declared pin)` / `blocked-by <source>:<twin> (no ref declared)` | YES | the edge names a producer that is NOT a declared pin, or a twin its source declares no `branch=`/`url=` for — so there is no leg to name and the pin is UNJUDGEABLE. The remedy is upstream: declare the producer, or give this pin its own `upstream:` intent. |
 
+**A submodule is BORN `unpinned`.** `git submodule add <url> <path>` writes `path`, `url` and NOTHING
+else — no `branch =` — so the freshly added path has no intent, and `charly task verify` fails
+STRUCTURALLY on it (`pod-strata: no intent and no branch= in .gitmodules — declare one`) until the same
+commit declares one:
+```sh
+git submodule add <url> <path>
+git config -f .gitmodules submodule.<path>.branch main
+```
+Measured on the umbrella commit that added `pod-strata` (2026-11-19): the gitlink, the `.gitmodules`
+entry, the `import:` and the README row all landed correctly and the gate still failed on that single
+missing line. Declaring it costs one command and one file edit in the commit that adds the path — and
+it is cheap to forget because `git submodule add` reports success.
+
+
 ### Why `behind` and `blocked-by` PASS — and why the output leads with them
 
 **The FAIL set is STRUCTURAL only, and "structural" has a precise meaning:
