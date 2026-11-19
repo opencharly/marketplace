@@ -127,26 +127,57 @@ an appliance is the defect this step exists to catch.
 
 ## Setting up a NEW repository (checklist)
 
-1. Create `opencharly/<name>` (non-fork; it must end up on default branch `main`).
-   The org ruleset then covers it automatically — no per-repo branch rules.
-   **Adopting an existing upstream is an explicit choice, not a defect:** either
-   land it NON-FORK (it gains the org gate and CalVer tags) or keep it a fork and
-   accept that it lands on its own CI (as `openclaw-enterprise` does) or its own
-   repo-scoped ruleset (as `crabbox` does), with no CalVer tag minted by the org.
-2. Add the per-repo `.github/workflows/tag-on-merge.yml` caller — REQUIRED for
-   CalVer tags and the CHANGELOG — plus the appropriate `deploy.yml`. The
-   org-required validator needs NO per-repo file (the old `pr-validator.yml`
-   dispatcher is retired by `retire-per-repo-dispatchers.yml`).
-3. The org owner applies the ONE org ruleset (the `org-ruleset.sh` owner script
-   in `opencharly/.github`, `apply` mode — an operator/CI action, not a charly
-   user command) so `allow_auto_merge` and `delete_branch_on_merge` are enforced
-   for the new repo.
-4. Land the first commit via a PR — never a direct push to `main`.
-5. Add it to the umbrella as a submodule and advance the pin via
-   `charly task sync` + PR (see `/charly-internals:git-workflow` B8). **That verb
-   is an ORG-WIDE wave, not a one-repo operation: it advances EVERY pin the
-   umbrella declares** — read its scope before running it, and expect the PR's
-   diff to carry every pin it moved, not only the new repo's.
+The org ruleset's **`creation`** rule makes the naive path IMPOSSIBLE, and it is the first step every
+new repo gets wrong: a repo's first `main` cannot be created by `git push`, by the contents API, by
+`repo auto_init`, or by a branch rename — each fails with *"Cannot create ref due to creations being
+restricted"* (and `auto_init` leaves the repo with no refs at all). The only actor that can create that
+ref is the `charly-auto-merge` App, and the org ships a workflow that mints exactly that token for this
+purpose. So the order is:
+
+1. **Create the repo EMPTY and non-fork** — `gh repo create opencharly/<name> --public`, with **no**
+   `--add-readme`, `--gitignore`, license or `auto_init` (blocked anyway; see above). Adopting an
+   existing upstream is an explicit choice: NON-FORK (it gains the org gate and CalVer tags) or a fork
+   (it lands on its own CI, as `openclaw-enterprise` does, or on its own repo-scoped ruleset, as
+   `crabbox` does, and the org mints no tag for it).
+2. **Push ONE throwaway seed branch.** Creating any ref that is not `main` is allowed:
+   `git push origin HEAD:refs/heads/seed`. The seed must carry **no content you will ship** — `main` is
+   created at it, and a PR whose diff is empty is a no-op.
+3. **Bootstrap `main` with the org workflow**:
+   `gh workflow run bootstrap-repo-main.yml --repo opencharly/.github -f repos=<name>`. It mints the
+   App token, creates `refs/heads/main` at the seed, and **INSTALLS and asserts the per-repo
+   `.github/workflows/tag-on-merge.yml` caller** — so do NOT hand-add that file. The installed caller
+   IS the canonical `tag-on-merge-dispatcher.yml`; a committed copy differs by a byte (no final
+   newline) and fights every future template regeneration.
+4. **Set the three repository settings the App cannot** (it holds no `administration` permission):
+
+   ```sh
+   gh api --method PATCH repos/opencharly/<name> \
+     -f default_branch=main -f allow_auto_merge=true -f delete_branch_on_merge=true
+   ```
+
+   Until this runs the repo is **outside the org gate**: no required `validate / validate`, no CalVer
+   tag, no CHANGELOG (`org-ruleset.sh verify` reports it as `needs_operator_settings=<n>`). Do NOT
+   re-apply the org ruleset on its behalf — the ONE ruleset targets `~ALL` minus an explicit exclude
+   set, so a new repo is already covered; only these three settings have no org-level default.
+5. **Land the content as ONE PR off `main`** (never a direct push): a `feat/` branch, the commit, the
+   change-class gate on that tree, the whole body, one push, a ready PR. Because step 3 installed the
+   caller, the FIRST merge is tagged.
+6. **In the umbrella**, the gitlink and the pin's INTENT land in the SAME commit. `git submodule add
+   <url> <path>` writes **no** `branch =`, and a path with neither an `intent:` entry nor a `branch=`
+   is `unpinned` — which fails `charly task verify` **structurally**:
+
+   ```sh
+   git submodule add <url> <path>
+   git config -f .gitmodules submodule.<path>.branch main     # the pin's INTENT (a leaf)
+   ```
+
+   then the `import:` key (if the repo has entities to address), the README org-map row and the counts
+   that reconciler checks. The mechanism and the why are `/charly-internals:git-workflow`
+   (`references/pin-intent-and-currency.md`, "A submodule is BORN `unpinned`"); this checklist repeats
+   the two commands because a checklist is read on its own, and cites the owner of the rule rather than
+   restating the reasoning. Advance THIS pin with the narrow mechanism, NOT with `charly task sync`:
+   that verb is an ORG-WIDE wave (Part II #3), it advances every pin the umbrella declares, and it
+   holds the worktree's index while it runs.
 
 ## The measured gap this checklist prevents
 

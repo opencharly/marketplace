@@ -178,6 +178,41 @@ new SHA. The per-PR concurrency dedupe lives in the ONE org required workflow
 the dedupe YAML:
 `references/validator-and-calver.md` "The POISON state".
 
+### The ARMED-AND-SILENT stall — every run passed, and it still does not merge
+
+The POISON class above has a NON-PASSING run on the head. Its sibling has **none**, and the two are
+told apart by one call:
+
+```
+gh api "repos/<owner>/<repo>/commits/<head>/check-runs?filter=all&per_page=100" \
+  --jq '[.check_runs[] | "\(.name)	\(.status)	\(.conclusion)"] | .[]'
+```
+
+If every run is `success` — one per name, nothing cancelled, nothing failed — while
+`autoMergeRequest` is present (with an `enabledAt`), `mergeStateStatus` is `CLEAN` and the base has not
+moved, the PR is in THIS class, and no REST re-run can help, because there is nothing to re-run.
+Measured (`opencharly/sdk#591`, 2026-11-19): armed 15:35:21Z, still open past the org's own measured
+7m41s PASS→merge bound — while `opencharly/opencharly#1168`, armed by the SAME `github-actions[bot]`
+minutes earlier, merged **8 seconds** after arming. So the arming identity is not the variable and
+"it is just slow" does not explain it.
+
+**The cure is the author's: ONE empty re-trigger commit.**
+
+```sh
+git commit --allow-empty -m "chore(pr): re-freeze the head so the required gate re-arms"
+git push
+```
+
+The push is a `synchronize` event — the ONE type the org required workflow acts on, which is why an
+empty commit works where a body edit and a manual re-run do not. An empty commit moves the HEAD and not
+the TREE, so every tree-keyed claim in the body survives; re-key every SHA reference in the body to the
+new head before the push, and re-read the body once for stale-head wording.
+
+**Do it ONCE.** A second stall on the new head is a platform anomaly, not a reason to keep pushing:
+stop, escalate with both timings, and consider filing it against `opencharly/.github` (the owner of
+the landing chain) with the pair of PR numbers — the org's stalled-automerge detector covers three
+shapes and this one is a fourth.
+
 ### The INCONCLUSIVE (verdict-less) class — the gate ran but produced no verdict
 
 A third terminal state sits beside PASS and BLOCK: **`## validator INCONCLUSIVE —

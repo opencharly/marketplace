@@ -100,6 +100,23 @@ Author that in the bed's OWN `check:` step with `context: [runtime]`:
 - **The step runs at BOTH `deploy-add` AND `check-live`, so it MUST be
   idempotent** (reuse a running registry, capture a golden only once, tolerate a
   pre-existing domain). Guard each sub-action on its own precondition.
+- **`timeout:` is a hard CAP; `eventually:` is the RETRY MATCHER — a probe that must POLL needs the
+  second, and the first alone turns a slow service into a "defect".** Measured on the Strata family's
+  GPU bed (`opencharly/opencharly#1174`): a single-shot `/health` probe against a server whose first
+  start legitimately takes minutes failed with `connection reset` — and the CHECK was the defect, not
+  the server, because that same server's projection needed 20 attempts over 4m55s on a cold volume and
+  5 over 1m1.7s on a warm one. `eventually: "1800s"` + `retry_interval: "15s"` makes it poll; keep the
+  `timeout:` ABOVE the `eventually:` window so the cap never cuts the poll short. **Any runtime probe
+  into a service with a start-up cost is a poll by nature** — a check that fails for being EARLY
+  teaches operators to ignore the gate, which is worse than no check.
+- **Read `summary.yml` with its two denominators straight, and say which one a paste is.** The bed's
+  heading (`PASS (steps=16, skipped_checks=12)`) counts PHASES and DECLARED CHECK IDs that did not run
+  across the whole run, while a phase's own report (`45 steps: 35 passed, 0 failed, 10 skipped`) counts
+  THAT PHASE's steps and skipped STEPS. Measured on the same bed: 16 phases, 12 unrun declared checks
+  (8 runtime-context checks skipped in `check-image` plus a composed candy's `agent-check` in each of
+  four live phases), and, inside `check-live` alone, 45 steps of which 10 skipped. The two do not add
+  up and are not meant to — pasting them as one witness is what gets a body blocked. A skipped STEP
+  and an unrun declared CHECK are different counters.
 - **Destroy only a `disposable: true` DEPLOY's domain.** Key the created/destroyed
   VMs to a per-run `vm:` deploy (`--domain my-produce`) declared `disposable:
   true` — never the shared `kind: vm` entity. See `/charly-vm:vm` "Disposability".

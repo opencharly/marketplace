@@ -200,6 +200,34 @@ widen the band to the union of the samples and re-derive it on the tree that
 carries it. Do not copy the numbers into this skill — a second copy of a figure
 is a second thing that can go stale.
 
+### A linked worktree's PRE-PUSH GATE can only judge what is materialized
+
+The umbrella's pre-push gate runs the DESIGN controls, and one of them (`scripts/design-cite.sh`) reads
+every citation into a pinned module **at that pin** — so a pin whose commit the module store does not
+hold is not "unjudged", it is a FAILURE:
+
+```
+FAIL dulling.tsv:command:marketplace: plugin-marketplace is pinned at fbb96fc9e8cf and its module
+  store does not hold that commit — run `git --git-dir <umbrella>/.git/modules/plugin-marketplace
+  fetch origin` (or `git submodule update --init -- plugin-marketplace`) to fetch it; the control
+  cannot judge a pin it cannot read
+```
+
+This bites a SESSION WORKTREE hardest, because a worktree materializes only the derived working set
+while the gate judges the WHOLE declared path set. The remedy is the one the message prints, and it is
+per-path and cheap:
+
+```sh
+git submodule update --init plugin-marketplace plugin-adb plugin-spice   # …the paths it names
+```
+
+Do this BEFORE the first push rather than after a BLOCKED push — a blocked push costs a full gate run
+and looks like a finding in your own change. The same shape applies to `design-pintag.sh`, which reads
+tag maps from each pin's module store ("a tag that was never fetched into a store is invisible to this
+reading"); it names the path too. **An unmaterialized checkout is a NOTICE for the pin contract
+(currency) and a FAILURE for a citation control** — two different verdicts for the same absence, and
+the difference is whether the control needs to READ the pinned bytes.
+
 ### Policy B — the edge mechanism, and the one question it cannot answer
 
 The umbrella records a commit per submodule and checks it out DETACHED and clean —
