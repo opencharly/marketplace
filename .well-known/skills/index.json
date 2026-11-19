@@ -222,6 +222,18 @@
       ]
     },
     {
+      "name": "cdi",
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "cdi-layer",
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
       "name": "cdp",
       "files": [
         "SKILL.md"
