@@ -164,9 +164,9 @@ class Rules(unittest.TestCase):
             self.assertTrue(any("is not the session line" in x for x in f), (bad, f))
 
     def test_a_fenced_footer_is_evidence_not_the_footer(self):
-        # A body that pastes `coord.sh --footer` output (or the shape itself) inside a fence is
+        # A body that pastes `node scripts/gh/cli.ts footer` output (or the shape itself) inside a fence is
         # quoting a command, not ending with it; only the PROSE footer is judged.
-        pasted = "```\n$ coord.sh --footer\n*Agent: `<slug>` · <Harness> session `<id>`*\n" + FOOTER + "\n```"
+        pasted = "```\n$ node scripts/gh/cli.ts footer\n*Agent: `<slug>` · <Harness> session `<id>`*\n" + FOOTER + "\n```"
         self.assertEqual(run(body(how=pasted)), [])
         # ...and a fence cannot stand in for a missing prose footer.
         f = run(body(how=pasted, footer=""))

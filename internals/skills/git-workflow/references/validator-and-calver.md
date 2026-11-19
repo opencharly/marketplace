@@ -386,8 +386,10 @@ stayed BLOCKED with a PASS verdict.
 run is the non-passing one; POISON's newest is SUCCESS with an older non-passing
 run beneath (a `CANCELLED` run poisons exactly as a `FAILURE` does —
 opencharly/opencharly#460).
-Use `marketplace/scripts/pr_state_watch.sh`, which classifies exactly this and
-names the shape in its output.
+`node scripts/gh/cli.ts status <owner>/<repo>#<pr>` reads the NEWEST check run, so in this
+state it reports `verdict=PASS` while the PR does not merge; `gh api
+"repos/<o>/<r>/commits/<head>/check-runs?filter=all"` lists the older non-passing run
+beneath it.
 
 **Remedy — the capability-free REST re-run.** Re-run the FAILED run:
 `gh api -X POST repos/<owner>/<repo>/actions/runs/<run-id>/rerun` (find it via

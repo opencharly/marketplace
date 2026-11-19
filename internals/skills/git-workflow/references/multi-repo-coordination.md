@@ -243,18 +243,19 @@ holds:
 2. **the scope is a blocking dependency** (any `WAITING` / `HOLDING` / `CLEARED` is in play).
 
 **Write the footer with the harness's own writer, never by hand.** One shape,
-four bindings, each proven byte-identical to the others by a gate:
+ONE builder, `scripts/gh/lib/coord.ts`'s `buildFooter` (opencharly/opencharly#1140), reached
+from every harness:
 
 | Harness | Writer | Where the session id comes from |
 |---|---|---|
-| Claude Code | `marketplace/scripts/coord.sh --footer --agent <slug> --model <model> --confidence <tier>` | `CLAUDE_CODE_SESSION_ID`, read by `coord.sh` |
-| DeepSeek Harness (dsh) | the same `coord.sh --footer` | `DSH_SESSION_ID`, read by `coord.sh` |
+| Claude Code | `node scripts/gh/cli.ts footer --agent <slug> --model <model> --confidence <tier>` | `CLAUDE_CODE_SESSION_ID`, read by the CLI |
+| DeepSeek Harness (dsh) | the same `node scripts/gh/cli.ts footer` | `DSH_SESSION_ID`, read by the CLI |
 | OpenCode | the `coord_footer` tool (`.opencode/plugins/coord.ts`) | the live tool context's `sessionID` |
 | pi | the `coord_footer` tool (`.pi/extensions/footer.ts`) | `ctx.sessionManager.getSessionId()` |
 | a model-free bot | its committed `echo` block (e.g. marketplace `refresh.yml`) | `GITHUB_RUN_ID`; the slug is the workflow and the harness `GitHub Actions` |
 
-A harness whose id reaches only its plugins (OpenCode, pi) can also hand it to
-`coord.sh` through `COORD_HARNESS` + `COORD_SESSION`. `coord.sh` reads both halves
+A harness whose id reaches only its plugins (OpenCode, pi) can also hand it to the
+CLI through `COORD_HARNESS` + `COORD_SESSION`. The CLI reads both halves
 from one source or neither, so a named harness never borrows another
 harness's id. A commit carries the same line as a plain trailer
 (`Agent: <slug> · <Harness> session <session-id>`) directly before its
@@ -491,7 +492,7 @@ have been closed.
    - **stalled** — none of the above. Start the formal takeover (B2b).
 3. **Act, then arm — never hand-poll.** Close the superseded. For each stalled PR
    post the ownership-board comment (`OWNING` or `STATUS` / `HANDING OVER —
-   <reason>`) and arm `gh_watch.sh --events comment,stall <item>` so the reply OR
+   <reason>`) and arm `node scripts/gh/cli.ts watch --events comment,stall <item>` so the reply OR
    the window's end wakes you (`references/watch-and-wake.md`); after the window
    with no reply, `TAKING OVER — authority: window-expired` (B2b). Treat a
    cross-leg block as a dependency to verify, not a verdict to accept: name the

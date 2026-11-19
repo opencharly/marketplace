@@ -174,15 +174,25 @@ both body-only, and neither covered by classes 1-5.
 6. One cutover = remove AND place in the SAME change. If the replacement home
    does not exist yet, land the home first (producer-first). Removing content
    whose home is deferred is a split cutover and is blocking, never filed.
-7. Guardrail / validator-spec edits (a validator's own prompt, a
-   `FORBIDDEN_*` list, a gate) are T4 self-modifying-security changes: they
-   need a maintainer-account sign-off or must be split into their own
-   signed-off change. The sign-off is posted BEFORE the next push or re-run,
+7. Guardrail / validator-spec edits are T4 self-modifying-security changes:
+   they need a maintainer-account sign-off or must be split into their own
+   signed-off change. Decide it FROM THE DIFF, not from intent — the surfaces
+   are the validator rulebook's T3 "weakened guardrails" list: the pre-commit
+   and pre-push gates (`hooks/`, `.claude/hooks/`, a harness's gate plugin, a
+   gate script those hooks or `charly task verify` run), branch-protection and
+   ruleset config, the validator's own spec or prompt, and the rulebook's
+   landing, attribution, no-force-push and no-direct-push rules (`AGENTS.md`).
+   A diff that touches any of them needs the sign-off even when it only ADDS a
+   gate (measured: opencharly/opencharly#1127 and #1160 were each BLOCKED once
+   on T4 alone). The sign-off is posted BEFORE the next push or re-run,
    never after (B2b.1 "How and when a sign-off is made"). Never WEAKEN a marker without pasted proof; prefer
    strengthening.
 8. The PR title must match the diff.
-9. Arm the watcher (`marketplace/scripts/pr_state_watch.sh <owner>/<repo> <pr>`),
-   and run the read-in-full gate before EVERY update push (the project
+9. Arm the watcher (`node scripts/gh/cli.ts watch <owner>/<repo>#<pr>`). Its
+   ARM line names the PR's `mergeable` state: a `CONFLICT` wake means GitHub will
+   run NO validator on this head, so merge the base in and push before waiting on
+   a verdict (measured on opencharly/opencharly#1145, which sat with no run for
+   hours). Then run the read-in-full gate before EVERY update push (the project
    rulebook "Before every update push: read everything, fix everything"):
    every new comment and the full verdict read IN FULL; EVERY finding fixed or
    rebutted with evidence; a fresh RCA naming the missed control posted in the
@@ -232,8 +242,9 @@ file BEFORE the push:
 python3 scripts/pr_body_lint.py <body.md> --repo <worktree>
 ```
 
-The rule ids required in `## Rulebook compliance` default to R0-R10; a repo with
-its own numbered rules passes `--rules R0,R1,R2,R3,R4,R5,R6,R7,R8,R9,R10`.
+The rule ids required in `## Rulebook compliance` default to R0-R11 (the
+linter's `DEFAULT_RULES`); a repo with its own numbered rules passes them with
+`--rules`, for example `--rules R0,R1,R2,R3`.
 Exit 0 is clean, exit 1 is a finding to fix before the push.
 
 It removes the classes that need no judgment; whether the evidence is

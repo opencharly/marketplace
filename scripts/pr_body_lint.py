@@ -842,7 +842,7 @@ def lint(
             findings.append(f"sections: missing `## {name}`")
 
     # The footer is PROSE: a trailer or an `Agent:` line pasted inside a fence is evidence
-    # (a command's own output, such as `coord.sh --footer`), never the body's footer.
+    # (a command's own output, such as `node scripts/gh/cli.ts footer`), never the body's footer.
     tail = [ln for kind, _, text in blocks(lines) if kind == "text" for ln in text if ln.strip()]
     last = tail[-1].strip() if tail else ""
 

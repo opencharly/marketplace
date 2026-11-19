@@ -120,8 +120,6 @@ A plugin is not one artifact and does not resolve from one ref. Its **code** may
 
 **Remedy.** Identify the submodule / ref the backend script resolves from; compare the pinned gitlink (or `@github` ref) against the commit that merged the script; then advance the pin the sanctioned way — `charly task sync` for an umbrella gitlink (a wave: it advances EVERY pin the umbrella declares), or a refs-list bump + `charly marketplace generate` for the marketplace corpus — never a hand-pin and never a checkout into the submodule.
 
-**Concrete case.** In one session `coord_comment` failed while `coord_watch` worked. Both are registered by the SAME plugin, loaded from the workspace — but `coord_comment` shells out to `marketplace/scripts/coord.sh` while `coord_watch` shells out to `marketplace/scripts/gh_watch.sh`. `gh_watch.sh` was already in the pinned `marketplace` gitlink; `coord.sh` had merged LATER and the gitlink had not advanced, so the tool reported "coord.sh not found — sync the marketplace pin". The failure was a stale `marketplace` gitlink, not a defect in the plugin that bound the script.
-
 ## Monitoring AND controlling agents in OpenCode (the `agent_progress` + `agent_control` tools)
 
 In OpenCode the orchestrator does not guess at a subagent's health — it reads the

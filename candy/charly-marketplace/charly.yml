@@ -163,7 +163,13 @@ charly-marketplace:
             # #801 — pin bumps, gate fixes and changelogs), which touch no `.agents/`
             # file. So the projection had not moved since #788's advance, and the
             # corpus's projection was current for its pin until this one.
-            - '@github.com/opencharly/opencharly:v2026.322.2220'
+            #
+            # ADVANCED to v2026.323.1156 (opencharly/opencharly#1140): the umbrella's own
+            # git-workflow and agents skills now name the ONE watcher every harness uses,
+            # `node scripts/gh/cli.ts` (opencharly/opencharly#1160, #1163), and this repo's
+            # shell watcher family and `coord.sh` are deleted in the same change. The
+            # range touches exactly seven `.agents/skills/` files, all from those two PRs.
+            - '@github.com/opencharly/opencharly:v2026.323.1156'
             # The two CONTRACT repos' skill shelves (opencharly/opencharly#611).
             # DIRECT, for the rule stated above. Both are Go MODULES, so their tags follow
             # the Go-module scheme

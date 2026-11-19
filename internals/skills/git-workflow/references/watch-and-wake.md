@@ -2,237 +2,153 @@
 
 ## Watch and wake — arm, wake, act, re-arm
 
-A landing that depends on other sessions' work is a WAIT, and a wait you poll by
-hand is the R3 band-aid. Arm ONE background watcher instead: it exits the instant
-the event you care about fires, and the harness notifies the owning agent when a
-background command finishes — so **exiting IS the notification**.
+A landing that depends on a verdict, a merge or another session's work is a WAIT, and a wait
+you poll by hand is the R3 band-aid. Arm ONE watcher instead: it exits the moment the event
+you care about fires, and the harness wakes you when a background command finishes — so
+**exiting IS the notification**.
 
-**THE HARNESS CONSTRAINT — design to it, do not fight it.** An agent is woken
-ONLY when a background command **COMPLETES**. So a watcher (or a `while true`
-loop) that NEVER exits gives **NO wake**, and a one-shot watcher that exits
-leaves **nothing watching** until an agent re-arms it. Re-arming is therefore
-not optional: the correct architecture is **each wake is produced by a finite
-watcher run, and a successor is already armed before the wake lands**. Two
-supported patterns:
+There is **ONE watcher**, used by every harness: the umbrella's `scripts/gh/` toolset
+(opencharly/opencharly#1140).
 
-| Pattern | How | Use when |
+| Harness | How it runs the watcher | How the wake reaches the session |
 |---|---|---|
-| **per-event notify** (default, `--no-rearm`) | a one-shot run: it exits on the event, the harness wakes the agent, and the **AGENT re-arms** | the agent must act on every event |
-| **durability** (`--auto-rearm`) | on a non-terminal exit the watcher **detaches a lock-guarded successor with the SAME args** BEFORE it prints + exits | a STANDING watch that must survive fires independent of the agent |
+| Claude Code, Codex, DeepSeek Harness | `node scripts/gh/cli.ts watch …` as a MANAGED background command | the harness's background-completion notice |
+| reasonix | its SessionStart hook prints the same command for the agent to run | the same |
+| pi | `.pi/extensions/watch.ts` spawns the CLI from `.pi/watch.items` and re-arms it | a user turn (`sendUserMessage`) |
+| OpenCode | `pr-watch.ts`, `tracker.ts` and `coord_watch` import `scripts/gh/lib/watch.ts` in-process | `ctx.session.synthetic` |
 
-`--auto-rearm` keeps a **watch** alive; the agent's re-arm keeps **notifications**
-alive. With the single-instance lock, exactly ONE is active at a time. **A durable
-supervisor is NOT the answer** — it never exits, so it never wakes.
-
-**THE RE-ARM INVARIANT (an agent rule, not just a tool flag).** An agent that
-acts on a wake MUST leave a watcher armed. `--auto-rearm` makes that automatic
-(the successor is spawned before the wake); a per-event agent must re-arm itself
-in the same turn it acts. An agent that fires an event and then does not re-arm
-has silently stopped watching — the failure this whole family exists to prevent.
+**THE HARNESS CONSTRAINT — design to it, do not fight it.** An agent is woken ONLY when a
+background command COMPLETES. A watcher that never exits gives no wake, and a one-shot watcher
+that exits leaves nothing watching until it is re-armed. So: **each wake is one finite watcher
+run, and the agent re-arms after acting on it.** Never start the watcher with `&`, `nohup` or
+`disown` — a detached process wakes no one.
 
 The loop is:
 
-1. **Arm** the narrowest watcher that covers the wait (table below). Pass
-   `--auto-rearm` for a standing watch, or arm one-shot and re-arm on each wake.
+1. **Arm** the ONE watch that covers the wait (the table below), as a managed background command.
 2. **Wake** on its single output line.
-3. **Act** on the wake (read the verdict / claim / unblock / take over).
-4. **Re-arm** — automatic with `--auto-rearm`; otherwise re-arm now (the
-   invariant above).
-
-Never poll session activity as a progress signal: a looping agent never falls
-quiet, so activity is a false positive, and a peer waiting on a running
-validator looks quiet but is working. The progress signal is a **COMPLETED
-WORKFLOW RUN** (default `charly/pr-validator`) — the B2b.1 rule, which this
-watcher family merely operationalizes.
-
-### One watcher, one poll per five minutes, and the API budget
-
-Four rules, all enforced by the tools — plus the numbers that motivate them:
-
-- **ONE watcher per session.** Do not run several watchers on one scope; the
-  single-instance lock makes a re-arm take over a live peer, so extra arms are
-  never an extra watch — they are churn. Arm the ONE watcher whose wake you
-  actually act on.
-- **A 300-second poll FLOOR (`POLL_FLOOR=300`).** Every watcher defaults to 300s
-  and REFUSES a sub-300s `--interval` at parse time (exit 5). Tests that must run
-  fast opt in explicitly with `ALLOW_FAST_POLL=1`; it is never a production
-  setting. Budget it explicitly: **a `gh_watch.sh` at a 20s cadence over N items
-  was a budget incident** — see the measured numbers below.
-- **Prefer terminal-outcome events.** Arm `gh_watch.sh --events merged,closed`
-  (the default, plus `stall`), NOT `comment`/`verdict`. Outcome events fire once
-  at the end of a wait; per-verdict/per-comment polling wakes you on every
-  iteration of an actively-working owner and multiplies the budget. Add
-  `comment`/`verdict` ONLY for a wait that genuinely needs them.
-- **Never stack `--auto-rearm` watchers.** One `--auto-rearm` watch per scope is
-  the design; two identical arms do not double the coverage — the lock displaces
-  the first. A successor keeps the WATCH alive; the agent's re-arm keeps
-  NOTIFICATIONS alive.
-
-**The measured budget.** The account shares a core budget of **at most 5000
-calls/hr** (plus a separate GraphQL points budget, also at most 5000/hr).
-MEASURED 2026-09-28:
-`gh_watch.sh`'s `snapshot()` issued **6 REST calls per ITEM per poll** (a
-`/pulls` type probe, `/issues` state, `/pulls` merged, `/issues/comments`, a
-per-item `gh run list`, and `/issues` updated_at) — over **5 items** that is
-**30 calls per poll** (measured 2026-09-28): at `gh_watch.sh`'s own old 30s
-default (2 polls/min)
-that is 6 × 5 × 2 = **3600/hr — 72% of the budget for ONE watcher** — and at
-the then-reachable 20s cadence (the old floor was 1s; `pr_watch_many.sh`
-defaulted to 20s) it is 6 × 5 × 3 = **5400/hr, OVER budget**. Repeated
-fast/stacked polls produced **HTTP 403** and dead watchers.
-
-The tools now make that arithmetic safe:
-
-- **`gh_watch.sh` polls in ONE GraphQL request for the whole item list.**
-  MEASURED with a call-counting `gh` wrapper, 6 items over TWO rounds (seed
-  + one poll): **73 gh invocations (old) → 3 (new)**. The old 73 reconciles
-  with the 6-per-item rate: (73 − 1 free `/rate_limit`) ÷ (6 items × 2
-  rounds) = 6/item/poll. The new 3 are 2 GraphQL requests (seed + poll) plus
-  1 FREE `/rate_limit` read — so the billable constant is **1 request per
-  poll for N items, independent of N**, and a 60s watch is **~60 requests/hr
-  for the whole list** whatever N is.
-- **Rate-limit discipline.** Before each poll the FREE `/rate_limit` endpoint is
-  read; below `WATCH_RATE_MIN` (default 200) the watcher **backs off**
-  (`--interval × WATCH_RATE_BACKOFF_FACTOR`, default 2, capped 600s) and logs
-  `RATE-LIMIT`. A genuine **exhaustion is a HARD ABORT**: any rate-limit signal
-  (HTTP **403/429**, a zero remaining quota, or a GraphQL **`RATE_LIMIT`** error)
-  prints a `FATAL` naming the reset time and exits **non-zero** — a rate limit is
-  a STOP condition, never a retry. Never raise the poll rate to "catch up".
+3. **Act** — read the verdict in full, answer the comment, take over, or proceed.
+4. **Re-arm** in the same turn if the wait continues. Arming the same watch again TAKES OVER the
+   old one (the lock), so a re-arm replaces and never adds. A binding that re-arms automatically
+   passes `--no-arm-wake` after its first arm, so a verdict it already reported is not reported
+   again — and drops every item whose STATE event fired, deciding which events those are by
+   importing the engine's `STATE_EVENTS` (`scripts/gh/lib/watch.ts`), never by listing them
+   (the current set is in "Delta vs STATE events" below). `--no-arm-wake` does not suppress a
+   state event: re-arming an item still in that state re-fires it at once, in a loop.
 
 ### Which watcher to arm
 
-| You are waiting on … | Arm | Wake |
+Pick the ONE row that matches what you are waiting for. It is always the same command; the
+`--events` set is what changes.
+
+| You are waiting for … | Arm | It wakes on |
 |---|---|---|
-| ONE PR's terminal state (its landing is what you act on) | `pr_state_watch.sh <owner>/<repo> <pr>` | MERGED / BLOCKED (verdict, or POISON) / CLOSED |
-| a CROSS-REPO PR batch (producer→consumer chains) | `pr_watch_many.sh <owner>/<repo> <pr> …` (or `--repos` for a repo set) | first PR terminal, OR a NEW verdict, OR a STALL |
-| a per-ITEM list of PRs **and/or issues** | `gh_watch.sh <owner>/<repo>#<num> …` with `--events` | `comment` / `verdict` / `merged` / `closed` / `stall` |
-| "tell me the moment anyone replies to the issue I commented on" | `gh_watch.sh --events comment <owner>/<repo>#<num>` | a NEW comment |
-| "tell me the instant my BLOCKER lands" | `gh_watch.sh --events merged <owner>/<repo>#<num>` | MERGED (fires immediately if already merged) |
+| **your own PR's verdict and landing**: after the first push, after a fix push, after `gh pr update-branch`, after a REST re-run | `node scripts/gh/cli.ts watch <owner>/<repo>#<pr>` (the default events: `verdict,merged,closed,conflict`) | `VERDICT … PASS\|BLOCK\|INCONCLUSIVE`, `MERGED`, `CLOSED`, `CONFLICT`; an `ARM … verdict=BLOCK` at once when the head already carries a BLOCK |
+| **several of your own PRs** (a producer → consumer chain) | the same command, listing every PR in ONE watch | the first event on any of them |
+| **another session's PR or issue that blocks you** | `… watch --events merged,closed,stall <item>` | `MERGED` (the unblock; fires at once if already merged), `CLOSED` (find the successor), `STALL` (a takeover candidate) |
+| **a reply on a thread** (a question you asked, a `WAITING` you posted) | `… watch --events comment <item>` | the first new comment |
+| **a bed or a long local command** | the command itself as a managed background command, its status captured (`cmd > <log> 2>&1; echo rc=$? >> <log>`) | its exit |
 
-Generic usage (no org, repo, session, or date is baked in):
+For a one-shot read without waiting: `node scripts/gh/cli.ts status <item>…` prints each PR's
+state, its verdict class on the current head, and the newest verdict check run.
+
+**What a verdict is.** The validator's verdict is the newest `validate / validate` check run of
+the `charly/pr-validator` suite on the PR's HEAD, and its class:
+
+- **PASS** — the check run succeeded;
+- **INCONCLUSIVE** — it failed, and the validator's comment for that head says INCONCLUSIVE (an
+  engine or provider condition to escalate, never a code finding);
+- **BLOCK** — any other failing conclusion;
+- **PENDING** — still queued or in progress, or the suite is re-running.
+
+`VERDICT` fires only when a verdict is FINAL and NEW: the newest check run has completed, and
+it is a different check run than at arm, or it was not yet completed at arm. **A REST re-run
+(`gh api -X POST …/actions/runs/<id>/rerun`) creates a new check run, so its verdict fires** —
+the defect of the retired shell watcher, which keyed on the run id and never saw a re-run
+(opencharly/marketplace#628). A run that is merely in flight never wakes anyone.
+
+**A conflict means no verdict will ever come.** A PR that conflicts with its base gets no test
+merge from GitHub, so no `pull_request` workflow runs on it — the validator included — and a watch
+that waited only for `VERDICT` would wait forever (measured on opencharly/opencharly#1145, where two
+pin waves advanced the same gitlink). `conflict` is in the default set: it fires while the open PR
+is `CONFLICTING`, at arm or later. Act on it by merging the base into your branch, resolving, and
+pushing a new commit (never a rebase or force-push after the first push), then re-arm.
+
+**The wake lines** — one line on stdout, then exit:
 
 ```
-# per PR — exit on a terminal state
-pr_state_watch.sh <owner>/<repo> <pr> [--interval SEC] [--timeout SEC]
-
-# cross-repo PR batch — exit on the first terminal / new verdict / stall
-pr_watch_many.sh [--repos owner/repo,…] [--interval SEC] [--stallmin MIN] \
-                 [--validator NAME] [--all] [--auto-rearm|--no-rearm] <owner>/<repo> <pr> …
-
-# per-item PR/issue — exit on any chosen event (default merged,closed,stall)
-gh_watch.sh [--events merged,closed,stall] [--interval SEC] \
-            [--stallmin MIN] [--workflow NAME] [--auto-rearm|--no-rearm] <owner>/<repo>#<num> …
+MERGED   <item>  (unblocked)  <url>
+CLOSED   <item>  closed without merging — find its successor  <url>
+CONFLICT <item>  conflicts with its base — the validator cannot run until the base is merged in  <url>
+COMMENT  <item>  new comment (<n> -> <m>)  <url>
+VERDICT  <item>  PASS|BLOCK|INCONCLUSIVE  validate / validate <conclusion> at <head>  <url>
+STALL    <item>  no progress for <m>m (open, unmerged) — takeover candidate  <url>
+ARM      <item>  state=<s>  verdict=BLOCK|INCONCLUSIVE  [mergeable=<m>]  <url>
+TIMEOUT  no event within <n>s
 ```
 
-`--auto-rearm` applies to `pr_watch_many.sh` and `gh_watch.sh` — the family's
-self-sustaining watchers. `pr_state_watch.sh` is the low-level per-PR terminal
-poll that `pr_watch_many.sh` wraps; it stays one-shot (its wrapper owns the
-re-arm), so it takes no re-arm flag.
+The ARM baseline of every item goes to stderr when the watch arms. **Exit codes:** `0` an event
+· `4` timeout · `5` usage or API error · `6` a peer watching the same items would not yield ·
+`7` a rate limit (FATAL, never retried) · `8` the initial poll failed · `143` taken over or
+terminated.
 
-### Delivering a wake (the harness binding)
+### One watcher, one poll per five minutes, and the API budget
 
-The generic scripts are **harness-independent**: each emits one line and
-exits, and re-arming is the caller's loop. How a wake REACHES the agent is
-the harness's job, never the script's:
+- **ONE watcher per session.** Put every item you wait on into ONE watch. The lock keys on the
+  watched items and events, so arming the same watch twice takes over the first; a different
+  item list is a different watch, so stop the old one before arming the new one, and confirm in
+  the process table that exactly one runs: `pgrep -fa '^node .*scripts/gh/cli\.ts watch'`.
+  Anchor the pattern on the `node` process: an unanchored `pgrep -f` also matches the
+  harness's wrapper shell and the probe's own shell, whose command lines carry the same
+  text (measured: one watcher, an unanchored count of 3).
+- **A 300-second poll FLOOR.** Every watcher polls at 300 s and REFUSES a shorter interval (exit
+  5). `ALLOW_FAST_POLL=1` exists for tests only. Expect up to one interval of lag: when you need
+  the state NOW, read it once with `status`. One read answers a question; a loop of reads is the
+  hand-poll this replaces.
+- **ONE request per poll for N items.** The watcher observes every item in a single batched
+  GraphQL query. The remaining quota is read from that response's own header; below 200 the
+  watcher backs off (×2, capped at 600 s) and says so on stderr. Any rate-limit signal (HTTP 429,
+  a 403 with no quota left, a GraphQL `RATE_LIMITED` error) is FATAL: exit 7, never retried.
+- **Prefer outcome events for other people's items.** Waking on every comment of an actively
+  working owner is noise; `merged,closed,stall` is the blocker watch.
 
-- **opencode** — no background-completion notification by default (`task` is
-  synchronous, `bash` blocks; `OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS`
-  opts into async tasks) and config loads once (no hot reload); the
-  documented push is `opencode run --session <ses_…> "<alert>"`, plus a
-  durable inbox drained each turn. Binding: `.opencode/instructions.md`.
-- **Claude Code** — a `run_in_background` Bash child's completion notifies the
-  spawning session; re-arm after each wake.
-- **Any other harness** — bind the script's exit / `--notify-cmd` to whatever
-  surfaces a message to the agent, and keep the durable inbox fallback.
+### Delta vs STATE events
 
-A wake that starts a new turn can interrupt in-flight work, so an alert is an
-ADDITION to the todo ledger, never a reset (see the `/charly-internals:agents`
-skill, "Todo ledger & interruption safety").
+`comment` and `verdict` are DELTA events: the watch seeds the current state at arm, so a comment
+or verdict that already existed never fires — except that a BLOCK or INCONCLUSIVE already on the
+head wakes at arm, once, because a verdict that landed before you armed must not be missed.
+`merged`, `closed`, `conflict` and `stall` are STATE events: they fire while the item IS in that state,
+including at arm, and an item whose state event fired is done (a re-arm would re-fire it).
+`stall` requires an open, unmerged item with no update for `--stallmin` minutes (default 60, the
+B2b.1 takeover-window floor).
 
-### Delta vs STATE events (`gh_watch.sh`)
+### The watcher requirements
 
-`comment` and `verdict` are DELTA — arming seeds the current comment-count /
-newest run id, so a pre-existing comment or verdict never causes a false wake.
-`merged`, `closed`, and `stall` are STATE — they fire while the item IS in that
-state, INCLUDING at arm time, which is why `EVENTS=merged` on an already-merged PR
-wakes immediately. `stall` additionally requires the item to be **open+unmerged**,
-so a closed/merged item never emits a false alarm.
-
-### The three watcher requirements — mandatory, not tips
-
-These are field-learned and are ENCODED in the tools, not left to judgement:
-
-1. **Silence is an ALARM — every watcher carries a stall layer.** A blocked item
-   with no pushes emits **no validator runs and no events**, so an event-only
-   watcher is blind to the worst case. So `stall` is **ON BY DEFAULT** in
-   `gh_watch.sh` and every watched item gets it, and `pr_watch_many.sh` grows a
-   `--stallmin` layer alongside its new-verdict layer. The alarm fires on **no
-   progress** — no new commit, comment, or completed `charly/pr-validator` run
-   (`updated_at` unchanged) — for the window while the item is open+unmerged.
-   *The events tell you when something HAPPENED; the stall alarm tells you when
-   something SHOULD have and did not.* (Measured: an item sat silently unchanged
-   for ~2 hours with **no alert**; the instant `stall` was armed it fired.)
-2. **Watch the OUTCOME, not every event.** Waking on every comment of an actively
-   iterating owner is noise. The DEFAULT event set is therefore the terminal
-   outcomes (`merged`,`closed`) **plus the `stall` alarm**; add `comment` /
-   `verdict` ONLY for a wait that genuinely needs them (`EVENTS=comment` on an
-   issue you asked a question on). Arm the narrowest set the wait needs.
-3. **Liveness ≠ progress.** Progress is judged by **artifacts** — a pushed
-   branch, a new commit, an opened PR, a merged tag — never by a session
-   heartbeat or "still investigating". The stall alarm IS that mechanism: it
-   keys on the item's `updated_at`, so its silence is measured against artifacts,
-   not activity. This is the same rule as B2b.1's "progress is a completed
-   validator run", stated for a per-item watch.
-
-### A "new" event must be genuinely newer — never a stale fire
-
-A watcher must be armed against a **known baseline**, and a delta event fires
-only on a value NEWER than arm time — never merely *different* from an empty
-seed. An **empty seed is UNKNOWN**, not "no prior run": a transient `gh` failure
-or a not-yet-finished run leaves the seed blank, and a naively-armed watcher
-then treats an OLD completed run as new. Measured (twice): an immediate
-validator watcher re-surfaced a run from ~90 minutes / ~3 hours earlier as
-though it were fresh. The guards, all mandatory:
-
-- **The COMPLETION time is the PRIMARY and sufficient gate.** A `verdict` fires
-  only when the run's completion timestamp (`updatedAt`; the helper returns
-  `completedEpoch`) is **at/after arm time**. Comparing run **ids** is NOT a
-  substitute: the "newest completed" run can CHANGE from one old run to a
-  DIFFERENT old run (a seed/poll ordering shift, or a transient seed failure),
-  and an id compare alone then false-fires on a run that completed hours ago.
-  The id compare is a SECONDARY guard against re-reporting the SAME run.
-- **Treat an empty seed as UNKNOWN**: adopt the first observation as the new
-  baseline WITHOUT firing. (For `comment`, an empty count from a transient
-  failure is likewise UNKNOWN — never treat a real count as a rise from 0.)
-- `merged`/`closed`/`stall` baseline from the arm moment too, so pre-existing
-  state never spuriously fires beyond the deliberate STATE semantics.
-
-A stale fire is noise that trains the operator to ignore the watcher; the
-discipline is the same "watch the outcome, not noise" rule as above.
-
-**`pr_watch_many.sh` is REPO-SCOPED.** It watches `<validator>` runs across the
-repos you pass — it does **not** filter to your PR, so it fires on ANY newer
-run in those repos, including another session's PR. To watch ONE PR (yours, or
-a specific blocker), arm `gh_watch.sh` on `owner/repo#<n>` instead.
-
-A `stall` is the correct STALL/loop detector: **no new verdict within the window
-while the scope is open+unmerged** (B2b.1). A re-arguing agent emits no new
-verdicts; a peer waiting on a running validator does not stall. `STALL_MIN`
-defaults to 60 — the B2b.1 takeover-window FLOOR.
+1. **Silence is an alarm.** A blocked item emits no events, so a blocker watch carries `stall`:
+   it fires when nothing has moved for the window while the item is open and unmerged.
+2. **Liveness is not progress.** Progress is an artifact — a pushed commit, a completed
+   validator run, a merge — never a session heartbeat. The stall alarm keys on the item's
+   `updatedAt`, so its silence is measured against artifacts.
+3. **Read the full result after the wake.** The wake line names the event; the verdict is in the
+   PR's `## Review` comment, read in full ("Before every update push").
 
 ### What each wake drives (the takeover protocol)
 
-- **MERGED** → the UNBLOCK. Proceed; comment the merge on the waiting issue.
-- **VERDICT / a batch new-verdict** → read that PR in full (the pre-update-push
-  read: every block, every comment disposition); act, then re-arm.
-- **STALL** → the scope is a **TAKEOVER candidate**: run the B2b.1
-  window-based takeover in full — comment FIRST, wait the 60-minute FLOOR
-  window, then `TAKING OVER — authority: window-expired` BEFORE any push.
-- **COMMENT** → a peer or the owner replied; read it and answer on the thread.
+- **MERGED** → the unblock. Proceed; comment the merge on the waiting issue.
+- **CONFLICT** → merge the base into your branch, resolve, gate the new head, push one new
+  commit, re-arm.
+- **VERDICT / ARM** → read that PR's full `## Review` comment and every new comment; fix,
+  rebut or escalate (INCONCLUSIVE), then re-arm.
+- **STALL** → a takeover candidate: run the B2b.1 window-based takeover in full — comment FIRST,
+  wait the 60-minute floor window, then `TAKING OVER — authority: window-expired` BEFORE any
+  push.
+- **COMMENT** → a peer or the owner replied; read it in full and answer on the thread.
+
+A wake that starts a new turn can interrupt in-flight work, so an alert is an ADDITION to the
+todo ledger, never a reset (`/charly-internals:agents`, "Todo ledger & interruption safety").
 
 ### Watch the RIGHT scopes
 
-A monitor/coordinator MUST watch the scopes actually in flight (B2b.1) — the
-repo set changes as work moves, and a **stale watch list produces false
-stalls**. Re-derive the watch list from the currently-open PRs each time you
-re-arm, never from a memorized fixed list.
+Watch the scopes actually in flight. The set changes as work moves, and a stale watch list
+produces false stalls. Re-derive the list from the currently open PRs each time you re-arm,
+never from a memorized one.

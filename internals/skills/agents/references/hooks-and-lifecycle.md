@@ -503,8 +503,8 @@ push), a delegated report, or a compaction. The rule:
 - **Long operations are ledger-first.** Before a long-running step, ensure
   the list names it, so a later interruption resumes from state, not memory.
 - **A watcher alert is an ADDITION.** An automated push adds an item; it
-  never implies the current item is done. Bind the generic watcher
-  (`marketplace/scripts/gh_watch.sh` — harness-independent) to a durable
+  never implies the current item is done. Bind the ONE watcher
+  (`node scripts/gh/cli.ts watch` — harness-independent) to a durable
   inbox and drain it at the start of every turn; the harness binding lives in
   the active harness's config (opencode: `.opencode/instructions.md`).
 
