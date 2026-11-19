@@ -212,7 +212,16 @@ charly-marketplace:
             # still published the pre-rename prose). The projection of this pin therefore
             # changes in this commit.
             - '@github.com/opencharly/layer-charly-check:v2026.314.0704'
-            - '@github.com/opencharly/layer-strata:v2026.319.1512'
+            # The Strata POD's split (opencharly/opencharly#1174): `layer-strata` now carries only
+            # the ENGINE LAYER (`candy/strata`) and the `strata-layer` skill beside it, and the POD
+            # — the image, the bed and the BOX SKILL — is `pod-strata`. Both are named here, and
+            # `layer-strata` is pinned at the tag of the deletion (`v2026.323.1959`), not at one
+            # that still carried a second copy of `box/strata`: between the two merges the SAME
+            # skill name (`strata`, family `strata`) existed in two source repos, and the corpus has
+            # ONE path per name, so a refs bump that named both at pre-split tags would publish
+            # one skill from two homes.
+            - '@github.com/opencharly/layer-strata:v2026.323.1959'
+            - '@github.com/opencharly/pod-strata:v2026.323.1821'
             - '@github.com/opencharly/plugin-strata/candy/plugin-strata:v2026.314.0715'
             - '@github.com/opencharly/layer-android-sdk:v2026.314.0704'
             - '@github.com/opencharly/plugin-wl/candy/plugin-wl:v2026.314.0716'
