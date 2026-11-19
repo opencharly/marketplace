@@ -176,7 +176,7 @@ charly-marketplace:
             # `v0.<YYYYDDD>.<HHMM with leading zeros stripped>` — not the superproject's
             # `v<YYYY.DDD.HHMM>`, which is not a valid Go module version. Each pin below
             # is the tag that repo's own merge minted.
-            - '@github.com/opencharly/spec:v0.2026319.1226'
+            - '@github.com/opencharly/spec:v0.2026323.2211'
             - '@github.com/opencharly/sdk:v0.2026319.1356'
             # The `build` family's SIX owners, DIRECT (opencharly/marketplace#587).
             #
@@ -473,7 +473,7 @@ charly-marketplace:
             - '@github.com/opencharly/plugin-tmux:v2026.314.0715'
             - '@github.com/opencharly/plugin-udev:v2026.314.0715'
             - '@github.com/opencharly/plugin-cmd:v2026.314.0712'
-            - '@github.com/opencharly/plugin-fleet:v2026.318.2345'
+            - '@github.com/opencharly/plugin-fleet:v2026.323.2140'
             - '@github.com/opencharly/plugin-ssh:v2026.314.0715'
             - '@github.com/opencharly/plugin-deploy-pod:v2026.318.2309'
             - '@github.com/opencharly/plugin-vm:v2026.319.0925'
