@@ -494,6 +494,7 @@ charly-marketplace:
             # a direct pin at the tag each repo's own merge minted.
             - '@github.com/opencharly/plugin-record:v2026.314.0715'
             - '@github.com/opencharly/plugin-spice:v2026.314.1321'
+            - '@github.com/opencharly/plugin-generate-podcast/candy/plugin-generate-podcast:v2026.319.1338'
         plan:
             - check: the marketplace corpus source resolves via the charly binary
               exit_status: 0

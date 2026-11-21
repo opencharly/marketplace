@@ -727,6 +727,14 @@
       ]
     },
     {
+      "name": "generate-podcast",
+      "files": [
+        "SKILL.md",
+        "references/sources.md",
+        "references/voice.md"
+      ]
+    },
+    {
       "name": "generate-source",
       "files": [
         "SKILL.md",
