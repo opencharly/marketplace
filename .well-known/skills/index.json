@@ -727,6 +727,14 @@
       ]
     },
     {
+      "name": "generate-podcast",
+      "files": [
+        "SKILL.md",
+        "references/sources.md",
+        "references/voice.md"
+      ]
+    },
+    {
       "name": "generate-source",
       "files": [
         "SKILL.md",
@@ -2146,6 +2154,12 @@
     },
     {
       "name": "workspace-mount",
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "xdg",
       "files": [
         "SKILL.md"
       ]

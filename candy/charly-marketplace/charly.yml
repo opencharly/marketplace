@@ -176,7 +176,7 @@ charly-marketplace:
             # `v0.<YYYYDDD>.<HHMM with leading zeros stripped>` — not the superproject's
             # `v<YYYY.DDD.HHMM>`, which is not a valid Go module version. Each pin below
             # is the tag that repo's own merge minted.
-            - '@github.com/opencharly/spec:v0.2026323.2211'
+            - '@github.com/opencharly/spec:v0.2026325.2349'
             - '@github.com/opencharly/sdk:v0.2026319.1356'
             # The `build` family's SIX owners, DIRECT (opencharly/marketplace#587).
             #
@@ -494,6 +494,7 @@ charly-marketplace:
             # a direct pin at the tag each repo's own merge minted.
             - '@github.com/opencharly/plugin-record:v2026.314.0715'
             - '@github.com/opencharly/plugin-spice:v2026.314.1321'
+            - '@github.com/opencharly/plugin-generate-podcast/candy/plugin-generate-podcast:v2026.319.1338'
         plan:
             - check: the marketplace corpus source resolves via the charly binary
               exit_status: 0
