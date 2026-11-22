@@ -66,12 +66,21 @@ never written. Enablement and installation are SEPARATE halves of the harness
 contract, and satisfying only the first fails SILENTLY:
 
 - **Claude Code** — `enabledPlugins` in `.claude/settings.json` flips
-  enablement only. Skills load when the harness ALSO holds an install record
-  for that plugin scoped to the CURRENT project. A `settings.json` listing a
-  plugin whose install record belongs to a different project, or whose
-  recorded `installPath` no longer exists, loads NONE of its skills — the
+  enablement only. Skills load when the harness ALSO holds a project-scope
+  install record for that plugin, and a session loads the copy cached at the
+  commit that record names. With no such record, or one whose recorded
+  `installPath` no longer exists, it loads NONE of the plugin's skills — the
   marketplace, manifest, and `SKILL.md` frontmatter can all be valid while
   the corpus is entirely absent.
+- **A record is not matched to a session by its exact path.** Several
+  project-scope records can exist for ONE repository — another clone, a linked
+  worktree, a worktree since removed — and a session, or a `claude plugin
+  update --scope project`, can act on any of them. On the host recorded in
+  opencharly/opencharly#1227, a session in the clone loaded the copy of a
+  second clone's record, and `update` run from the clone moved a removed
+  worktree's record while the clone's own stayed at its old commit. With
+  several records per repository, which copy loads is not knowable from the
+  path or from `installed_plugins.json`; only the probe below answers it.
 - `claude plugin list` reads enablement from `settings.json` and prints
   `Status: enabled` regardless of whether the install record resolves, so it
   CONFIRMS a corpus that is not loading. It is not evidence; never close an
@@ -114,10 +123,12 @@ itself, at the scope it is installed at:
 claude plugin update <plugin>@<marketplace> --scope project
 ```
 
-It names the commits it moved between (`updated from <old> to <new>`), and
-that line is the confirmation to look for — a refreshed marketplace clone is
-not evidence that any session sees the change. `--scope` defaults to `user`
-and fails outright on a project-scoped plugin.
+It names the commit it moved to (`updated from <old> to <new>`, or `already
+at the latest version (<sha>)`), but that line speaks for whichever record it
+matched, which need not be the one your sessions load (above) — neither it nor
+a refreshed marketplace clone is evidence that any session sees the change.
+The fresh-session probe is the confirmation. `--scope` defaults to `user` and
+fails outright on a project-scoped plugin.
 
 ## When to Update Skills
 
@@ -168,15 +179,36 @@ The rule this section implements — authored content lives in the repo that own
 that crosses a repo line is DERIVED rather than hand-maintained — is the umbrella `AGENTS.md`
 Part II #5. What follows is only the how.
 
-1. **Edit the skill's own FILE, in the repo that owns it.** A skill's prose lives at
-   `<owning candy dir>/.agents/skills/<name>/SKILL.md`: the `<name>` DIRECTORY is the skill id, the
+1. **Edit the skill's own FILE, in the repo that owns it, at that repo's ROOT.** A skill's prose
+   lives at `<owner repo>/.agents/skills/<name>/SKILL.md` — the repo root of the repo that DEFINES the
+   `owner:` candy, **never inside the candy's own directory**: the collector resolves the body at
+   `candyRepoRoot` (`sdk/deploykit/skills_collect.go`), so a file under `candy/<name>/` is never read.
+   **`owner:` must name a candy DEFINED IN THE SAME REPO as the body.** A node whose owner candy is
+   composed from another repo is a load error, not a layout choice — the body is searched in the owner
+   candy's repo (`skill "x": no body — no .agents/skills/x/SKILL.md exists at the repo root of the
+   owning candy "x"`, opencharly/layer-strata#28).
+   The `<name>` DIRECTORY is the skill id, the
    frontmatter `name` must agree with it, and an optional `references/<stem>.md` sits beside it (no
-   frontmatter, by contract). A sub-agent DEFINITION is ONE file at
-   `<owning candy dir>/.agents/agents/<name>.md` — the SIBLING tree, never a child of
+   frontmatter, by contract). **The repo class decides where the body lives, one answer per class:**
+
+   | the repo that declares the node | where the BODY lives | `owner:` names |
+   |---|---|---|
+   | the repo that DEFINES the candy (a layer repo) | its own root | that candy |
+   | a box / pod / VM repo composing a FOREIGN candy | **the foreign candy's repo root** — the node may sit in this repo, the body may not | the foreign candy |
+   | a box / pod / VM repo that wants its OWN skill | its own root | a candy **this repo declares** in its `candy/` |
+
+   A pod repo has two legal shapes and no third: it carries the node only with the body back in the
+   engine candy's repo, or it declares a candy of its own and owns the skill through that. `layer-strata`
+   (engine candy) and `pod-strata` (the box composing it) are the reference case: the `strata` skill
+   describes the pod, so the POD must declare a candy to own it — moving the body alone, as
+   layer-strata#25 did, leaves the owner candy in the other repo and every pin fails (#28).
+   A sub-agent DEFINITION is ONE file at
+   `<owner repo>/.agents/agents/<name>.md` — the SIBLING tree, never a child of
    `.agents/skills`, and a candy's `skills:` list does not govern it. `.agents/skills` is what a
    candy's `skills:` list means when it declares none (a candy that declares another tree is honoured
-   by the generators; the OCI-label collector reads only the default one — a stated limit at
-   `sdk/deploykit/skills_collect.go`). Both shapes go through ONE reader
+   by the generators; `kind:skill`'s owned content — the image's `ai.opencharly.skill` label and its
+   installed `~/.agents/skills/<name>/` — reads only the default one, a stated limit in
+   opencharly/plugin-harness-kind). Both shapes go through ONE reader
    (`sdk/candywalk/skillfile.go` — `AgentsSkillsDir` / `AgentsAgentsDir`), so the file you author and
    the file the corpus publishes parse identically. **You write the body; nothing writes it for
    you.**
@@ -206,15 +238,16 @@ Part II #5. What follows is only the how.
 
 4. **An IMAGE cannot own a resolvable skill.** A `candy:` node carrying `base:` or `from:` folds into
    the BOX set and never the layer set, so it has no source directory at all: its skill's body
-   resolves nowhere, and the node is silently absent from the `ai.opencharly.skill` OCI label too — it
-   is invisible, not merely unreadable. `charly box validate` rejects the shape
-   (`… owner %q is an image, not a candy …`, `plugin-box/candy/plugin-box/validate_skills.go`,
-   `opencharly/sdk#434`). `owner:` must name a PACKAGE candy the image composes; for a repo whose
-   skills belong to images the sanctioned shape is a `<repo>-skills` carrier candy — a real candy,
-   with install content that `copy:`s `.agents/skills` to the account's `~/.agents/skills` and an ADE
-   `check:` proving it landed, composed by every image that carries one of its skills.
-   `opencharly/distro-arch`'s `candy/arch-skills` is the worked example. The carrier is deliberately
-   COARSE: one carrier composed into N images puts that repo's whole skill set on all N labels.
+   resolves nowhere. `charly box validate` rejects the shape (`… owner %q is an image, not a candy …`,
+   a `kind:skill` diagnostic served by opencharly/plugin-harness-kind, `opencharly/sdk#434`). `owner:`
+   must name a PACKAGE candy the image composes; for a repo whose skills belong to images the
+   sanctioned shape is a `<repo>-skills` carrier candy — a real candy that OWNS the `skill:` nodes and
+   carries an ADE `check:` proving the bodies landed, composed by every image that carries one of its
+   skills. It ships NO install step: charly installs the body of every skill a composed candy owns at
+   the image user's `~/.agents/skills/<name>/` and labels it `ai.opencharly.skill` (`kind:skill`'s
+   owned content, `ops.OpContent`, opencharly/sdk#598) — an owned skill node is the carrier's install
+   content. `opencharly/distro-arch`'s `candy/arch-skills` is the worked example. The carrier is
+   deliberately COARSE: every image that composes it carries every skill it owns.
 
 5. **Regenerate the corpus** in the marketplace repo — the ownership table, the command, the deploy
    drift gate and the daily refresh all live in `/charly-internals:marketplace`. The file you edited
