@@ -23,6 +23,14 @@ is the layer that pulls the driver user-space in and therefore the one that clea
 
 ## Editing rules
 
+- **The LAYOUT LIST is the producer's, too.** `cuda-drop-driver-userspace` derives its library
+  scan, its `nvidia`/`vdpau` tree removals and its xorg removal from ONE `libs=` list
+  (`/usr/lib /usr/lib32 /usr/lib64`); `cdi-no-baked-driver-libs` derives the same three surfaces
+  from the same one list (`layouts=${CDI_LIB_DIRS:-…}`) instead of naming trees separately. A
+  multilib host really does carry `/usr/lib32/vdpau` while `/usr/lib64` is a symlink to `lib`, so a
+  single hard-coded `/usr/lib` walk is the defect this twins against
+  (opencharly/layer-cuda#28, opencharly/layer-cdi#12). Pointing `CDI_LIB_DIRS` at a planted root
+  moves all three surfaces, which is how the assertion is proven to discriminate.
 - **The library predicate is the twin of `layer-cuda`'s `drv=`, byte for byte.** The producer's
   `drv=` variable in `cuda-drop-driver-userspace` is the ONE definition of "driver user-space"; the
   `drv=` in `cdi-no-baked-driver-libs` must compare equal to it (`diff` of the two blocks is the
@@ -47,6 +55,12 @@ is the layer that pulls the driver user-space in and therefore the one that clea
 
 1. `readlink -f /usr/lib/libnvidia-ml.so.1` — if it names a version other than
    `/proc/driver/nvidia/version`, an image library survived.
-2. `find /usr/lib /usr/lib64 -maxdepth 1 -name 'libnvidia-*.so*'` — a leftover here means a LATER
+2. `find /usr/lib /usr/lib32 /usr/lib64 -maxdepth 1 -name 'libnvidia-*.so*'` — a leftover here means a LATER
    layer reinstalled the package; find which and have it compose `cdi` after its installs.
 3. On the host: `charly doctor` reports the CDI mechanism and the host's own userspace/module pair.
+
+- **A pod with a CDI device must not use `userns=keep-id`.** The injection fails with
+  `mount_setattr … EPERM` because an idmapped mount needs `CAP_SYS_ADMIN` in the user namespace that
+  owns the filesystem's superblock; with `userns=host` no idmap is requested. `/charly-distros:cdi`
+  carries the measurement and the two legal shapes (bind → `userns=host` + container-root workload;
+  named volume → `keep-id` is fine).

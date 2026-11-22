@@ -11,6 +11,21 @@ hijacks the checkout from every other session on the system. The main tree
 stays on `main`; the session's edits, commits, beds, and PR all happen in its
 worktree, which it removes after the PR lands.
 
+**In the UMBRELLA, step 0 is ONE command** (opencharly/opencharly#1155):
+
+```bash
+CHARLY_WORKTREE_SLUG=<slug> ./charly/bin/charly task worktree
+#   (before any binary exists: bash scripts/new-worktree.sh <slug>)
+```
+
+It fetches `origin/main`, adds `<umbrella>/.worktrees/<slug>/opencharly` on
+`feat/<slug>`, brings every module store in the common git dir up to the new pins
+(the pre-push DESIGN gate reads them), materializes the working set — each path
+borrowing its objects from that store through a Git alternate — and builds the
+worktree's own `charly/bin/charly` (R9). A bare `git worktree add` there gives a
+tree with no working set: its pre-push BLOCKS, because the body linter it must run
+is not in the tree, until `bash scripts/init-submodules.sh` materializes it.
+
 **Step 1 — Author** (opens the PR; NEVER merges it):
 
 ```bash
@@ -316,11 +331,13 @@ rulebook's "never by hook regexes".
   `git worktree list` inventories; `git worktree prune` clears stale admin
   entries. Remove an agent `isolation: worktree` after its change lands. A linked
   superproject worktree shares superproject objects but not submodule objects:
-  initialize only the submodules the cutover needs, and initialize each from the
-  common Git directory's matching `modules/<path>` reference so its clone records a
-  Git alternate instead of duplicating object packs. Verify the alternate and the
-  exact gitlink before use; never compensate with `/tmp`, a user cache, or an
-  unrelated recursive submodule checkout.
+  initialize only the submodules the cutover needs. In the umbrella,
+  `scripts/init-submodules.sh` does the borrowing itself: in a linked worktree it
+  initializes each path with `--reference` to the common Git directory's
+  `modules/<path>` store, so its clone records a Git alternate instead of
+  duplicating object packs (`cat <worktree-git-dir>/modules/<path>/objects/info/alternates`
+  shows it). Never compensate with `/tmp`, a user cache, or an unrelated recursive
+  submodule checkout.
 
 ## B8 — after the PR merges: the close-out checklist (landed repo → umbrella)
 
