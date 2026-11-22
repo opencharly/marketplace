@@ -93,6 +93,7 @@
 | Agent Driven Evaluation (ADE) / `charly box feature run` / `charly check feature run` / `charly feature list/pending/validate` / authoring a candy's `plan:` + `description:` string / the agent grader for `agent-check:` steps / Engineering-discipline triggers (failure surfaced / dup pattern / ad-hoc fix tempting / "out of scope" framing) / Go code-quality / AGENTS.md-compliance audit / `golangci-lint` / `dupl` / duplication or dead-code check / `.golangci.yml` | `/charly-internals:strict-policy` |
 | `charly update` / `charly vm *` / VM entities in `vm.yml` or `vm:` | `/charly-internals:vm-deploy-target` |
 | VmSpec / libvirt / cloud-init / OVMF internals | `/charly-internals:vm-spec` |
+| Resolving host storage paths through storeroot, selecting an XDG root, or handling Charly root overrides and search lists | `/charly-internals:xdg` |
 | the `kube:` check verb / Kubernetes cluster probing from a candy/box plan (out-of-process plugin; nodes, pods, ingress, wait-ready, storageclass, addons, raw resource GETs — every method observes, none changes state) | `/charly-kubernetes:check-k8s` |
 | `step:helm-release` / `verb:helm` / installing a Helm chart from a candy plan / the `helm_charts:` deploy field and its kustomize `helmCharts:` emission / the `--enable-helm` apply path | `/charly-kubernetes:helm` |
 | kind (Kubernetes-in-Docker) / kindcluster deploy / local Kubernetes-in-Docker / a kind cluster on podman/docker/containerd / KIND_EXPERIMENTAL_PROVIDER / composing the kind candy | `/charly-kubernetes:kind` |

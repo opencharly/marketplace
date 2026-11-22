@@ -2159,6 +2159,12 @@
       ]
     },
     {
+      "name": "xdg",
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
       "name": "xdg-portal",
       "files": [
         "SKILL.md"
