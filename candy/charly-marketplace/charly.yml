@@ -169,14 +169,14 @@ charly-marketplace:
             # `node scripts/gh/cli.ts` (opencharly/opencharly#1160, #1163), and this repo's
             # shell watcher family and `coord.sh` are deleted in the same change. The
             # range touches exactly seven `.agents/skills/` files, all from those two PRs.
-            - '@github.com/opencharly/opencharly:v2026.323.2100'
+            - '@github.com/opencharly/opencharly:v2026.326.2026'
             # The two CONTRACT repos' skill shelves (opencharly/opencharly#611).
             # DIRECT, for the rule stated above. Both are Go MODULES, so their tags follow
             # the Go-module scheme
             # `v0.<YYYYDDD>.<HHMM with leading zeros stripped>` — not the superproject's
             # `v<YYYY.DDD.HHMM>`, which is not a valid Go module version. Each pin below
             # is the tag that repo's own merge minted.
-            - '@github.com/opencharly/spec:v0.2026325.2349'
+            - '@github.com/opencharly/spec:v0.2026326.2005'
             - '@github.com/opencharly/sdk:v0.2026326.1740'
             # The `build` family's SIX owners, DIRECT (opencharly/marketplace#587).
             #
@@ -253,6 +253,11 @@ charly-marketplace:
             - '@github.com/opencharly/layer-python:v2026.314.0709'
             - '@github.com/opencharly/layer-gemini:v2026.314.0706'
             - '@github.com/opencharly/layer-nvidia:v2026.314.0708'
+            # layer-cdi owns the CDI doctrine skill (`/charly-distros:cdi`) and `cdi-layer`. It was
+            # reached only transitively, at tags older than the doctrine the pod/deploy skills cite
+            # (the mount_setattr measurement and the two legal userns shapes), so it is pinned
+            # directly (opencharly/marketplace#640).
+            - '@github.com/opencharly/layer-cdi:v2026.326.2026'
             - '@github.com/opencharly/layer-a11y-tools:v2026.314.0704'
             - '@github.com/opencharly/layer-docker-ce:v2026.314.0705'
             - '@github.com/opencharly/layer-docs-site:v2026.314.0705'
@@ -473,7 +478,7 @@ charly-marketplace:
             - '@github.com/opencharly/plugin-tmux:v2026.314.0715'
             - '@github.com/opencharly/plugin-udev:v2026.314.0715'
             - '@github.com/opencharly/plugin-cmd:v2026.314.0712'
-            - '@github.com/opencharly/plugin-fleet:v2026.323.2140'
+            - '@github.com/opencharly/plugin-fleet:v2026.326.2006'
             - '@github.com/opencharly/plugin-ssh:v2026.314.0715'
             - '@github.com/opencharly/plugin-deploy-pod:v2026.318.2309'
             - '@github.com/opencharly/plugin-vm:v2026.319.0925'

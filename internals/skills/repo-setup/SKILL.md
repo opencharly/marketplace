@@ -173,7 +173,7 @@ purpose. So the order is:
 
    then the `import:` key (if the repo has entities to address), the README org-map row and the counts
    that reconciler checks. The mechanism and the why are `/charly-internals:git-workflow`
-   (`references/pin-intent-and-currency.md`, "A submodule is BORN `unpinned`"); this checklist repeats
+   (its pin-intent-and-currency reference, "A submodule is BORN `unpinned`"); this checklist repeats
    the two commands because a checklist is read on its own, and cites the owner of the rule rather than
    restating the reasoning. Advance THIS pin with the narrow mechanism, NOT with `charly task sync`:
    that verb is an ORG-WIDE wave (Part II #3), it advances every pin the umbrella declares, and it
