@@ -205,7 +205,7 @@ purpose. So the order is:
    e. **File through the org form or `scripts/gh/cli.ts issue`**, which refuses without
       `category:`, `type:`, remedy/files and the cited rule — never a bare `gh issue create`.
       The full "which label" rules, the split protocol and the DESIGN/rulebook violation table
-      are `/charly-internals:git-workflow` (`references/issue-labels.md`).
+      are in `/charly-internals:git-workflow`, under its issue-labels reference page.
    f. **Expect the org `label-audit` to check the new repo** daily: it reports missing axes,
       two values on one axis, retired/default labels and unknown labels (report-only by
       default); `label-sync` re-provisions the 12 labels because GitHub recreates its 9
