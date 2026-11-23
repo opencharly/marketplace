@@ -12,6 +12,10 @@ Canonical files:
   `@github.com/opencharly/<candy-repo>:v<CalVer>` pins for every standalone candy
   repo that owns `skill:`/`hook:`/`marketplace:` entities. The ONE generation
   input — change a skill at its source, never the generated copy.
+- `retired.cue` — the corpus's RETIREMENT list: repos it must never publish from,
+  whatever stale pin still names them. Validated against the generator's `#Retired`;
+  a retired repo in the refs list is a generation error. Removing a source's pin is
+  not enough on its own (opencharly/plugin-marketplace#63).
 - `.github/workflows/` — the repo's generation workflow: the SOLE owner of
   generation; builds the pinned charly, regenerates the corpus, FAILS on any
   drift (including untracked files), runs the repo's own script tests, and
@@ -21,8 +25,8 @@ Canonical files:
   recorded consumer's recorded pin's currency.
 - `DISPATCHER.md` — the generated trigger → skill dispatcher (marker-spliced).
 - `README.md`, `AGENTS.md`, `LICENSE`, `CHANGELOG/`, `scripts/`,
-  `kimi-user-config.toml` — hand-authored; everything else carries a
-  `DO-NOT-EDIT` header.
+  `retired.cue`, `kimi-user-config.toml` — hand-authored; everything else carries
+  a `DO-NOT-EDIT` header.
 
 ## Load these skills first (R0)
 
