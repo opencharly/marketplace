@@ -8,7 +8,7 @@ description: |-
 
 # ubuntu (VM)
 
-`source.kind: bootstrap` VM that builds an Ubuntu 24.04 rootfs from scratch via
+`source.kind: bootstrap` VM that builds an Ubuntu 26.04 rootfs from scratch via
 `debootstrap` (using `/charly-distros:ubuntu-debootstrap-builder`), then boots it
 under libvirt/QEMU.
 
@@ -34,7 +34,7 @@ check-ubuntu-debootstrap-vm`. Drive the VM lifecycle from the submodule:
 | Network | user mode |
 | SSH | user `ubuntu`, `port_auto: true` (the runner allocates a free host port at vm-create and persists it in vm_state), key_source generate |
 
-The `ubuntu` distro config (`inherits: debian`; debootstrap suite `noble`,
+The `ubuntu` distro config (`inherits: debian`; debootstrap suite `resolute`,
 mirror, base packages) comes from the embedded build vocabulary
 (`charly/charly.yml`, baked into the charly binary), available to every repo
 without an import. The embedded vocabulary carries BOTH distro configs, so

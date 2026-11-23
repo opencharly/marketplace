@@ -46,6 +46,24 @@
       "category": "images"
     },
     {
+      "name": "charly-ai-toolkit",
+      "source": "./ai-toolkit",
+      "description": "Self-contained skills for the Ostris AI Toolkit diffusion-training pod: the GUI/CLI trainer and the Z-Image LoRA path.",
+      "author": {
+        "name": "opencharly"
+      },
+      "homepage": "https://github.com/opencharly/charly",
+      "repository": "https://github.com/opencharly/marketplace",
+      "license": "MIT",
+      "keywords": [
+        "charly",
+        "ai-toolkit",
+        "diffusion",
+        "lora"
+      ],
+      "category": "images"
+    },
+    {
       "name": "charly-authoring",
       "source": "./authoring",
       "description": "The `charly box add-candy/cat/fetch/labels/refresh/rm-candy/set/write` authoring verbs served by candy/plugin-authoring.",
@@ -399,7 +417,7 @@
     {
       "name": "charly-immich",
       "source": "./immich",
-      "description": "Self-contained skills for the immich photo-management image (immich + immich-ml variants).",
+      "description": "Self-contained skills for the immich photo-management image (one variant; the ML backend runs in the same image on port 3003).",
       "author": {
         "name": "opencharly"
       },

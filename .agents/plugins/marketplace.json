@@ -29,6 +29,18 @@
       "category": "images"
     },
     {
+      "name": "charly-ai-toolkit",
+      "source": {
+        "source": "local",
+        "path": "./ai-toolkit"
+      },
+      "policy": {
+        "installation": "INSTALLED_BY_DEFAULT",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "images"
+    },
+    {
       "name": "charly-authoring",
       "source": {
         "source": "local",

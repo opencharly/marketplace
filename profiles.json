@@ -2,6 +2,7 @@
   "developer": [
     "charly-agent",
     "charly-agentteams",
+    "charly-ai-toolkit",
     "charly-authoring",
     "charly-automation",
     "charly-bpf",
@@ -79,6 +80,7 @@
   ],
   "container_families": [
     "agentteams",
+    "ai-toolkit",
     "coder",
     "comfyui",
     "filebrowser",

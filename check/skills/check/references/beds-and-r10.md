@@ -183,7 +183,7 @@ bed name against the live tree before launching it.
 | `check-preempt-arbiter-pod` / `check-preempt-live-pod` / `check-preempt-vm-live` | pod/vm | — | the resource-arbitration (preempt) beds |
 | `check-enc-pod` / `check-enc-port-pod` / `check-tunnel-pod` / `check-tutorial-shell` / `check-addcandy-pod` / `check-stepkind-emit-pod` / `check-ollama-pod` / `check-fedora-coder-pod` / `check-charly-fedora-pod` / `check-fedora-test-pod` | pod | — | the fedora mechanism + tooling beds |
 | `check-arch-vscode-pod` / `check-tmux-pod` / `check-agent-pod` / `check-agent-live` / `check-agent-live-claude` | pod | — | the arch tooling + agent beds |
-| `check-cachyos-jupyter-ml-pod` / `check-cachyos-ollama-pod` / `check-cachyos-ollama-rocm-pod` / `check-cachyos-comfyui-pod` / `check-cachyos-unsloth-studio-pod` / `check-cachyos-immich-ml-pod` / `check-selkies-kde-pod` / `check-selkies-labwc-pod` / `check-charly-selftest-pod` / `check-githubrunner-pod` | pod | — | the cachyos ML/desktop/tooling beds |
+| `check-cachyos-jupyter-ml-pod` / `check-cachyos-ollama-pod` / `check-cachyos-ollama-rocm-pod` / `check-cachyos-comfyui-pod` / `check-cachyos-unsloth-studio-pod` / `check-cachyos-immich-pod` / `check-selkies-kde-pod` / `check-selkies-labwc-pod` / `check-charly-selftest-pod` / `check-githubrunner-pod` | pod | — | the cachyos ML/desktop/tooling beds |
 | `check-debian-coder-pod` / `check-ubuntu-coder-pod` | pod | — | the debian/ubuntu coder pods |
 
 Bed homes: a bed lives in the repo that OWNS the artifact it tests — the
@@ -672,11 +672,11 @@ Reference numbers from the last end-to-end session:
 | `jupyter` | 32 | 32 | 0 | 0 (includes 3 declarative `mcp:` checks) |
 | `openwebui` | 24 | 24 | 0 | 0 |
 | `hermes` | 50 | 50 | 0 | 0 |
-| `immich-ml` | 63 | 61 | 0 | 2 (redis port internal) |
+| `immich-cdi` | 125 | 102 | 0 | 23 |
 | `selkies-desktop` | 91 | 91 | 0 | 0 |
 | `sway-browser-vnc` | 92 | 92 | 0 | 0 (includes 7 declarative cdp/wl/dbus/vnc/mcp checks; 2 mcp tests come from the chrome-devtools-mcp layer) |
 
-**Total: 376 checks across 7 images (0 failing).**
+**Total: 438 checks across 7 images (0 failing).**
 
 The "skipped" entries are intentional — they reference ports that
 aren't mapped in the containing image's `port:` block. Skipping them

@@ -52,7 +52,7 @@ The user-phase tasks run after the pixi environment is established by the parent
 ## Used In Boxes
 
 - `/charly-languages:python-ml` (via `python-ml` metalayer)
-- `/charly-immich:immich-ml` (via `python-ml` metalayer)
+- `/charly-immich:immich` (via `python-ml` metalayer)
 - `/charly-jupyter:jupyter-ml` (via `jupyter-ml` metalayer)
 - `/charly-jupyter:jupyter-ml-notebook` (via `jupyter-ml` metalayer)
 - `/charly-jupyter:unsloth-studio` (via `unsloth-studio` metalayer)

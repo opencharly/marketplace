@@ -11,7 +11,7 @@ description: |-
 
 Open WebUI with auto-configured LLM providers (Ollama, OpenRouter), MCP server discovery, and Jupyter code execution. No manual setup needed — secrets are credential-backed and auto-wired.
 
-Pinned to **Open WebUI 0.13.3** (`pixi.toml`). The upstream contract this candy
+Pinned to **Open WebUI 0.13.4** (`pixi.toml`). The upstream contract this candy
 depends on is recorded under "Upstream contract" below — read it before changing
 the entrypoint or any `env:` value, and re-verify it against the real source on
 every version bump.
@@ -44,7 +44,7 @@ openwebui:
 ```bash
 charly box build openwebui
 charly config openwebui -e WEBUI_ADMIN_EMAIL=you@example.com \
-                        -e WEBUI_ADMIN_PASSWORD=<32-byte hex> \
+                        -e WEBUI_ADMIN_PASSWORD=<strong-password> \
                         -e OPENROUTER_API_KEY=sk-or-xxx
 charly start openwebui
 # Open http://localhost:8080
@@ -102,6 +102,14 @@ index-aligned, so OpenRouter + Ollama Cloud + a self-hosted endpoint can be live
 once. With no `OLLAMA_HOST` the entrypoint sets `ENABLE_OLLAMA_API=false` (upstream
 defaults it to true), so an absent Ollama never appears as a failing provider.
 
+**Every projection is a DEFAULT, and the operator always wins.** Each value above is
+written as `${VAR:-derived}`, never as an unconditional assignment, so a deployment can
+set Open Web UI's own variable directly — `OPENAI_API_BASE_URLS`, `AUDIO_TTS_*`,
+`AUDIO_STT_*`, `VECTOR_DB`/`QDRANT_URI`, `TOOL_SERVER_CONNECTIONS`, `CODE_*`,
+`OLLAMA_BASE_URL`, `ENABLE_OLLAMA_API` — and the entrypoint keeps it, filling only what
+was left unset (opencharly/pod-openwebui#29). A provider's value is never discarded
+silently: if the entrypoint did not derive it, the operator's value is what runs.
+
 ## Secrets Management
 
 `WEBUI_ADMIN_PASSWORD` is a `secret_require:` entry, so it lives in the credential
@@ -122,7 +130,7 @@ provisioned value from the credential backend (`~/.config/charly/config.yml` →
 ```bash
 # Tier 1: admin password (credential store -> podman secret)
 charly config openwebui -e WEBUI_ADMIN_EMAIL=you@example.com \
-                        -e WEBUI_ADMIN_PASSWORD=<32-byte hex>
+                        -e WEBUI_ADMIN_PASSWORD=<strong-password>
 
 # Tier 1: what is provisioned for this deploy (works without the secrets plugin)
 charly status openwebui          # the Secrets: line lists charly-openwebui-*
@@ -135,7 +143,7 @@ charly secrets gpg set OPENROUTER_API_KEY sk-or-new-key
 charly config openwebui --env-file .secrets --update-all
 ```
 
-`WEBUI_SECRET_KEY` is a **hard requirement** in 0.13.3: with `WEBUI_AUTH=true` and an
+`WEBUI_SECRET_KEY` is a **hard requirement** in 0.13.3 and 0.13.4: with `WEBUI_AUTH=true` and an
 empty key the backend refuses to start (`open_webui/env.py` raises `SystemExit` at
 import; 0.9.5 silently fell back to `t0p-s3cr3t`). `open-webui serve` dodges that only
 by writing `.webui_secret_key` into the current directory — the candy never relies on
@@ -276,20 +284,23 @@ runtime witness. The readable source of the value is the credential backend
 (`~/.config/charly/config.yml` → `keyring_keys: charly/secret/<NAME>`); the
 `charly secrets get` read-back needs the `secrets` command plugin (#995).
 
-## Upstream contract (Open WebUI 0.13.3)
+## Upstream contract (Open WebUI 0.13.4 re-verification)
 
-Every surface the entrypoint projects, with the evidence in the 0.13.3 source. The
-plumbing was rewritten between 0.9.5 and 0.12.3 — `PersistentConfig` objects and
-`/opt/data/config.json` are gone, replaced by a per-key `config` table plus a
+Every surface the entrypoint projects. The `file:line` evidence below was established
+against the 0.13.3 source and re-checked against 0.13.4 for every surface this candy
+projects; a row whose 0.13.4 behaviour changed is marked in the **Verdict** column and its
+evidence names 0.13.4. The plumbing was rewritten between 0.9.5 and 0.12.3 — `PersistentConfig`
+objects and `/opt/data/config.json` are gone, replaced by a per-key `config` table plus a
 `DEFAULT_CONFIG` dict built from the environment at import time (`config.py`,
 `models/config.py`) — but **the env-var names and their meaning did not move**:
 
-| Surface | Verdict | Evidence in 0.13.3 |
+| Surface | Verdict | Evidence in 0.13.3 (0.13.4 where marked) |
 |---|---|---|
 | `DATA_DIR` | unchanged | `env.py:220` (`DATA_DIR`, `/opt/data` honoured; the `FROM_INIT_PY` block at `env.py:222-242` is a no-op when old and new dirs are equal) |
 | `PORT` | **not read by upstream** (also not in 0.9.5) | `__init__.py:37-40` — `serve(host='0.0.0.0', port: int = 8080)` is a Typer option; the entrypoint therefore passes `--port "${PORT:-8080}"` |
 | `DOCKER` | unchanged | `env.py:42` |
-| `ENABLE_DIRECT_CONNECTIONS` | unchanged | `config.py:224`, which becomes the `direct.enable` default (`config.py:2965`) |
+| `ENABLE_DIRECT_CONNECTIONS` | **REMOVED in 0.13.4** — Direct Connections is replaced by Tether; the candy no longer sets this variable | 0.13.4 removal (the 0.13.3 default was `config.py:224`/`config.py:2965`) |
+| `IMAGE_GENERATION_ENGINE` + `COMFYUI_*` | **semantics changed in 0.13.4**: the request path reads `images.connections` from the config table; the env seeds the legacy `image_generation.*` keys and a one-shot startup migration turns them into a connection. With `ENABLE_PERSISTENT_CONFIG=false` the env-built defaults are re-derived on every start | 0.13.4 `utils/images/connections.py` (`migrate_legacy_image_config()`, `get_image_models()`), `config.py` (`image_generation.comfyui.*` defaults), `main.py` lifespan (migration call) |
 | `ENABLE_CODE_EXECUTION` | unchanged | `config.py:391`, which becomes the `code_execution.enable` default (`config.py:2978`) |
 | `ENABLE_PERSISTENT_CONFIG` | name/semantics unchanged, mechanism rewritten | `config.py:3421` → `models/config.py:120-129` (`configure`), `models/config.py:136-150`: disabled ⇒ `Config.get()` answers from the env-built defaults, so env wins on every read; admin-panel writes then apply to process memory only (`models/config.py:200-209`) |
 | `ENABLE_VERSION_UPDATE_CHECK` | unchanged | `env.py:1198` |
@@ -299,7 +310,7 @@ plumbing was rewritten between 0.9.5 and 0.12.3 — `PersistentConfig` objects a
 | `OLLAMA_BASE_URL` / `ENABLE_OLLAMA_API` | unchanged | `config.py:229,233,288-292`, which become the `ollama.enable` / `ollama.base_urls` defaults (`config.py:2967-2968`) |
 | `OPENAI_API_KEY` / `OPENAI_API_BASE_URL` | unchanged — still aliases that feed the plural lists, then get reset | `config.py:312-313,351-357` |
 | `OPENAI_API_BASE_URLS` / `OPENAI_API_KEYS` | unchanged (semicolon lists; providers without an `OPENAI_API_CONFIGS` entry take the legacy path) | `config.py:325-337`, `routers/openai.py:588-608` |
-| `TOOL_SERVER_CONNECTIONS` | unchanged shape (superset: optional `forward_cookies` and `headers`; model is `extra='allow'`); the MCP transport is now **Streamable HTTP only** — 0.13.3 pins `mcp==2.3.0` and the SSE client is gone | `config.py:368-374`, `routers/configs.py:232-243`, `utils/tools.py:250` → `utils/mcp/client.py:140` |
+| `TOOL_SERVER_CONNECTIONS` | unchanged shape (superset: optional `forward_cookies` and `headers`; model is `extra='allow'`); the MCP transport is **Streamable HTTP only** in 0.13.3 and 0.13.4 — 0.13.3 pins `mcp==2.3.0` and the SSE client is gone | `config.py:368-374`, `routers/configs.py:232-243`, `utils/tools.py:250` → `utils/mcp/client.py:140` |
 | `CODE_EXECUTION_ENGINE` + `CODE_EXECUTION_JUPYTER_*` | env names unchanged, but the consumer now reads the per-key config table (`code_execution.*`), and 0.13.3 adds a `CODE_INTERPRETER_*` twin that defaults from these — the entrypoint already sets **both** | `config.py:393-404` (+ the `CODE_INTERPRETER_*` twin at `config.py:415-441`), `routers/utils.py:43-64` |
 | `ENABLE_TOOL_SERVERS` | now master-gated by `ENABLE_PLUGINS` (both default `true`) | `env.py:1182-1186` |
 
@@ -344,3 +355,12 @@ framework; record the run's pass/fail counts on the PR that lands a change here.
 
 - `/charly-image:image` — image family umbrella (`candy:` image entries — those carrying `base:`/`from:` — in `charly.yml`, build/validate/inspect/list)
 - `/charly-build:build` — the embedded build vocabulary (distros, builders, init-systems)
+
+## Image lane (0.13.4)
+
+Generation and editing are SEPARATE connections. The candy ships `IMAGE_EDIT_ENGINE=comfyui`,
+accepts the full generation/edit env families, and its entrypoint derives the enable flags from
+resolved ComfyUI URLs, decodes base64 workflow provides, and suppresses the OpenAI edit
+connection inherited from `OPENAI_API_KEY`. Constants live in the workflow JSON (#28); edit node
+maps carry only `image`/`prompt`. See `/charly-openwebui:openwebui-layer` "Image generation and
+editing (ComfyUI)".

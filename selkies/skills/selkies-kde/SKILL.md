@@ -29,7 +29,7 @@ Owned by the `opencharly/distro-cachyos` submodule (`box/cachyos`).
 ```yaml
 selkies-kde:
   base: cachyos              # plain CachyOS base (x86_64_v3 Arch derivative)
-  build: [pac, aur]          # aur: chrome (google-chrome) + wl-tools (wlrctl)
+  build: [pac]               # chrome (google-chrome) + wl-tools (wlrctl) come from the aur builder
   candy:
     - agent-forwarding
     - selkies-kde-desktop    # the KDE metalayer (selkies-core + kde-selkies → kde-shell)

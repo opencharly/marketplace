@@ -1,6 +1,6 @@
 {
   "name": "charly-immich",
-  "description": "Self-contained skills for the immich photo-management image (immich + immich-ml variants).",
+  "description": "Self-contained skills for the immich photo-management image (one variant; the ML backend runs in the same image on port 3003).",
   "author": {
     "name": "opencharly"
   },
@@ -8,8 +8,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "OpenCharly Immich",
-    "shortDescription": "Self-contained skills for the immich photo-management image (immich + immich-ml variants).",
-    "longDescription": "Self-contained skills for the immich photo-management image (immich + immich-ml variants).",
+    "shortDescription": "Self-contained skills for the immich photo-management image (one variant; the ML backend runs in the same image on port 3003).",
+    "longDescription": "Self-contained skills for the immich photo-management image (one variant; the ML backend runs in the same image on port 3003).",
     "developerName": "opencharly",
     "category": "images",
     "capabilities": [

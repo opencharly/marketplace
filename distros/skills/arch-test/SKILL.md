@@ -23,7 +23,7 @@ the submodule: `cd box/arch && charly box build arch-test`.
 | Property | Value |
 |----------|-------|
 | Base | arch |
-| Build | pac, aur |
+| Build | pac (aur is routed as a builder: `builder: aur: arch-builder`) |
 | Layers | agent-forwarding, arch-pac-test, arch-aur-test |
 | Platforms | linux/amd64 |
 | Registry | ghcr.io/opencharly |

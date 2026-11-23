@@ -17,7 +17,7 @@ The **labwc flavor** of the selkies streaming desktop — a browser-accessible W
 ```yaml
 selkies-labwc:
   base: cachyos               # local cachyos base (same box/cachyos submodule)
-  build: [pac, aur]          # aur required: chrome (google-chrome) + wl-tools (wlrctl)
+  build: [pac]               # chrome (google-chrome) + wl-tools (wlrctl) come from the aur builder
   candy:
     - agent-forwarding
     - selkies-desktop
@@ -38,9 +38,10 @@ Tunnel config is in `charly.yml`: `tunnel: {provider: tailscale, private: all}`.
 `cachyos` — the Arch-derived, x86_64_v3-optimized base, a local sibling box in
 the same `opencharly/distro-cachyos` submodule (`box/cachyos`) that owns this box.
 Multimedia codecs (ffmpeg, x264, libva) come from Arch's `extra` repo; Chrome
-installs from the AUR (`google-chrome`). The box declares `build: [pac, aur]`
-so the AUR builder compiles `google-chrome` (chrome candy) and `wlrctl`
-(wl-tools layer); inheriting plain `[pac]` would silently skip both. Because a
+installs from the AUR (`google-chrome`). The AUR builder compiles
+`google-chrome` (chrome candy) and `wlrctl` (wl-tools layer) because their
+`distro.arch.aur` declarations reach this image's tag chain; there is no
+`build:` opt-in, and an unrunnable builder fails the build naming the candy. Because a
 `builder:` map does NOT cross a namespace boundary, the box declares its OWN
 `builder:` map (pixi/npm/cargo/aur → `arch.arch-builder`, the builder the
 `opencharly/distro-arch` submodule provides through the `arch` import namespace) rather
@@ -367,7 +368,7 @@ diagnostic recipe that found the leak.
 
 ## Related Boxes
 
-- `/charly-selkies:selkies-labwc-nvidia` — the GPU sibling of this CPU box: the same `selkies-desktop` metalayer on the CachyOS GPU base (`cachyos.nvidia`, `build: [pac, aur]`) with `builder.pixi: arch.cuda-arch-builder` for real NVENC, in the `opencharly/distro-cachyos` submodule. See `/charly-distros:cachyos`.
+- `/charly-selkies:selkies-labwc-nvidia` — the GPU sibling of this CPU box: the same `selkies-desktop` metalayer on the CachyOS GPU base (`cachyos.nvidia`, `build: [pac]`) with `builder.pixi: arch.cuda-arch-builder` for real NVENC, in the `opencharly/distro-cachyos` submodule. See `/charly-distros:cachyos`.
 - `/charly-selkies:sway-browser-vnc` — VNC-based alternative using Sway compositor instead of Selkies/labwc streaming
 
 ## Verification

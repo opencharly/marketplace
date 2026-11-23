@@ -4,6 +4,7 @@
   "skills": [
     "./agent/skills",
     "./agentteams/skills",
+    "./ai-toolkit/skills",
     "./authoring/skills",
     "./automation/skills",
     "./bpf/skills",

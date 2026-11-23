@@ -25,7 +25,7 @@ Owned by the `opencharly/distro-cachyos` submodule (`box/cachyos`).
 ```yaml
 selkies-kde-nvidia:
   base: nvidia                            # the CachyOS GPU base (cachyos.nvidia)
-  build: [pac, aur]
+  build: [pac]                            # aur is a routed builder, not a format
   builder: {pixi: arch.cuda-arch-builder}   # nvcc + ffnvcodec headers → real NVENC
   candy:
     - agent-forwarding

@@ -57,12 +57,16 @@ pac:
   packages: [neovim]     # Arch
 ```
 
-AUR packages are authored under `distro.arch.aur.package` and built via
-`arch-builder` (`yay`); the consuming box must add `aur` to its `build:` list
-(`build: [pac, aur]`) — the base declares only `build: [pac]`. The
-`/charly-distros:cachyos` base shares this exact AUR path (it routes `aur` →
-`arch-builder` too), so AUR support is identical on `arch` and `cachyos`. See
-`/charly-image:layer` "AUR (`aur:`)" for the authoring reference.
+AUR packages are authored under `distro.arch.aur.package` and built by the aur
+builder in `arch-builder` (`yay`). aur is a builder like npm: there is no `build:`
+opt-in, so an image whose tag chain carries `arch` honours the declaration, and the
+box must route the builder (`builder: aur: arch-builder`, which this base does). Each
+candy's packages are installed through pacman from the candy's own directory. A box
+that cannot run the aur builder fails the build naming the candy, never ships without
+the package (opencharly/sdk#608). The `/charly-distros:cachyos` base shares this exact
+AUR path (it routes `aur` → `arch-builder` too), so AUR support is identical on
+`arch` and `cachyos`. See `/charly-image:layer` "AUR (`aur:`)" for the authoring
+reference.
 
 ## Verification
 
