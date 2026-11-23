@@ -761,6 +761,7 @@
         "SKILL.md",
         "references/branch-and-pr-loop.md",
         "references/evidence-and-freshness.md",
+        "references/issue-labels.md",
         "references/multi-repo-coordination.md",
         "references/pin-intent-and-currency.md",
         "references/pre-validator-self-audit.md",
