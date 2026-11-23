@@ -43,7 +43,9 @@ VNC screenshots work correctly on NVIDIA headless when used via `sway-desktop-vn
 
 1. **Pixman renderer** — `sway-desktop-vnc` sets `WLR_RENDERER=pixman` in its candy env, forcing software rendering. The `sway-wrapper` skips GPU auto-detection when `WLR_RENDERER` is pre-set.
 
-2. **DPMS workaround** — wayvnc 0.9.1 gates screen capture on `zwlr_output_power_v1` mode events, but sway's headless backend never emits them. The `wayvnc-wrapper` performs a minimal VNC handshake to trigger wayvnc to bind the power manager, then `swaymsg "output HEADLESS-1 power on"` forces the missing event. Fixed in wayvnc git main (post-0.9.1) — remove workaround when Fedora ships the fix.
+2. **DPMS workaround (wayvnc <= 0.9.1 only)** — wayvnc 0.9.1 gates screen capture on `zwlr_output_power_v1` mode events, but sway's headless backend never emits them. The `wayvnc-wrapper` performs a minimal VNC handshake to trigger wayvnc to bind the power manager, then `swaymsg "output <output> power on"` forces the missing event. It runs ONLY when the installed wayvnc is <= 0.9.1 on headless sway: wayvnc 0.10.2 (Arch/CachyOS, the latest upstream release) serves a full frame on headless sway 1.12 with no workaround (measured). Fedora 43/44, Debian 13 and Ubuntu 25.x still ship 0.9.1; delete the workaround once none of the supported distros does.
+
+**Compositor-agnostic wrapper.** The wrapper waits only for `$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY`; the sway IPC wait runs only when sway is running. `WAYVNC_OUTPUT` picks the served output (unset = wayvnc's first output — HEADLESS-1 on a headless sway), and `WAYVNC_MAX_FPS` caps the frame rate. Installed from the distro package on Fedora AND Arch/CachyOS.
 
 For boxes NOT using `sway-desktop-vnc` (custom sway + wayvnc setups), the `wl: screenshot` method (grim) remains a reliable fallback.
 

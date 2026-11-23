@@ -91,7 +91,6 @@ consequences:
 
 - `/charly-distros:fedora` — the parent base image
 - `/charly-distros:charly-fedora` — the next box up in size: the same shape plus the charly toolchain
-- `/charly-coder:fedora-coder` — the kitchen-sink end of the same spectrum
 
 ## Related Commands
 

@@ -84,9 +84,12 @@ Use a GPU variant for hardware H.264 encoding (zero CPU overhead); the CPU sibli
 
 ## AUR packages
 
-`build: [pac, aur]` — the `selkies-desktop` metalayer composes `chrome` (AUR
-`google-chrome`) + `wl-tools` (AUR `wlrctl`), so the box opts into the AUR builder.
-Without `aur` in `build:`, both AUR packages would be silently dropped.
+The `selkies-desktop` metalayer composes `chrome` (AUR `google-chrome`) +
+`wl-tools` (AUR `wlrctl`). aur is a builder, not a build format: the image's tag
+chain carries `arch`, so both declarations apply, and the inherited
+`builder: aur: arch.arch-builder` route builds them. A box that cannot run the
+aur builder fails the build naming the candy; nothing is dropped silently
+(opencharly/sdk#608).
 
 ## Recording
 

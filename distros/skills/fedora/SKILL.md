@@ -18,7 +18,7 @@ which is SELF-CONTAINED (`import: []`): the base stack is bare-local and the
 submodule composes the main repo's shared candies by `@github` git reference. Its
 boxes write `base: fedora` and route builders to `fedora-builder` (bare-local
 refs, no namespace qualifier). The Fedora consumer showcase boxes
-(`/charly-coder:fedora-coder`, `/charly-distros:charly-fedora`, `/charly-distros:fedora-test`)
+(`/charly-distros:charly-fedora`)
 and the Fedora-rooted pod families all live in the same submodule, discovered as
 `box/<name>/charly.yml` boxes. The main repo imports this submodule under the
 `fedora` namespace (one-directional — fedora imports nothing back) to reference

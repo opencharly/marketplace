@@ -34,7 +34,9 @@ my-image:
     candy: [arch-aur-test]
 ```
 
-Requires an Arch-based box with `build: [pac, aur]` so the builder can resolve AUR packages.
+Requires an Arch-based box that routes the aur builder (`builder: aur: arch-builder`). There is no
+`build:` opt-in: an image whose tag chain carries `arch` honours the `distro.arch.aur` declaration,
+and a box that cannot run the aur builder fails the build naming the candy (opencharly/sdk#608).
 
 ## Used In Boxes
 

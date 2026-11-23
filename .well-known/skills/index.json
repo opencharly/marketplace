@@ -48,6 +48,18 @@
       ]
     },
     {
+      "name": "ai-toolkit",
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "ai-toolkit-layer",
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
       "name": "airflow-layer",
       "files": [
         "SKILL.md"
@@ -175,6 +187,12 @@
     },
     {
       "name": "cachyos-bootstrap-vm",
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "cachyos-coder-tools",
       "files": [
         "SKILL.md"
       ]

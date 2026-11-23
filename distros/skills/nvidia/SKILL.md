@@ -10,7 +10,10 @@ description: |-
 
 # nvidia
 
-NVIDIA GPU base image — provides GPU runtime (driver libs, CDI toolkit) and CUDA development toolkit on Fedora.
+NVIDIA GPU base image — provides the CDI runtime wiring (nvidia-ctk, the Vulkan ICD,
+`nvidia-smi`) and the CUDA development toolkit on Fedora. The driver user-space is NOT
+baked: the CDI spec injects the host's own driver libs at run time, so the image never
+carries a copy that can disagree with the running kernel module.
 
 The `nvidia` and `cuda` candies are multi-distro (Fedora rpm + Arch pac), so a
 CachyOS GPU base exists alongside this Fedora `nvidia` box: `cachyos.nvidia`
@@ -31,7 +34,7 @@ RPM-based GPU stack, `cachyos.nvidia` for the Arch/CachyOS GPU stack. See
 ## Full Candy Stack
 
 1. `fedora-nonfree` (fedora + rpmfusion — provides RPM Fusion free + nonfree repos)
-2. `nvidia` — GPU runtime: driver libs, nvidia-container-toolkit (CDI), VA-API
+2. `nvidia` — GPU runtime: nvidia-container-toolkit (CDI), the Vulkan ICD, VA-API
 3. `cuda` — CUDA toolkit, cuDNN, onnxruntime, ffmpeg-libs
 
 ## Quick Start
@@ -45,7 +48,7 @@ charly shell nvidia
 
 ## Key Candies
 
-- `/charly-distros:nvidia` — NVIDIA GPU runtime (driver libs, CDI generation via nvidia-ctk)
+- `/charly-distros:nvidia` — NVIDIA GPU runtime (CDI generation via nvidia-ctk; host driver libs injected at run time)
 - `/charly-distros:cuda` — CUDA toolkit and GPU development libraries
 
 ## CDI host layer

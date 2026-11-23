@@ -79,13 +79,16 @@ CachyOS has the **same AUR capability as the `arch` base**, because it is
 Arch-derived and its `builder.aur` points at the shared `arch-builder` (which
 ships `yay`). Anything that builds on arch builds on cachyos:
 
-- A box based on `cachyos` that needs AUR packages declares
-  `build: [pac, aur]` (exactly as an `arch`-based box would — the base itself
-  declares only `build: [pac]`, so the consumer opts in). The AUR builder stage
-  (`<layer>-aur-build` via `arch-builder`) then compiles the packages and
-  `pacman -U`-installs the `.pkg.tar.zst` artifacts. Worked example: the
-  `selkies-desktop` box (`base: cachyos.cachyos`, `build: [pac, aur]`) builds
-  `google-chrome` (chrome candy) + `wlrctl` (wl-tools candy) from the AUR.
+- A box based on `cachyos` that composes AUR candies needs no opt-in: aur is a
+  builder, not a build format (`build:` lists OS package formats only). The
+  image's tag chain carries `arch`, so a candy's `distro.arch.aur` declaration
+  applies, and the box's `builder: aur: arch.arch-builder` route (which this base
+  declares) runs the AUR builder stage (`<candy>-aur-build`). It builds each
+  candy's packages into the candy's own directory, which pacman then installs. A
+  box that cannot run the aur builder fails the build naming the candy, never
+  ships without the package (opencharly/sdk#608). Worked example: the selkies
+  boxes build `google-chrome` (chrome candy) + `wlrctl` (wl-tools candy) from
+  the AUR.
 - Candies author AUR packages under `distro.arch.aur.package` (see
   `/charly-image:layer` "AUR"); the `arch` distro tag is what cachyos boxes match
   (their `distro:` is `[cachyos, arch]`), so the same `distro.arch` sections used
@@ -126,7 +129,7 @@ so they compose unchanged on CachyOS):
 - `cachyos.ollama` — Ollama LLM server
 - `cachyos.comfyui` — ComfyUI image generation
 - `cachyos.unsloth-studio` — Unsloth Studio fine-tuning UI
-- `cachyos.immich-ml` — Immich with the CUDA ML backend
+- `cachyos.immich-cdi` — the whole Immich stack in ONE image: server + web + the in-process CUDA ML backend on port 3003 (no separate ML image)
 - `cachyos.selkies-labwc-nvidia` — GPU NVENC Selkies streaming desktop (labwc flavor)
 - `cachyos.selkies-kde-nvidia` — GPU NVENC Selkies streaming desktop (full KDE Plasma flavor)
 - `cachyos.selkies-kde` — full KDE Plasma Selkies flavor on the plain cachyos base (VAAPI on an AMD/Intel render node, software x264 otherwise; the `-nvidia` sibling adds NVENC). The labwc cpu/amd flavor (`selkies-labwc`) lives in this same `box/cachyos` submodule.

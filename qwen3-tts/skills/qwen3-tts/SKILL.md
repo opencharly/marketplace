@@ -31,8 +31,9 @@ the charly-owned server the candy ships: the same two routes, over the same upst
 | Volume | `models` at `~/.cache/huggingface` (the checkpoint lives here after first use) |
 | Requires | `layer-python` (pixi builder + env), `layer-supervisord` (the init) |
 | Packages | `gcc`, `gcc-c++` — torch/triton JIT-compile at synthesis time |
-| Python env | `pixi.toml`: torch cu130 from the pytorch index + `qwen-tts==0.1.1` + fastapi/uvicorn/soundfile |
+| Python env | `pixi.toml`: torch cu130 from the pytorch index + `opencharly/Qwen3-TTS` at its CalVer tag (the committed `pixi.lock` records the tag's commit) + fastapi/uvicorn/soundfile |
 | `env_provide` | `QWEN3_TTS_HOST` (`http://{{.ContainerName}}:8000/v1`), `QWEN3_TTS_SERVED_MODEL`, `QWEN3_TTS_VOICE` |
+| `env` | `QWEN3_TTS_IDLE_UNLOAD_S` (idle seconds before the checkpoint is released; `0` = never; the deployment sets `300`) |
 
 ## The contract the consumer sees
 
@@ -42,10 +43,23 @@ Open WebUI's `_tts_openai` does exactly one thing: `POST {base}/audio/speech` wi
 - **`QWEN3_TTS_HOST` must end in `/v1`** — the consumer uses the base URL verbatim.
 - **The served model id travels with the provide** (`QWEN3_TTS_SERVED_MODEL`): Open WebUI forces a
   `model` into every request, so the consumer must be able to name the model this server serves.
+  The server CHECKS it: a `model` that is not the served checkpoint is a `400 model_not_served`
+  naming the checkpoint, never a silent serve.
 - **`GET /v1/audio/voices`** feeds the consumer's voice picker; without it the picker offers
-  OpenAI's names (`alloy`, `ash`, …) that this server does not have.
-- **WAV is the default reply** (`audio/wav`, 24 kHz). A consumer that transcodes needs `ffmpeg`;
-  `pod-openwebui` requires it for exactly this reason.
+  OpenAI's names (`alloy`, `ash`, …) that this server does not have. The list is the checkpoint's
+  OWN speaker list (`model.get_supported_speakers()`) once it is loaded. The hardcoded nine-name
+  preset list is served only before the load completes or after a failed one, and the response
+  says which one it is (`"source": "model"` or `"source": "fallback"`).
+- **`response_format` is honoured, not ignored.** The server encodes `wav` (default), `pcm`
+  (headerless 16-bit LE), `flac` and `mp3` — the set it MEASURES as writable by the installed
+  `libsndfile` at import — and answers with the matching `Content-Type` (`audio/wav`, `audio/pcm`,
+  `audio/flac`, `audio/mpeg`). Anything else (`opus`, `aac`, …) is a `400
+  unsupported_response_format` naming the supported set, because silently substituting WAV is a
+  lie the consumer cannot see.
+- **`GET /health` is the readiness signal, not decoration**: `200 {"status":"ok"}` only once the
+  model can synthesize; `503` with `{"status":"loading"|"error"|"unloaded","detail":…}` while it
+  cannot. `/v1/models` keeps answering `200` throughout, so the OpenAI surface a consumer probes
+  is reachable during a warm-up.
 
 ## Configuration
 
@@ -56,11 +70,22 @@ Open WebUI's `_tts_openai` does exactly one thing: `POST {base}/audio/speech` wi
 | `QWEN3_TTS_VOICE` | `vivian` | default preset voice when the request omits one |
 | `QWEN3_TTS_PORT` | `8000` | listen port |
 
-Preset voices (CustomVoice checkpoints): `vivian`, `serena`, `uncle_fu`, `dylan`, `eric`, `ryan`,
-`aiden`, `ono_anna`, `sohee`.
+Fallback preset voices (CustomVoice checkpoints — served only until the loaded checkpoint reports
+its own list): `vivian`, `serena`, `uncle_fu`, `dylan`, `eric`, `ryan`, `aiden`, `ono_anna`,
+`sohee`.
 
-The checkpoint downloads on the **first synthesis request** (lazy load) and is cached in the
-`models` volume. Budget minutes for the first call: download plus load, then it is warm.
+The checkpoint loads in a **background thread at service start** — uvicorn never waits for it, so
+`/v1/models` answers in milliseconds while the model is still warming and `/health` reports
+`loading`. A request that arrives during the warm-up WAITS for that one in-flight load instead of
+starting a second one, so a restart costs the consumer one slow turn rather than a failed one
+(measured before this: an 8–33 s load against Open WebUI's 41.8 s aiohttp timeout, i.e. the user's
+first "speak" after a restart failed). The checkpoint downloads into the `models` volume on the
+first load, so the very first start on a fresh volume still takes minutes — `/health` says
+`loading` for that whole time instead of pretending to be ready.
+
+A failed load is **not sticky**: the next request that finds nothing loading retries it (a
+transient CUDA OOM heals as soon as memory frees), and `/health` keeps the last failure readable in
+`detail` together with `load_attempts`.
 
 ## Deployment
 
@@ -79,20 +104,52 @@ build (opencharly/distro-fedora#110).
 ## Verification
 
 ```bash
-curl -s http://127.0.0.1:${HOST_PORT}/health
+# 503 while the checkpoint warms, 200 once it serves — never a lying 200
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:${HOST_PORT}/health
 curl -s http://127.0.0.1:${HOST_PORT}/v1/audio/voices
 curl -s -X POST -H 'Content-Type: application/json' \
      -d '{"input":"hello","voice":"vivian"}' \
      -o /tmp/x.wav -w '%{http_code} %{content_type}\n' \
      http://127.0.0.1:${HOST_PORT}/v1/audio/speech
 head -c 4 /tmp/x.wav            # RIFF
+# the consumer's declared format round-trips as real mp3, not a substituted WAV
+curl -s -X POST -H 'Content-Type: application/json' \
+     -d '{"input":"hello","response_format":"mp3"}' \
+     -o /tmp/x.mp3 -w '%{http_code} %{content_type}\n' \
+     http://127.0.0.1:${HOST_PORT}/v1/audio/speech
+# a format this server cannot produce is a 4xx naming the ones it can
+curl -s -X POST -H 'Content-Type: application/json' \
+     -d '{"input":"hello","response_format":"opus"}' \
+     http://127.0.0.1:${HOST_PORT}/v1/audio/speech
 ```
 
-The baked `check:` steps prove the script is installed and the pixi env imports torch, soundfile and
-`qwen_tts`; they are build-scope, so `charly check box` runs them against the image.
+The baked `check:` steps prove the script is installed, that the pixi env imports torch, soundfile
+and `qwen_tts`, and — on a container with no checkpoint and no GPU — the honesty contract itself:
+`/v1/models` answering while `/health` is `503`, the 4xx for an unsupported `response_format` and
+for a foreign `model`, one load attempt per failed load (retriable, not wedged), at most one load
+attempt per concurrent burst, and every advertised format encoding real bytes. They are
+build-scope, so `charly check box` runs them against the image.
 
 ## Related
 
 - `/charly-openwebui:openwebui` — the consumer side: `env_accept`, the `AUDIO_TTS_*` projection, ffmpeg
 - `/charly-image:layer` — candy authoring (`env_provide`, `service:`, `volume:`)
 - `/charly-check:check` — the check/ADE surface
+
+## Style instruction (`instruct`)
+
+The CustomVoice path accepts a free-text delivery description — emotion, pace,
+character — through the model's own `instruct` kwarg:
+
+- `QWEN3_TTS_INSTRUCT` sets a deployment-wide default;
+- a request's `instruct` field overrides it for that call.
+
+```
+curl -sS http://127.0.0.1:8000/v1/audio/speech \
+  -H 'Content-Type: application/json' \
+  -d '{"input":"Hello","voice":"vivian","instruct":"warm, unhurried, smiling"}'
+```
+
+An unset instruction is the model's own default and costs nothing. The
+instruction is free text, so it belongs in the deployment's env (or the
+caller's request), never in this repo.

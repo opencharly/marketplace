@@ -73,7 +73,6 @@ USER 1000
 ## Downstream / sibling entries (all in opencharly/distro-debian)
 
 - `/charly-distros:debian-builder` — pixi/npm/cargo multi-stage builder on this base.
-- `/charly-coder:debian-coder` — kitchen-sink dev box on this base.
 - `/charly-distros:debian-debootstrap-builder` — privileged debootstrap builder (`base: debian:13`).
 - `/charly-distros:debian-debootstrap` — bootstrap-from-scratch rootfs (`from: builder:debootstrap`).
 - `/charly-vm:debian-debootstrap-vm` — the `debian-debootstrap` bootstrap VM + `check-debian-debootstrap-vm` bed.
@@ -91,7 +90,6 @@ charly -C box/debian box validate     # embedded build vocab + remote layer refs
 
 - `/charly-distros:ubuntu` — deb-family sibling base in the separate `opencharly/distro-ubuntu` submodule; ships `base_user:` + adopts ubuntu:ubuntu.
 - `/charly-distros:debian-builder` — multi-stage builder on top of this box.
-- `/charly-coder:debian-coder` — kitchen-sink dev box on this base.
 - `/charly-distros:fedora` — RPM-family counterpart.
 - `/charly-distros:arch` — pacman-family counterpart (separate `opencharly/distro-arch` submodule).
 

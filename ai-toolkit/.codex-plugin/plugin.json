@@ -1,0 +1,22 @@
+{
+  "name": "charly-ai-toolkit",
+  "description": "Self-contained skills for the Ostris AI Toolkit diffusion-training pod: the GUI/CLI trainer and the Z-Image LoRA path.",
+  "author": {
+    "name": "opencharly"
+  },
+  "repository": "https://github.com/opencharly/marketplace",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "OpenCharly Ai-toolkit",
+    "shortDescription": "Self-contained skills for the Ostris AI Toolkit diffusion-training pod: the GUI/CLI trainer and the Z-Image LoRA path.",
+    "longDescription": "Self-contained skills for the Ostris AI Toolkit diffusion-training pod: the GUI/CLI trainer and the Z-Image LoRA path.",
+    "developerName": "opencharly",
+    "category": "images",
+    "capabilities": [
+      "Instructions"
+    ],
+    "defaultPrompt": [
+      "Use OpenCharly Ai-toolkit for this OpenCharly task."
+    ]
+  }
+}

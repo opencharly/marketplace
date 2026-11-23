@@ -2,8 +2,7 @@
 name: debian-builder
 description: |-
   Minimal Debian 13 builder image (pixi + Node.js + build-toolchain) used
-  as the multi-stage builder for every box based on Debian — currently
-  debian-coder. Produces the pre-compiled pixi envs, npm globals, and
+  as the multi-stage builder for every box based on Debian. Produces the pre-compiled pixi envs, npm globals, and
   cargo crates that land in the final runtime image via COPY --from.
   MUST be invoked before building, deploying, configuring, or troubleshooting
   the debian-builder box.
@@ -13,11 +12,11 @@ description: |-
 
 # debian-builder
 
-Debian 13 counterpart of `/charly-distros:fedora-builder`. Provides the pixi / npm / cargo build environments so downstream Debian boxes (currently `/charly-coder:debian-coder`) get pre-compiled artifacts from a dedicated builder stage without bloating the final image.
+Debian 13 counterpart of `/charly-distros:fedora-builder`. Provides the pixi / npm / cargo build environments so downstream Debian boxes get pre-compiled artifacts from a dedicated builder stage without bloating the final image.
 
 Lives in the **`opencharly/distro-debian`** repo (git submodule at **`box/debian`**).
 Build it from the submodule: `charly -C box/debian box build debian-builder`
-(normally it builds implicitly as a dependency of `debian-coder`). Its
+(built implicitly when a Debian-based box needs a pixi/npm/cargo stage). Its
 `pixi`/`nodejs`/`build-toolchain` layers are pulled by github reference from the
 main repo.
 
@@ -40,7 +39,7 @@ main repo.
 
 ## Role in the build system
 
-Declares `builds: [pixi, npm, cargo]` and is listed as `debian-coder`'s builder for all three types via:
+Declares `builds: [pixi, npm, cargo]` and is the family's builder for all three types via:
 
 ```yaml
 debian:
@@ -50,7 +49,7 @@ debian:
     cargo: debian-builder
 ```
 
-During `charly box build debian-coder`, any candy that ships `pixi.toml` / `package.json` / `Cargo.toml` gets a multi-stage `FROM debian-builder AS <layer>-<builder>-build` section emitted by the generator, then `COPY --from=<stage> --chown=${UID}:${GID}` into the final image. See `/charly-internals:generate-source` for the template.
+During any Debian-based box build, any candy that ships `pixi.toml` / `package.json` / `Cargo.toml` gets a multi-stage `FROM debian-builder AS <layer>-<builder>-build` section emitted by the generator, then `COPY --from=<stage> --chown=${UID}:${GID}` into the final image. See `/charly-internals:generate-source` for the template.
 
 No AUR equivalent (unlike `/charly-distros:arch-builder`) — AUR is an Arch-only concept.
 
@@ -67,7 +66,8 @@ charly -C box/debian box build debian-builder
 charly shell debian-builder
 ```
 
-Typically not invoked directly — it's a build-time dependency of `/charly-coder:debian-coder`.
+Typically not invoked directly — it is a build-time dependency of any Debian-based box that
+composes a pixi/npm/cargo-owning candy.
 
 ## Verification
 
@@ -77,7 +77,6 @@ Typically not invoked directly — it's a build-time dependency of `/charly-code
 ## Related boxes
 
 - `/charly-distros:debian` — parent base, declares the bootstrap packages in the embedded `distro:` vocabulary.
-- `/charly-coder:debian-coder` — the consumer that this builder exists to serve.
 - `/charly-distros:fedora-builder` — RPM-family sibling.
 - `/charly-distros:arch-builder` — pacman + AUR sibling.
 - `/charly-distros:ubuntu-builder` — Ubuntu 24.04 sibling.
@@ -97,5 +96,5 @@ Typically not invoked directly — it's a build-time dependency of `/charly-code
 **MUST be invoked** when:
 
 - Building or troubleshooting `debian-builder` itself.
-- Debugging multi-stage `COPY --from` errors in a `debian-coder` build (the source stage is this image).
+- Debugging multi-stage `COPY --from` errors in a Debian-based build (the source stage is this image).
 - Adding a new builder capability (e.g. a `dotnet` build type) to deb-family images.

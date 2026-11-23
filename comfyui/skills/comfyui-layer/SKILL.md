@@ -13,7 +13,7 @@ description: |-
 
 | Property | Value |
 |----------|-------|
-| Dependencies | `cuda`, `supervisord` |
+| Dependencies | `supervisord` only — the GPU **substrate** is the box's |
 | Ports | 8188 |
 | Volumes | `comfyui` -> `~/ComfyUI` |
 | Service | `comfyui` (supervisord) |
@@ -33,26 +33,38 @@ Arch repos (same package names).
 
 | Variable | Value |
 |----------|-------|
-| (inherited from cuda) | CUDA toolkit paths |
+| (declared by the candy) | `COMFYUI_REF`, `COMFYUI_MODEL*` — the app tag and the model fetch inputs |
+| (NOT declared here) | `CUDA_HOME` — that belongs to `layer-cuda`, and only a box that composes it has one |
 
 ## Usage
 
+The candy ships no CUDA toolkit and no driver. PyTorch arrives as the `cu130` wheel, which
+bundles its own CUDA runtime, and the driver comes from the substrate **the box chooses**:
+
 ```yaml
-# charly.yml — the comfyui box composes the comfyui candy via an inline candy: list
-comfyui:
+# A POD: the runtime injects the host driver per container (layer-cdi).
+comfyui-pod:
   candy:
-    base: nvidia
+    base: nvidia-cdi
+    candy:
+      - '@github.com/opencharly/pod-comfyui'
+
+# A VM: the guest owns its kernel module, so the box bakes the driver.
+comfyui-vm:
+  candy:
+    base: vm-nvidia          # composes layer-nvidia + layer-cuda
     candy:
       - '@github.com/opencharly/pod-comfyui'
 ```
 
 ## Used In Boxes
 
-- `/charly-comfyui:comfyui`
+- `comfyui-cdi` — `opencharly/distro-cachyos` and `opencharly/distro-fedora` (base `nvidia-cdi`)
 
 ## Related Candies
 
-- `/charly-distros:cuda` -- CUDA toolkit dependency
+- `/charly-distros:cdi` -- the POD GPU contract the pod base supplies
+- `/charly-distros:cuda` -- the CUDA toolkit, composed by a **VM** box, never by this candy
 - `/charly-infrastructure:supervisord` -- process manager dependency
 
 ## When to Use This Skill
