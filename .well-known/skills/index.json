@@ -936,18 +936,6 @@
       ]
     },
     {
-      "name": "immich-ml",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "immich-ml-layer",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
       "name": "inspect",
       "files": [
         "SKILL.md"

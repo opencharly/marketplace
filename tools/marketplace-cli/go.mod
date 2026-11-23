@@ -3,8 +3,8 @@ module github.com/opencharly/marketplace/tools/marketplace-cli
 go 1.26.8
 
 require (
-	github.com/opencharly/plugin-marketplace/candy/plugin-marketplace v0.2026322.1250
-	github.com/opencharly/sdk v0.2026319.1356
+	github.com/opencharly/plugin-marketplace/candy/plugin-marketplace v0.2026327.1351
+	github.com/opencharly/sdk v0.2026327.1226
 )
 
 require (
@@ -23,7 +23,7 @@ require (
 	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/oklog/run v1.1.0 // indirect
-	github.com/opencharly/spec v0.2026319.26 // indirect
+	github.com/opencharly/spec v0.2026327.605 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.4.3 // indirect
