@@ -169,7 +169,7 @@ charly-marketplace:
             # `node scripts/gh/cli.ts` (opencharly/opencharly#1160, #1163), and this repo's
             # shell watcher family and `coord.sh` are deleted in the same change. The
             # range touches exactly seven `.agents/skills/` files, all from those two PRs.
-            - '@github.com/opencharly/opencharly:v2026.326.2026'
+            - '@github.com/opencharly/opencharly:v2026.327.1334'
             # The two CONTRACT repos' skill shelves (opencharly/opencharly#611).
             # DIRECT, for the rule stated above. Both are Go MODULES, so their tags follow
             # the Go-module scheme

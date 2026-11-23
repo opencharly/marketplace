@@ -151,7 +151,8 @@ duplicate issue or PR.
 
 **The issue is the coordination point — claim it before you branch.** To stop
 two sessions working the same issue at once: check the issue for an owner
-(assignee, a claim comment, a status label); CLAIM it by commenting (and
+(the assignee plus the latest `CLAIM`/`OWNING` comment — never a label:
+`category:`/`type:` describe the work and carry no ownership); CLAIM it by commenting (and
 assigning yourself) BEFORE you create a branch, and state what slice you are
 taking. If another session owns it, coordinate on the thread — offer to take a
 slice, ask for status, or hand off — instead of opening a competing PR. Use

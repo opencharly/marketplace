@@ -467,7 +467,7 @@ The playbook:
    group (one bed at a time), while different token groups and the
    no-token pool run in parallel. On this repo: `nvidia-gpu` =
    {`check-cachyos-gpu-vm`, `check-selkies-{kde,labwc}-nvidia-vm`
-   (exclusive) + `check-cachyos-{comfyui,unsloth-studio,immich-ml,
+   (exclusive) + `check-cachyos-{comfyui,unsloth-studio,immich,
    jupyter-ml}-pod` + `check-versa-pod` (shared)} — all serial among
    themselves (an exclusive vfio flip cannot overlap a shared nvidia+CDI
    claim); `test-lock` = {`check-preempt-arbiter-pod`,

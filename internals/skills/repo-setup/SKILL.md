@@ -178,6 +178,38 @@ purpose. So the order is:
    restating the reasoning. Advance THIS pin with the narrow mechanism, NOT with `charly task sync`:
    that verb is an ORG-WIDE wave (Part II #3), it advances every pin the umbrella declares, and it
    holds the worktree's index while it runs.
+7. **Verify the org issue labels** (this is the whole label contract for a new repo):
+
+   a. **`opencharly/.github` owns everything label-related** — the taxonomy
+      (`labels/taxonomy.json`), the generic rules (`labels/category-rules.json`), the org issue
+      form (`.github/ISSUE_TEMPLATE/issue.yml`, the default community-health file), the
+      sync/audit workflows and the tests. **A repository ships no label configuration of its
+      own, ever.**
+   b. **The bootstrap sync provisions the labels.** `bootstrap-repo-main.yml` runs
+      `scripts/labels.sh sync --repo <name>`; the 12 labels (`category:runtime`,
+      `category:delivery`, `category:verification`, `category:experience`,
+      `category:governance`, `category:hygiene`; `type:fix`, `type:feat`, `type:design`,
+      `type:spec`, `type:docs`, `type:chore`) exist in every non-archived repo. Verify them:
+      `gh label list -R opencharly/<name> --limit 100 | grep -E '^(category|type):'` must show
+      all 12; if the sync has not run, run `gh workflow run label-sync.yml --repo
+      opencharly/.github -f repos=<name>`.
+   c. **Do not ship a repository-specific issue template** unless it carries the same four
+      required fields as the org form — Category, Type, Remedy / files the remedy will touch,
+      and Cited design decision or org-rulebook rule (or `none`). A repo template **overrides**
+      the org default (a GitHub limitation), so a template without those fields silently breaks
+      mandatory labelling for that repo. The safest choice is no template at all.
+   d. **No repository-specific label.** Labels are fully generic: the repository name is never
+      a classification signal, every category is available in every repo, and a new or future
+      repo needs no mapping. A label like `session:`, `owner:`, `priority:`, `severity:`,
+      `size:`, `status:` or any repo/product-named label is a defect the audit reports.
+   e. **File through the org form or `scripts/gh/cli.ts issue`**, which refuses without
+      `category:`, `type:`, remedy/files and the cited rule — never a bare `gh issue create`.
+      The full "which label" rules, the split protocol and the DESIGN/rulebook violation table
+      are `/charly-internals:git-workflow` (`references/issue-labels.md`).
+   f. **Expect the org `label-audit` to check the new repo** daily: it reports missing axes,
+      two values on one axis, retired/default labels and unknown labels (report-only by
+      default); `label-sync` re-provisions the 12 labels because GitHub recreates its 9
+      defaults on every new repository.
 
 ## The measured gap this checklist prevents
 
