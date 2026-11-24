@@ -255,13 +255,12 @@ virtqemud/virtnetworkd programs.
 
 Packages are declared under the candy's `distro:` map — `distro.fedora` (RPM), `distro.arch` (pacman), `distro.debian` / `distro.ubuntu` / `distro.ubuntu-24.04` (deb). Debian/Ubuntu install `libvirt-daemon-system`, `libvirt-clients`, `libvirt-daemon-driver-qemu`, `qemu-system-x86`, `qemu-utils`, `virtinst`. Crucially, **Debian/Ubuntu build libvirt WITHOUT the modular split** — there is NO `/usr/sbin/virtqemud`/`/usr/sbin/virtnetworkd` binary and NO `virtqemud.socket`/`virtnetworkd.socket` unit (RDD-proven on debian:13 / libvirt 11.3.0); only the monolithic `/usr/sbin/libvirtd` + `libvirtd.socket` exist, and `libvirtd` serves both the qemu and network drivers. That is exactly why the `service:` block scopes the `virtqemud`/`virtnetworkd` entries to `distro: [fedora, arch]` and ships a distinct `libvirtd` entry scoped to `distro: [debian, ubuntu]` (see the canonical example above). The `package_map:` on the `virtqemud`/`virtnetworkd` package-existence checks resolves the deb name to `libvirt-daemon-system`.
 
-Drops on deb: `gvisor-tap-vsock`, `podman-machine` (not packaged; VM-mode networking features degrade gracefully on debian-coder / ubuntu-coder).
+Drops on deb: `gvisor-tap-vsock`, `podman-machine` (not packaged; VM-mode networking features degraded gracefully on the deb-based coder images, now retired).
 
 ## Used In Boxes
 
 - `/charly-distros:charly-fedora` — root VM host (same daemons, uid 0)
 - `/charly-coder:charly-arch` — Arch counterpart
-- `/charly-coder:debian-coder`, `/charly-coder:ubuntu-coder` — deb-based consumers (via the `charly` candy)
 - `/charly-distros:githubrunner` — VMs for CI workloads
 
 ## Related Candies

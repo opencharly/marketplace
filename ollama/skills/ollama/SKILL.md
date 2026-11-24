@@ -85,7 +85,7 @@ and Volumes.)
   such list through the Arch-only rule above, which is the part that does not
   move.
 - A consumer that composes neither pays for neither ON A PACKAGED DISTRO —
-  e.g. `/charly-openclaw:openclaw-desktop` (cachyos base, no GPU candy). On a
+  e.g. `/charly-openclaw:openclaw` (cachyos base, no GPU candy). On a
   tarball distro it still carries the bundled CUDA backend.
 
 ## Ports
@@ -99,6 +99,28 @@ and Volumes.)
 | Name | Path | Purpose |
 |------|------|---------|
 | models | ~/.ollama | Model storage |
+
+## Default models
+
+A box or a deploy can declare the models the pod should always carry with
+`OLLAMA_PULL_MODELS` (a space-separated list). On container start the charly-owned
+server wrapper (`/opt/ollama/start-ollama.sh`) starts `ollama serve` and rides a
+background pull of each declared id alongside it (idempotent into the persistent
+`models` volume). It is empty by default, so a CPU-only consumer downloads
+nothing; the GPU boxes set it, and a deploy entry overrides it per host. The pull
+logs to the container log (`charly logs <name>`), and a failed pull never affects
+the server's supervisor state. See `/charly-ollama:ollama-layer` for the authoring
+shape, the pull-once-per-host behaviour, and why the pull is not its own
+supervisord program.
+
+## GPU readiness gate
+
+`ollama serve` probes the GPU only at startup, and a probe that fails under VRAM
+pressure leaves the server CPU-only until it is restarted. The service wrapper
+therefore refuses to start the server on a GPU pod until a device reports at least
+`OLLAMA_GPU_MIN_FREE_MIB` (default 512) MiB free, waiting up to
+`OLLAMA_GPU_WAIT_SECONDS` (default 600) and then exiting so supervisord retries.
+See `/charly-ollama:ollama-layer` for the measured failure and the knobs.
 
 ## Quick Start
 
@@ -144,7 +166,7 @@ See `/charly-ollama:ollama-cli` for the full command tree.
 
 ## Pinning the upstream version
 
-`OLLAMA_VERSION` is PINNED to a release tag (`v0.40.16` today) and must
+`OLLAMA_VERSION` is PINNED to a release tag (`v0.40.17` today) and must
 stay one — this is not a default you can swap for `latest`. The download
 cache is content-addressed by the sha256 of the URL, so a `latest` URL
 hashes to a single key forever and keeps serving the first tarball it ever
@@ -183,7 +205,7 @@ composition.
 
 - `/charly-distros:nvidia` — the GPU base family
 - `/charly-distros:cachyos` — the CachyOS image family, which carries its own ollama boxes
-- `/charly-openclaw:openclaw-desktop` — a desktop image that serves a local ollama
+- `/charly-openclaw:openclaw` — the OpenClaw image that serves a local ollama
 - `/charly-jupyter:jupyter-ml-notebook` — receives `OLLAMA_HOST` via env_provide when ollama is deployed
 - `/charly-openwebui:openwebui` — receives `OLLAMA_HOST` via env_provide, auto-configures as `OLLAMA_BASE_URL`
 

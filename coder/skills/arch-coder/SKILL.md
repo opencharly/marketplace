@@ -26,7 +26,7 @@ description: |-
 > `charly --repo opencharly/distro-arch box build arch-coder`. The commands below assume
 > you are inside `box/arch` (or pass `-C box/arch`).
 
-Arch Linux counterpart of `/charly-coder:fedora-coder`. Same daily-development surface (AI CLIs, language runtimes, DevOps stack), same rootless posture (uid 1000 + passwordless sudo), same shape of tests — only the package manager (`pac:` / `aur:`) and a handful of Arch-specific package names differ.
+Arch Linux counterpart of the (now retired) Fedora coder image. Same daily-development surface (AI CLIs, language runtimes, DevOps stack), same rootless posture (uid 1000 + passwordless sudo), same shape of tests — only the package manager (`pac:` / `aur:`) and a handful of Arch-specific package names differ.
 
 ## Definition
 
@@ -109,24 +109,21 @@ No explicit `user:` / `uid:` / `gid:` — inherits the defaults. `user_policy:` 
 
 ## AUR via yay (Arch-specific builder chain)
 
-Unlike fedora-coder (which only uses `pixi`/`npm`/`cargo` builders), `arch-coder` can also pull from the AUR — because the `arch-builder` box ships `yay` and declares `builds: [pixi, npm, cargo, aur]`. Candies with `aur:` sections route through `arch-builder` as their `aur` builder. Currently no candy in the arch-coder stack uses AUR, but the capability exists for future additions (e.g. niche tools not in `[core]`/`[extra]`).
+Unlike the retired fedora-coder (which only used `pixi`/`npm`/`cargo` builders), `arch-coder` can also pull from the AUR — because the `arch-builder` box ships `yay` and declares `builds: [pixi, npm, cargo, aur]`. Candies with `aur:` sections route through `arch-builder` as their `aur` builder. Currently no candy in the arch-coder stack uses AUR, but the capability exists for future additions (e.g. niche tools not in `[core]`/`[extra]`).
 
 See `/charly-distros:arch-builder` and `/charly-tools:yay`.
 
 ## Cross-distro siblings
 
-`arch-coder` is one of the **cross-distro coder boxes** that share the identical `check:` block and a large set of identical candies, diverging only in each candy's package-format section (`rpm:` / `pac:` / `deb:`):
+`arch-coder` was one of the **cross-distro coder boxes** that shared the identical `check:` block and a large set of identical candies, diverging only in each candy's package-format section (`rpm:` / `pac:` / `deb:`):
 
-- `/charly-coder:fedora-coder` — RPM-based, Fedora 43 via `fedora-nonfree`, uid=1000 `user`.
 - `/charly-coder:arch-coder` — this box; pacman + optional AUR, uid=1000 `user`.
-- `/charly-coder:debian-coder` — deb-based, Debian 13 trixie, uid=1000 `user`.
-- `/charly-coder:ubuntu-coder` — deb-based, Ubuntu 24.04 noble, uid=1000 `ubuntu` (adopted from base image — see `/charly-image:image` "user_policy" and `/charly-distros:ubuntu`).
 
-All four produce the same developer surface. Pick based on which distro family you (or your team / CI) are already standardized on.
+The Fedora, Debian and Ubuntu coder cards were retired (their boxes are no longer published); `arch-coder` is the remaining one, so there is no longer a distro-family choice to make.
 
 ## The candy stack
 
-Candies in roughly the same groups as fedora-coder, with these Arch-specific notes:
+Candies in roughly the same groups as the other coder boxes, with these Arch-specific notes:
 
 - `nodejs` — Arch's `nodejs` package ships a current Node (v26); no LTS pinning.
 - `language-runtimes` — Arch ships `dotnet-sdk` in `[extra]` (no Microsoft repo needed, unlike Debian/Ubuntu). Also drops `python3-ramalama` (not packaged on Arch — install via `uv tool install ramalama`).
@@ -169,15 +166,12 @@ charly check box ghcr.io/opencharly/arch-coder:latest
 | 2222 | sshd-wrapper (SSH access as `user` with sudo) | `/charly-coder:sshd` |
 | 18765 | charly-mcp (entire `charly` CLI as MCP tools, Streamable HTTP) | `/charly-coder:charly-mcp` |
 
-Conflicts with `/charly-coder:fedora-coder` / `/charly-coder:debian-coder` / `/charly-coder:ubuntu-coder` on both ports (all coder-family boxes use the same canonical ports). Use `-i <instance>` or `-p <remap>` to run alongside.
+Conflicts with the other coder-family boxes on both ports (all coder-family boxes use the same canonical ports). Use `-i <instance>` or `-p <remap>` to run alongside.
 
 ## Related boxes
 
 - `/charly-distros:arch` — base image (pacman bootstrap, `user_policy: auto` → create).
 - `/charly-distros:arch-builder` — pixi/npm/cargo/aur multi-stage builder.
-- `/charly-coder:fedora-coder` — canonical RPM-family sibling.
-- `/charly-coder:debian-coder` — deb-family sibling on Debian 13.
-- `/charly-coder:ubuntu-coder` — deb-family sibling on Ubuntu 24.04 (adopt mode).
 - `/charly-coder:charly-arch` — slimmer Arch alternative with just the charly toolchain (no AI CLIs or DevOps tooling).
 
 ## Related layers

@@ -45,8 +45,6 @@
 | the `transcode:` pipeline verb / MJPEG to MP4 capture-evidence transcode / instrument `pipeline:` word | `/charly-check:transcode` |
 | the `vnc:` check verb / VNC-RFB desktop automation from a candy/box plan (out-of-process plugin plugin-vnc, pod AND vm targets; connect, authenticate, screenshot, click coordinates, type, RFB protocol interaction) | `/charly-check:vnc` |
 | CachyOS tool gate / `box/cachyos-coder-tools` / the CachyOS home of the language-runtimes, pixi, typst and github-actions candies | `/charly-coder:cachyos-coder-tools` |
-| Debian images / `debian*` / `box/debian` submodule | `/charly-coder:debian-coder` |
-| Ubuntu images / `ubuntu*` / `box/ubuntu` submodule | `/charly-coder:ubuntu-coder` |
 | `charly clean` / build-artifact retention / `keep_images` / `keep_check_runs` / image-tag pruning / `.check` run cleanup / leftover OCI export archives in the builder's state root | `/charly-core:clean` |
 | `charly deploy add/del` / pod or container deploys / `kind: android` device / `target: android` deploy / `apk:` package format in candies / installing Android apps declaratively / remote-or-emulator adb endpoint / nested `pod → android` / Disposable-flag semantics / `disposable: true` authorization / preemptible-flag / `requires_exclusive:` / `charly preempt` / exclusive host-resource arbitration (GPU passthrough contention) | `/charly-core:deploy` |
 | the local Crabbox coordinator / the `crabbox-coordinator` service on :8080 / `/v1/health` + `/v1/ready` on a fully-local Crabbox broker / deploying or troubleshooting the postgresql-backed Crabbox control plane | `/charly-crabbox:crabbox-coordinator` |

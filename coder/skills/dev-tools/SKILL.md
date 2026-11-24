@@ -93,8 +93,8 @@ my-dev:
 - `/charly-coder:build-toolchain` — Sibling C/C++ toolchain in bootc image stacks
 
 ## Related Boxes
-- `/charly-coder:debian-coder`, `/charly-coder:ubuntu-coder` — canonical consumers of the bat→batcat symlink
-- `/charly-coder:fedora-coder`, `/charly-coder:arch-coder` — consumers where the symlink plan step is a harmless no-op
+- the now-retired deb-based coder boxes — they consumed it only for the bat→batcat symlink
+- `/charly-coder:arch-coder` — a consumer where the symlink plan step is a harmless no-op
 
 ## Related Commands
 - `/charly-build:build` — Build boxes that ship the dev-tools package set

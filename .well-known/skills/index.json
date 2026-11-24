@@ -522,12 +522,6 @@
       ]
     },
     {
-      "name": "debian-coder",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
       "name": "debian-debootstrap",
       "files": [
         "SKILL.md"
@@ -1879,12 +1873,6 @@
     },
     {
       "name": "ubuntu-builder",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "ubuntu-coder",
       "files": [
         "SKILL.md"
       ]

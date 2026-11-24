@@ -20,11 +20,11 @@ charly-marketplace:
             # The distro-* image families own their OS/base skills (relocated from the
             # layer-charly-distros concept aggregator — this pin is the corpus source for
             # them). distro-arch is the first pinned; the rest follow in the same wave.
-            - '@github.com/opencharly/distro-arch:v2026.326.1455'
+            - '@github.com/opencharly/distro-arch:v2026.328.0734'
             # The remaining distro-* image families own their OS/base skills too
             # (same wave as distro-arch).
             - '@github.com/opencharly/distro-fedora:v2026.325.1900'
-            - '@github.com/opencharly/distro-cachyos:v2026.327.0930'
+            - '@github.com/opencharly/distro-cachyos:v2026.328.0724'
             - '@github.com/opencharly/distro-debian:v2026.325.1116'
             - '@github.com/opencharly/distro-ubuntu:v2026.325.1116'
             # charly ITSELF is a DIRECT corpus source (issue opencharly/sdk#468, landed by
@@ -177,7 +177,7 @@ charly-marketplace:
             # `v<YYYY.DDD.HHMM>`, which is not a valid Go module version. Each pin below
             # is the tag that repo's own merge minted.
             - '@github.com/opencharly/spec:v0.2026327.605'
-            - '@github.com/opencharly/sdk:v0.2026327.1226'
+            - '@github.com/opencharly/sdk:v0.2026328.725'
             # The `build` family's SIX owners, DIRECT (opencharly/marketplace#587).
             #
             # The `build` family's fifteen skills used to live in `layer-charly-build`.
@@ -238,7 +238,7 @@ charly-marketplace:
             - '@github.com/opencharly/plugin-pipeline/candy/plugin-pipeline:v2026.324.0037'
             - '@github.com/opencharly/plugin-authoring/candy/plugin-authoring:v2026.314.0711'
             - '@github.com/opencharly/layer-kind:v2026.314.0707'
-            - '@github.com/opencharly/pod-charly-mcp:v2026.314.0716'
+            - '@github.com/opencharly/pod-charly-mcp:v2026.328.0725'
             - '@github.com/opencharly/layer-ripgrep:v2026.314.0709'
             - '@github.com/opencharly/layer-supervisord:v2026.314.0710'
             - '@github.com/opencharly/layer-nodejs:v2026.314.0707'
@@ -265,7 +265,7 @@ charly-marketplace:
             - '@github.com/opencharly/layer-fastfetch:v2026.314.0706'
             - '@github.com/opencharly/pod-filebrowser:v2026.314.0717'
             - '@github.com/opencharly/layer-forgecode:v2026.314.0706'
-            - '@github.com/opencharly/layer-gh:v2026.314.0706'
+            - '@github.com/opencharly/layer-gh:v2026.328.0725'
             - '@github.com/opencharly/pod-pmtiles-viewer:v2026.314.0718'
             - '@github.com/opencharly/layer-gifgrep:v2026.314.0706'
             - '@github.com/opencharly/pod-postgresql:v2026.327.1758'
@@ -298,22 +298,22 @@ charly-marketplace:
             - '@github.com/opencharly/layer-kimi:v2026.314.0707'
             - '@github.com/opencharly/layer-ssh-client:v2026.314.0709'
             - '@github.com/opencharly/pod-labwc:v2026.314.0717'
-            - '@github.com/opencharly/pod-sshd:v2026.314.0718'
+            - '@github.com/opencharly/pod-sshd:v2026.328.0748'
             - '@github.com/opencharly/layer-libnotify:v2026.314.0707'
             - '@github.com/opencharly/layer-summarize:v2026.314.0710'
             - '@github.com/opencharly/layer-llama-cpp:v2026.326.1508'
             - '@github.com/opencharly/pod-swaync:v2026.314.0718'
             - '@github.com/opencharly/layer-maplibre-versatiles-styler:v2026.314.0707'
             - '@github.com/opencharly/layer-tailscale:v2026.321.1210'
-            - '@github.com/opencharly/pod-testapi:v2026.314.0718'
+            - '@github.com/opencharly/pod-testapi:v2026.328.0734'
             - '@github.com/opencharly/layer-charly-tools:v2026.314.0704'
-            - '@github.com/opencharly/pod-traefik:v2026.314.0718'
+            - '@github.com/opencharly/pod-traefik:v2026.328.0723'
             - '@github.com/opencharly/pod-charly-versa:v2026.314.0716'
             - '@github.com/opencharly/layer-typst:v2026.314.0710'
             - '@github.com/opencharly/layer-mcporter:v2026.314.0707'
             - '@github.com/opencharly/layer-unsloth:v2026.314.0710'
             - '@github.com/opencharly/layer-nano-pdf:v2026.314.0707'
-            - '@github.com/opencharly/layer-uv:v2026.314.0710'
+            - '@github.com/opencharly/layer-uv:v2026.328.0726'
             - '@github.com/opencharly/pod-valkey:v2026.314.0718'
             - '@github.com/opencharly/layer-notebook-llm-on-supercomputers:v2026.314.0707'
             - '@github.com/opencharly/pod-versatiles:v2026.314.0718'
@@ -322,8 +322,8 @@ charly-marketplace:
             - '@github.com/opencharly/layer-notebook-templates:v2026.314.0708'
             - '@github.com/opencharly/pod-versatiles-frontend:v2026.314.0718'
             - '@github.com/opencharly/layer-versatiles-style:v2026.314.0710'
-            - '@github.com/opencharly/pod-ollama:v2026.320.1029'
-            - '@github.com/opencharly/pod-virtualization:v2026.321.0714'
+            - '@github.com/opencharly/pod-ollama:v2026.328.0727'
+            - '@github.com/opencharly/pod-virtualization:v2026.328.0755'
             - '@github.com/opencharly/layer-vscode:v2026.314.0710'
             - '@github.com/opencharly/layer-openclaw:v2026.327.0200'
             - '@github.com/opencharly/layer-oracle:v2026.314.0708'
@@ -348,7 +348,7 @@ charly-marketplace:
             - '@github.com/opencharly/layer-cue:v2026.314.0705'
             - '@github.com/opencharly/layer-direnv:v2026.314.0705'
             - '@github.com/opencharly/layer-desktop-fonts:v2026.314.0705'
-            - '@github.com/opencharly/layer-dev-tools:v2026.314.0705'
+            - '@github.com/opencharly/layer-dev-tools:v2026.328.0734'
             - '@github.com/opencharly/layer-devops-tools:v2026.314.0705'
             - '@github.com/opencharly/layer-workspace-mount:v2026.314.0710'
             - '@github.com/opencharly/layer-xdg-portal:v2026.314.0710'
@@ -365,7 +365,7 @@ charly-marketplace:
             - '@github.com/opencharly/vm-k3s-agent:v2026.320.0528'
             - '@github.com/opencharly/vm-k3s-server:v2026.320.0528'
             - '@github.com/opencharly/pod-kde-selkies:v2026.314.0717'
-            - '@github.com/opencharly/layer-language-runtimes:v2026.314.0707'
+            - '@github.com/opencharly/layer-language-runtimes:v2026.328.0738'
             - '@github.com/opencharly/layer-python-ml:v2026.327.0938'
             - '@github.com/opencharly/pod-selkies-core:v2026.314.0718'
             - '@github.com/opencharly/layer-tailscale-up:v2026.314.0710'
@@ -394,7 +394,7 @@ charly-marketplace:
             - '@github.com/opencharly/plugin-ollama/candy/plugin-ollama:v2026.314.0714'
             - '@github.com/opencharly/plugin-dsh/candy/plugin-dsh:v2026.314.0712'
             - '@github.com/opencharly/plugin-herdr/candy/plugin-herdr:v2026.319.2223'
-            - '@github.com/opencharly/pod-herdr:v2026.319.2235'
+            - '@github.com/opencharly/pod-herdr:v2026.328.0727'
             - '@github.com/opencharly/plugin-punktfunk/candy/plugin-punktfunk:v2026.314.0715'
             # Crabbox wave (Phase 4): the CLI (layer-crabbox) + coordinator (pod-crabbox-coordinator)
             # skill entities. TWO refs declare a `skill:` entity named `crabbox` —
