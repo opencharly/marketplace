@@ -117,7 +117,22 @@ Both creation paths are mandatory-label:
    the audit maps exactly those answers — never a guess.
 2. **`node scripts/gh/cli.ts issue`** — the sanctioned agent path in the umbrella. It
    refuses to create without category, type, remedy/files and the cited rule (default
-   `none`), and appends the session footer with the one footer builder.
+   `none`). It also refuses without the RCA that R1 requires before any issue exists
+   (`--mechanism`, `--missed-control`, `--blast-radius`, `--root-fix`, `--evidence` or
+   `--evidence-file`, and `--spike` — the spike's result or `none`), and without exactly
+   one classification: `--blocking` assigns the filer and posts the `CLAIM` (the filer
+   fixes it), while `--non-blocking` leaves the issue unclaimed for a later session. It
+   appends the session footer with the one footer builder. The RCA sections are extra
+   `### <heading>` answers, so the audit's form parser (which reads only `### Category`
+   and `### Type` by exact heading) reads a wrapper-filed issue exactly like a
+   form-filed one.
+
+   ```sh
+   node scripts/gh/cli.ts issue --repo opencharly/<repo> --title "<specific defect>" \
+     --category category:<v> --type type:<v> --remedy "<files the fix touches>" \
+     --non-blocking --mechanism "…" --missed-control "…" --blast-radius "…" \
+     --root-fix "…" --evidence-file <pasted-commands-and-output.md> --spike none
+   ```
 
 A repository that ships its own template **overrides** the org default (a GitHub
 limitation); it must therefore carry the same four fields. The audit reports the drift.
