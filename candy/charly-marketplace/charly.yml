@@ -41,7 +41,7 @@ charly-marketplace:
             # and `plugin`), which carry this pin's corrected `spec/schema/*.cue` trigger instead
             # of the carrier's stale `sdk/schema/*.cue` (`go-quality`'s trigger is identical at
             # both sources, so its row does not move).
-            - '@github.com/opencharly/charly:v2026.327.1009'
+            - '@github.com/opencharly/charly:v2026.328.0518'
             # --- the post-migration source set at this end of the list (opencharly/opencharly#600).
             #
             # ONE rule, stated here once for the whole set: a skill reachable ONLY through
@@ -169,7 +169,7 @@ charly-marketplace:
             # `node scripts/gh/cli.ts` (opencharly/opencharly#1160, #1163), and this repo's
             # shell watcher family and `coord.sh` are deleted in the same change. The
             # range touches exactly seven `.agents/skills/` files, all from those two PRs.
-            - '@github.com/opencharly/opencharly:v2026.327.1422'
+            - '@github.com/opencharly/opencharly:v2026.328.0728'
             # The two CONTRACT repos' skill shelves (opencharly/opencharly#611).
             # DIRECT, for the rule stated above. Both are Go MODULES, so their tags follow
             # the Go-module scheme
@@ -199,9 +199,9 @@ charly-marketplace:
             # step 2 — a ref the project's own manifests name beats a twin that merely
             # arrived through the closure), and the authority is keyed by (repo, tag),
             # so the subpath of a ref does not matter here.
-            - '@github.com/opencharly/plugin-box:v2026.327.1113'
+            - '@github.com/opencharly/plugin-box:v2026.327.2335'
             - '@github.com/opencharly/plugin-migrate:v2026.326.2122'
-            - '@github.com/opencharly/plugin-docs:v2026.314.0712'
+            - '@github.com/opencharly/plugin-docs:v2026.328.0705'
             - '@github.com/opencharly/plugin-secrets:v2026.319.2321'
             - '@github.com/opencharly/plugin-settings:v2026.314.0715'
             - '@github.com/opencharly/plugin-mcp:v2026.314.0714'
@@ -220,8 +220,8 @@ charly-marketplace:
             # skill name (`strata`, family `strata`) existed in two source repos, and the corpus has
             # ONE path per name, so a refs bump that named both at pre-split tags would publish
             # one skill from two homes.
-            - '@github.com/opencharly/layer-strata:v2026.326.0119'
-            - '@github.com/opencharly/pod-strata:v2026.327.0603'
+            - '@github.com/opencharly/layer-strata:v2026.328.0240'
+            - '@github.com/opencharly/pod-strata:v2026.328.0334'
             - '@github.com/opencharly/plugin-strata/candy/plugin-strata:v2026.314.0715'
             - '@github.com/opencharly/layer-android-sdk:v2026.314.0704'
             - '@github.com/opencharly/plugin-wl/candy/plugin-wl:v2026.314.0716'
@@ -298,7 +298,7 @@ charly-marketplace:
             - '@github.com/opencharly/layer-kimi:v2026.314.0707'
             - '@github.com/opencharly/layer-ssh-client:v2026.314.0709'
             - '@github.com/opencharly/pod-labwc:v2026.314.0717'
-            - '@github.com/opencharly/pod-sshd:v2026.328.0748'
+            - '@github.com/opencharly/pod-sshd:v2026.314.0718'
             - '@github.com/opencharly/layer-libnotify:v2026.314.0707'
             - '@github.com/opencharly/layer-summarize:v2026.314.0710'
             - '@github.com/opencharly/layer-llama-cpp:v2026.326.1508'
@@ -323,7 +323,7 @@ charly-marketplace:
             - '@github.com/opencharly/pod-versatiles-frontend:v2026.314.0718'
             - '@github.com/opencharly/layer-versatiles-style:v2026.314.0710'
             - '@github.com/opencharly/pod-ollama:v2026.328.0727'
-            - '@github.com/opencharly/pod-virtualization:v2026.328.0755'
+            - '@github.com/opencharly/pod-virtualization:v2026.321.0714'
             - '@github.com/opencharly/layer-vscode:v2026.314.0710'
             - '@github.com/opencharly/layer-openclaw:v2026.327.0200'
             - '@github.com/opencharly/layer-oracle:v2026.314.0708'
@@ -479,7 +479,7 @@ charly-marketplace:
             - '@github.com/opencharly/plugin-cmd:v2026.314.0712'
             - '@github.com/opencharly/plugin-fleet:v2026.326.2006'
             - '@github.com/opencharly/plugin-ssh:v2026.314.0715'
-            - '@github.com/opencharly/plugin-deploy-pod:v2026.326.1924'
+            - '@github.com/opencharly/plugin-deploy-pod:v2026.327.1741'
             - '@github.com/opencharly/plugin-vm:v2026.319.0925'
             - '@github.com/opencharly/plugin-helm:v2026.314.0713'
             - '@github.com/opencharly/plugin-deploy-local:v2026.314.0712'
