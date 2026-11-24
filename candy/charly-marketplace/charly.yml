@@ -177,7 +177,7 @@ charly-marketplace:
             # `v<YYYY.DDD.HHMM>`, which is not a valid Go module version. Each pin below
             # is the tag that repo's own merge minted.
             - '@github.com/opencharly/spec:v0.2026327.605'
-            - '@github.com/opencharly/sdk:v0.2026328.725'
+            - '@github.com/opencharly/sdk:v0.2026328.2210'
             # The `build` family's SIX owners, DIRECT (opencharly/marketplace#587).
             #
             # The `build` family's fifteen skills used to live in `layer-charly-build`.
@@ -267,6 +267,7 @@ charly-marketplace:
             - '@github.com/opencharly/layer-forgecode:v2026.314.0706'
             - '@github.com/opencharly/layer-gh:v2026.328.0725'
             - '@github.com/opencharly/pod-pmtiles-viewer:v2026.314.0718'
+            - '@github.com/opencharly/pod-qwen3-tts:v2026.328.2208'
             - '@github.com/opencharly/layer-gifgrep:v2026.314.0706'
             - '@github.com/opencharly/pod-postgresql:v2026.327.1758'
             - '@github.com/opencharly/layer-github-actions:v2026.314.0706'
