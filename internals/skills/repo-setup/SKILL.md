@@ -203,7 +203,8 @@ purpose. So the order is:
       repo needs no mapping. A label like `session:`, `owner:`, `priority:`, `severity:`,
       `size:`, `status:` or any repo/product-named label is a defect the audit reports.
    e. **File through the org form or `scripts/gh/cli.ts issue`**, which refuses without
-      `category:`, `type:`, remedy/files and the cited rule — never a bare `gh issue create`.
+      `category:`, `type:`, remedy/files, the cited rule, the verified RCA and a
+      `--blocking`/`--non-blocking` classification — never a bare `gh issue create`.
       The full "which label" rules, the split protocol and the DESIGN/rulebook violation table
       are in `/charly-internals:git-workflow`, under its issue-labels reference page.
    f. **Expect the org `label-audit` to check the new repo** daily: it reports missing axes,

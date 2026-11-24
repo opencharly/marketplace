@@ -10,11 +10,11 @@ description: |-
 
 ## Overview
 
-R1–R5 in the project rulebook (`AGENTS.md`) are the **engineering-discipline gate**. They sit ABOVE the runtime-verification rules R6–R9 and ABOVE the final acceptance gate R10. The order is deliberate: discipline failures are what produce the runtime failures that R6–R9 catch — so the rules that prevent discipline failures must come first.
+R1–R5 in the project rulebook (`AGENTS.md`) are the **engineering-discipline gate**. They sit ABOVE the proof rules R7–R9 and ABOVE the final acceptance gate R10. The order is deliberate: discipline failures are what produce the runtime failures that R7–R9 catch — so the rules that prevent discipline failures must come first.
 
 This skill is the operational reference for R1–R5. Each section below restates the rule, lists what it forbids precisely, lists what it permits, explains why it matters, and notes how it interacts with the other rules. The rules exist because these specific failure modes actually happened — see `CHANGELOG/` for the commit-referenced incidents that motivated each one.
 
-A violation of any R1–R5 rule (or any of R6–R10, or the "Prioritize Clean Architecture Above All Else" section in the project rulebook) FORBIDS the push. Local commits before the first push are free (the project rulebook "Commit, push, land"), but nothing with a known violation is ever pushed, at any tier. There is no "downgrade tier and ship anyway" path. The agent fixes the violation in the same working tree and re-runs all verification, OR escalates to the operator and STOPS. See the project rulebook "AI Attribution" section.
+A violation of any R1–R5 rule (or any of R6–R11, or the "Prioritize Clean Architecture Above All Else" section in the project rulebook) FORBIDS the push. Local commits before the first push are free (the project rulebook "Commit, push, land"), but nothing with a known violation is ever pushed, at any tier. There is no "downgrade tier and ship anyway" path. The agent fixes the violation in the same working tree and re-runs all verification, OR escalates to the operator and STOPS. See the project rulebook "AI Attribution" section.
 
 ## Gate before push + no re-run against a root-caused defect (R1; the project rulebook "Commit, push, land")
 
@@ -110,7 +110,7 @@ A violation of any R1–R5 rule (or any of R6–R10, or the "Prioritize Clean Ar
 
 **An absence claim must name the positive its predicate catches.** An empty result from an uncalibrated predicate is not evidence; from a calibrated one it is. Paste both halves: the predicate matching a known positive, and the predicate matching nothing in the tree under test. Measured: a sweep reported "no quantified claims here" while a too-narrow pattern missed `23 Omarchy-built packages` — one word between the digits and the noun — and the claim was in the file all along.
 
-**Forbidden phrasings.** "this was already failing before my change" / "unrelated to this PR" / "out of scope for this cutover" / "I'll file a follow-up" (with no issue number) / "this is tracked separately" (with no issue number) / "we can address that later" / "noted but not required for this commit" / "intentionally deferred to keep the diff focused".
+**Forbidden phrasings.** "this was already failing before my change" / "unrelated to this PR" / "out of scope for this cutover" / "I'll file a follow-up" (with no issue number) / "this is tracked separately" (with no issue number) / "we can address that later" / "noted but not required for this commit" / "intentionally deferred to keep the diff focused" / "filed it, waiting for someone to fix it" / "blocked on #N" (where #N is your own unclaimed issue) / "I'll open an issue and investigate there" (the RCA comes first).
 
 **Forbidden-excuse catalog — the difficulty-, size-, and priority-based sibling set.** Distinct from the deferral phrasings above, these use difficulty, size, or self-assigned "priority" to justify not doing the work, or to cut its scope. They are equally forbidden. None of them ever justifies skipping, shrinking, deferring, keeping-as-is, re-scoping, or reverting already-working code. They are inputs to finding the HOW: RDD, or a spike, which is a support tool and never an excuse. A genuine scope change means STOP and ask, never a unilateral cut. The full catalog lives in `/charly-internals:cutover-policy` "No exception clause": every forbidden phrasing, the decompose-vs-batch discriminator, and the honesty-dressing variants. This skill defers to it rather than keeping a second copy. The same rule governs architecture placement: the kernel/plugin boundary law places by kind-agnostic mechanism, never by difficulty (`/charly-internals:plugin` "The kernel/plugin boundary law").
 
@@ -124,12 +124,27 @@ A violation of any R1–R5 rule (or any of R6–R10, or the "Prioritize Clean Ar
    - genuinely ambiguous requirements.
 
    The ask is explicit. "I encountered $X during this cutover. It is blocking, and it is a decision I cannot make alone. Should I (a) fix it now in this same change, (b) abort the active cutover and address $X first, or (c) explicitly re-scope?" The operator's response authorizes the path; silence does not.
-3. **Non-blocking → file it.**
+3. **Non-blocking → file it, after a full RCA, and leave it unclaimed.**
    - Search the org first (`gh search issues <terms> --owner opencharly`). If an issue exists, add your evidence to it as a comment.
-   - Otherwise file ONE issue in the OWNING repo. Give it a specific title, the RCA (mechanism, missed control, blast radius, root fix), and the evidence.
+   - Otherwise file ONE issue in the OWNING repo with `node scripts/gh/cli.ts issue … --non-blocking`. It carries no assignee and no `CLAIM`: it is left for a later session to pick up.
    - List every filed or updated issue under the PR body's `## Filed issues` section, as `<repo>#<n> — <one line>`.
 
    Related filed issues may later land together, in ONE PR that shares one R10 story; that is the Cutover Sizing Law (`/charly-internals:cutover-policy`). A filed issue is the ONLY legal deferral. An unfiled "follow-up" stays forbidden.
+
+**An issue is the OUTPUT of a finished RCA — never a substitute for one.** Every issue, blocking or not, is filed only after the full process in `/charly-internals:root-cause-analyzer` has run to its end. Its body carries:
+
+- **verified evidence** — every fact is a command with its pasted output, a `file:line`, or a measurement, taken on a named revision;
+- **the conclusion** — the mechanism, the missed control, the blast radius and the root fix;
+- **the spike** — for any high-risk claim (one that, if wrong, would send the fixer down the wrong path), its result on a live `disposable: true` bed or against the real artifact; otherwise `none`, with the reason.
+
+`node scripts/gh/cli.ts issue` refuses to file without these fields. A field it accepts is not yet a verified one, so the bar is the author's: an issue that says "probably", "might", "seems" or "I think", or that states a claim no pasted command supports, is a hypothesis. It means the RCA is not finished, so no issue is filed yet: run the instrument that settles it, and file what it shows.
+
+**A blocker you file is yours.** Ask the discriminator from the filer's side: *does this block MY progress?*
+
+- **Yes → blocking.** File it with `--blocking`, which assigns you and posts the `CLAIM` at filing. Then fix it yourself: in this change, or producer-first in the owning repo (`/charly-internals:git-workflow`, "Commit, push, land"). Never post `WAITING` on your own issue, and never leave it for another session. The only exit is a `HANDING OVER` with the operator's sign-off.
+- **No → non-blocking.** File it with `--non-blocking` and leave it unclaimed. Claiming an issue you have no intent to start now hides it from the session that would.
+
+**An existing issue that fits your work is ALWAYS claimed.** The org search above is also how duplicate work is prevented. If an existing issue covers the work you are about to do, CLAIM it (comment + assign) before branching. If it has a live owner, coordinate on its thread first (`/charly-internals:git-workflow`, B2b). Filing a second issue, or starting the work unclaimed, duplicates it.
 
 **A finding raised ON your PR is never filed away.** A validator finding or a reviewer comment on the PR is fixed in the next round, or rebutted on the thread with evidence. R1's *file it* path is for findings YOU surface that are separable from the change. It is not a way to dismiss a review (the project rulebook "Before every update push: read everything, fix everything").
 
@@ -263,13 +278,17 @@ validator's own check red for a reason that has nothing to do with your diff.**
 passed, but the change's own central runtime action is not live-proven" — which is the normal shape of a producer-first
 library whose consumer supplies the venue.* **Until a row exists, say which clause of the closest tier diverges and why,
 rather than inflating the tier or forbidding the push in the other clause.**
-## How R1–R5 interact with R6–R10
+## How R1–R5 interact with R6–R11
 
 R1–R5 are **authoring discipline** — what you do during the work.
 
-R6–R9 are **artifact discipline** — what the produced artifact must be.
+R6 is **work-safety discipline** — whose work and which git history you may touch.
+
+R7–R9 are **proof discipline** — behaviour proven by coverage that can fail, live services run live, and a binary built from the source under test.
 
 R10 is **live-system discipline** — what the deployed-and-running system must do.
+
+R11 is **design discipline** — the change conforms to every DESIGN requirement it touches.
 
 The layers compose. A cutover that violates R2 (duplication) but passes R7 (end-to-end gate) is still a violation — the duplication is a future bug. A cutover that passes R2 but fails R10 (fresh-rebuild verification) is still a violation — the artifact failed live. The layers are AND-gated; **all** must pass. R5 is moreover a PRECONDITION of R10's acceptance run: every deprecated / transitional / dual-mode path is deleted BEFORE that run, so R10 exercises the transitional-free FINAL code — an acceptance run over a still-transitional tree proves nothing about what ships.
 
@@ -292,7 +311,7 @@ every grep a claim rests on:**
 | 8 | **A claim about a DIFF's scope** ("this PR contains my change") | `git log --oneline origin/main..HEAD` before the claim | the branch may carry less than you think |
 | 9 | **A mutation RESULT** ("this mutation was killed") | the harness must **prove the mutation APPLIED** | an unapplied mutation "dies" for free |
 | 10 | **A result carried across a tree change** | **re-run on the new tree** | identical is an assertion, not a measurement |
-| 13 | **A result's REVISION** | **name the revision a result was measured on** | a figure without its revision is a claim about an unknown tree |
+| 11 | **A result's REVISION** | **name the revision a result was measured on** | a figure without its revision is a claim about an unknown tree |
 **A field that is null for "unknown" and null for "no" cannot be counted with** — *the pull-list `merged`
 boolean is `null` for PRs that HAVE merged, so filter on `merged_at`, never on `merged`.*
 **And a count must name its SCOPE**: a whole-file figure and an entity-scoped figure are different
@@ -300,8 +319,7 @@ numbers for the same word, and quoting one while enumerating the other is a cont
 **⚑ THE ROOT OF ALL OF THEM, IN ONE SENTENCE (Lead, 2026-10-14):**
 > **A result reported without verifying that the instrument ran is not a result — in either direction.**
 This is the complement of *"A GREEN verdict is not a LANDING"* above: that section is about a RESULT reported
-without the mechanism having run; this one is about the INSTRUMENT behind any result at all. **Items 11 and 12
-of the original ruling were never recorded in the wave's ledger and are deliberately not invented here.**
+without the mechanism having run; this one is about the INSTRUMENT behind any result at all.
 ## Cross-references
 
 - `/charly-internals:cutover-policy` — the operationalization of R5 for schema/API/rename changes specifically. Cutover-policy is one of strict-policy's children — R5 governs all hard-cutover behavior, and cutover-policy operationalizes it for the most common case.

@@ -20,22 +20,20 @@ The root-cause-analyzer is an **enforcer agent** at `marketplace/internals/agent
 - A warning or error message appears in output
 - A check step fails or times out
 - A validator reports an anomaly
-- **A validation failure on your own PR**: a `charly/pr-validator` BLOCK or `INCONCLUSIVE`, a red CI check, or an auto-close. Each is an anomaly in YOUR process, not just in the code. The RCA runs BEFORE the fix, its step 4 names the **missed control** (why your own pre-push gate did not catch it), and the root fix goes into that control as well as into the code. Post the RCA summary in the round's PR comment (the project rulebook "Before every update push: read everything, fix everything").
+- **A validation failure on your own PR**: a `charly/pr-validator` BLOCK or `INCONCLUSIVE`, a red CI check, or an auto-close. Each is an anomaly in YOUR process, not just in the code. The RCA runs BEFORE the fix, its step 5 names the **missed control** (why your own pre-push gate did not catch it), and the root fix goes into that control as well as into the code. Post the RCA summary in the round's PR comment (the project rulebook "Before every update push: read everything, fix everything").
 - Documentation, a skill, or a comment diverges from observed reality
 - Any unexpected behavior that cannot be immediately explained
 
 ## What It Does
 
-The agent runs an 8-step root cause analysis process:
+The agent runs ONE 8-step process, defined once in its spec (`marketplace/internals/agents/root-cause-analyzer.md`, authored at the umbrella's `.agents/agents/root-cause-analyzer.md`). In short: **stop** → **expected vs actual**, with evidence → **enumerate the failure signatures** and investigate → the **mechanism** (a hypothesis, tested; a spike when high-risk) → the **missed control** → the **blast radius** → **root cause and root fix**, verified → **classify and record**.
 
-1. **Establish expected behavior** — what should happen
-2. **Capture actual behavior** — what actually happened (with evidence)
-3. **Identify the mechanism** — how the system produced the actual behavior
-4. **Find the missed control** — what should have prevented it
-5. **Assess blast radius** — what else is affected
-6. **Determine root cause** — the fundamental issue, not a symptom
-7. **Propose root fix** — a fix that prevents recurrence
-8. **Document the finding** — record the RCA result, then CLASSIFY it (the project rulebook R1, *fix it or file it*). A **blocking** finding (this change introduces it, this change's gate is red or warns because of it, or this change's claim is false without the fix; unsure → blocking) is fixed in this change. A **non-blocking**, genuinely separable finding is FILED: add the RCA to an existing issue, or file ONE in the owning repo, and list it under the PR body's `## Filed issues`. See `/charly-internals:strict-policy` "R1, applied. Fix it or file it".
+The last step decides the path (the project rulebook R1, *fix it or file it*; `/charly-internals:strict-policy` "R1, applied"):
+
+- **Blocking** (this change introduces it, this change's gate is red or warns because of it, or this change's claim is false without the fix; unsure → blocking): fixed in this change. If it needs its own issue — for example, a producer-first fix in another repo — that issue is filed with `--blocking`, so it is CLAIMED by you at filing, and you fix it.
+- **Non-blocking**, genuinely separable: FILED with `--non-blocking` and left unclaimed for a later session, then listed under the PR body's `## Filed issues`.
+
+**An issue is the RCA's OUTPUT, never a substitute for it.** It is filed only once the process has run to its end: its body states verified facts (commands with output, `file:line`, measurements) and the conclusion — mechanism, missed control, blast radius, root fix, and the spike's result or `none`. `node scripts/gh/cli.ts issue` refuses to file without those fields. An untested hypothesis means the RCA is unfinished, so nothing is filed yet.
 
 ## Failure-signature enumeration and measurement discipline
 

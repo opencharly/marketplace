@@ -30,7 +30,6 @@ fedora-test:
 
 ## Used In Boxes
 
-- `/charly-distros:fedora-test`
 
 ## Related Candies
 

@@ -556,10 +556,10 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
 **B. Ground-truth rules R0–R11 (each explicit).**
 
 The R-numbers were re-cut on 2026-10-09, so a reference written before that date
-names a DIFFERENT rule than the same number does today. The umbrella rulebook's
-`*Old citations.*` statement (Part I, under R10) is the ONE canonical mapping — read
-it there, never re-derive it from a memory of the old text. For this checklist the
-translation is:
+names a DIFFERENT rule than the same number does today. The renumbering's own
+record, `CHANGELOG/2026.282.0718.md` ("Renumbered to a contiguous R1–R10"), is the ONE
+canonical mapping — read it there, never re-derive it from a memory of the old text.
+For this checklist the translation is:
 
 | an older reference to | is now |
 |---|---|
@@ -590,7 +590,13 @@ against the rule it now is.
    or warns, or its claim is false without the fix; unsure → blocking) or FILED
    (NON-BLOCKING and genuinely separable). A filed finding appears under the
    body's `## Filed issues` as a real `<repo>#<n>` carrying the RCA. Verify
-   each one resolves, and that it is not a blocking finding mislabelled. A vague
+   each one resolves, and that it is not a blocking finding mislabelled. Open each filed
+   issue and verify its body states verified facts (commands with output, file:line,
+   measurements) and the RCA's conclusion (mechanism, missed control, blast radius, root
+   fix); an issue resting on a hypothesis FAILS. A non-blocking filed issue is left
+   unclaimed. An issue this PR's own session filed for something blocking its progress is
+   CLAIMED by that slug and fixed by it, so it is never a deferral and never the subject of
+   that session's own `WAITING`. A vague
    "follow-up" with no issue number FAILS (see item 13). A finding raised ON this
    PR (a validator finding or a reviewer comment) is never filed away. It is
    fixed, or rebutted on the thread with evidence (item 19).

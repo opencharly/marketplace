@@ -28,10 +28,6 @@ fedora-test:
     - testapi
 ```
 
-## Used In Boxes
-
-- `/charly-distros:fedora-test`
-
 ## Related Candies
 
 - `/charly-infrastructure:supervisord` -- process manager dependency

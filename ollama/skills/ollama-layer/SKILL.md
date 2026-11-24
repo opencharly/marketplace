@@ -20,7 +20,7 @@ description: |-
 | Ports | 11434 |
 | Volumes | `models` -> `~/.ollama` |
 | Aliases | `ollama` -> `ollama` |
-| Service | `ollama` (supervisord) |
+| Service | `ollama` (supervisord) — a charly-owned wrapper that runs `ollama serve` and rides the default-model pull |
 | Install | the packaged `ollama` via `distro:` where the distro ships one (Arch and its derivatives), else a `download:` + `extract:` plan step gated on `unless_exists:` |
 
 ## Environment Variables
@@ -29,12 +29,71 @@ description: |-
 |----------|-------|
 | `OLLAMA_HOST` | `0.0.0.0` |
 | `OLLAMA_MODELS` | `~/.ollama/models` |
+| `OLLAMA_PULL_MODELS` | empty — a space-separated list of model ids the pod carries as its DEFAULTS |
+| `OLLAMA_GPU_MIN_FREE_MIB` | `512` — free VRAM the wrapper waits for before starting the server; `0` disables the gate |
+| `OLLAMA_GPU_WAIT_SECONDS` | `600` — the gate's deadline |
+
+## Default models (`OLLAMA_PULL_MODELS`)
+
+The candy ships the MECHANISM, not a list. `OLLAMA_PULL_MODELS` is a
+space-separated list of model ids; the service runs a charly-owned wrapper
+(`/opt/ollama/start-ollama.sh`) that starts `ollama serve` and, when the list is
+non-empty, rides a background pull beside it — bounded wait for the API, then an
+idempotent `ollama pull` per id. It is EMPTY here on purpose: this candy is also
+composed by CPU-only consumers (`openclaw-desktop` and friends), and a default
+list at this layer would make every one of them start downloading gigabytes. Set
+it one layer up:
+
+```yaml
+# a GPU box, or a deploy entry that overrides the image env
+env:
+  OLLAMA_PULL_MODELS: "qwen3-vl:2b-instruct-q4_K_M lfm3-vl:2b-qad-q4_0"
+```
+
+The store is the persistent `models` volume, so the download happens once per
+host; `ollama pull` is idempotent, so later starts are no-ops. An empty value is a
+no-op. A disposable bed should override the box default with one small model so it
+never pays the full download.
+
+**Why the pull rides with the server instead of being its own one-shot program.**
+The rendered supervisord fragment has no `startsecs`, and supervisord marks any
+exit before `startsecs` (default 1s) as a failed start (`BACKOFF`, "Exited too
+quickly") regardless of `autorestart` — an immediate-exit program would retry
+`startretries` times and go `FATAL`. `type: oneshot` and `start_sec` are in the
+schema but the supervisord template does not render them. Riding with the server
+also keeps ONE supervised process, so a failed pull (network) never changes the
+server's supervisor state: it logs to the container log and the next start retries
+it.
+
+## GPU readiness gate (never silently CPU-only)
+
+`ollama serve` decides GPU availability ONCE, at startup: it creates a CUDA context
+and reads the device's memory. Under VRAM pressure (a co-tenant holding the card)
+that context creation fails, llama-server reports zero memory for the device,
+ollama logs `skipping pseudo-device with zero memory`, and the server runs CPU-ONLY
+for its whole lifetime — even after the VRAM frees. Measured on this pod: a restart
+while a co-tenant held the GPU produced `inference compute id=cpu library=cpu`, and
+it never recovered without a restart.
+
+The wrapper therefore gates the start: when an NVIDIA device is passed into the pod
+(`/dev/nvidiactl` exists) and `nvidia-smi` is available, it waits until some GPU
+reports at least `OLLAMA_GPU_MIN_FREE_MIB` (default 512) MiB free, up to
+`OLLAMA_GPU_WAIT_SECONDS` (default 600). On timeout it exits non-zero and prints
+why — supervisord restarts the wrapper, which re-runs the gate — instead of
+starting a CPU-only server on a GPU pod. A CPU-only consumer has no
+`/dev/nvidiactl`, so the gate returns immediately and the candy stays GPU-agnostic:
+it DETECTS a device, it does not declare one. Set `OLLAMA_GPU_MIN_FREE_MIB: "0"` to
+allow a deliberate CPU fallback under contention.
+
+512 MiB is enough for the discovery context, which is all the gate has to buy;
+per-model loading already degrades to partial offload on its own when memory is
+tighter.
 
 ## Build-time Variables (`var:`)
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `OLLAMA_VERSION` | `v0.40.16` | Upstream release for the TARBALL path only, and it must be a release TAG — the download cache is content-addressed by the sha256 of the URL, so a `latest` URL would hash to one key forever and keep serving the first tarball it ever fetched. Ignored on Arch, where the packaged `ollama` is installed and pacman owns the version |
+| `OLLAMA_VERSION` | `v0.40.17` | Upstream release for the TARBALL path only, and it must be a release TAG — the download cache is content-addressed by the sha256 of the URL, so a `latest` URL would hash to one key forever and keep serving the first tarball it ever fetched. Ignored on Arch, where the packaged `ollama` is installed and pacman owns the version |
 
 ## GPU backends (opt-in, box level)
 
@@ -101,7 +160,7 @@ step — and its `context:` list gates where it runs:
 
 - **ungated** (no `context:`, so it runs wherever the plan runs):
   - `/usr/bin/ollama` exists
-  - `ollama --version` output contains the pinned release (`0.40.16`), `id:
+  - `ollama --version` output contains the pinned release (`0.40.17`), `id:
     ollama-version-pinned` — the ONE probe that can go red on an `OLLAMA_VERSION`
     bump, because every other step here passes at ANY upstream version. It carries
     `exclude_distro: [arch, cachyos]`, so it SKIPS on the packaged path, where

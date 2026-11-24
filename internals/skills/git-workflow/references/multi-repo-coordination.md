@@ -145,17 +145,31 @@ flight (the universal PR-gate audit).
 covering it (`gh search issues <terms>`, `gh search prs <terms>`,
 `gh issue list -S <terms>`) and ADD to that thread (a comment with your
 evidence/plan) rather than creating a duplicate. If none exists, create ONE
-proper issue (a specific title, the problem, the evidence, the intended scope)
-and reference it from every PR (`Closes #N` / `relates to #N`). Never open a
+issue, and only after a full, verified RCA (`/charly-internals:root-cause-analyzer`):
+a specific title, the verified evidence (commands with output, `file:line`,
+measurements), and the RCA's conclusion — mechanism, missed control, blast
+radius, root fix, and the spike's result or `none`. A hypothesis is not an issue.
+Reference it from every PR (`Closes #N` / `relates to #N`). Never open a
 duplicate issue or PR.
 
-**The issue is the coordination point — claim it before you branch.** To stop
-two sessions working the same issue at once: check the issue for an owner
-(the assignee plus the latest `CLAIM`/`OWNING` comment — never a label:
-`category:`/`type:` describe the work and carry no ownership); CLAIM it by commenting (and
-assigning yourself) BEFORE you create a branch, and state what slice you are
-taking. If another session owns it, coordinate on the thread — offer to take a
-slice, ask for status, or hand off — instead of opening a competing PR. Use
+**The issue is the coordination point — an issue that fits your work is ALWAYS
+claimed before you branch.** To stop two sessions doing the same work: check the
+issue for an owner (the assignee plus the latest `CLAIM`/`OWNING` comment — never a
+label: `category:`/`type:` describe the work and carry no ownership).
+
+- **Unclaimed, or no progress inside the 60-minute takeover window:** CLAIM it by
+  commenting (and assigning yourself) BEFORE you create a branch, and state what
+  slice you are taking. No operator request is needed to claim the work you are doing.
+- **A live owner:** never claim over it. Coordinate on the thread — offer to take a
+  named slice and CLAIM only that, ask for status, or wait — instead of opening a
+  competing PR. A takeover is comment-first (`TAKING OVER`, B2b.1).
+
+**Blocking and non-blocking issues stay apart.** An issue you file for something
+that blocks YOUR progress is yours: file it with `node scripts/gh/cli.ts issue
+--blocking` (it assigns you and posts the `CLAIM`) and fix it, producer-first when it
+lives in another repo. `WAITING` is for another session's work, never for an issue
+you filed yourself. A non-blocking finding is filed with `--non-blocking` and left
+unclaimed for a later session to pick up. Use
 issue comments for every cross-session move (claim, block, hand-off, duplicate,
 supersede); they are the durable record the next agent reads. **Replacing a thread?** When
 you replace a PR or an issue with a new one, comment on the OLD one referencing
