@@ -673,19 +673,7 @@
       ]
     },
     {
-      "name": "fedora-coder",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
       "name": "fedora-nonfree",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "fedora-test",
       "files": [
         "SKILL.md"
       ]
@@ -877,12 +865,6 @@
     },
     {
       "name": "helm",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "herdr",
       "files": [
         "SKILL.md"
       ]
@@ -1330,30 +1312,6 @@
     },
     {
       "name": "openclaw-deploy",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "openclaw-desktop",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "openclaw-full",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "openclaw-full-layer",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "openclaw-full-ml-layer",
       "files": [
         "SKILL.md"
       ]

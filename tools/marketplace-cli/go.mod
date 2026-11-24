@@ -3,8 +3,8 @@ module github.com/opencharly/marketplace/tools/marketplace-cli
 go 1.26.8
 
 require (
-	github.com/opencharly/plugin-marketplace/candy/plugin-marketplace v0.2026327.1351
-	github.com/opencharly/sdk v0.2026327.1226
+	github.com/opencharly/plugin-marketplace/candy/plugin-marketplace v0.2026328.659
+	github.com/opencharly/sdk v0.2026328.654
 )
 
 require (

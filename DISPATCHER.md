@@ -9,7 +9,6 @@
 | host command alias / `charly alias` / wrapper script in a container | `/charly-automation:alias` |
 | crabbox CLI / local coordinator / remote-execution broker / composing the crabbox candies | `/charly-automation:crabbox-deploy` |
 | `charly config` encrypted volumes / gocryptfs / the `--encrypt` flag / config mount-unmount-status-passwd | `/charly-automation:enc` |
-| ‘charly herdr’ session control (status / workspace / tab / pane / agent helpers) / the `verb:herdr` check verb (`ping`, `workspace-list`, `pane-wait-output`, `agent-wait`, …) / the check-herdr-pod bed / the pod-herdr box | `/charly-automation:herdr` |
 | the herdr box (box/herdr) / the check-herdr-pod bed / composing the herdr + socat candies / the herdr: check verb + charly herdr CLI against a deployed herdr venue | `/charly-automation:herdr-box` |
 | OpenClaw gateway / the OpenClaw family's candies / model auth / browser integration / channel setup | `/charly-automation:openclaw-deploy` |
 | sidecars via `charly config` / Tailscale exit nodes / `env_accept` / `env_require` / pod networking | `/charly-automation:sidecar` |
@@ -47,7 +46,6 @@
 | the `vnc:` check verb / VNC-RFB desktop automation from a candy/box plan (out-of-process plugin plugin-vnc, pod AND vm targets; connect, authenticate, screenshot, click coordinates, type, RFB protocol interaction) | `/charly-check:vnc` |
 | CachyOS tool gate / `box/cachyos-coder-tools` / the CachyOS home of the language-runtimes, pixi, typst and github-actions candies | `/charly-coder:cachyos-coder-tools` |
 | Debian images / `debian*` / `box/debian` submodule | `/charly-coder:debian-coder` |
-| Fedora images / `fedora*` / `box/fedora` submodule (incl. the GPU base `nvidia` / `python-ml` + `sway-browser-vnc`) | `/charly-coder:fedora-coder` |
 | Ubuntu images / `ubuntu*` / `box/ubuntu` submodule | `/charly-coder:ubuntu-coder` |
 | `charly clean` / build-artifact retention / `keep_images` / `keep_check_runs` / image-tag pruning / `.check` run cleanup / leftover OCI export archives in the builder's state root | `/charly-core:clean` |
 | `charly deploy add/del` / pod or container deploys / `kind: android` device / `target: android` deploy / `apk:` package format in candies / installing Android apps declaratively / remote-or-emulator adb endpoint / nested `pod → android` / Disposable-flag semantics / `disposable: true` authorization / preemptible-flag / `requires_exclusive:` / `charly preempt` / exclusive host-resource arbitration (GPU passthrough contention) | `/charly-core:deploy` |
@@ -62,7 +60,6 @@
 | Fedora images / `fedora*` / `box/fedora` submodule (incl. the GPU base `nvidia` / `python-ml` + `sway-browser-vnc`) | `/charly-distros:fedora` |
 | Fedora images / `fedora*` / `box/fedora` submodule (incl. the GPU base `nvidia` / `python-ml` + `sway-browser-vnc`) | `/charly-distros:fedora-builder` |
 | Fedora images / `fedora*` / `box/fedora` submodule (incl. the GPU base `nvidia` / `python-ml` + `sway-browser-vnc`) | `/charly-distros:fedora-nonfree` |
-| Fedora images / `fedora*` / `box/fedora` submodule (incl. the GPU base `nvidia` / `python-ml` + `sway-browser-vnc`) | `/charly-distros:fedora-test` |
 | The CI-runner Ubuntu VM / `githubrunner-ubuntu` / the `check-githubrunner-ubuntu-vm` bed / A CI lane failing on a self-hosted Ubuntu runner (docker daemon, disk, buildx builder) | `/charly-distros:githubrunner-ubuntu` |
 | nested-podman-socket / serving a rootless podman API socket at uid 1000 inside a pod / the `/run/user/1000` runtime-dir named volume | `/charly-distros:nested-podman-socket` |
 | Fedora images / `fedora*` / `box/fedora` submodule (incl. the GPU base `nvidia` / `python-ml` + `sway-browser-vnc`) | `/charly-distros:nvidia` |

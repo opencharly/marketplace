@@ -88,7 +88,7 @@ charly-marketplace:
             # root), and the authored body's EOF byte is normalized so the source and its
             # projection agree byte for byte. The projection of this pin therefore changes
             # in this commit.
-            - '@github.com/opencharly/plugin-marketplace:v2026.327.1505'
+            - '@github.com/opencharly/plugin-marketplace:v2026.328.0659'
             - '@github.com/opencharly/plugin-deploy-vm:v2026.314.0712'
             # The UMBRELLA's OWN general-guidance skills (opencharly/opencharly#600,
             # AGENTS.md Part II #5): `agents`, `cutover-policy`, `root-cause-analyzer` have
