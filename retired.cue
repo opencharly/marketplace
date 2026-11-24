@@ -29,4 +29,8 @@ retired_skills: [
 	// distro-fedora's current tree carries neither.
 	"coder/fedora-coder",
 	"distros/fedora-test",
+	// No live coder owner publishes them: distro-debian and distro-ubuntu carry neither card,
+	// and the references they had in other coder skills were removed with them.
+	"coder/debian-coder",
+	"coder/ubuntu-coder",
 ]
