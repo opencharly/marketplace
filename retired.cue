@@ -13,3 +13,20 @@ retired: [
 	// body composes the retired pod above — a live skill pointing at a retired repo.
 	"github.com/opencharly/layer-charly-immich",
 ]
+
+// Individual CARDS whose thing was consolidated or removed while its owner repo lives on
+// (opencharly/plugin-marketplace#64). Their nodes survive only in the owners' OLD tags; without
+// this list a stale edge could republish them, and the docs generator would project them.
+retired_skills: [
+	// layer-openclaw publishes one `openclaw` candy/box; these four describe variants that were
+	// consolidated into it.
+	"openclaw/openclaw-desktop",
+	"openclaw/openclaw-full",
+	"openclaw/openclaw-full-layer",
+	"openclaw/openclaw-full-ml-layer",
+	// pod-herdr publishes the skill as `herdr-box` now.
+	"automation/herdr",
+	// distro-fedora's current tree carries neither.
+	"coder/fedora-coder",
+	"distros/fedora-test",
+]
