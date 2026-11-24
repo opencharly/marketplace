@@ -24,7 +24,7 @@ charly-marketplace:
             # The remaining distro-* image families own their OS/base skills too
             # (same wave as distro-arch).
             - '@github.com/opencharly/distro-fedora:v2026.325.1900'
-            - '@github.com/opencharly/distro-cachyos:v2026.328.0724'
+            - '@github.com/opencharly/distro-cachyos:v2026.328.0900'
             - '@github.com/opencharly/distro-debian:v2026.325.1116'
             - '@github.com/opencharly/distro-ubuntu:v2026.325.1116'
             # charly ITSELF is a DIRECT corpus source (issue opencharly/sdk#468, landed by
@@ -41,7 +41,7 @@ charly-marketplace:
             # and `plugin`), which carry this pin's corrected `spec/schema/*.cue` trigger instead
             # of the carrier's stale `sdk/schema/*.cue` (`go-quality`'s trigger is identical at
             # both sources, so its row does not move).
-            - '@github.com/opencharly/charly:v2026.328.0518'
+            - '@github.com/opencharly/charly:v2026.328.1515'
             # --- the post-migration source set at this end of the list (opencharly/opencharly#600).
             #
             # ONE rule, stated here once for the whole set: a skill reachable ONLY through
@@ -88,7 +88,7 @@ charly-marketplace:
             # root), and the authored body's EOF byte is normalized so the source and its
             # projection agree byte for byte. The projection of this pin therefore changes
             # in this commit.
-            - '@github.com/opencharly/plugin-marketplace:v2026.328.0659'
+            - '@github.com/opencharly/plugin-marketplace:v2026.328.0918'
             - '@github.com/opencharly/plugin-deploy-vm:v2026.314.0712'
             # The UMBRELLA's OWN general-guidance skills (opencharly/opencharly#600,
             # AGENTS.md Part II #5): `agents`, `cutover-policy`, `root-cause-analyzer` have
@@ -169,15 +169,15 @@ charly-marketplace:
             # `node scripts/gh/cli.ts` (opencharly/opencharly#1160, #1163), and this repo's
             # shell watcher family and `coord.sh` are deleted in the same change. The
             # range touches exactly seven `.agents/skills/` files, all from those two PRs.
-            - '@github.com/opencharly/opencharly:v2026.328.0728'
+            - '@github.com/opencharly/opencharly:v2026.328.1433'
             # The two CONTRACT repos' skill shelves (opencharly/opencharly#611).
             # DIRECT, for the rule stated above. Both are Go MODULES, so their tags follow
             # the Go-module scheme
             # `v0.<YYYYDDD>.<HHMM with leading zeros stripped>` — not the superproject's
             # `v<YYYY.DDD.HHMM>`, which is not a valid Go module version. Each pin below
             # is the tag that repo's own merge minted.
-            - '@github.com/opencharly/spec:v0.2026327.605'
-            - '@github.com/opencharly/sdk:v0.2026328.725'
+            - '@github.com/opencharly/spec:v0.2026328.1115'
+            - '@github.com/opencharly/sdk:v0.2026328.1130'
             # The `build` family's SIX owners, DIRECT (opencharly/marketplace#587).
             #
             # The `build` family's fifteen skills used to live in `layer-charly-build`.
