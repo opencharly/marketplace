@@ -168,7 +168,18 @@ charly service status my-app -i prod       # Named instance
 
 The service name must match an entry in the image's init system config. Available services are validated against the image's `ai.opencharly.service.<init>` label (e.g., `ai.opencharly.service.supervisord`). The management tool and commands are resolved from the embedded `init:` vocabulary at build time and **baked into the `ai.opencharly.init_def` label**; `charly service …` reads that label (so any vocabulary-declared init system — including custom ones — works at runtime, not just at build), falling back to the built-in `supervisord`/`systemd` registry only for images built before the label existed.
 
-Source: `candy/plugin-pod/command.go` + `candy/plugin-pod/service_resolve.go` (the `charly service` command — the former `charly/service.go` is DELETED, K-wave 2).
+**`charly service status` judges the table, not the tool's aggregate exit code.** The init tool
+exits non-zero when any process is not `RUNNING` (`supervisorctl` exits 3), which is the healthy
+steady state of a deployment that declares a run-to-completion service: that service did its job
+and exited. The verb therefore takes the captured table plus the exit code from the host, prints
+the table, and succeeds when every row is `RUNNING` or is an `EXITED` service the image declares
+run-to-completion — `restart: no` (or `false`), `start_sec: 0`, and an `exit_code:`. Any other row
+(`FATAL`, `BACKOFF`, `STOPPED`, `STARTING`, or an `EXITED` service not declared that way) keeps the
+tool's failure, so a dead long-running service still fails the command.
+
+Source: `candy/plugin-pod/command.go` + `candy/plugin-pod/service_resolve.go` +
+`candy/plugin-pod/service_status.go` (the `charly service` command — the former
+`charly/service.go` is DELETED, K-wave 2).
 
 ## Lifecycle Hooks
 

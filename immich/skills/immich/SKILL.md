@@ -38,11 +38,10 @@ port 3003, and the server reaches it on `http://127.0.0.1:3003`.
 
 | Name | Path | Purpose |
 |------|------|---------|
-| library | ~/.immich/library | Photo/video storage |
-| cache | ~/.immich/cache | Thumbnail cache |
-| import | ~/.immich/import | Photo import directory |
-| external | ~/.immich/external | External library (no-copy) |
-| models | ~/.immich/models | Downloaded ML models (CLIP, face, OCR) |
+| library | ~/.immich/library | Media storage (`IMMICH_MEDIA_LOCATION` — upload, thumbnails, encoded video all live here) |
+| import | ~/.immich/import | Operator staging directory; Immich has no env var for it (import paths are per-job), so nothing writes here on its own |
+| external | ~/.immich/external | External library root; Immich uses it only through a library record's `importPaths` (Admin → External Libraries or `POST /api/libraries`) |
+| models | ~/.immich/models | ML model cache, wired through `HF_HOME` (the venv honours HF_HOME; nothing in v3.4.2 reads `TRANSFORMERS_CACHE`) |
 | pgdata | ~/.postgresql | PostgreSQL data |
 
 ## Quick Start

@@ -221,7 +221,7 @@ one worktree each):
 
 **PR validator** (fresh context, one per cutover chain — e.g. sdk → plugins
 → super in one session):
-- Owns: independent adversarial re-validation (R0–R11 + skills + the
+- Owns: independent adversarial re-validation (R0–R12 + skills + the
   architecture gate with an explicit `placement:` verdict); the
   squash-merge; the merge-time CalVer; the tag on every repo (a skipped tag
   is a defect); the durable PR verdict comment before any gated action.

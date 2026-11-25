@@ -26,14 +26,14 @@ The root-cause-analyzer is an **enforcer agent** at `marketplace/internals/agent
 
 ## What It Does
 
-The agent runs ONE 8-step process, defined once in its spec (`marketplace/internals/agents/root-cause-analyzer.md`, authored at the umbrella's `.agents/agents/root-cause-analyzer.md`). In short: **stop** → **expected vs actual**, with evidence → **enumerate the failure signatures** and investigate → the **mechanism** (a hypothesis, tested; a spike when high-risk) → the **missed control** → the **blast radius** → **root cause and root fix**, verified → **classify and record**.
+The agent runs ONE 8-step process, defined once in its spec (`marketplace/internals/agents/root-cause-analyzer.md`, authored at the umbrella's `.agents/agents/root-cause-analyzer.md`). In short: **stop** → **expected vs actual**, with evidence → **enumerate the failure signatures** and investigate → the **mechanism** (a hypothesis, tested) → the **missed control** → the **blast radius** → **root cause and root fix**: every candidate solution spiked (R12), the working one implemented and verified → **classify and record**. A working candidate is what proves the RCA; a round in which none works means the cause is wrong, and the analysis returns to the signatures.
 
 The last step decides the path (the project rulebook R1, *fix it or file it*; `/charly-internals:strict-policy` "R1, applied"):
 
 - **Blocking** (this change introduces it, this change's gate is red or warns because of it, or this change's claim is false without the fix; unsure → blocking): fixed in this change. If it needs its own issue — for example, a producer-first fix in another repo — that issue is filed with `--blocking`, so it is CLAIMED by you at filing, and you fix it.
 - **Non-blocking**, genuinely separable: FILED with `--non-blocking` and left unclaimed for a later session, then listed under the PR body's `## Filed issues`.
 
-**An issue is the RCA's OUTPUT, never a substitute for it.** It is filed only once the process has run to its end: its body states verified facts (commands with output, `file:line`, measurements) and the conclusion — mechanism, missed control, blast radius, root fix, and the spike's result or `none`. `node scripts/gh/cli.ts issue` refuses to file without those fields. An untested hypothesis means the RCA is unfinished, so nothing is filed yet.
+**An issue is the RCA's OUTPUT, never a substitute for it.** It is filed only once the process has run to its end: its body states verified facts (commands with output, `file:line`, measurements) and the conclusion — mechanism, missed control, blast radius, root fix, and the R12 spike round's result (or `none`, with the reason). `node scripts/gh/cli.ts issue` refuses to file without those fields. An untested hypothesis means the RCA is unfinished, so nothing is filed yet.
 
 ## Failure-signature enumeration and measurement discipline
 

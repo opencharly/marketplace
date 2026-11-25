@@ -86,9 +86,9 @@ REASONING: [Why you believe this based on evidence]
 EVIDENCE: [Data that supports this theory]
 ```
 
-Test it with a run whose output would DIFFER if the hypothesis were wrong. A high-risk
-hypothesis is proven on a live `disposable: true` bed, or against the real emitted artifact —
-a spike (RDD). A hypothesis that was never tested is not a mechanism.
+Test it with a run whose output would DIFFER if the hypothesis were wrong. A hypothesis that
+was never tested is not a mechanism. The cause itself is never spiked: what CONFIRMS it is step
+7's spike round, where a candidate solution that works proves the cause it removes.
 
 ### Step 5: The MISSED CONTROL
 
@@ -102,7 +102,14 @@ carrying the same claim, other sessions' work.
 
 ### Step 7: ROOT CAUSE and ROOT FIX — fix it, then verify it completely
 
-Fix ROOT CAUSE, not symptoms. The root fix goes into the code AND into the missed control:
+**Spike every candidate solution first (R12).** List every plausible solution for the cause and
+spike each one, on a live `disposable: true` bed or against the real artifact. Implement only a
+candidate that works: its success is the proof steps 1–4 were right. If none works, the cause is
+wrong — return to step 3. The round and its `### Spike` block: `/charly-internals:strict-policy`
+("Spike-first").
+
+Fix ROOT CAUSE, not symptoms. The root fix — the winning candidate — goes into the code AND into
+the missed control:
 
 - Do NOT hide error messages
 - Do NOT change expected behavior to match error
@@ -135,7 +142,7 @@ untested, the RCA is not finished and nothing is filed yet. File through
 |---|---|
 | step 2 + every measurement | `--evidence` (commands with pasted output, `file:line`) |
 | step 4 | `--mechanism` |
-| step 4's spike, or `none` with the reason | `--spike` |
+| step 7's spike round (every candidate, its result, the winner), or `none` with the reason | `--spike` |
 | step 5 | `--missed-control` |
 | step 6 | `--blast-radius` |
 | step 7 | `--root-fix` |
@@ -173,10 +180,11 @@ ROOT CAUSE ANALYSIS
 
 Unexpected behavior:      [step 2 — expected vs actual, with the revision]
 Failure signatures:       [step 3 — every distinct signature and its count]
-Mechanism:                [step 4 — and the test or spike that proved it]
+Mechanism:                [step 4 — and the test that showed it]
 Missed control:           [step 5]
 Blast radius:             [step 6]
-Root cause and root fix:  [step 7 — what was changed]
+Spike round:              [step 7 — every candidate, its result, and the working winner (R12)]
+Root cause and root fix:  [step 7 — the winner, and what was changed]
 Verification:             [step 7 — commands and output, over a window the system was up]
 Classification:           [step 8 — blocking (fixed here / claimed issue) or non-blocking (filed issue, unclaimed)]
 ```

@@ -20,7 +20,7 @@ The one rule that binds every reference below: **a bed run is R10-class —
 the commit is gated on a full final-code bed test (pasted), but beds run
 freely throughout to verify** (see `references/parallel-bed-testing.md`
 "The binding rule"). The project rulebook is `AGENTS.md`, the single
-harness-neutral rulebook carrying R0–R11; this skill never restates it,
+harness-neutral rulebook carrying R0–R12; this skill never restates it,
 only points to it.
 
 ## Index
@@ -83,6 +83,16 @@ a pin/tag/branch, or a moving issue/PR number. The brief names the DISCOVERY
 command; the worker discovers the value at run time. Full rule and the measured
 `.github#141` evidence: `references/program-discipline.md` ("Volatile facts are
 DISCOVERED, never baked into a brief").
+
+**A spike round can be delegated, one candidate per worker.** The R12 round spikes
+every plausible solution for a named cause, and the candidates are independent, so a
+parent may hand each one to its own worker. The brief names the RCA's cause, the one
+candidate, and the instrument (a `disposable: true` bed, or the real generator or
+artifact). The worker returns its commands, outputs and exit codes verbatim, plus a
+works / fails result — never a summary — and discards the spike code. The parent
+picks the winner and owns the `### Spike` block. A worker that changes the cause, or
+ships its spike, has left its brief. The round's form: `/charly-internals:strict-policy`
+("Spike-first").
 
 ## The harness-config LOCATION (umbrella-only; layer-charly-internals#49)
 

@@ -340,9 +340,32 @@ Scope unit naming: `charly-enc-<image>-<volume>.scope` (e.g., `charly-enc-immich
 
 List active scopes: `systemctl --user list-units 'charly-enc-*'`
 
-### Why `-allow_other` is Required
+### Why `-allow_other` is Required (and what it costs)
 
-Rootless podman with `--userns=keep-id` creates a two-level user namespace. During container mount setup, crun runs as inner uid 0, which maps through the namespace chain to **host uid 524288** (a subordinate uid), not the FUSE mount owner (uid 1000). FUSE's kernel check rejects access. The `-allow_other` flag bypasses this check, allowing crun to bind-mount from the FUSE filesystem. gocryptfs auto-enables `default_permissions` with `-allow_other`, so kernel UNIX permission checks still apply (0700 dirs restrict access to the mount owner). Confirmed by podman issues #14488, #15314, #16350, #25894.
+No charly pod runs as container root (D-HW-10): the workload runs as its image user, and a unit
+with a bind mount runs under `--userns=keep-id`. Keep-id creates a two-level user namespace: during
+container mount setup crun runs
+as inner uid 0, which maps through the namespace chain to **host uid 524288** (a subordinate uid),
+not the FUSE mount owner (uid 1000). FUSE's kernel check rejects that access, and the container does
+not start:
+
+```
+$ podman run --rm --userns=keep-id:uid=1000,gid=1000 --user 1000 \
+    -v /tmp/enc-test/plain:/enc <image> true
+crun: cannot stat `/enc`: Permission denied
+```
+
+`-allow_other` bypasses that check, letting crun bind-mount from the FUSE filesystem. With it the
+same run is the image user at uid 1000, writes into the volume, and the file lands on the host as
+`1000:1000` — no chown, no privileged shape. gocryptfs auto-enables `default_permissions` with
+`-allow_other`, so kernel UNIX permission checks still apply (0700 dirs restrict access to the mount
+owner). Confirmed by podman issues #14488, #15314, #16350, #25894.
+
+**What it costs.** While mounted, gocryptfs presents the plaintext directory's own modes, and
+`-allow_other` makes those modes binding on every local uid, not only the mount owner: a `0755`
+plaintext directory is readable by any local user for as long as it is mounted, and gocryptfs 2.7
+offers no narrower flag. Keep a plaintext directory's modes restrictive (`0700`/`0600`) — charly
+creates and expects that — rather than relaxing them to make one non-owner work.
 
 ### Host prerequisite: `user_allow_other` in `/etc/fuse.conf`
 
