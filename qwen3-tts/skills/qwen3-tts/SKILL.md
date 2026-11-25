@@ -3,7 +3,8 @@ name: qwen3-tts
 description: |
   The Qwen3-TTS speech service candy and pod: the OpenAI-compatible speech API
   (POST /v1/audio/speech, GET /v1/audio/voices) that Open WebUI's `openai` TTS engine calls,
-  served over the upstream qwen-tts python API by a charly-owned shim.
+  served over the upstream qwen-tts python API by a charly-owned shim that starts an on-demand
+  worker, gates it on free VRAM, and releases it when idle.
   MUST be invoked before building, deploying, configuring, or troubleshooting the qwen3-tts
   layer or pod.
 ---
@@ -22,18 +23,25 @@ demo, a CLI and a python API — and because the vLLM-Omni route (the officially
 OpenAI-compatible server) needs a 10 GB base image that would not import on this host. The shim is
 the charly-owned server the candy ships: the same two routes, over the same upstream API.
 
+**Two processes, on purpose.** The public shim (`qwen3-tts-server.py`) never imports torch and
+holds no CUDA context, so at rest the pod uses **no VRAM at all**. A synthesis request starts an
+on-demand worker (`qwen3-tts-worker.py`, torch + `qwen-tts`), which loads the checkpoint and serves
+over a Unix socket the shim proxies to. After `QWEN3_TTS_IDLE_UNLOAD_S` without a synthesis the
+shim **kills the worker** — process exit releases the weights, the cached blocks and the CUDA
+context together. The next request reloads.
+
 ## Properties
 
 | Property | Value |
 |---|---|
-| Service | `qwen3-tts` (`%(ENV_HOME)s/.local/bin/qwen3-tts-server.py`, `restart: always`) |
-| Port | `8000` |
-| Volume | `models` at `~/.cache/huggingface` (the checkpoint lives here after first use) |
+| Service | `qwen3-tts` (`%(ENV_HOME)s/.local/bin/qwen3-tts-server.py`, `restart: always`, `stop_timeout: 30`) |
+| Port | `8000` (the worker listens on a Unix socket, never a published port) |
+| Volume | `models` at `~/.cache/huggingface` (the checkpoint lives here; bind it to the shared XDG data store — see "Model cache" below) |
 | Requires | `layer-python` (pixi builder + env), `layer-supervisord` (the init) |
 | Packages | `gcc`, `gcc-c++` — torch/triton JIT-compile at synthesis time |
-| Python env | `pixi.toml`: torch cu130 from the pytorch index + `opencharly/Qwen3-TTS` at its CalVer tag (the committed `pixi.lock` records the tag's commit) + fastapi/uvicorn/soundfile |
+| Python env | `pixi.toml`: torch cu130 from the pytorch index + `opencharly/Qwen3-TTS` at its CalVer tag + fastapi/uvicorn/httpx/soundfile |
+| Files | `qwen3-tts-server.py` (shim, 0755), `qwen3-tts-worker.py` (worker, 0755), `qwen3_tts_common.py` (shared tables, 0644) |
 | `env_provide` | `QWEN3_TTS_HOST` (`http://{{.ContainerName}}:8000/v1`), `QWEN3_TTS_SERVED_MODEL`, `QWEN3_TTS_VOICE` |
-| `env` | `QWEN3_TTS_IDLE_UNLOAD_S` (idle seconds before the checkpoint is released; `0` = never; the deployment sets `300`) |
 
 ## The contract the consumer sees
 
@@ -47,94 +55,146 @@ Open WebUI's `_tts_openai` does exactly one thing: `POST {base}/audio/speech` wi
   naming the checkpoint, never a silent serve.
 - **`GET /v1/audio/voices`** feeds the consumer's voice picker; without it the picker offers
   OpenAI's names (`alloy`, `ash`, …) that this server does not have. The list is the checkpoint's
-  OWN speaker list (`model.get_supported_speakers()`) once it is loaded. The hardcoded nine-name
-  preset list is served only before the load completes or after a failed one, and the response
-  says which one it is (`"source": "model"` or `"source": "fallback"`).
+  OWN speaker list (`model.get_supported_speakers()`) once the worker serves. The hardcoded
+  nine-name preset list is served while the model is unloaded or after a failed start, and the
+  response says which one it is (`"source": "model"` or `"source": "fallback"`).
 - **`response_format` is honoured, not ignored.** The server encodes `wav` (default), `pcm`
   (headerless 16-bit LE), `flac` and `mp3` — the set it MEASURES as writable by the installed
-  `libsndfile` at import — and answers with the matching `Content-Type` (`audio/wav`, `audio/pcm`,
-  `audio/flac`, `audio/mpeg`). Anything else (`opus`, `aac`, …) is a `400
-  unsupported_response_format` naming the supported set, because silently substituting WAV is a
-  lie the consumer cannot see.
+  `libsndfile` at import — and answers with the matching `Content-Type`. Anything else (`opus`,
+  `aac`, …) is a `400 unsupported_response_format` naming the supported set.
 - **`GET /health` is the readiness signal, not decoration**: `200 {"status":"ok"}` only once the
-  model can synthesize; `503` with `{"status":"loading"|"error"|"unloaded","detail":…}` while it
-  cannot. `/v1/models` keeps answering `200` throughout, so the OpenAI surface a consumer probes
-  is reachable during a warm-up.
+  worker can synthesize; `503` otherwise, with a machine-readable `status`:
+  `unloaded` (the normal idle state), `waiting_for_vram`, `loading`, `unloading`, or `error`.
+  The body carries `worker_pid`, `vram_free_mib`, `load_attempts` and a `detail` reason.
+  `/v1/models` keeps answering `200` throughout, including while unloaded.
 
-## Configuration
+## Configuration — every knob is an env var
+
+Defaults live in the candy's `env:` and in the scripts, so a standalone run works and any deploy,
+box or bed can override any value.
 
 | Variable | Default | Effect |
 |---|---|---|
-| `QWEN3_TTS_MODEL` | `Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice` | checkpoint; one per server (CustomVoice / VoiceDesign / Base are different checkpoints) |
-| `QWEN3_TTS_DEVICE` | `cuda:0` | `cuda:0` or `cpu` |
+| `QWEN3_TTS_MODEL` | `Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice` | checkpoint; one per server |
+| `QWEN3_TTS_DEVICE` | `cuda:0` | `cuda:0` or `cpu` (`cpu` also disables the gate) |
 | `QWEN3_TTS_VOICE` | `vivian` | default preset voice when the request omits one |
-| `QWEN3_TTS_PORT` | `8000` | listen port |
+| `QWEN3_TTS_PORT` | `8000` | public listen port |
+| `QWEN3_TTS_LANGUAGE` | unset | language hint passed to the model |
+| `QWEN3_TTS_INSTRUCT` | unset | deployment-wide style instruction |
+| `QWEN3_TTS_IDLE_UNLOAD_S` | `600` | idle seconds before the worker is killed (`0` = never) |
+| `QWEN3_TTS_GPU_MIN_FREE_MIB` | `4096` | free-VRAM floor before a spawn (`0` = gate disabled) |
+| `QWEN3_TTS_GPU_WAIT_SECONDS` | `600` | the bounded wait for that floor (then 503) |
+| `QWEN3_TTS_GPU_INDEX` | `0` | the GPU index queried |
+| `QWEN3_TTS_GPU_POLL_S` | `5` | sampling interval inside the deadline |
+| `QWEN3_TTS_NVIDIA_SMI` | `nvidia-smi` | the query binary (absolute path or PATH name) |
+| `QWEN3_TTS_LOAD_TIMEOUT_S` | `1800` | spawn→ready deadline (covers a cold download) |
+| `QWEN3_TTS_SYNTH_TIMEOUT_S` | `600` | proxy timeout for one synthesis |
+| `QWEN3_TTS_WORKER` | sibling `qwen3-tts-worker.py` | worker script path |
+| `QWEN3_TTS_WORKER_SOCKET` | `/tmp/qwen3-tts-worker.sock` | internal Unix socket |
+| `QWEN3_TTS_WORKER_STOP_S` | `15` | SIGTERM→SIGKILL grace on release |
+| `QWEN3_TTS_LOG_LEVEL` | `info` | uvicorn log level |
 
-Fallback preset voices (CustomVoice checkpoints — served only until the loaded checkpoint reports
-its own list): `vivian`, `serena`, `uncle_fu`, `dylan`, `eric`, `ryan`, `aiden`, `ono_anna`,
-`sohee`.
+The fallback preset voices are `vivian`, `serena`, `uncle_fu`, `dylan`, `eric`, `ryan`, `aiden`,
+`ono_anna`, `sohee`.
 
-The checkpoint loads in a **background thread at service start** — uvicorn never waits for it, so
-`/v1/models` answers in milliseconds while the model is still warming and `/health` reports
-`loading`. A request that arrives during the warm-up WAITS for that one in-flight load instead of
-starting a second one, so a restart costs the consumer one slow turn rather than a failed one
-(measured before this: an 8–33 s load against Open WebUI's 41.8 s aiohttp timeout, i.e. the user's
-first "speak" after a restart failed). The checkpoint downloads into the `models` volume on the
-first load, so the very first start on a fresh volume still takes minutes — `/health` says
-`loading` for that whole time instead of pretending to be ready.
+## Loading, the VRAM gate, and idle release
 
-A failed load is **not sticky**: the next request that finds nothing loading retries it (a
-transient CUDA OOM heals as soon as memory frees), and `/health` keeps the last failure readable in
-`detail` together with `load_attempts`.
+- **Nothing loads at service start.** `/health` is `503 unloaded` and the pod holds no VRAM.
+- On a synthesis request the shim validates the request first, then — if no worker runs — polls
+  `nvidia-smi --query-gpu=memory.free` until at least `QWEN3_TTS_GPU_MIN_FREE_MIB` is free, up to
+  `QWEN3_TTS_GPU_WAIT_SECONDS`. The deadline is the guard; a missed deadline is
+  `503 gpu_memory_unavailable` naming the last reading (mirrors pod-ollama's `wait_for_gpu`).
+- Concurrent requests wait on ONE spawn (single-flight). A failed start is **not sticky**: the next
+  request retries it, so a transient OOM heals when memory frees.
+- The worker writes `ready` to a pipe only after uvicorn is listening AND the checkpoint is loaded.
+  It arms `PR_SET_PDEATHSIG`, so a crashed shim cannot leave an orphan holding the card.
+- After `QWEN3_TTS_IDLE_UNLOAD_S` with no synthesis (and no request in flight) the shim SIGTERMs
+  the worker, escalating to SIGKILL after `QWEN3_TTS_WORKER_STOP_S`. The next request reloads.
+- The checkpoint downloads into the `models` volume on the first load, so the first start on a
+  fresh volume still takes minutes; `QWEN3_TTS_LOAD_TIMEOUT_S` bounds that wait.
+
+## Model cache — ONE shared store, in the XDG data root
+
+The checkpoint is Hugging Face **cache** data and belongs in the charly data root the resolver
+owns (`spec/storeroot.Dir(DataRoot)`, DESIGN D-STORE-1 / D-STORE-11 / D-STORE-12), under
+`models/huggingface`. With the default XDG roots that is `~/.local/share/charly/models/huggingface`;
+`XDG_DATA_HOME` / `CHARLY_DATA_HOME` move it with the resolver, never with a hardcoded home path.
+
+Bind the candy's `models` volume there in **every** deployment and every check bed, so the
+checkpoint is downloaded ONCE and read by every qwen3-tts pod:
+
+```bash
+# default XDG data root; with XDG_DATA_HOME/CHARLY_DATA_HOME set, use <data root>/models/huggingface
+charly config qwen3-tts --bind models="$HOME/.local/share/charly/models/huggingface"
+```
+
+The container path stays `${HOME}/.cache/huggingface` and `HF_HOME` points at it; the shim and the
+on-demand worker inherit that env, so a worker downloads into — and loads from — the SAME shared
+store. **Do not leave the default per-image named volume (`charly-qwen3-tts-models`) in place for
+this cache**: it duplicates the checkpoint per pod, outside the XDG data root.
+
+The live deployment and the `check-qwen3-tts-pod` bed both bind this path today.
 
 ## Deployment
 
 ```bash
-# base: fedora (NOT nvidia — see below), distro/build/builder declared explicitly
 charly config qwen3-tts
 charly start qwen3-tts
 charly status qwen3-tts           # Ports: <host>:8000
 ```
 
 GPU access is automatic: charly emits `AddDevice=nvidia.com/gpu=all` on a host with a GPU and CDI,
-and torch's cu130 wheels carry the CUDA runtime, so the plain Fedora base is enough. **Do not base
-on `nvidia` today** — that base's `layer-cuda` pin predates the `cuda-cccl-devel` fix and fails to
+and torch's cu130 wheels carry the CUDA runtime, so the plain base is enough. **Do not base
+on `nvidia` today** — that base's `layer-cuda` pin predates the `cuda-cccl-fix` and fails to
 build (opencharly/distro-fedora#110).
+
+The composing image is `distro-cachyos/box/qwen3-tts`; its disposable bed
+`check-qwen3-tts-pod` is the live witness (lazy start, synthesis, gate refusal, idle release,
+reload).
 
 ## Verification
 
 ```bash
-# 503 while the checkpoint warms, 200 once it serves — never a lying 200
-curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:${HOST_PORT}/health
+# unloaded at start is the LAZY contract, not a failure
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:${HOST_PORT}/health   # 503 unloaded
+curl -s http://127.0.0.1:${HOST_PORT}/health                                    # {"status":"unloaded",...}
 curl -s http://127.0.0.1:${HOST_PORT}/v1/audio/voices
+# the request triggers the gate + the worker, and returns real audio
 curl -s -X POST -H 'Content-Type: application/json' \
      -d '{"input":"hello","voice":"vivian"}' \
      -o /tmp/x.wav -w '%{http_code} %{content_type}\n' \
      http://127.0.0.1:${HOST_PORT}/v1/audio/speech
 head -c 4 /tmp/x.wav            # RIFF
-# the consumer's declared format round-trips as real mp3, not a substituted WAV
-curl -s -X POST -H 'Content-Type: application/json' \
-     -d '{"input":"hello","response_format":"mp3"}' \
-     -o /tmp/x.mp3 -w '%{http_code} %{content_type}\n' \
-     http://127.0.0.1:${HOST_PORT}/v1/audio/speech
-# a format this server cannot produce is a 4xx naming the ones it can
-curl -s -X POST -H 'Content-Type: application/json' \
-     -d '{"input":"hello","response_format":"opus"}' \
-     http://127.0.0.1:${HOST_PORT}/v1/audio/speech
+curl -s http://127.0.0.1:${HOST_PORT}/health   # 200 ok, worker_pid, vram_free_mib
+# after the idle TTL: status unloaded, the worker pid gone, free VRAM back to the baseline
 ```
 
-The baked `check:` steps prove the script is installed, that the pixi env imports torch, soundfile
-and `qwen_tts`, and — on a container with no checkpoint and no GPU — the honesty contract itself:
-`/v1/models` answering while `/health` is `503`, the 4xx for an unsupported `response_format` and
-for a foreign `model`, one load attempt per failed load (retriable, not wedged), at most one load
-attempt per concurrent burst, and every advertised format encoding real bytes. They are
-build-scope, so `charly check box` runs them against the image.
+The baked `check:` steps run `tests/test_surface.py` (a stub worker drives lazy start,
+single-flight, the UDS proxy, the gate in both directions, the idle kill and the reload),
+`tests/test_common.py` (encoding/voice/readiness/state-machine contracts) and
+`tests/test_torch_free.py` (the shim imports neither torch nor `qwen_tts` — the guard that keeps
+the idle release total). They are build-scope, so `charly check box` runs them against the image.
+
+The **real worker boundary** — the actual `qwen3-tts-worker.py` loading torch + the checkpoint,
+serving uvicorn over a Unix socket, writing the ready pipe, dying with its parent, and being killed
+on idle — is proven by `tests/test_real_worker.py` on **CPU** with the candy's own pixi env and a
+populated `HF_HOME`:
+
+```bash
+HF_HOME=~/.local/share/charly/models/huggingface \
+  pixi run python tests/test_real_worker.py
+```
+
+Without the checkpoint it skips visibly (it never mocks the model). It is not a baked plan step
+because the image carries no checkpoint.
 
 ## Related
 
 - `/charly-openwebui:openwebui` — the consumer side: `env_accept`, the `AUDIO_TTS_*` projection, ffmpeg
+- `/charly-ollama:ollama` — the org's existing bounded free-VRAM gate (`OLLAMA_GPU_MIN_FREE_MIB`)
 - `/charly-image:layer` — candy authoring (`env_provide`, `service:`, `volume:`)
 - `/charly-check:check` — the check/ADE surface
+- `/charly-internals:disposable` — why the release target is `disposable: true`
 
 ## Style instruction (`instruct`)
 
@@ -150,6 +210,4 @@ curl -sS http://127.0.0.1:8000/v1/audio/speech \
   -d '{"input":"Hello","voice":"vivian","instruct":"warm, unhurried, smiling"}'
 ```
 
-An unset instruction is the model's own default and costs nothing. The
-instruction is free text, so it belongs in the deployment's env (or the
-caller's request), never in this repo.
+An unset instruction is the model's own default and costs nothing.
