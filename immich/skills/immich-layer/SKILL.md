@@ -15,7 +15,7 @@ description: |-
 |----------|-------|
 | Dependencies | `supervisord`, `nodejs`, `postgresql`, `redis`, `ffmpeg` |
 | Ports | 2283 (server + web UI), 3003 (machine learning) |
-| Volumes | `library` -> `~/.immich/library`, `cache` -> `~/.immich/cache`, `import` -> `~/.immich/import`, `external` -> `~/.immich/external`, `models` -> `~/.immich/models` |
+| Volumes | `library` -> `~/.immich/library`, `import` -> `~/.immich/import`, `external` -> `~/.immich/external`, `models` -> `~/.immich/models` |
 | Service | `immich-db-init` (oneshot, priority 15), `immich-server` (priority 30), `immich-ml` (priority 40) |
 | Route | `immich.localhost:2283` |
 
@@ -30,7 +30,7 @@ description: |-
 | `IMMICH_MACHINE_LEARNING_ENABLED` | `true` |
 | `IMMICH_MACHINE_LEARNING_URL` | `http://127.0.0.1:3003` |
 | `MACHINE_LEARNING_HOST` / `_PORT` / `_WORKERS` / `_WORKER_TIMEOUT` | `0.0.0.0` / `3003` / `1` / `120` |
-| `TRANSFORMERS_CACHE` | `~/.immich/models` |
+| `HF_HOME` | `~/.immich/models` — the model cache folder. The ML venv ships `huggingface_hub`, which honours `HF_HOME`; the older `TRANSFORMERS_CACHE` name is read by nothing in v3.4.2 (measured in this image: 9 `HF_HOME` references in the venv, 0 for `TRANSFORMERS_CACHE`), and must not be set |
 | `DB_HOSTNAME` / `DB_DATABASE_NAME` | `~/.postgresql` (socket dir) / `immich` |
 | `DB_USERNAME` / `DB_PASSWORD` | `immich` / `immich` |
 | `REDIS_HOSTNAME` / `REDIS_PORT` | `127.0.0.1` / `6379` |

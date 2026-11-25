@@ -158,8 +158,12 @@ both body-only, and neither covered by classes 1-5.
    floor as "*measured: 120 s*", when 120 s is `readinessPerAttemptFallback` in
    the pinned spec's `poll` package. A constant and a measurement are different
    kinds of number, and the prose says which one it is holding.
-4. Account for EVERY applicable rule (the repo's numbered rules AND R1–R11)
+4. Account for EVERY applicable rule (the repo's numbered rules AND R1–R12)
    with a one-line `HOW` or `N/A — <reason>`; never a bare `N/A.`
+   When the change fixes or implements behaviour, `## How tested` carries the R12
+   `### Spike` round — every candidate, its pasted result, the winner the diff
+   implements — or the body names the exemption that applies
+   (`/charly-internals:strict-policy`, "Spike-first").
 5. NEVER surface a failure you cannot own. Either fix it (including the coupled
    pin/migrate, not just the manifest) or omit it and paste only the repo's
    authoritative gate. If it is genuinely separate (non-blocking), FILE it
@@ -201,6 +205,22 @@ both body-only, and neither covered by classes 1-5.
 10. List every issue R1 filed or updated under `## Filed issues`
    (`<repo>#<n> — <one line>`), and post `STATUS` on your claimed thread
    (the project rulebook Part II #11).
+   **10b. Verify the required SECTION HEADERS line-anchored, never by
+   substring.** A body that discusses the section in prose satisfies
+   `'## Filed issues' in body` while shipping no such section: measured
+   2026-11-25 on opencharly/pod-qwen3-tts#14 round 2, whose R1 bullet said the
+   issue was "listed under `## Filed issues`" — the substring test passed, the
+   section was absent, and the validator BLOCKed on exactly that. Check
+   `grep -c '^## Filed issues$'` (and the other required headings) against the
+   LIVE body you are about to push, not the draft you assembled.
+   **10c. A successor's or a round's body is RE-DERIVED, never copied.** A body
+   inherited from an auto-closed predecessor describes the PREDECESSOR's branch:
+   its commit list, its "one commit plus re-freezes", its gate state. Copying it
+   and patching only where a finding pointed shipped three phantom-commit claims
+   and two missing A1 fields across one wave (2026-11-24/25, six successor PRs).
+   The mechanical pass: `git log --oneline origin/main..HEAD` against every
+   commit-history sentence, and A1's *How tested* field walk against the gate you
+   actually ran.
 11. **Read the PUSHED RANGE's trailers — the body's footer is not the branch's
     commits.** The linter below reads the BODY's last line, and no control reads
     the commits the branch is about to push, so a trailer-less commit can sit
@@ -242,7 +262,7 @@ file BEFORE the push:
 python3 scripts/pr_body_lint.py <body.md> --repo <worktree>
 ```
 
-The rule ids required in `## Rulebook compliance` default to R0-R11 (the
+The rule ids required in `## Rulebook compliance` default to R0-R12 (the
 linter's `DEFAULT_RULES`); a repo with its own numbered rules passes them with
 `--rules`, for example `--rules R0,R1,R2,R3`.
 Exit 0 is clean, exit 1 is a finding to fix before the push.
