@@ -57,21 +57,25 @@ LEGACY_ELLIPSIS_BODIES = {
 }
 
 
-def answer_r11(text: str) -> str:
-    """A recorded body that predates R11 (opencharly/opencharly#1119) answers R0–R10 only; its
-    `## Rulebook compliance` gains an R11 line in memory, and the recorded file is untouched."""
+def answer_predating(text: str) -> str:
+    """A recorded body that predates R11 (opencharly/opencharly#1119) and R12 (spike every
+    candidate solution, opencharly/opencharly#1278) answers R0–R10 only; its
+    `## Rulebook compliance` gains an R11 and an R12 line in memory, and the recorded file is
+    untouched."""
     assert text.count("## Rulebook compliance\n") == 1
     return text.replace(
-        "## Rulebook compliance\n", "## Rulebook compliance\n\n- **R11:** N/A — the body predates the rule.\n"
+        "## Rulebook compliance\n",
+        "## Rulebook compliance\n\n- **R11:** N/A — the body predates the rule.\n"
+        "- **R12:** N/A — the body predates the rule.\n",
     )
 
 
 def charly_1039() -> str:
     """The REAL charly#1039 body. It predates the session line and R11 (opencharly/opencharly#1119),
-    so its bare `Agent: charly` is upgraded to the canonical shape and an R11 answer is added, in
+    so its bare `Agent: charly` is upgraded to the canonical shape and R11/R12 answers are added, in
     memory; the recorded fixture stays the body as it was posted, and only the head-fence
     behaviour is under test."""
-    text = answer_r11((DATA / "charly-1039.md").read_text())
+    text = answer_predating((DATA / "charly-1039.md").read_text())
     assert text.count("Agent: charly\n") == 1
     return text.replace("Agent: charly\n", "*Agent: `charly` · Claude Code session `charly-1039`*\n")
 
@@ -95,13 +99,15 @@ class Fixtures(unittest.TestCase):
         self.assertTrue(any("does not answer R1" in x for x in f), f)
 
     def test_clean_body_passes(self):
-        # A merged PR body the validator PASSed. It predates the session line's harness and R11
-        # (opencharly/opencharly#1119), so those two are its ONLY findings.
+        # A merged PR body the validator PASSed. It predates the session line's harness, R11
+        # (opencharly/opencharly#1119) and R12 (opencharly/opencharly#1278), so those three are
+        # its ONLY findings.
         f = run((HERE.parent / "CHANGELOG/2026.275.0418.md").read_text())
-        self.assertEqual(len(f), 2, f)
+        self.assertEqual(len(f), 3, f)
         self.assertTrue(any("is not the session line" in x for x in f), f)
         self.assertTrue(any("does not answer R11" in x for x in f), f)
-        upgraded = answer_r11((HERE.parent / "CHANGELOG/2026.275.0418.md").read_text()).replace(
+        self.assertTrue(any("does not answer R12" in x for x in f), f)
+        upgraded = answer_predating((HERE.parent / "CHANGELOG/2026.275.0418.md").read_text()).replace(
             "*Agent: `readme-truth` · session", "*Agent: `readme-truth` · Claude Code session"
         )
         self.assertEqual(run(upgraded), [])
@@ -185,9 +191,16 @@ class Rules(unittest.TestCase):
         footer = "\n".join(e.replace("\\`", "`").replace("${GITHUB_RUN_ID}", "1234567890") for e in echoed)
         self.assertEqual(run(body(footer=footer)), [])
 
+    def test_r12_is_a_required_rule(self):
+        # R12 — spike every candidate solution before implementing (opencharly/opencharly#1278) —
+        # is a ground-truth rule, so an unanswered R12 is a finding like any other rule.
+        self.assertIn("R12", DEFAULT_RULES)
+        f = run(body(rules=OK_RULES.replace("- **R12:** answered with how.", "")))
+        self.assertTrue(any("does not answer R12" in x for x in f), f)
+
     def test_the_refresh_bot_answers_every_rule(self):
         # The model-free refresh bot's body answers every ground-truth rule the linter
-        # requires, R11 included, as .github/workflows/refresh.yml emits it.
+        # requires, R11 and R12 included, as .github/workflows/refresh.yml emits it.
         import re as _re
 
         wf = (HERE.parent / ".github" / "workflows" / "refresh.yml").read_text()
