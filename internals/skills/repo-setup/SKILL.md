@@ -31,32 +31,30 @@ NEW repository.
   CHANGELOG writes must land). There is NO human bypass and NO `pull_request`
   review rule — the validator IS the gate.
 - Owner script: `opencharly/.github/scripts/org-ruleset.sh` (`apply` / `verify`).
-  It creates/updates the ruleset, deletes redundant per-repo rulesets and any
-  surviving legacy branch protection, and enforces the two settings that have NO
-  org-level default: `allow_auto_merge=true` and `delete_branch_on_merge=true`.
-- The target set is `discover_repos` in `scripts/lib-org.sh`: **active,
-  non-fork, default branch `main`**. Everything else is `discover_excludes`
-  (forks, archived, non-`main` defaults). Exclusion is about the ORG-WIDE
-  AUTOMATIC coverage ONLY: the org does not attach the required
-  `validate / validate` workflow to the repo and does not mint its CalVer tag.
-  **It is not a prohibition, and a fork is not a defect.** A fork is a
-  legitimate, actively developed repo here, and it runs its own checks:
-  * `openclaw-enterprise` (fork of `openclaw/openclaw-enterprise`) has ZERO
-    branch rules, so no branch check is ENFORCED; its PRs run its own
-    `.github/workflows/ci.yml` and merge on that CI signal — its PR #2 merged
-    2026-10-13 with `CI Required`, `CodeQL` and `QA advisory`, and no
-    `validate / validate`;
-  * `crabbox` (fork of `openclaw/crabbox`) is excluded from the org-wide
-    ruleset but carries its OWN repo-scoped ruleset requiring the SAME
-    `org-wide-pr-validator-required.yml`, so its PRs get the org gate through
-    that repo's ruleset;
-  * `gst-wayland-display` (fork, default `stable`) carries its own rules on
-    `stable` (including `validate / validate`) and CalVer tags minted
-    out-of-band.
-  For a LIVE repo, an exclusion never means "cannot land" or "is junk" — the
-  non-landing categories are named below. What DOES still hold: a NEW repo is
-  created non-fork so it inherits the org gate, and an excluded repo is not
-  tagged or gated by the org automatically.
+  It builds **two** org rulesets from ONE payload builder — A for the active
+  non-fork `main`-default repos, B for the active **forks** on `~DEFAULT_BRANCH` —
+  deletes redundant per-repo rulesets and any surviving legacy branch protection,
+  and enforces the settings that have NO org-level default: `allow_auto_merge=true`,
+  `delete_branch_on_merge=true`, and `allow_update_branch=false`.
+- The sets are `discover_repos` (**active, non-fork, default `main`**) and
+  `discover_forks` (active forks, with their default branch). Ruleset A targets the
+  first on `refs/heads/main`; ruleset B targets the second on `~DEFAULT_BRANCH` —
+  `stable`/`master` included — with the **same rules, including the `workflows`
+  rule**. So a fork's `validate / validate` is produced by the ORG required workflow
+  and **no per-fork `pr-validator.yml` is copied into a fork**. The gate cannot be
+  switched off by deleting a fork file.
+- A first-party fork is therefore a LANDING TARGET like any other. The one file it
+  carries is `.github/workflows/tag-on-merge.yml`, installed and kept canonical by
+  `reconcile-tag-on-merge-callers.sh` with `SCOPE=forks` — which also INSTALLS it
+  where absent. A fork left out of ruleset B fails `org-ruleset.sh verify` by name
+  until the next `apply` (the staleness control).
+- A fork's `workflows` rule blocks DIRECT pushes, so a user-token `gh repo sync`
+  fails (measured, opencharly/.github#179). Sync through
+  `.github/workflows/sync-forks.yml`, which uses the `charly-auto-merge` App token —
+  the ruleset bypass actor. It never forces; a conflict is reported.
+- Still outside the gate: an archived repo, a vendored upstream on a non-`main`
+  default (`pixelflux` → `av1`), and an artifact-branch sink
+  (`omarchy-eval-artifacts` → `runs`).
 
 ## What happens automatically on every PR (the landing chain)
 
@@ -212,6 +210,27 @@ purpose. So the order is:
       default); `label-sync` re-provisions the 12 labels because GitHub recreates its 9
       defaults on every new repository.
 
+### Onboarding a fork
+
+1. **Do not add a repo-scoped ruleset and do not add a `pr-validator.yml`.** Run
+   `scripts/org-ruleset.sh apply`; ruleset B picks the fork up from
+   `discover_forks`. A fork missing from B fails `verify` until apply runs — that is
+   the staleness control, not a warning.
+2. **Install the tag-on-merge caller**: dispatch
+   `.github/workflows/reconcile-tag-on-merge-callers.yml` with `scope=forks`. An
+   absent caller is INSTALLED there (the targets scope never installs); a copy that
+   pins the reusable to a SHA keeps that policy with the current `.github` main sha.
+3. **Confirm the settings** `org-ruleset.sh apply` asserts (`allow_auto_merge`,
+   `delete_branch_on_merge`, `allow_update_branch=false`). With auto-merge disabled,
+   an approved PR renders as a FAILED check (opencharly/.github#212).
+4. **Land one canary PR.** Confirm exactly ONE `validate / validate` run on the head
+   (two is a duplicate producer — stop), native squash auto-merge armed, the merge,
+   and a CalVer tag plus `CHANGELOG/<CalVer>.md` on the fork's DEFAULT branch.
+5. **Sync from upstream with `sync-forks.yml`**, never a user-token `gh repo sync`
+   (the `workflows` rule blocks a direct push).
+6. **Tag-on-merge means the fork mints CalVer**: a pin at the caller-install commit
+   is `pre-release-process`, above it `changelog-tip` or `tagged` (DESIGN A.12).
+
 ## The measured gap this checklist prevents
 
 A repo created WITHOUT the `tag-on-merge.yml` caller still MERGES (the org
@@ -219,33 +238,29 @@ workflow validates it) but NEVER gets a CalVer tag: measured on
 `layer-nerdctl` and `plugin-nerdctl` (no `.github` directory at all; their two
 `v2026.266.*` tags were minted manually).
 
-Four DIFFERENT things sit outside `discover_repos`, and they are not one
-category:
+Three DIFFERENT things sit outside the gate, and they are not one category:
 
-- **A fork under development** — `gst-wayland-display` (fork of
-  `games-on-whales/gst-wayland-display`, default `stable`), `crabbox` (fork of
-  `openclaw/crabbox`), and `openclaw-enterprise` (fork of
-  `openclaw/openclaw-enterprise`). Real repos, real PRs, own CI or own ruleset;
-  only the org-wide automatic coverage is absent.
 - **A vendored upstream on a non-`main` default** — `pixelflux` (default
   `av1`): consumed as a pin, not a landing target.
 - **An artifact-branch sink** — `omarchy-eval-artifacts` (default `runs`): a
   branch that receives published output, not a landing target.
 - **An archived repo** — `pi-review-action`: read-only, so GitHub rejects
-  pushes and new PRs.
+  pushes and new PRs. `org-ruleset.sh verify` names any archived fork too.
 
-"No tag expected" is true only of the AUTOMATIC tag: the org mints none for
-these repos, so a CalVer tag you find there was minted out-of-band (measured:
-`gst-wayland-display` carries three).
+A first-party FORK is no longer in this set: ruleset B gates it, and it mints
+CalVer once its tag-on-merge caller is installed. The org mints no AUTOMATIC tag
+for a repo with no caller, so a CalVer tag you find there was minted out-of-band.
 
 ## Cross-References
 
 - `/charly-internals:git-workflow` — the author's branch/PR/landing discipline and
   the after-merge close-out checklist (B8).
 - `opencharly/.github` — `scripts/org-ruleset.sh`, `scripts/lib-org.sh`,
-  `scripts/retire-per-repo-dispatchers.sh`, and the workflows
-  `org-wide-pr-validator-required.yml`, `pr-validator.yml`, `tag-on-merge.yml`,
-  `tag-on-merge-dispatcher.yml`, `bootstrap-repo-main.yml`.
+  `scripts/retire-per-repo-dispatchers.sh`,
+  `scripts/reconcile-tag-on-merge-callers.sh`, `scripts/sync-forks.sh`, and the
+  workflows `org-wide-pr-validator-required.yml`, `pr-validator.yml`,
+  `tag-on-merge.yml`, `tag-on-merge-dispatcher.yml`, `bootstrap-repo-main.yml`,
+  `reconcile-tag-on-merge-callers.yml`, `sync-forks.yml`.
 
 ## When to Use This Skill
 

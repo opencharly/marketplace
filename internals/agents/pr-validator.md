@@ -481,7 +481,7 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
      CHANGED code path executed live (which caps the tier), the concurrent-roster
      evidence for a shared-state change, AND pasted output (not a promise);
    - an *Attribution tier* justified by that evidence (never inflated);
-   - the *project-rulebook rule-compliance* section with EVERY applicable rule (R0–R11 +
+   - the *project-rulebook rule-compliance* section with EVERY applicable rule (R0–R12 +
      the pillars) answered with a one-line HOW (or `N/A — <reason>` where the
      change class genuinely excludes it) — a bare tick with no HOW is NOT an
      answer.
@@ -553,7 +553,7 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
    legal ONLY when the whole diff is documentation (`*.md`/comment-only/all-doc
    submodule bump). `syntax check only` / `theoretical suggestion` must NOT ship.
 
-**B. Ground-truth rules R0–R11 (each explicit).**
+**B. Ground-truth rules R0–R12 (each explicit).**
 
 The R-numbers were re-cut on 2026-10-09, so a reference written before that date
 names a DIFFERENT rule than the same number does today. The renumbering's own
@@ -672,10 +672,31 @@ against the rule it now is.
     R10 authority (disposable-only, no scope-shrinking flags); a
     suspicious-but-unverified R10 claim is a FAIL until your own run confirms it.
 
+11a. **R11 — conform to DESIGN (the ratchet).** A change that adds or reshapes a
+    field, shape, kind, verb, capability or mechanism conforms to the DESIGN
+    requirement that governs it, and the body names each D-id it touches as
+    conforming, amended, or filed design debt. A diff that contradicts a cited
+    D-id without amending DESIGN FAILS; a DESIGN amendment carries the
+    design-check output and a maintainer sign-off. Detail: `/charly-internals:design`.
+
+11b. **R12 — spike every candidate solution before implementing.** A change that
+    fixes or implements behaviour carries a `### Spike` block under `## How tested`:
+    the RCA's claim, EVERY plausible candidate solution spiked with its instrument,
+    pasted output, exit code and result, the working winner, and the RCA verdict.
+    The candidates are solutions to the cause, never the cause itself. It FAILS
+    when the block is missing, when one candidate was spiked and no other plausible
+    one is named (nor why none exists), when the diff implements something other
+    than the winner or implements after a round in which nothing worked, when a
+    "spike" only read docs or code, or when an exemption (typo, comment, prose-only,
+    revert to a proven state, a pasted spike-equivalent) is unnamed or inapplicable.
+    A spike never replaces R10. Detail: `/charly-internals:strict-policy`
+    ("Spike-first").
+
 **C. Pillars & mandates (verify where the change touches them).**
 
-12. **RDD / ADE / SDD.** RDD: a HIGH-RISK assumption (above all composition at
-    the latest resolver-picked versions) is proven on a `disposable: true` bed,
+12. **RDD / ADE / SDD.** RDD: a fix's or solution's spike round is verified
+    under item 11b (R12); a HIGH-RISK assumption (above all composition at the
+    latest resolver-picked versions) is also proven on a `disposable: true` bed,
     not carried on a doc/code reading. ADE: EVERY new/changed candy ships a
     non-empty `description:` AND a `plan:` with ≥1 deterministic `check:` step
     (`charly box validate` hard-errors otherwise — confirm it was run).

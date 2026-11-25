@@ -86,7 +86,8 @@ box or bed can override any value.
 | `QWEN3_TTS_GPU_WAIT_SECONDS` | `600` | the bounded wait for that floor (then 503) |
 | `QWEN3_TTS_GPU_INDEX` | `0` | the GPU index queried |
 | `QWEN3_TTS_GPU_POLL_S` | `5` | sampling interval inside the deadline |
-| `QWEN3_TTS_NVIDIA_SMI` | `nvidia-smi` | the query binary (absolute path or PATH name) |
+| `QWEN3_TTS_NVML_LIB` | `libnvidia-ml.so.1` | the NVML library the gate reads free VRAM through |
+| `QWEN3_TTS_GPU_FREE_MIB` | unset | DIAGNOSTIC override of the reading, in MiB (`unset` in every deployment) |
 | `QWEN3_TTS_LOAD_TIMEOUT_S` | `1800` | spawn→ready deadline (covers a cold download) |
 | `QWEN3_TTS_SYNTH_TIMEOUT_S` | `600` | proxy timeout for one synthesis |
 | `QWEN3_TTS_WORKER` | sibling `qwen3-tts-worker.py` | worker script path |
@@ -148,6 +149,13 @@ and torch's cu130 wheels carry the CUDA runtime, so the plain base is enough. **
 on `nvidia` today** — that base's `layer-cuda` pin predates the `cuda-cccl-fix` and fails to
 build (opencharly/distro-fedora#110).
 
+**The gate reads NVML, not a CLI, and the image ships no NVIDIA tooling.** `libnvidia-ml.so.1`
+is what the container runtime injects into a GPU pod (measured: the library and `/dev/nvidia0`
+present, `/usr/bin/nvidia-smi` absent in one deployment), so the gate uses the library and works
+either way. Baking `nvidia-utils` into a pod image is forbidden by the pod/driver contract
+(`pod-cdi`/`layer-cdi` fail such a build). An image that bakes no NVIDIA tooling is correct; a
+deploy that receives no device answers `503 gpu_unavailable`.
+
 The composing image is `distro-cachyos/box/qwen3-tts`; its disposable bed
 `check-qwen3-tts-pod` is the live witness (lazy start, synthesis, gate refusal, idle release,
 reload).
@@ -171,9 +179,15 @@ curl -s http://127.0.0.1:${HOST_PORT}/health   # 200 ok, worker_pid, vram_free_m
 
 The baked `check:` steps run `tests/test_surface.py` (a stub worker drives lazy start,
 single-flight, the UDS proxy, the gate in both directions, the idle kill and the reload),
-`tests/test_common.py` (encoding/voice/readiness/state-machine contracts) and
+`tests/test_common.py` (encoding/voice/readiness/state-machine contracts),
 `tests/test_torch_free.py` (the shim imports neither torch nor `qwen_tts` — the guard that keeps
-the idle release total). They are build-scope, so `charly check box` runs them against the image.
+the idle release total) and `tests/test_nvml_gate.py` (the free-VRAM gate answers through NVML, and
+its diagnostic override refuses a non-numeric value). They are build-scope, so `charly check box`
+runs them against the image.
+
+**Every `tests/…` path below is relative to a checkout of THIS repo** — run it from the repo root.
+The published copy of this skill lives in the marketplace corpus, where no `tests/` tree sits beside
+it, so those commands are developer checks, not something to run from wherever you happen to be.
 
 The **real worker boundary** — the actual `qwen3-tts-worker.py` loading torch + the checkpoint,
 serving uvicorn over a Unix socket, writing the ready pipe, dying with its parent, and being killed
@@ -181,6 +195,7 @@ on idle — is proven by `tests/test_real_worker.py` on **CPU** with the candy's
 populated `HF_HOME`:
 
 ```bash
+# from the repo root — `tests/` ships with this repo, not with the corpus copy
 HF_HOME=~/.local/share/charly/models/huggingface \
   pixi run python tests/test_real_worker.py
 ```

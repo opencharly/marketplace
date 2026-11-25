@@ -55,6 +55,10 @@ diverge. It is the gap the ratchet closes, one touched area at a time.
 3. **Judge the proposal by P1–P4** (DESIGN §1): mechanism not instance, one term for many
    instances, derived not authored, no foreign concept. A proposal that needs an exception to one of
    them is redesigned, not amended.
+4. **Spike the candidate shapes before writing code against one (R12).** When the change answers a
+   cause, every plausible shape for it is spiked; a risky shape gets the schema spike — the def
+   compiles, the generated type round-trips, the gate accepts and rejects as intended. The round's
+   form is `/charly-internals:strict-policy` ("Spike-first").
 
 ## The three dispositions a change can have
 

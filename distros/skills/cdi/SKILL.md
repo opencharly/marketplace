@@ -86,63 +86,65 @@ user-space too. Installing the toolkit is enough to bake the driver.
    This is the only assertion that catches the shadowing bug, because it is the only one that looks
    at what the container ended up with rather than at what it was supposed to get.
 
-## A CDI device and a user-namespace MAPPING are mutually exclusive
+## Keep-id, a bind mount, and a GPU: what actually fails
 
-Before you compose this layer onto a pod that also mounts a host directory, know the wall — it is a
-kernel rule, not a podman setting, and it was measured the hard way on the first pod in the org with
-BOTH a CDI device and a bind mount (opencharly/plugin-deploy-pod#81):
+**CDI and a user volume mount work together.** What fails under `--userns=keep-id` is the CDI
+spec's `mounts` section — not the device. Measured (podman 6.2.0, crun 1.31, rootless,
+`/etc/subuid` `atrawog:100000:65536`, image `ghcr.io/opencharly/immich-cdi`):
 
 ```
-$ podman run --rm --userns=keep-id --device nvidia.com/gpu=all <image> true
+# stock spec (/etc/cdi/nvidia.yaml carries `mounts`)
+$ podman run --rm --userns=keep-id:uid=1000,gid=1000 --user 1000 \
+    --device nvidia.com/gpu=all <image> true
 Error: crun: mount_setattr `/usr/bin/nvidia-cuda-mps-control`: Operation not permitted: OCI permission denied
+
+# devices-only spec + the driver libraries as read-only binds
+$ podman run --rm --userns=keep-id:uid=1000,gid=1000 --user 1000 \
+    --cdi-spec-dir /tmp/cdi-devonly --device nvidia.com/gpu=all \
+    -v /usr/lib/libcuda.so.615.78.08:/usr/lib/libcuda.so.1:ro \
+    -v /usr/lib/libnvidia-ml.so.615.78.08:/usr/lib/libnvidia-ml.so.1:ro \
+    -v /usr/lib/libnvidia-ptxjitcompiler.so.615.78.08:/usr/lib/libnvidia-ptxjitcompiler.so.1:ro \
+    --entrypoint /bin/sh <image> -c 'id -un; id -u; python3 -c "import ctypes;l=ctypes.CDLL(\"libcuda.so.1\");print(\"cuInit=\",l.cuInit(0))"'
+user
+1000
+cuInit= 0
 ```
 
-`strace -f -e trace=mount,mount_setattr` names the step: `mount_setattr(…, AT_RECURSIVE,
-MOUNT_ATTR_IDMAP, …) = EPERM` — crun applying an **idmapped mount** to the injected CDI mount. An
-idmapped mount needs `CAP_SYS_ADMIN` in the user namespace that owns the **filesystem's superblock**;
-the CDI sources are host files on the host filesystem, whose superblock belongs to the INITIAL user
-namespace, which a rootless container can never hold.
+Why: crun applies each CDI mount with `mount_setattr(…, MOUNT_ATTR_IDMAP, …)`, and an idmapped mount
+needs `CAP_SYS_ADMIN` in the user namespace that owns the **file's superblock**. The CDI sources are
+host files on the host filesystem, whose superblock belongs to the initial user namespace, which a
+rootless keep-id container never holds — hence EPERM. The device nodes need no such mount and apply
+normally. `--userns=host` avoids the idmap by removing the mapping — and that is the container-root
+shape this org forbids (D-HW-10): **no charly pod runs as container root**, and a bind mount is not a
+`privilege: rootful` need.
 
-Podman asks for that idmap precisely because the container carries a userns MAPPING: host root is
-unmapped there, so root-owned injected files would read as `nobody`, and podman marks the mounts
-`idmap` to present them as root. With **no mapping** (`--userns=host`) no idmap is requested and the
-injection works.
+### The rule
 
-Measured, so nobody re-derives it — the image is irrelevant (two images) and so is the filesystem
-(a `:idmap` bind of a file fails identically from **btrfs AND tmpfs**, and tmpfs supports idmapped
-mounts):
+1. **Run as the image user under keep-id.** A unit with a bind mount carries
+   `UserNS=keep-id:uid=<uid>,gid=<gid>`. Under keep-id the image user **is** the invoking host user,
+   so a host-owned bind or a gocryptfs plaintext directory is writable as-is: no chown, no root.
+2. **Keep the CDI device.** `AddDevice=nvidia.com/gpu=all` goes on every GPU unit, bind or not.
+3. **Give it a devices-only spec.** Derive it from the host's spec (`/etc/cdi/nvidia.yaml`): keep the
+   `deviceNodes`, drop `mounts` and `hooks`, and point the engine at that directory with
+   `--cdi-spec-dir`. `nvidia-ctk cdi generate` has no mounts-free mode — even restricted to
+   `devices.csv` it emits `mounts` and `hooks` — so the spec is a derived artifact, regenerated when
+   the host driver moves. It is not a second injection mechanism.
+4. **Bind the driver libraries** the stock spec delivered as mounts, read-only, to their SONAME
+   paths (`libcuda.so.1`, `libnvidia-ml.so.1`, `libnvidia-ptxjitcompiler.so.1`), from the same
+   `hostPath` values. They are versioned host files: never bake them into an image (the ICD/SONAME
+   resolution would pick the image's copy and report a driver/library version mismatch).
 
-| flags | result |
-|---|---|
-| `--device nvidia.com/gpu=all` | works |
-| `--userns=host --device nvidia.com/gpu=all` | works |
-| `--userns=keep-id[:uid=…] --device nvidia.com/gpu=all` | **EPERM**, always |
-| `--userns=keep-id --group-add keep-groups --device …` | **EPERM** |
-| `--userns=keep-id` with NO device | works (so it is the pair, not either half) |
-| the same CDI failure with the target paths PRE-CREATED in the image | **EPERM** (so "create the mount points" is not the fix) |
+Measured in that shape: `cuInit=0`, device `NVIDIA GeForce RTX 4080 SUPER`, `cuCtxCreate=0`, a
+16 MiB `cuMemAlloc` returning a pointer, ONNX Runtime profiling `MatMul` on
+`CUDAExecutionProvider`, and the workload `user`/uid 1000.
 
-### The two legal shapes
+What does **not** work, measured: `--userns=host --user <image uid>` with an idmapped volume
+(`-v src:dst:idmap` and `--mount …,idmap` both denied — idmap is a no-op under `userns=host`); any CDI
+spec carrying mounts under keep-id (EPERM); and pre-creating the mount targets in the image (EPERM
+identically).
 
-1. **A host bind the workload must write** → `--userns=host` with the workload as **container root**.
-   Under a rootless pod that uid 0 *is the invoking host user*: files it creates land on the host
-   owned by you, `podman info` still reports `rootless=true`, and nothing on the host is root.
-   Measured on a real GPU pod: `--userns=host --user 0 --cap-drop ALL --security-opt
-   no-new-privileges --device nvidia.com/gpu=all` with the bind runs the whole stack (supervisord →
-   service → `nvidia-smi` resolves the injected driver), so the workload needs NO capability at all.
-   (`#Security` in `spec/schema` cannot yet express `cap_drop` — opencharly/spec#398 — so a pod
-   declares `security_opt: [no-new-privileges]` and drops the rest once the field exists.)
-2. **A named volume** → `--userns=keep-id` is fine (podman chowns the volume to the container user),
-   because there is no host-owned bind for the mapping to protect.
-
-There is no third shape: container uid 1000 can only write a host-owned bind if it IS the host user,
-which is exactly the mapping that forbids the CDI mount. Do not "solve" it by baking the driver
-(rejected above), by pre-creating the mount targets (measured, does not work), or by hand-mounting
-the host's libraries (a second implementation of CDI, R2/R3).
-
-Practical consequence for an author: a pod image that composes this layer AND declares a bind volume
-MUST be deployed with `--userns=host` and a container-root workload. `plugin-deploy-pod` decides that
-from the RESOLVED deploy (a CDI device present), so the deploy inherits it automatically — but a hand
-`podman run` or a new emitter must apply the same rule.
+A deploy never sets `HOME` to compensate for a root workload — the image user's home is already
+correct (`/charly-internals:xdg`).
 
 ## What the image legitimately owns
 
