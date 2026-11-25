@@ -99,7 +99,7 @@ SESSION_LINE = re.compile(
 SESSION_SHAPE = "`*Agent: `<slug>` · <Harness> session `<id>`*`"
 
 REQUIRED_SECTIONS = ("Summary", "How tested", "Rulebook compliance", "Change classification")
-DEFAULT_RULES = tuple(f"R{i}" for i in range(12))
+DEFAULT_RULES = tuple(f"R{i}" for i in range(13))
 # The ASSERTED-CHECK shapes the validator measurably BLOCKed (opencharly/marketplace#404): a sweep
 # result stated as fact ("this was their only occurrence in the repo", distro-fedora#79), a check
 # reported as done without its output ("the open docs PRs were checked", docs#142), and an
