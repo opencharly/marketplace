@@ -10,11 +10,10 @@ retired: [
 	"github.com/opencharly/pod-unsloth-studio",
 	"github.com/opencharly/pod-marimo",
 	// The desktop/selkies/maps/AgentTeams closure retired by opencharly/opencharly#1293.
-	// Archived/drained skill sources the closure's cards come from, and the
-	// archive-only browser pod; a stale tag must never republish their cards.
+	// Archived/drained skill sources the closure's cards come from; a stale tag
+	// must never republish their cards.
 	"github.com/opencharly/layer-charly-selkies",
 	"github.com/opencharly/layer-charly-filebrowser",
-	"github.com/opencharly/pod-crabbox-browser",
 	"github.com/opencharly/layer-a11y-tools",
 	"github.com/opencharly/layer-agentteams",
 	"github.com/opencharly/layer-agentteams-cli",
