@@ -180,8 +180,7 @@ approval-gated, `/dev/uinput` leaks into the host) and returns the same clear er
 PROVEN live on `check-selkies-kde-pod`: the `wl-verb-dispatches` probe passes
 (`wl: status` → `compositor: kwin`) alongside the desktop-ready + frame-not-black
 stream coverage the labwc flavor also asserts. (The KDE session itself is a
-`kwin_wayland --wayland-display wayland-1` nested compositor — see
-`/charly-selkies:selkies-kde-desktop` "De-SDDM".)
+`kwin_wayland --wayland-display wayland-1` nested compositor.)
 
 **Hyprland (cstream-desktop) notes.** Hyprland implements all six wlroots protocols the
 `wl:` tooling needs, so unlike KWin nothing fail-fasts — but two methods route differently
@@ -489,12 +488,5 @@ Source: `candy/plugin-wl` (the out-of-process Wayland-automation provider).
 - `/charly-check:vnc` — VNC/RFB protocol alternative via the declarative `vnc:` verb (sibling verb; TCP-based, works remotely).
 - `/charly-check:cdp` — Chrome DevTools Protocol via the declarative `cdp:` verb (sibling verb; DOM-level interaction, `axtree` for accessibility).
 - `/charly-check:dbus` — D-Bus calls and desktop notifications via the declarative `dbus:` verb served out-of-process by `candy/plugin-dbus`.
-- `/charly-selkies:wl-tools` — Compositor-agnostic tools (wtype, wlrctl, wl-clipboard, wlr-randr, xdotool, ydotool)
 - `/charly-check:wl-overlay` — Fullscreen overlays for recordings (title cards, lower-thirds, countdowns, highlights, fades) via the `wl: overlay-*` methods
-- `/charly-selkies:wl-overlay-layer` — Overlay layer (gtk4-layer-shell, python3-gobject)
-- `/charly-selkies:wl-screenshot-grim` — Screenshot layer for sway (grim, wlr-screencopy)
-- `/charly-selkies:wl-screenshot-pixelflux` — Screenshot layer for selkies (pixelflux rendering pipeline)
-- `/charly-selkies:a11y-tools` — AT-SPI2 accessibility (python3-pyatspi, python3-gobject)
 - `/charly-selkies:xterm` — X11 terminal for XWayland testing
-- `/charly-selkies:sway-desktop` — Desktop metalayer (wl-tools + wl-screenshot-grim)
-- `/charly-selkies:selkies-desktop-layer` — Desktop metalayer (wl-tools + wl-screenshot-pixelflux + a11y-tools + xterm)

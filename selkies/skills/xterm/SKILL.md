@@ -55,15 +55,9 @@ With xterm installed, users can launch it to enable full XWayland testing.
 
 - `selkies-desktop` metalayer
 
-## Used In Boxes
-
-- `/charly-selkies:selkies-labwc` (via `selkies-desktop` metalayer)
-- `/charly-selkies:selkies-labwc-nvidia` (via `selkies-desktop` metalayer)
-
 ## Cross-References
 
 - `/charly-check:wl` — the `wl:` verb's exec / focus / close / xprop / geometry methods
-- `/charly-selkies:selkies-desktop-layer` — Desktop metalayer that includes this candy
 
 ## Related
 

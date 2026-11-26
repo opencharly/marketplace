@@ -3,7 +3,6 @@
   "description": "Claude Code, Codex, and Kimi plugins for OpenCharly — The agentic DevOps tool for you and your agents: runtime commands, schema authoring, contributor internals, and deployable image families.",
   "skills": [
     "./agent/skills",
-    "./agentteams/skills",
     "./ai-toolkit/skills",
     "./authoring/skills",
     "./automation/skills",

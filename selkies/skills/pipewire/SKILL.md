@@ -39,15 +39,9 @@ my-desktop:
     - pipewire
 ```
 
-## Used In Boxes
-
-Part of `/charly-selkies:sway-desktop` composition.
-
 ## Related Candies
 
 - `/charly-infrastructure:supervisord` -- process manager dependency
-- `/charly-selkies:sway-desktop` -- composition that includes pipewire
-- `/charly-selkies:wayvnc` -- VNC server (sibling in desktop stack)
 
 ## When to Use This Skill
 

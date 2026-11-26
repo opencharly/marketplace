@@ -117,7 +117,7 @@ Hermes has browser tools (`browser_navigate`, `browser_click`, `browser_snapshot
 | 3 | Browserbase configured | Cloud session | Remote cloud browser |
 | 4 | *(default)* | Local headless (`agent-browser --session`) | Requires Playwright Chromium |
 
-**Cross-container with selkies-desktop:** Deploy `hermes` alongside `selkies-desktop` as separate pods. The chrome candy's `env_provide: BROWSER_CDP_URL` injects `http://charly-selkies-desktop:9222` into the hermes quadlet via `charly config --update-all`. Hermes uses the desktop Chrome — the user sees hermes browsing in real-time at `:3000`. The `cdp-proxy` in the chrome candy rewrites Host headers for Chrome 146+ compatibility.
+**Cross-container Chrome:** Deploy `hermes` alongside a box that composes the `chrome` candy, as separate pods. The chrome candy's `env_provide: BROWSER_CDP_URL` injects that box's CDP endpoint into the hermes quadlet via `charly config --update-all`. Hermes drives that Chrome, so the user watches it browse in real time on the box that hosts it. The `cdp-proxy` in the chrome candy rewrites Host headers for Chrome 146+ compatibility.
 
 **In standalone boxs** (`hermes-playwright`): The `hermes-playwright` candy provides Playwright Chromium for local headless mode (backend #4).
 
@@ -162,7 +162,6 @@ hermes:
 - `/charly-hermes:hermes-playwright` -- optional Playwright Chromium browser (standalone headless mode)
 - `/charly-selkies:chrome` -- provides `BROWSER_CDP_URL` via `env_provide` for shared browser in desktop boxes
 - `/charly-jupyter:jupyter` -- MCP server provider (`mcp_provide: jupyter`)
-- `/charly-selkies:chrome-devtools-mcp` -- Chrome DevTools MCP server (`mcp_provide: chrome-devtools`, the browser-automation tools)
 
 ## Related Commands
 
@@ -175,7 +174,6 @@ hermes:
 - `/charly-hermes:hermes` -- full-featured standalone (claude-code + codex + gemini + dev-tools + devops-tools + charly)
 - `/charly-hermes:hermes-playwright` -- agent with Playwright Chromium (standalone headless)
 - `/charly-openwebui:openwebui` -- alternative web UI frontend with similar MCP/LLM auto-config pattern
-- `/charly-selkies:selkies-labwc` -- deploy alongside for shared Chrome browser (cross-container CDP)
 - `/charly-jupyter:jupyter` -- deploy alongside for MCP notebook access (cross-container MCP)
 
 ## When to Use This Skill

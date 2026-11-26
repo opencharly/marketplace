@@ -75,8 +75,6 @@ Shows as `dbus:ok (notify:swaync)` in `charly status` detail view.
 ## Related Candies
 
 - `/charly-infrastructure:supervisord` -- process manager dependency
-- `/charly-selkies:sway` -- primary consumer (Sway depends on dbus)
-- `/charly-selkies:swaync` -- notification daemon (depends on dbus)
 - `/charly-selkies:libnotify` -- `notify-send` CLI tool (depends on dbus)
 
 ## Related Commands

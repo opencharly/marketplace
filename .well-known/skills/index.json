@@ -30,12 +30,6 @@
       ]
     },
     {
-      "name": "agentteams-cli",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
       "name": "ai-toolkit",
       "files": [
         "SKILL.md"

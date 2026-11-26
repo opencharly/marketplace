@@ -39,23 +39,14 @@ This candy has **no pixi.toml** and **no depends**. It installs pip packages int
 3. **opentelemetry runtime deps** (`pip install`) — pixi resolver conflict prevents solving these via conda-forge
 4. **vLLM torch.compile patch** (`patch_vllm_size_nodes.py`) — fixes `_decompose_size_nodes` bug where `getitem` users and `x.size(dim)` patterns crash during model compilation (upstream: vllm-project/vllm#38360)
 
-## Used In Candies (via `candy:` field)
-
-- `/charly-jupyter:jupyter-ml` — `candy: [llama-cpp, unsloth, jupyter-mcp]`
-- `/charly-jupyter:unsloth-studio` — `candy: [llama-cpp, unsloth]`
-
 ## Related Candies
 
 - `/charly-jupyter:llama-cpp` — llama.cpp binaries (often paired as sibling Tier 1 candy)
-- `/charly-jupyter:unsloth-studio` — Studio web UI (Tier 2 parent, owns pixi.toml)
-- `/charly-jupyter:jupyter-ml` — ML Jupyter with MCP (Tier 2 parent, owns pixi.toml)
 - `/charly-languages:python-ml` — Core ML environment (Tier 2, uses vllm pip install in its own tasks: instead)
 
 ## Used In Boxes
 
-- `/charly-jupyter:jupyter-ml` (via `jupyter-ml` metalayer)
 - `/charly-jupyter:jupyter-ml-notebook` (via `jupyter-ml` metalayer)
-- `/charly-jupyter:unsloth-studio` (via `unsloth-studio` metalayer)
 
 ## When to Use This Skill
 

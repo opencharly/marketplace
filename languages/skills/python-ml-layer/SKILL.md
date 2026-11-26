@@ -53,8 +53,6 @@ Plus from `llama-cpp` sub-candy:
 
 - `/charly-jupyter:llama-cpp` — Sub-candy: llama.cpp binaries (composed via `candy:`)
 - `/charly-distros:cuda` — CUDA toolkit dependency
-- `/charly-jupyter:jupyter-ml` — Full ML + Jupyter variant (superset of python-ml's pixi env)
-- `/charly-jupyter:unsloth-studio` — Fine-tuning variant (similar pixi env + unsloth)
 
 ## When to Use This Skill
 
