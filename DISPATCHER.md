@@ -110,6 +110,8 @@
 | qdrant server / vector search / the qdrant candy (`candy/qdrant`) / the qdrant pod / the `qdrant:` check verb / `charly qdrant` CLI / REST 6333 / gRPC 6334 / QDRANT__SERVICE__API_KEY | `/charly-qdrant:qdrant` |
 | `charly qdrant` CLI (collections / points / snapshots / health / version) / the `qdrant:` check verb / the check-qdrant-pod bed / the qdrant box | `/charly-qdrant:qdrant-cli` |
 | `charly review` / review a PR / PR verdict | `/charly-review:review` |
+| pod-kde-nested / kde-nested / kde-nested-session / nested KDE Plasma session / KWin nested in a Wayland compositor / KDE_NESTED_HOST_DISPLAY / KDE_NESTED_BUS | `/charly-selkies:kde-nested` |
+| pod-kde-vnc-cdp / the kde-vnc-cdp image / a KDE Plasma desktop over VNC that also serves Chrome DevTools Protocol (9222) and chrome-devtools-mcp (9224) / driving a VNC-visible KDE browser by CDP (cdp: verb, browser-open, chrome-restart, BROWSER_CDP_URL) or watching it over VNC (vnc: screenshot + OCR) | `/charly-selkies:kde-vnc-cdp` |
 | the Strata box / the Qwen3.8-Flash-Next inference engine / an OpenAI- or Anthropic-compatible API on port 8080 / deploying a local 125B-class model server on one consumer GPU / a service that needs an OpenAI- or Anthropic-speaking endpoint on the host | `/charly-strata:strata` |
 | the `charly strata` management CLI / the `command:strata` plugin / `candy/plugin-strata` / inspecting a running Strata engine from the host / listing its models, config, or catalogues / `charly strata config get` | `/charly-strata:strata-cli` |
 | the strata layer / composing an image that must SERVE the Strata engine / the Strata released release artifacts / the engine component / the POD (CDI) GPU contract of the strata image | `/charly-strata:strata-layer` |
