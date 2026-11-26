@@ -41,7 +41,7 @@ charly-marketplace:
             # and `plugin`), which carry this pin's corrected `spec/schema/*.cue` trigger instead
             # of the carrier's stale `sdk/schema/*.cue` (`go-quality`'s trigger is identical at
             # both sources, so its row does not move).
-            - '@github.com/opencharly/charly:v2026.329.1139'
+            - '@github.com/opencharly/charly:v2026.330.1332'
             # --- the post-migration source set at this end of the list (opencharly/opencharly#600).
             #
             # ONE rule, stated here once for the whole set: a skill reachable ONLY through
@@ -169,15 +169,15 @@ charly-marketplace:
             # `node scripts/gh/cli.ts` (opencharly/opencharly#1160, #1163), and this repo's
             # shell watcher family and `coord.sh` are deleted in the same change. The
             # range touches exactly seven `.agents/skills/` files, all from those two PRs.
-            - '@github.com/opencharly/opencharly:v2026.329.1318'
+            - '@github.com/opencharly/opencharly:v2026.330.1457'
             # The two CONTRACT repos' skill shelves (opencharly/opencharly#611).
             # DIRECT, for the rule stated above. Both are Go MODULES, so their tags follow
             # the Go-module scheme
             # `v0.<YYYYDDD>.<HHMM with leading zeros stripped>` — not the superproject's
             # `v<YYYY.DDD.HHMM>`, which is not a valid Go module version. Each pin below
             # is the tag that repo's own merge minted.
-            - '@github.com/opencharly/spec:v0.2026329.803'
-            - '@github.com/opencharly/sdk:v0.2026329.1257'
+            - '@github.com/opencharly/spec:v0.2026330.1340'
+            - '@github.com/opencharly/sdk:v0.2026329.1636'
             # The `build` family's SIX owners, DIRECT (opencharly/marketplace#587).
             #
             # The `build` family's fifteen skills used to live in `layer-charly-build`.
@@ -211,7 +211,7 @@ charly-marketplace:
             # `--stage-parallelism` (opencharly/plugin-box#66 renamed the flag; the old tag
             # still published the pre-rename prose). The projection of this pin therefore
             # changes in this commit.
-            - '@github.com/opencharly/layer-charly-check:v2026.326.1818'
+            - '@github.com/opencharly/layer-charly-check:v2026.330.1214'
             # The Strata POD's split (opencharly/opencharly#1174): `layer-strata` now carries only
             # the ENGINE LAYER (`candy/strata`) and the `strata-layer` skill beside it, and the POD
             # — the image, the bed and the BOX SKILL — is `pod-strata`. Both are named here, and
@@ -254,7 +254,7 @@ charly-marketplace:
             # reached only transitively, at tags older than the doctrine the pod/deploy skills cite
             # (the mount_setattr measurement and the two legal userns shapes), so it is pinned
             # directly (opencharly/marketplace#640).
-            - '@github.com/opencharly/layer-cdi:v2026.328.2101'
+            - '@github.com/opencharly/layer-cdi:v2026.329.2058'
             - '@github.com/opencharly/layer-docker-ce:v2026.314.0705'
             - '@github.com/opencharly/layer-docs-site:v2026.314.0705'
             - '@github.com/opencharly/pod-dsh:v2026.314.0717'
@@ -439,7 +439,7 @@ charly-marketplace:
             - '@github.com/opencharly/plugin-cmd:v2026.314.0712'
             - '@github.com/opencharly/plugin-fleet:v2026.326.2006'
             - '@github.com/opencharly/plugin-ssh:v2026.314.0715'
-            - '@github.com/opencharly/plugin-deploy-pod:v2026.328.2307'
+            - '@github.com/opencharly/plugin-deploy-pod:v2026.330.1320'
             - '@github.com/opencharly/plugin-vm:v2026.319.0925'
             - '@github.com/opencharly/plugin-helm:v2026.314.0713'
             - '@github.com/opencharly/plugin-deploy-local:v2026.314.0712'
