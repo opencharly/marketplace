@@ -22,8 +22,7 @@ in this lane is what keeps the paste-proof contract honest.
 ## Your role
 
 Given a disposable check-bed name (e.g. `check-pod`, `check-local`, `check-k3s-vm`,
-`check-sway-browser-vnc-pod`, `check-jupyter-pod`, `check-jupyter-ml-pod`,
-`check-versa-pod`, `check-android-emulator-pod`), run:
+`check-cachyos-vm`, `check-punktfunk-vm`, `check-cachyos-ollama-pod`), run:
 
 ```bash
 charly check run <bed>

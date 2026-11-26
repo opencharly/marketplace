@@ -44,31 +44,6 @@ runs the full R10 sequence unattended (the equivalent `charly update
 check-cachyos-vm` rebuild also works, since the deploy is folded into the
 Deploy map).
 
-`check-cachyos-gpu-vm` is the **full KDE GPU workstation** bed — it mirrors the
-operator `cachyos-gpu` workstation's dual-desktop config and is the acceptance gate
-for migrating it. A `cachyos-gpu-vm` guest (bootstrap VM, UEFI, `backend: libvirt`,
-podman) receives a physical NVIDIA GPU via a VFIO `<hostdev>` and runs BOTH (a) a
-bare-metal KDE Plasma SDDM seat as in-guest layers, AND (b) a nested
-`selkies-kde-nvidia` streaming pod (real NVENC). It applies the `nvidia` toolkit +
-the locally-vendored `nvidia-driver` kernel layer (whose `reboot: true` reboots the
-guest mid-deploy so the open module loads on a clean boot and the boot-time
-`nvidia-ctk cdi generate` writes `/etc/cdi/nvidia.yaml`), then the vm deploy plugin's
-`OpPostApply` host-builds `selkies-kde-nvidia`, `charly vm cp-box
---rootless`s it into the guest user's podman as `localhost/charly-selkies-kde:latest`,
-and runs the guest's own project-free `charly deploy from-box
-localhost/charly-selkies-kde:latest selkies-kde` — a PERSISTENT in-guest `--user`
-quadlet (GPU device auto-detected; `loginctl enable-linger` so it survives the
-guest reboot the fresh-rebuild leg recreates). Deploy-scope checks run in-guest over
-SSH: the quadlet is active + lingering, the stream answers on
-`https://localhost:3000` (an in-guest `curl`, since the pod publishes `:3000` only
-on the guest), and the nvidia encoder is queryable. The committed `cachyos-gpu-vm`
-is **portable** — it carries NO hostdev block (a PCI address is host-specific);
-generate one with `charly vm gpu list` and add it locally before a live GPU run. The
-GPU-gated checks pass with an N/A note when no card is passed through, so the bed
-runs anywhere. This is the R10 gate for the nested-pod-in-VM capability
-(`/charly-internals:vm-deploy-target`). See `/charly-vm:vm` "GPU passthrough",
-`/charly-distros:cuda`.
-
 ## pacstrap path
 
 `charly vm build cachyos-vm` builds a bootable disk end-to-end. The

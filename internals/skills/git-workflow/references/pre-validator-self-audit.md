@@ -241,6 +241,17 @@ both body-only, and neither covered by classes 1-5.
     published commit — a published gap is reported on the issue, not rewritten
     (R6). **Run it over YOUR OWN head and over THAT range:** a range you chose
     yourself proves a different range's commits, not the ones you are pushing.
+12. **Answer R12 — a fix body carries `### Spike`, or names the exemption.**
+   R12 (rulebook: *Spike every candidate solution before implementing*) is now a rule the
+   mechanical linter requires, and it is the one preflight item that cannot be satisfied after
+   the fact: the round is the candidates you ran BEFORE the diff, on a `disposable: true` target
+   or against the real artifact. Paste it as `### Spike` under `## How tested`, or name which
+   exemption applies and why (a prose-only or comment-only change; a revert to a proven state;
+   or a spike-equivalent — a regression test that FAILS on the unmodified tree and passes with
+   the fix, or a live bed run at the exact boundary, pasted as the round). An unnamed, invented
+   or inapplicable exemption is the violation. Measured cost of skipping it: a gate fix shipped
+   straight from a plausible mechanism, then three bed runs to discover the mechanism was
+   incomplete (opencharly/charly#1280, 2026-11-25).
 
 ## The mechanical half — `scripts/pr_body_lint.py`
 

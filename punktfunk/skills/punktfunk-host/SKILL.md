@@ -50,8 +50,8 @@ output by calling `swaymsg create_output`, so a host started before sway is
 listening runs but can never produce a display. It also sources `host.env`,
 which supervisord (unlike the packaged unit) does not read.
 
-The wrapper mirrors `pod-wayvnc`'s `wayvnc-wrapper` deliberately — same
-dependency, same venue, one readiness idiom in the repo rather than two.
+The wrapper waits for the compositor's Wayland and IPC sockets before exec, so the
+service fails visibly instead of looping on a display that is not there yet.
 
 ## Lingering is part of installing it correctly
 
@@ -95,15 +95,11 @@ parses it.
 
 ## Beds
 
-Two, because one venue cannot prove both halves:
+`check-punktfunk-vm` in `opencharly/distro-cachyos` — the systemd venue: the packaged
+user unit, lingering, and the management plane under a real init. Run it with
+`charly -C box/cachyos check run check-punktfunk-vm`.
 
-- `check-punktfunk-pod` — the container venue (the wrapper launch path) and the
-  only place the `punktfunk:` verb's live dispatch is exercised.
-- `check-punktfunk-vm` — the systemd venue: the packaged user unit, lingering,
-  and the management plane under a real init.
-
-Both live in `opencharly/distro-cachyos`; run them with
-`charly -C box/cachyos check run check-punktfunk-pod` (or `…-vm`).
+The container-venue wrapper launch path is covered by `test/wrappers.sh` in this repo.
 
 ## Cross-References
 

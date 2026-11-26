@@ -17,7 +17,7 @@ an exemption from it:
 
 - **Partition the parallel work by check bed.** One disjoint disposable bed
   per parallel owner (`check-pod` / `check-k3s-vm` / `check-local-vm` /
-  `check-android-emulator-pod` / …). Distinct beds get distinct
+  `check-cachyos-vm` / …). Distinct beds get distinct
   `charly-<bed>` container/VM/domain names, and a bed run tags every
   fixture image it builds with a per-run `<bed-root>-<runCalver>` tag, so
   two beds building the same fixture image name never race the
@@ -221,7 +221,7 @@ and rebuild. Therefore, for any agent or workflow that runs them:
   the conversation. A delegated bed run whose failure is summarized away
   is the exact fraud pattern the project bans.
 - **Handling a long-running bed — by mechanism, not by who owns it.** A
-  VM/emulator bed (`check-k3s-vm`, `check-android-emulator-pod`, the
+  VM bed (`check-k3s-vm`, `check-cachyos-vm`, the
   bootstrap-VM beds) runs for minutes-to-tens-of-minutes and its libvirt
   domain / emulator outlives a single turn. Run it by the mechanism, not a
   who-owns-it rule:
@@ -466,13 +466,11 @@ The playbook:
    partition by token: each exclusive-token set runs as its own serial
    group (one bed at a time), while different token groups and the
    no-token pool run in parallel. On this repo: `nvidia-gpu` =
-   {`check-cachyos-gpu-vm`, `check-selkies-{kde,labwc}-nvidia-vm`
-   (exclusive) + `check-cachyos-{comfyui,unsloth-studio,immich,
-   jupyter-ml}-pod` + `check-versa-pod` (shared)} — all serial among
-   themselves (an exclusive vfio flip cannot overlap a shared nvidia+CDI
-   claim); `test-lock` = {`check-preempt-arbiter-pod`,
-   `check-preempt-live-pod`, `check-cross-pod-cdp`} — serial (GPU-free, so
-   parallel with the nvidia-gpu group). A read-only GPU detection bed
+   {`check-cachyos-{comfyui,unsloth-studio,immich,jupyter-ml}-pod`} — all
+   serial among themselves (a shared nvidia+CDI claim cannot overlap
+   another); `test-lock` = {`check-preempt-arbiter-pod`,
+   `check-preempt-live-pod`} — serial (GPU-free, so parallel with the
+   nvidia-gpu group). A read-only GPU detection bed
    (`check-gpu-local`, `charly vm gpu status`) declares no token → parallel
    pool. The signature that tells the two ceilings apart: `held
    EXCLUSIVELY … cannot share` at the acquire step (arbiter → serialize the
@@ -569,8 +567,8 @@ The playbook:
    Teammates never commit, push, or merge.
 
 Worked partition (illustrative): A → `{check-pod, check-local-vm}`, B →
-`{check-jupyter-pod, check-versa-pod}`, C → `{check-k3s-vm}` (VM, needs the
-libvirt user session), D → `{check-sway-browser-vnc-pod}` (heavy). All
+`{check-jupyter-pod, check-cachyos-ollama-pod}`, C → `{check-k3s-vm}` (VM,
+needs the libvirt user session), D → `{check-cachyos-vm}` (heavy). All
 concurrent → multiple pods and a VM live at once; wall-clock is roughly the
 slowest chain, not the sum.
 

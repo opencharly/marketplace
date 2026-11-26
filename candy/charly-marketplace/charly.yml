@@ -249,12 +249,12 @@ charly-marketplace:
             - '@github.com/opencharly/layer-chrome:v2026.314.0705'
             - '@github.com/opencharly/layer-python:v2026.314.0709'
             - '@github.com/opencharly/layer-gemini:v2026.329.0559'
-            - '@github.com/opencharly/layer-nvidia:v2026.330.1227'
+            - '@github.com/opencharly/layer-nvidia:v2026.330.1626'
             # layer-cdi owns the CDI doctrine skill (`/charly-distros:cdi`) and `cdi-layer`. It was
             # reached only transitively, at tags older than the doctrine the pod/deploy skills cite
             # (the mount_setattr measurement and the two legal userns shapes), so it is pinned
             # directly (opencharly/marketplace#640).
-            - '@github.com/opencharly/layer-cdi:v2026.329.2058'
+            - '@github.com/opencharly/layer-cdi:v2026.330.1628'
             - '@github.com/opencharly/layer-docker-ce:v2026.314.0705'
             - '@github.com/opencharly/layer-docs-site:v2026.314.0705'
             - '@github.com/opencharly/pod-dsh:v2026.314.0717'

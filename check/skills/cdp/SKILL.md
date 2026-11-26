@@ -60,6 +60,7 @@ full method allowlist and YAML shape. Example:
 | Get text | `cdp: text` + `tab:` | Get page text content |
 | Get HTML | `cdp: html` + `tab:` | Get page HTML source |
 | Get URL | `cdp: url` + `tab:` | Get page title and URL |
+| Accessibility tree | `cdp: axtree` + `tab:` | Dump the page's accessibility tree (JSON) |
 | Screenshot | `cdp: screenshot` + `tab:` + `artifact:` | Capture PNG screenshot |
 | Click | `cdp: click` + `tab:` + `selector:` | Click element by CSS selector |
 | Coords | `cdp: coords` + `tab:` + `selector:` | Show element coords in viewport + desktop |
@@ -157,6 +158,23 @@ Uses HTTP API: `GET /json/close/<id>`.
 ```
 
 Uses CDP WebSocket: `Runtime.evaluate` with `document.body.innerText` / `document.documentElement.outerHTML`, `Target.getTargetInfo`.
+
+### Accessibility Tree
+
+```yaml
+- check: the accessibility tree names the search box
+  context: [runtime]
+  cdp:
+    method: axtree
+    tab: "1"
+  stdout:
+    contains: search
+```
+
+Dumps the renderer's accessibility tree as JSON — the structural counterpart of `cdp: text`. What it
+contains tracks the browser's own accessibility state, so its contents depend on the image (assert
+on what a run actually prints, not on a fixed shape); a tab opened through `cdp: open` is
+conventionally `1`.
 
 ### Screenshot
 
@@ -298,7 +316,17 @@ When a `cdp:` step fails to connect, the plugin's `diagnoseCDP()` routine runs a
 2. **Proxy status**: Is the cdp-proxy forwarding to Chrome? (`supervisorctl status cdp-proxy`)
 3. **Port binding**: Is Chrome listening on 127.0.0.1:9223? Is cdp-proxy listening on 0.0.0.0:9222? (`ss -tlnp`)
 
-Hints direct users to relaunch Chrome with a `wl: exec` step running `chrome-wrapper` (the `wl:` verb dispatches out-of-process via `candy/plugin-wl`) — not `charly shell` with bare `swaymsg`, which may lack the correct `SWAYSOCK` path.
+**Recovering Chrome — in this order, and only the branch that applies.** A supervised browser (a
+`chrome` program in the init system, as `selkies-core` and the KDE pods run it) has ONE owner:
+restart it through that owner (`supervisorctl restart chrome`, or `charly service restart <image>
+chrome` from the host). Never hand-launch a second browser beside a supervised one — both take the
+same `--user-data-dir`, and the wrapper's Singleton-lock cleanup hides the collision instead of
+reporting it. Only when nothing supervises Chrome, launch `chrome-wrapper` directly: it waits for
+the compositor's socket and clears stale locks, and it honours the ambient `WAYLAND_DISPLAY`, so it
+lands on the session the pod actually shows (a nested-KDE pod's Plasma socket is `wayland-kde`, not
+sway's `wayland-0`). Do not launch it through bare `swaymsg` from `charly shell` (the SWAYSOCK path
+may be missing) and do not drive a compositor-specific launch step on a pod whose compositor is
+KWin.
 
 ## browser-open Script and BROWSER Env
 

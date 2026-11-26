@@ -1,7 +1,7 @@
 ---
 name: cdi-layer
 description: |-
-  The `cdi` CANDY itself — what it removes, what it deliberately keeps (the ICD JSONs), the
+  The `cdi` CANDY itself — what it removes, what it deliberately keeps (the ICD files), the
   build-time assertion that cannot be fooled, and the runtime check that catches a shadowed
   injection.
 ---
@@ -10,34 +10,32 @@ description: |-
 
 # The `cdi` candy
 
-One plan, two parts, in this order — the REMOVAL is not here:
+One plan, three parts — the REMOVAL is not here:
 
 | Step | Kind | Why it lives there |
 |---|---|---|
-| `cdi-no-baked-driver-libs` / `cdi-no-baked-driver-binaries` | `run:` (root, build) | Asserts the removal held — files AND links AND versioned files, the `nvidia`/`vdpau` trees, the xorg driver, and the whole `nvidia*` binary set. |
+| `cdi-opencl-icd` / `cdi-opencl-icd-names-soname` | `run:` (root, build) | Writes `/etc/OpenCL/vendors/nvidia.icd` naming `libnvidia-opencl.so.1` — the file `opencl-nvidia` used to provide — and asserts it carries the injected SONAME. |
+| `cdi-no-baked-driver-libs` / `cdi-no-baked-driver-binaries` | `run:` (root, build) | Asserts no driver surface is baked — files AND links AND versioned files, the `nvidia` tree, the vdpau DRIVER file (`libvdpau_nvidia*`), the xorg driver, and the whole `nvidia*` binary set. |
 | `cdi-injected-driver-matches-module` | `check:` (`runtime`) | Asserts the container resolved the injected driver and that its version equals `/proc/driver/nvidia/version`. |
 
-The removal itself lives in `layer-cuda`'s `cuda-drop-driver-userspace` step, which this candy
-`require:`s: that layer installs `cuda`, and on the pac path `cuda` depends on `nvidia-utils`, so it
-is the layer that pulls the driver user-space in and therefore the one that cleans up after itself.
+The producer installs the toolkit **driver-free** (opencharly/layer-cuda#39), so there is no removal
+step to require: the driver reaches a pod from the host through CDI, its only provider, and this
+candy proves the image bakes none of it.
 
 ## Editing rules
 
-- **The LAYOUT LIST is the producer's, too.** `cuda-drop-driver-userspace` derives its library
-  scan, its `nvidia`/`vdpau` tree removals and its xorg removal from ONE `libs=` list
-  (`/usr/lib /usr/lib32 /usr/lib64`); `cdi-no-baked-driver-libs` derives the same three surfaces
-  from the same one list (`layouts=${CDI_LIB_DIRS:-…}`) instead of naming trees separately. A
-  multilib host really does carry `/usr/lib32/vdpau` while `/usr/lib64` is a symlink to `lib`, so a
-  single hard-coded `/usr/lib` walk is the defect this twins against
-  (opencharly/layer-cuda#28, opencharly/layer-cdi#12). Pointing `CDI_LIB_DIRS` at a planted root
-  moves all three surfaces, which is how the assertion is proven to discriminate.
-- **The library predicate is the twin of `layer-cuda`'s `drv=`, byte for byte.** The producer's
-  `drv=` variable in `cuda-drop-driver-userspace` is the ONE definition of "driver user-space"; the
-  `drv=` in `cdi-no-baked-driver-libs` must compare equal to it (`diff` of the two blocks is the
-  drift control). They cannot be shared — two shell fragments in two repos' plan steps — so the
-  duplication is deliberate, both sides name each other, and a change to one moves the `require:`
-  tag and the other in the same cutover. `drv=` is anchored: `libcuda.so*`, never `libcuda*`, plus an
-  explicit `libcudadebugger.so*`, which is driver user-space without the `libcuda.so` stem. A prefix
+- **The LAYOUT LIST is this layer's.** `cdi-no-baked-driver-libs` derives its library scan, its
+  `nvidia`/`vdpau` tree checks and its xorg check from ONE `layouts=` list
+  (`/usr/lib /usr/lib32 /usr/lib64`) instead of naming trees separately. A multilib host really does
+  carry `/usr/lib32/vdpau` while `/usr/lib64` is a symlink to `lib`, so a single hard-coded
+  `/usr/lib` walk is the defect this guards against (opencharly/layer-cuda#28,
+  opencharly/layer-cdi#12). Pointing `CDI_LIB_DIRS` at a planted root moves all three surfaces,
+  which is how the assertion is proven to discriminate.
+- **The library predicate is the ONE definition of "driver user-space".** `layer-cuda` no longer
+  strips — its install is driver-free at the source (opencharly/layer-cuda#39) — so there is no
+  producer twin and no drift control; this layer's predicate is the single statement of the set.
+  It is anchored: `libcuda.so*`, never `libcuda*`, plus an explicit `libcudadebugger.so*`, which is
+  driver user-space without the `libcuda.so` stem. A prefix
   glob here counts `libcudart*` — the runtime this contract must KEEP — as a violation
   (opencharly/layer-cdi#6).
 - **Never narrow the patterns to a hand-listed subset.** This candy's first revision did, and its own
@@ -46,7 +44,7 @@ is the layer that pulls the driver user-space in and therefore the one that clea
   `nvidia-pcc`, `nvidia-powerd`, `nvidia-sleep.sh`.
 - **Never move the build-time assertion into a `check:`.** A GPU-attached container makes the
   injected libraries indistinguishable from baked ones at the same paths.
-- **Keep the ICD JSONs.** They name SONAMEs, so the injected links satisfy them; deleting them breaks
+- **Keep the ICD files.** They name SONAMEs, so the injected links satisfy them; deleting them breaks
   Vulkan/OpenCL for no gain.
 - **The runtime probe must stay version-based, not existence-based.** "the file exists" and "CUDA
   device detected" both pass on a shadowed image.
