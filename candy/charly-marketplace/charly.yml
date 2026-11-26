@@ -339,7 +339,7 @@ charly-marketplace:
             - '@github.com/opencharly/layer-claude-code:v2026.314.0705'
             - '@github.com/opencharly/layer-whisper:v2026.328.1901'
             - '@github.com/opencharly/layer-clawhub:v2026.314.0705'
-            - '@github.com/opencharly/layer-pixi:v2026.314.0709'
+            - '@github.com/opencharly/layer-pixi:v2026.330.1550'
             - '@github.com/opencharly/layer-wl-record-pixelflux:v2026.314.0710'
             - '@github.com/opencharly/layer-wl-screenshot-grim:v2026.314.0710'
             - '@github.com/opencharly/layer-codex:v2026.328.1647'
