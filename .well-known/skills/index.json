@@ -921,7 +921,25 @@
       ]
     },
     {
+      "name": "kde-nested",
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
       "name": "kde-shell",
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "kde-vnc",
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "kde-vnc-cdp",
       "files": [
         "SKILL.md"
       ]
@@ -1560,6 +1578,12 @@
       ]
     },
     {
+      "name": "sway",
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
       "name": "tailscale",
       "files": [
         "SKILL.md"
@@ -1741,6 +1765,12 @@
     },
     {
       "name": "wacli",
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wayvnc",
       "files": [
         "SKILL.md"
       ]
