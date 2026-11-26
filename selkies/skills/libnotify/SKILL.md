@@ -43,7 +43,6 @@ Provides `notify-send` as a convenience CLI for sending desktop notifications fr
 ## Related Candies
 
 - `/charly-infrastructure:dbus-layer` -- D-Bus session bus (required dependency)
-- `/charly-selkies:swaync` -- notification daemon to display the notifications
 - `/charly-check:dbus` -- alternative: the `dbus: notify` check verb (served out-of-process by `candy/plugin-dbus`)
 
 ## Used In Boxes

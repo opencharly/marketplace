@@ -9,7 +9,7 @@ description: |-
 
 # Box: hermes
 
-Full-featured standalone Hermes AI agent. No browser or desktop — designed for cross-container deployment alongside `selkies-desktop` (shared Chrome via `BROWSER_CDP_URL`) and `jupyter` (MCP notebooks via `CHARLY_MCP_SERVERS`).
+Full-featured standalone Hermes AI agent. No browser or desktop — designed for cross-container deployment: alongside `jupyter` for MCP notebooks via `CHARLY_MCP_SERVERS`, and alongside any box that composes the `chrome` candy for shared Chrome via `BROWSER_CDP_URL`.
 
 ## Definition
 
@@ -87,22 +87,18 @@ The data volume (`/opt/data`) persists: sessions, skills, memories, logs, config
 Deploy alongside provider containers for full functionality:
 
 ```bash
-# 1. Deploy selkies-desktop (provides BROWSER_CDP_URL)
-charly config selkies-desktop
-charly start selkies-desktop
-
-# 2. Deploy jupyter (provides jupyter MCP server)
+# 1. Deploy jupyter (provides the jupyter MCP server)
 charly config jupyter --update-all
 charly start jupyter
 
-# 3. Deploy hermes (consumes both)
+# 2. Deploy hermes (consumes it)
 charly config hermes -e OLLAMA_API_KEY=... --update-all
 charly start hermes
 ```
 
 Hermes receives:
-- `BROWSER_CDP_URL=http://charly-selkies-desktop:9222` — controls desktop Chrome
-- `CHARLY_MCP_SERVERS=[{"name":"jupyter","url":"http://charly-jupyter:8888/mcp"},{"name":"chrome-devtools","url":"http://charly-selkies-desktop:9224/mcp"}]` — notebook manipulation + browser DevTools MCP
+- `CHARLY_MCP_SERVERS=[{"name":"jupyter","url":"http://charly-jupyter:8888/mcp"}]` — notebook manipulation
+- `BROWSER_CDP_URL` — set by the `chrome` candy's `env_provide` when hermes is co-deployed with a box that composes it; absent otherwise
 
 ## MCP Server Discovery
 
@@ -118,13 +114,11 @@ charly shell hermes -c "hermes mcp test jupyter"      # Tests connection (expect
 
 - `/charly-hermes:hermes-full-layer` — Metalayer composition details
 - `/charly-hermes:hermes` — Core agent (env_accept, browser dispatch, LLM config)
-- `/charly-selkies:chrome` — Provides `BROWSER_CDP_URL` (from selkies-desktop)
-- `/charly-selkies:chrome-devtools-mcp` — Chrome DevTools MCP server on port 9224 (from selkies-desktop)
+- `/charly-selkies:chrome` — Provides `BROWSER_CDP_URL` via `env_provide` in a box that composes it
 
 ## Related Boxes
 
 - `/charly-hermes:hermes-playwright` — Hermes with local Playwright Chromium
-- `/charly-selkies:selkies-labwc` — Desktop with Chrome (cross-container browser provider)
 - `/charly-jupyter:jupyter` — JupyterLab with MCP (cross-container MCP provider)
 
 ## Verification
@@ -137,9 +131,9 @@ charly shell hermes -c "claude --version"
 charly shell hermes -c "codex --version"
 charly shell hermes -c "gemini --version"
 charly shell hermes -c "charly version"
-charly shell hermes -c "echo BROWSER_CDP_URL=\$BROWSER_CDP_URL"
+charly shell hermes -c "echo BROWSER_CDP_URL=\$BROWSER_CDP_URL"   # set only when a Chrome-providing box is co-deployed
 charly shell hermes -c "echo CHARLY_MCP_SERVERS=\$CHARLY_MCP_SERVERS"
-charly shell hermes -c "hermes mcp list"              # Should show chrome-devtools, jupyter
+charly shell hermes -c "hermes mcp list"              # Shows the servers injected into CHARLY_MCP_SERVERS
 ```
 
 ## Test Coverage
@@ -161,7 +155,6 @@ liveness (hermes-whatsapp is autostart=false — see `/charly-check:check` Gotch
 - `/charly-check:check` — declarative testing framework + supervisord gotchas
 - `/charly-core:charly-config` — `CHARLY_MCP_SERVERS` auto-discovery + secret provisioning
 - `/charly-build:charly-mcp-cmd` — verify each MCP server in `CHARLY_MCP_SERVERS` is actually alive before debugging hermes tool-call failures; `charly check live <provider-image> --filter mcp` shows exactly what hermes will see
-- `/charly-selkies:selkies-labwc` — companion for shared browser (CDP)
 - `/charly-jupyter:jupyter` — MCP notebook tools auto-discovered
 
 ## When to Use This Skill

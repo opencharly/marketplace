@@ -31,14 +31,11 @@ my-box:
       - '@github.com/opencharly/layer-tmux'
 ```
 
-## Used In Boxes
-
-
 ## Related Skills
 
 - `/charly-automation:tmux` — Typed persistent terminals, safe input, snapshots, transcripts, and agent runtimes
-- `/charly-hermes:hermes-full-layer`, `/charly-selkies:sway-desktop`, `/charly-selkies:selkies-desktop-layer` — metalayers that include this
-- `/charly-hermes:hermes`, `/charly-selkies:selkies-labwc`, `/charly-selkies:sway-browser-vnc` — primary consumers
+- `/charly-hermes:hermes-full-layer` — the metalayer that includes this
+- `/charly-hermes:hermes` — a primary consumer
 - `/charly-core:shell` — interactive container shell (often wrapped in tmux)
 - `/charly-image:layer` — candy authoring
 - `/charly-check:check` — declarative testing framework (this candy tests `/usr/bin/tmux -V`)

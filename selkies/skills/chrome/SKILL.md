@@ -44,7 +44,7 @@ Pod-aware: same-container consumers receive `http://localhost:9222`, cross-conta
 |------|-------------|-----------|
 | `chrome-devtools` | `http://{{.ContainerName}}:9224/mcp` | http |
 
-Provided by the auto-included `chrome-devtools-mcp` sub-candy (29 Chrome DevTools tools via mcp-proxy). Consumed by hermes (`mcp_accept: chrome-devtools`) for MCP-based browser inspection and automation. See `/charly-selkies:chrome-devtools-mcp` for tool list and architecture.
+Provided by the auto-included `chrome-devtools-mcp` sub-candy (29 Chrome DevTools tools via mcp-proxy). Consumed by hermes (`mcp_accept: chrome-devtools`) for MCP-based browser inspection and automation.
 
 When deploying with `-i <instance>`, the MCP server name is automatically disambiguated to `chrome-devtools-<instance>` (e.g., `chrome-devtools-31.58.9.4`). See `/charly-core:charly-config` for MCP name disambiguation details.
 
@@ -148,7 +148,7 @@ Uses `pgrep` to detect Chrome process state before deciding whether to launch. T
 
 ## chrome-restart
 
-The `chrome-restart` script kills any running Chrome and relaunches it via `chrome-wrapper` with all proxy, CDP, and user-agent settings intact. Used by waybar's `custom/chrome` button (see `/charly-selkies:waybar`) for one-click Chrome restart.
+The `chrome-restart` script kills any running Chrome and relaunches it via `chrome-wrapper` with all proxy, CDP, and user-agent settings intact. Used by waybar's `custom/chrome` button for one-click Chrome restart.
 
 **Compositor detection:** Tries `swaymsg exec` first (sway — needs IPC context for proper window management), falls back to direct `chrome-wrapper &` (labwc). Uses the same SWAYSOCK discovery pattern as `browser-open` and `waybar-wrapper` (`ls -t /tmp/sway-ipc.*.sock`).
 
@@ -201,9 +201,9 @@ Override per box or per instance via `charly config` flags (see `/charly-core:ch
 
 On the selkies streaming desktop, Chrome is launched + supervised by a
 `[program:chrome]` supervisord service declared in the **`selkies-core`** candy
-(`/charly-selkies:selkies-core`) — shared by both selkies flavors (labwc via
-`selkies-desktop`, KDE Plasma via `selkies-kde-desktop`). `sway-browser-vnc`
-launches Chrome via the separate `chrome-sway` candy and is not supervised this way.
+— shared by both selkies flavors (labwc via `selkies-desktop`, KDE Plasma via
+`selkies-kde-desktop`). `sway-browser-vnc` launches Chrome via the separate `chrome-sway`
+candy and is not supervised this way.
 The selkies-core service:
 
 - `restart: always` (autorestart) — relaunches Chrome on any exit, including the
@@ -259,10 +259,8 @@ The `cdp:` check verb now shows diagnostics on connection failure: checks Chrome
 
 ## Related Candies
 
-- `/charly-selkies:chrome-devtools-mcp` — Chrome DevTools MCP server (auto-included via `candy:`)
 - `/charly-infrastructure:supervisord` — required dependency for cdp-proxy service
 - `/charly-hermes:hermes` — consumes `BROWSER_CDP_URL` via `env_accept` and `chrome-devtools` via `mcp_accept`
-- `/charly-selkies:selkies-desktop-layer` — desktop metalayer composing chrome with labwc, pipewire, waybar, etc.
 
 ## Related Commands
 
