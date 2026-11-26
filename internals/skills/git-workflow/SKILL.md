@@ -429,19 +429,26 @@ A parent that spawns a worker MUST embed it in the brief (see
 Every wait on GitHub — your PR's verdict, its merge, another session's blocker, a reply — is
 ONE watch of the umbrella's `scripts/gh/cli.ts` (opencharly/opencharly#1140), run as the
 harness's managed background command: its exit is the wake. OpenCode and pi run the same
-engine (`scripts/gh/lib/watch.ts`) through their bindings. Which events to arm, by situation:
+engine (`scripts/gh/lib/watch.ts`) through their bindings. The event set is **CLOSED**
+(`EVENT_NAMES` in `scripts/gh/lib/watch.ts`) and **every event is MANDATORY wherever it applies**
+(the rulebook's "Agents, Workflows & Teams" carries the mapping table). Which events to arm, by
+situation:
 
 - **your own PR**, including after a REST re-run: `node scripts/gh/cli.ts watch <owner>/<repo>#<pr>`
   (the default `verdict,merged,closed,conflict`: a PR that conflicts with its base gets no
-  validator run, so the watch wakes on the conflict instead of waiting);
+  validator run, so the watch wakes on the conflict instead of waiting; add `comment` — `--events
+  verdict,merged,closed,conflict,comment` — when a reply is owed);
 - **several of your own PRs**: the same command, every PR in ONE watch;
-- **another session's PR or issue that blocks you**: `… watch --events merged,closed,stall <item>`;
+- **another session's PR or issue that blocks you**: `… watch --events merged,closed,stall <item>`
+  (add `comment` if it needs a reply);
 - **a reply on a thread**: `… watch --events comment <item>`;
-- **a bed or a long command**: the command itself, as a managed background job.
+- **a bed or a long command**: the command itself, as a managed background job;
+- **a file, log or stream**: the harness's Monitor, whose events wake the session.
 
-One watcher per session, re-armed by replacement after every wake you act on; never `&`/`disown`.
-The decision table, the verdict model, the wake lines, the exit codes and the takeover each wake
-drives: `references/watch-and-wake.md`.
+One watcher per session, armed with the **UNION** of the events its waits require, re-armed by
+replacement after every wake you act on; never `&`/`disown`. **A wait without its watcher is not a
+wait.** The decision table, the verdict model, the wake lines, the exit codes and the takeover each
+wake drives: `references/watch-and-wake.md`.
 
 ## Cross-References
 

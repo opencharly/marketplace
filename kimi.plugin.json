@@ -19,7 +19,6 @@
     "./crabbox/skills",
     "./distros/skills",
     "./feature/skills",
-    "./filebrowser/skills",
     "./fireactions/skills",
     "./firecracker/skills",
     "./hermes/skills",
@@ -45,7 +44,6 @@
     "./selkies/skills",
     "./strata/skills",
     "./tools/skills",
-    "./versa/skills",
     "./vm/skills"
   ],
   "agents": [

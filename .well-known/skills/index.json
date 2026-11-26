@@ -1,12 +1,6 @@
 {
   "skills": [
     {
-      "name": "a11y-tools",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
       "name": "adb",
       "files": [
         "SKILL.md"
@@ -36,12 +30,6 @@
       ]
     },
     {
-      "name": "agentteams",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
       "name": "agentteams-cli",
       "files": [
         "SKILL.md"
@@ -60,12 +48,6 @@
       ]
     },
     {
-      "name": "airflow-layer",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
       "name": "alias",
       "files": [
         "SKILL.md"
@@ -73,18 +55,6 @@
     },
     {
       "name": "android",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "android-sdk",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "android-test-apps",
       "files": [
         "SKILL.md"
       ]
@@ -360,18 +330,6 @@
       ]
     },
     {
-      "name": "chrome-devtools-mcp",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "chrome-sway",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
       "name": "claude-code",
       "files": [
         "SKILL.md"
@@ -540,12 +498,6 @@
       ]
     },
     {
-      "name": "debug-tools-layer",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
       "name": "deploy",
       "files": [
         "SKILL.md"
@@ -643,12 +595,6 @@
       ]
     },
     {
-      "name": "fastfetch",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
       "name": "feature",
       "files": [
         "SKILL.md"
@@ -674,18 +620,6 @@
     },
     {
       "name": "ffmpeg",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "filebrowser",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "filebrowser-layer",
       "files": [
         "SKILL.md"
       ]
@@ -900,12 +834,6 @@
       ]
     },
     {
-      "name": "heroic",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
       "name": "himalaya",
       "files": [
         "SKILL.md"
@@ -969,18 +897,6 @@
       ]
     },
     {
-      "name": "jupyter-ml",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "jupyter-ml-layer",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
       "name": "jupyter-ml-notebook",
       "files": [
         "SKILL.md"
@@ -1000,12 +916,6 @@
     },
     {
       "name": "k3s-server",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "kde-selkies",
       "files": [
         "SKILL.md"
       ]
@@ -1060,12 +970,6 @@
     },
     {
       "name": "kubevirt-operator",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "labwc",
       "files": [
         "SKILL.md"
       ]
@@ -1149,30 +1053,6 @@
       ]
     },
     {
-      "name": "maplibre-versatiles-styler",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "maputnik-layer",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "marimo-layer",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "marimo-mcp",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
       "name": "marketplace",
       "files": [
         "SKILL.md"
@@ -1246,12 +1126,6 @@
     },
     {
       "name": "notebook-openrouter",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "notebook-osm",
       "files": [
         "SKILL.md"
       ]
@@ -1347,19 +1221,7 @@
       ]
     },
     {
-      "name": "osm-tools-layer",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
       "name": "ovmf",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "pavucontrol",
       "files": [
         "SKILL.md"
       ]
@@ -1399,12 +1261,6 @@
     },
     {
       "name": "plugin-containerd",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "pmtiles-viewer",
       "files": [
         "SKILL.md"
       ]
@@ -1578,54 +1434,6 @@
       ]
     },
     {
-      "name": "selkies",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "selkies-core",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "selkies-desktop-layer",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "selkies-kde",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "selkies-kde-desktop",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "selkies-kde-nvidia",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "selkies-labwc",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "selkies-labwc-nvidia",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
       "name": "service",
       "files": [
         "SKILL.md"
@@ -1645,12 +1453,6 @@
     },
     {
       "name": "sherpa-onnx",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "shortbread",
       "files": [
         "SKILL.md"
       ]
@@ -1716,12 +1518,6 @@
       ]
     },
     {
-      "name": "steam",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
       "name": "stop",
       "files": [
         "SKILL.md"
@@ -1764,42 +1560,6 @@
       ]
     },
     {
-      "name": "sway",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "sway-browser-ecovoyage",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "sway-browser-vnc",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "sway-desktop",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "sway-desktop-vnc",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "swaync",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
       "name": "tailscale",
       "files": [
         "SKILL.md"
@@ -1813,12 +1573,6 @@
     },
     {
       "name": "testapi",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "thunar",
       "files": [
         "SKILL.md"
       ]
@@ -1908,18 +1662,6 @@
       ]
     },
     {
-      "name": "unsloth-studio",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "unsloth-studio-layer",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
       "name": "uv",
       "files": [
         "SKILL.md"
@@ -1945,36 +1687,6 @@
     },
     {
       "name": "vectorchord",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "versa",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "versatiles",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "versatiles-fonts",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "versatiles-frontend",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "versatiles-style",
       "files": [
         "SKILL.md"
       ]
@@ -2034,30 +1746,6 @@
       ]
     },
     {
-      "name": "waybar",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "waybar-labwc",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "wayvnc",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "wf-recorder",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
       "name": "whisper",
       "files": [
         "SKILL.md"
@@ -2076,36 +1764,6 @@
       ]
     },
     {
-      "name": "wl-overlay-layer",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "wl-record-pixelflux",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "wl-screenshot-grim",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "wl-screenshot-pixelflux",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "wl-tools",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
       "name": "workspace-mount",
       "files": [
         "SKILL.md"
@@ -2113,18 +1771,6 @@
     },
     {
       "name": "xdg",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "xdg-portal",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "xfce4-terminal",
       "files": [
         "SKILL.md"
       ]

@@ -16,7 +16,7 @@ GPU-accelerated ComfyUI image generation server with node-based workflow UI.
 
 | Property | Value |
 |----------|-------|
-| Base | `podcdi.pod-cdi` (pod) / `vm-nvidia` (VM) |
+| Base | `podcdi.pod-cdi` (pod) / a GPU VM image (VM) |
 | Candies | agent-forwarding, comfyui, dbus, charly |
 | Platforms | linux/amd64 |
 | Ports | 8188 |
@@ -25,7 +25,7 @@ GPU-accelerated ComfyUI image generation server with node-based workflow UI.
 ## Full Candy Stack
 
 1. the **box** chooses the GPU substrate: `cachyos`/`fedora` → `nvidia-cdi`/`pod-cdi`
-   (`layer-cdi`, injected host driver) **or** `vm-nvidia` (`layer-nvidia` + `layer-cuda`,
+   (`layer-cdi`, injected host driver) **or** a GPU VM image (`layer-nvidia` + `layer-cuda`,
    baked driver)
 2. `pixi` → `python` → `supervisord` (the candy's only `require:`)
 3. `comfyui` — ComfyUI server, models/output volume
@@ -54,14 +54,14 @@ charly start comfyui
 - `/charly-comfyui:comfyui` — ComfyUI installation, supervisord service, volume
 - `/charly-distros:cdi` — the POD GPU contract (host-injected driver, no baked user-space)
 - `/charly-distros:nvidia` / `/charly-distros:cuda` — the VM driver + toolkit layers, composed
-  by the box (`vm-nvidia`), never by this candy
+  by the box, never by this candy
 - `/charly-infrastructure:dbus-layer` — session bus for desktop notifications
 - `/charly-tools:charly` — in-container `charly` CLI toolchain (scripting, service management)
 - `/charly-distros:agent-forwarding` — SSH/GPG/direnv agent forwarding
 
 ## Related Boxes
 
-- `podcdi.pod-cdi` — the pod GPU base (`layer-cdi`); its sibling `vm-nvidia` is the VM base
+- `podcdi.pod-cdi` — the pod GPU base (`layer-cdi`); a GPU VM image is the VM base
 - **CachyOS/Fedora variants** — `comfyui-cdi` in the `opencharly/distro-cachyos` and
   `opencharly/distro-fedora` submodules. See `/charly-distros:cachyos`.
 

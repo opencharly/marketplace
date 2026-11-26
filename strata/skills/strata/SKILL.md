@@ -33,7 +33,7 @@ library or an `nvidia*` binary is baked in (`cdi-no-baked-driver-libs`,
 `cdi-no-baked-driver-binaries`).
 
 **Nothing from `layer-nvidia` may be composed here.** That candy is the VM contract: the guest
-owns its kernel and must bake the driver. It belongs to `opencharly/vm-nvidia`. An image that
+owns its kernel and must bake the driver. It belongs to a GPU VM image. An image that
 bakes the driver user-space does not merely duplicate the host's — it shadows it, and
 `nvidia-smi` dies with *Driver/library version mismatch* on any host whose kernel driver is
 older than the distro package.

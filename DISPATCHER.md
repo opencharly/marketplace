@@ -2,7 +2,6 @@
 | Trigger (what the user said or you're about to do) | Skill to load |
 |---|---|
 | `charly tui` / agent TUI / interactively browse agent sessions | `/charly-agent:tui` |
-| the agentteams box / the AgentTeams multi-agent stack (Manager–Workers, Rooms, the controller + matrix + element + higress + minio candies) on the pod or vm substrate / the `check-agentteams-pod` and `check-agentteams-vm` beds | `/charly-agentteams:agentteams` |
 | `charly agentteams` controller management (workers / teams / humans) / the `verb:agentteams` check verb (`status`, `manager-running`, `worker-running`, `worker-list`) / hydrating a deployment with `charly agentteams apply -f` | `/charly-agentteams:agentteams-cli` |
 | `charly box set` / `charly box add-candy` / `charly box rm-candy` / `charly box write` / `charly box cat` / `charly box fetch` / `charly box refresh` | `/charly-authoring:authoring` |
 | `charly agent` / agent control plane / sessions / runs / terminal channels / `charly tui` / MCP routing / agent target routing | `/charly-automation:agent` |
@@ -51,16 +50,16 @@
 | CachyOS images / `cachyos*` / `charly-cachyos` workstation profile / `box/cachyos` submodule | `/charly-distros:cachyos` |
 | CDI / nvidia.com/gpu / `--device nvidia.com/gpu=all` / a GPU image whose driver libraries must come from the host / nvidia-smi reports Driver/library version mismatch / inference runs on CPU on a GPU host / VRAM estimate is empty | `/charly-distros:cdi` |
 | editing candy/cdi, the driver-user-space strip, or the injected-driver probe | `/charly-distros:cdi-layer` |
-| Fedora images / `fedora*` / `box/fedora` submodule (incl. the GPU base `nvidia` / `python-ml` + `sway-browser-vnc`) | `/charly-distros:charly-fedora` |
+| Fedora images / `fedora*` / `box/fedora` submodule (the base/builder stack, `charly-fedora`) | `/charly-distros:charly-fedora` |
 | Debian images / `debian*` / `box/debian` submodule | `/charly-distros:debian` |
 | Debian images / `debian*` / `box/debian` submodule | `/charly-distros:debian-builder` |
 | Debian images / `debian*` / `box/debian` submodule | `/charly-distros:debian-debootstrap` |
-| Fedora images / `fedora*` / `box/fedora` submodule (incl. the GPU base `nvidia` / `python-ml` + `sway-browser-vnc`) | `/charly-distros:fedora` |
-| Fedora images / `fedora*` / `box/fedora` submodule (incl. the GPU base `nvidia` / `python-ml` + `sway-browser-vnc`) | `/charly-distros:fedora-builder` |
-| Fedora images / `fedora*` / `box/fedora` submodule (incl. the GPU base `nvidia` / `python-ml` + `sway-browser-vnc`) | `/charly-distros:fedora-nonfree` |
+| Fedora images / `fedora*` / `box/fedora` submodule (the base/builder stack, `charly-fedora`) | `/charly-distros:fedora` |
+| Fedora images / `fedora*` / `box/fedora` submodule (the base/builder stack, `charly-fedora`) | `/charly-distros:fedora-builder` |
+| Fedora images / `fedora*` / `box/fedora` submodule (the base/builder stack, `charly-fedora`) | `/charly-distros:fedora-nonfree` |
 | The CI-runner Ubuntu VM / `githubrunner-ubuntu` / the `check-githubrunner-ubuntu-vm` bed / A CI lane failing on a self-hosted Ubuntu runner (docker daemon, disk, buildx builder) | `/charly-distros:githubrunner-ubuntu` |
 | nested-podman-socket / serving a rootless podman API socket at uid 1000 inside a pod / the `/run/user/1000` runtime-dir named volume | `/charly-distros:nested-podman-socket` |
-| Fedora images / `fedora*` / `box/fedora` submodule (incl. the GPU base `nvidia` / `python-ml` + `sway-browser-vnc`) | `/charly-distros:nvidia` |
+| Fedora images / `fedora*` / `box/fedora` submodule (incl. the GPU base `nvidia` / `python-ml`) | `/charly-distros:nvidia` |
 | Ubuntu images / `ubuntu*` / `box/ubuntu` submodule | `/charly-distros:ubuntu` |
 | Ubuntu images / `ubuntu*` / `box/ubuntu` submodule | `/charly-distros:ubuntu-builder` |
 | Ubuntu images / `ubuntu*` / `box/ubuntu` submodule | `/charly-distros:ubuntu-debootstrap` |
@@ -120,13 +119,6 @@
 | `charly dsh` (status / profile list / plugin list) against a running deepseek-harness deployment, the compiled-in command:dsh plugin, or the `dsh:` check verb | `/charly-tools:dsh-cli` |
 | The dsh-TUI / dsh-tui terminal UI plugin (`@deepseek-harness-tui/dsh-tui`), the `dsh-tui` / `dst` launcher, the `dsh-tui` dsh profile, `DSH_TUI_NO_LAUNCHPAD`, the terminal:tmux channel, or the check-dsh-tui-pod bed | `/charly-tools:dsh-tui` |
 | Drafting a podcast or a two-host audio-overview script / A changelog digest or release-notes narration / Writing an episode for opencharly/news-podcast / Narrating landed change instead of making it / Gathering and proving the sources behind an episode (resolvers, receipts, gaps) | `/charly-tools:generate-podcast` |
-| the airflow layer / Apache Airflow 3.x (LocalExecutor + SQLite; supervisord init/scheduler/dag-processor/webserver services) — Airflow DAG authoring, the Airflow REST API, the SimpleAuthManager pattern, or the dag-processor split-from-scheduler architecture | `/charly-versa:airflow-layer` |
-| the debug-tools layer / in-container service debugging — network probes (ip/ss/lsof/ping/dig/nc/socat/tcpdump/traceroute/mtr/wget), process inspection (ps/top/htop/pgrep/strace/free/vmstat), file inspection, or the per-distro package-name divergence (nmap-ncat vs ncat vs gnu-netcat) | `/charly-versa:debug-tools-layer` |
-| the maputnik layer / the Maputnik visual editor for MapLibre GL vector-tile styles (npm-built SPA served as a static dist by python -m http.server; the Vite --base=/ build override; the asset-base lock-in check) | `/charly-versa:maputnik-layer` |
-| the marimo layer / the reactive notebook server + MCP runtime, its pixi environment (cudf-polars-cu13, polars, geopandas, quackosm, gtfs-parquet), the supervisord service spec, or the cell-display + mo.iframe rendering patterns | `/charly-versa:marimo-layer` |
-| the marimo MCP server on port 2718 path /mcp/server (get_active_notebooks, get_cell_outputs, get_notebook_errors) — the marimo MCP tool catalog, or the cells-don't-execute-via-MCP gap (marimo MCP is read-only) | `/charly-versa:marimo-mcp` |
-| the OSM data pipeline tooling (tippecanoe, gdal/ogr2ogr, martin on port 3000, the pmtiles CLI), martin reading tiles from /workspace/tiles/pmtiles/, the martin data-source cache restart pattern, or vector-tiles-only MapLibre output | `/charly-versa:osm-tools-layer` |
-| the versa/ecovoyage tailnet sway-browser-vnc instance — chrome-devtools-mcp + CDP debugging of the generated MapLibre and folium maps | `/charly-versa:sway-browser-ecovoyage` |
 | CachyOS images / `cachyos*` / `charly-cachyos` workstation profile / `box/cachyos` submodule | `/charly-vm:cachyos-bootstrap-vm` |
 | Debian images / `debian*` / `box/debian` submodule | `/charly-vm:debian-debootstrap-vm` |
 | Ubuntu images / `ubuntu*` / `box/ubuntu` submodule | `/charly-vm:ubuntu-debootstrap-vm` |

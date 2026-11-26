@@ -209,6 +209,27 @@ interruption safety") and points here for the detail. Where this guidance
 itself belongs is owned by the sibling `/charly-internals:skills` ("Where
 guidance belongs"): mandate in `AGENTS.md`, detail in the skill.
 
+## Waiting — the watcher catalogue (closed set; all mandatory where they apply)
+
+Every wait is ONE `node scripts/gh/cli.ts watch` over every item it covers. The event set is
+**CLOSED** (`EVENT_NAMES` in `scripts/gh/lib/watch.ts`) — `verdict`, `merged`, `closed`, `conflict`,
+`comment`, `stall` — and the rulebook's "Agents, Workflows & Teams" owns the wait-class → event
+mapping. This skill's half is the lifecycle:
+
+- arm the watcher **before** the wait, as a managed background command (never `&`/`disown`);
+- arm it with the **UNION** of the events its waits require. An own PR defaults to
+  `verdict,merged,closed,conflict`; add `comment` whenever a reply is owed; a blocking item owned
+  elsewhere takes `merged,closed,stall` (plus `comment`);
+- a **long bed or command** is its own managed background job — its exit is the wake; a
+  **file/log/stream** is the Monitor;
+- **one watcher per session**: re-arming REPLACES it (stop the live one first; `pgrep` is the
+  authority, not the launcher);
+- after a wake, act and re-arm. **A wait without its watcher is not a wait** (rulebook "Continuous
+  operation").
+
+The command syntax, the wake lines and the exit codes: `/charly-internals:git-workflow`
+("Waiting — the ONE watcher", `references/watch-and-wake.md`).
+
 ## Command hygiene & context discipline
 
 Commands run with SIGPIPE ignored, so `grep <pat> <huge-file> | head -N` floods the

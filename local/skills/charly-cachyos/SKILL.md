@@ -16,11 +16,7 @@ current machine via `ShellExecutor` — no SSH, no VM, no container.
 It lives in the **`opencharly/distro-cachyos`** repo (git submodule at
 **`box/cachyos`**), in that repo's single `charly.yml` — both the
 `kind: local` template (`charly-cachyos-app`) and the `charly-cachyos` `local:` deploy
-that deploys it. The repo also carries the `cachyos-gpu` deploy — the
-**persistent** operator GPU-workstation VM (`vm: { from: cachyos-gpu-workstation-vm }`,
-**not** `disposable`; see `/charly-vm:cachyos-bootstrap-vm`) — so `charly-cachyos` is no longer
-the only non-disposable deploy there; every disposable test bed is a
-`disposable: true` deploy. Apply it with:
+that deploys it. Apply it with:
 
 ```bash
 charly -C box/cachyos update charly-cachyos
