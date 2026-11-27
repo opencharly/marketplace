@@ -153,6 +153,12 @@ PLAN_SEPARATOR = re.compile(r"^\s*\|?[\s|:-]+\|?\s*$")
 PLAN_CONFORMS = re.compile(r"^conforms(?:\s+[\u2014\u2013-]\s*\S.*)?$", re.IGNORECASE)
 PLAN_AMENDS = re.compile(r"^amends DESIGN\b", re.IGNORECASE)
 PLAN_DEBT = re.compile(r"^debt filed\s+#(?P<n>\d+)(?:\s+[\u2014\u2013-]\s*\S.*)?$", re.IGNORECASE)
+# A row's SECOND cell must NAME its requirement. The rule says "the DESIGN requirement that
+# governs it", and the legal names are the `D-<AREA>-<n>` id, a `§`, or a backticked DESIGN.cue
+# definition. A `—` there is the shape a map takes when the row was never really mapped — and
+# the first version of this linter let it through, so a PR could publish "conforms" beside a
+# requirement that named nothing (caught by the org validator on opencharly/marketplace#669).
+PLAN_REQUIREMENT = re.compile(r"(?:\bD-[A-Z][A-Z0-9]*-\d+\b|§\s*\d|`[A-Za-z#][^`]+`)")
 HEAD = re.compile(r"\bHead\s+`([0-9a-f]{40})`")
 # The body's SECOND anchor form: a fence that runs `git rev-parse HEAD` and prints the commit
 # it names. The headline `Head:` line and this fence are the SAME claim about the same commit —
@@ -959,6 +965,12 @@ def plan_findings(rc: list[str], filed: list[str], body: str) -> list[str]:
         if len(cells) < 3:
             findings.append(f"plan: map row has fewer than 3 cells: {ln.strip()[:80]!r}")
             continue
+        if not PLAN_REQUIREMENT.search(cells[1]):
+            findings.append(
+                f"plan: the row for {cells[0][:60]!r} names no DESIGN requirement — give a "
+                "`D-<AREA>-<n>` id, a `§`, or a backticked `DESIGN.cue` definition. A row that "
+                "names none is not a DESIGN-governed surface and does not belong in the map"
+            )
         disp = cells[2]
         if PLAN_CONFORMS.match(disp):
             continue

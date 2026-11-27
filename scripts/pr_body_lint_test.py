@@ -1173,6 +1173,27 @@ class PlanConformance(unittest.TestCase):
         f = run(body(plan=plan + "\n## Filed issues\n\n- opencharly/opencharly#1234 — the debt\n"))
         self.assertEqual(f, [])
 
+    def test_the_requirement_cell_must_name_something(self):
+        # A `—` in the requirement cell is the shape a map takes when the row was never really
+        # mapped. The org validator caught exactly this on opencharly/marketplace#669, after
+        # this linter had passed it — so the cell is checked here now.
+        plan = (
+            "### Plan conformance\n**Winning candidate:** the fix.\n"
+            "| Planned change | DESIGN requirement | Disposition |\n|---|---|---|\n"
+            "| the change | — | conforms |\n"
+        )
+        f = run(body(plan=plan))
+        self.assertTrue(any("names no DESIGN requirement" in x for x in f), f)
+
+    def test_the_requirement_may_be_a_section_or_a_definition(self):
+        for req in ("§10.2", "`#Marketplace`", "D-PLUG-4"):
+            plan = (
+                "### Plan conformance\n**Winning candidate:** the fix.\n"
+                "| Planned change | DESIGN requirement | Disposition |\n|---|---|---|\n"
+                f"| the change | {req} | conforms |\n"
+            )
+            self.assertEqual(run(body(plan=plan)), [], req)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
