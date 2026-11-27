@@ -169,6 +169,15 @@ charly-marketplace:
             # `node scripts/gh/cli.ts` (opencharly/opencharly#1160, #1163), and this repo's
             # shell watcher family and `coord.sh` are deleted in the same change. The
             # range touches exactly seven `.agents/skills/` files, all from those two PRs.
+            #
+            # ADVANCED to v2026.331.0047 (opencharly/opencharly#1302): the reasonix harness
+            # binding is retired, so the five umbrella-sourced projections that named it lose
+            # the corresponding paragraphs and table row (`internals/agents/pr-validator.md`,
+            # `internals/skills/agents/SKILL.md` and its hooks reference, and the
+            # `internals/skills/git-workflow/references/{umbrella-mechanics,watch-and-wake}.md`
+            # pair). `umbrella-mechanics` also replaces its "both harness-config surfaces" note
+            # with the single `.dsh/skills` symlink-farm derivation. No other projection moves,
+            # and no trigger text changed, so `DISPATCHER.md` and the catalogs are unchanged.
             - '@github.com/opencharly/opencharly:v2026.331.0047'
             # The two CONTRACT repos' skill shelves (opencharly/opencharly#611).
             # DIRECT, for the rule stated above. Both are Go MODULES, so their tags follow
