@@ -90,6 +90,14 @@ retired: [
 	// documented no-op after the drain), but an old tag still carries `immich-ml-layer`, whose
 	// body composes the retired pod above — a live skill pointing at a retired repo.
 	"github.com/opencharly/layer-charly-immich",
+	// The Android/JetKVM retirement (opencharly/opencharly#1318, operator decision 2026-11-27;
+	// no replacement): these four REPOS are retired. Their cards are gone from the live owner
+	// (`layer-charly-check`), but their old tags stay cloneable, so a stale pin still naming one
+	// must never republish its cards.
+	"github.com/opencharly/plugin-adb",
+	"github.com/opencharly/plugin-appium",
+	"github.com/opencharly/plugin-jetkvm",
+	"github.com/opencharly/charly-jetkvm",
 ]
 
 // Individual CARDS whose thing was consolidated or removed while its owner repo lives on
@@ -118,4 +126,11 @@ retired_skills: [
 	// and the references they had in other coder skills were removed with them.
 	"coder/debian-coder",
 	"coder/ubuntu-coder",
+	// The same Android/JetKVM retirement removed these four CARDS under a LIVE owner:
+	// `layer-charly-check` survives and still publishes the rest of the `check/` family, but
+	// these four verb cards exist only in its OLD tags.
+	"check/adb",
+	"check/android",
+	"check/appium",
+	"check/jetkvm",
 ]

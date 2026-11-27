@@ -156,9 +156,37 @@ shape this org forbids (D-HW-10): **no charly pod runs as container root**, and 
    `hostPath` values. They are versioned host files: never bake them into an image (the ICD/SONAME
    resolution would pick the image's copy and report a driver/library version mismatch).
 
+   **And name their directory on `LD_LIBRARY_PATH`.** The binds are invisible to the loader's
+   cache: the derived spec drops the toolkit's hooks, and the hooks are what refreshed
+   `/etc/ld.so.cache` at container start. Measured: in the keep-id container the cache keeps its
+   **image-build** timestamp and holds **0** `libcuda` entries, while the stock-spec container's
+   cache mtime is the **container start** and holds **4** — and in both, `/usr/lib/libcuda.so`,
+   `.so.1` and the versioned file are present. (Two different containers, hence two different
+   images; the causal proof is a bed's before/after pair on one image, which is what
+   opencharly/plugin-deploy-pod#104 gates.) So a consumer that resolves the driver *through the
+   cache* fails while a direct `dlopen` user still works: `triton`'s `libcuda_dirs()` reads
+   `ldconfig -p` and falls back to `LD_LIBRARY_PATH`, and with neither it asserts `libcuda.so cannot
+   found!` — the first synthesis is a 500 with the library sitting at `/usr/lib`
+   (opencharly/plugin-deploy-pod#102). Refreshing the cache inside the container is not available to
+   the image user (`/sbin/ldconfig` → *Can't create temporary cache file `/etc/ld.so.cache~`:
+   Permission denied*, measured), so the unit carries the directories itself:
+   `Environment=LD_LIBRARY_PATH=<the binds' directory>[:<any value the image already set>]`, the
+   derived directory first.
+
 Measured in that shape: `cuInit=0`, device `NVIDIA GeForce RTX 4080 SUPER`, `cuCtxCreate=0`, a
 16 MiB `cuMemAlloc` returning a pointer, ONNX Runtime profiling `MatMul` on
 `CUDAExecutionProvider`, and the workload `user`/uid 1000.
+
+**`GroupAdd=keep-groups` does not change that.** The CDI EPERM above is the stock spec's `mounts`,
+not the group mapping: a unit carrying `GroupAdd=keep-groups` — so the image user keeps the host's
+GPU groups instead of the image's — in the SAME keep-id + devices-only-spec + read-only-lib-bind
+shape starts and runs. Measured on the `charly-comfyui-cdi` unit: `UserNS=keep-id:uid=1000,gid=1000`,
+`GroupAdd=keep-groups`, `PodmanArgs=--cdi-spec-dir …` and 105 `/usr/lib/lib*` read-only binds;
+`/proc/self/uid_map` reads `1000 0 1` then `1001 1001 64536` (container uid 1000 maps to the
+invoking host user; `id -u` inside is 1000); a live `comfyui-system-stats` check passes and a real
+prompt completes.
+A failing `keep-id + keep-groups` row elsewhere was measured against the **stock** spec, which still
+carries the mounts — the spec, not the group flag, is what EPERMs.
 
 What does **not** work, measured: `--userns=host --user <image uid>` with an idmapped volume
 (`-v src:dst:idmap` and `--mount …,idmap` both denied — idmap is a no-op under `userns=host`); any CDI

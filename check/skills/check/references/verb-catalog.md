@@ -122,7 +122,7 @@ schema; a scalar value is the verb's primary-field shorthand (`file: /x`,
 | `vnc` | `method` (primary: status/screenshot/click/mouse/type/key/rfb/passwd) + method-specific fields (`x`, `y`, `text`, `key`, `artifact`) | Deploy-context only. Dispatches out-of-process via `candy/plugin-vnc` (no host subcommand); the host pre-resolves the RFB endpoint for pod AND vm targets. See `references/live-probe-verbs.md`. |
 | `mcp` | `method` (primary: ping/servers/list-tools/list-resources/list-prompts/call/read) + method-specific fields (`tool`, `uri`, `input`, `mcp_name`) | Deploy-context only. Speaks `github.com/modelcontextprotocol/go-sdk` to any `mcp_provide` endpoint. See `references/live-probe-verbs.md` "Method allowlist — mcp". |
 
-> **A step verb (or Op modifier) must never be spelled like a reserved kind word.** Kinds (`candy`, `pod`, `vm`, `kubernetes`, `local`, `android`, `group`, …) live only at a config edge — the opening discriminator of a top-level node or a tree-child node — never as a key in the middle of a step. A new probe verb that would collide with a kind word must pick a non-colliding spelling (the `k8s`/`group` probe verbs were renamed to `kube`/`unix_group` for exactly this reason). This is machine-enforced by `spec/spec` `TestNoKindWordAsStepVerb` + `TestNoKindWordAsOpModifier` — adding a colliding verb fails the build.
+> **A step verb (or Op modifier) must never be spelled like a reserved kind word.** Kinds (`candy`, `pod`, `vm`, `kubernetes`, `local`, `group`, …) live only at a config edge — the opening discriminator of a top-level node or a tree-child node — never as a key in the middle of a step. A new probe verb that would collide with a kind word must pick a non-colliding spelling (the `k8s`/`group` probe verbs were renamed to `kube`/`unix_group` for exactly this reason). This is machine-enforced by `spec/spec` `TestNoKindWordAsStepVerb` + `TestNoKindWordAsOpModifier` — adding a colliding verb fails the build.
 
 ### Shared modifiers
 
@@ -223,9 +223,7 @@ subcommand that reads stdin — `adb shell`, `ssh`, `read`, `cat` — cannot con
 the rest of the heredoc (the not-yet-run script lines, which would otherwise
 truncate the check to its first command). Authors write plain multi-line
 scripts; no per-call-site `</dev/null` is needed. Host-side `command:`
-(`in_container: false`) runs via `sh -c` argv and is unaffected. For Android UI
-readiness, prefer the typed `adb: wait-ui-settled` / `current-focus` / `keyevent`
-verbs (`/charly-check:adb`) over shell entirely.
+(`in_container: false`) runs via `sh -c` argv and is unaffected.
 
 ## Runtime variables
 
