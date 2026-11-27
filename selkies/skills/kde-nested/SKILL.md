@@ -41,8 +41,12 @@ earlier one's.
 | pod | host | KWin socket | runtime dir | size | bus |
 |---|---|---|---|---|---|
 | pod-kde-vnc | sway `wayland-0` | `wayland-kde` | `/tmp` | `1920x1080` | session |
-| pod-kde-selkies | pixelflux `wayland-1` | `wayland-0` | inherited | `1280x720` | private |
-| pod-kde-cstream | cstream streamer `wayland-1` | `wayland-kde` | `/tmp/cstream-rt` | host's | session |
+| pod-kde-vnc-cdp | sway `wayland-0` | `wayland-kde` | `/tmp` | `1920x1080` | session |
+
+pod-kde-vnc-cdp composes pod-kde-vnc, so it inherits the same five knobs and adds only
+Chrome — there is no second nested-session configuration. The `KDE_NESTED_BUS=private`
+knob stays: a compositor whose session bus the venue's `dbus:` verb cannot see still
+needs it.
 
 ## Things that were measured, not assumed
 
@@ -71,7 +75,8 @@ chose, e.g. `dbus: call org.kde.KWin /KWin org.kde.KWin.supportInformation`.
 ## Cross-references
 
 - `/charly-selkies:kde-shell`: the Plasma package set.
-- `/charly-selkies:kde-vnc`, `/charly-selkies:kde-selkies`, `/charly-selkies:kde-cstream`:
-  the pods that compose this leaf.
+- `/charly-selkies:kde-vnc`, `/charly-selkies:kde-vnc-cdp`: the pods that compose this
+  leaf. `/charly-selkies:kde-selkies` and `/charly-selkies:kde-cstream` named the two
+  consumers retired by opencharly/opencharly#1293; neither skill is published any more.
 - `/charly-check:dbus`, `/charly-check:wl`: the verbs the pods' beds use against the
   nested session.
