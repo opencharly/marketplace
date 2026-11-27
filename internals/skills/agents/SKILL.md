@@ -97,7 +97,7 @@ ships its spike, has left its brief. The round's form: `/charly-internals:strict
 ## The harness-config LOCATION (umbrella-only; layer-charly-internals#49)
 
 ALL harness config lives in the **umbrella root** (`opencharly/opencharly`) and
-NOWHERE else: `.claude/`, `.opencode/`, `.codex/`, `.pi/`, `.reasonix/`, and
+NOWHERE else: `.claude/`, `.opencode/`, `.codex/`, `.pi/`, and
 `opencode.json`. No submodule or sibling repo — `.github`, a `distro-*`/`layer-*`/
 `pod-*`/`plugin-*` repo, or `charly/` — carries a copy, and there is **no parity
 gate**: the former `charly task harness` (which compared umbrella↔`charly/`
