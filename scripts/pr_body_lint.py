@@ -23,6 +23,18 @@ BLOCKs on the body alone):
              squash_body.py's (one definition);
   rules      `## Rulebook compliance` answers EVERY rule id in --rules, each with a HOW or an
              `N/A — <reason>` (a bare `N/A` fails);
+  plan       `## Rulebook compliance` carries R11's PLAN CONFORMANCE map: a
+             `### Plan conformance` block naming the `**Winning candidate:**` and, per
+             planned change, the DESIGN requirement that governs it and the sentence of it the
+             change satisfies — disposition `conforms` or `debt filed #<n>` (whose number must
+             also be under `## Filed issues`). `amends DESIGN` is NOT a disposition: R11 is
+             conformance, and a design is never edited to fit an implementation. Two one-line
+             forms exist for the rest: `No DESIGN-governed surface — <reason>`, and
+             `Design change — <reason>`, the operator's own DESIGN cutover, which must paste
+             the design-check output (its maintainer sign-off is the validator's T4 account
+             check). The map's agreement with the DIFF is the umbrella reconciler's question,
+             not this file's — every repo runs this linter, and only the umbrella reads a diff
+             (opencharly/opencharly#1336);
   claims     an asserted check — a sweep result ("only occurrence"), a no-match grep/rg result,
              a check reported as done
              ("… were checked"), an equivalence to a named source ("match(es) `…`") — is backed IN
@@ -118,6 +130,29 @@ SWEEP_COMMAND = re.compile(r"^\s*\$ .*\b(?:grep|rg)\b", re.IGNORECASE)
 NO_MATCH_STATUS = re.compile(r"\b(?:exit|rg exit|grep exit)\s*[:=]\s*1\b", re.IGNORECASE)
 POINTER = re.compile(r"\b(above|below)\b", re.IGNORECASE)
 NA = re.compile(r"\bN/A\b(?P<rest>.*)$")
+# ── R11's PLAN CONFORMANCE map (opencharly/opencharly#1336) ─────────────────────────
+# R11 fires twice: once over the PLAN, after R12's spike names its winning candidate and
+# before the first implementation edit, then over the DIFF before the push. The map is the
+# artifact, and it lives inside `## Rulebook compliance` so the author, the linter, the
+# umbrella reconciler and the validator all read ONE thing.
+#
+# THIS FILE OWNS THE MAP'S PRESENCE AND SHAPE, never its agreement with the diff: every repo
+# that adopts this linter runs it, and none of them but the umbrella has the reconciler that
+# reads a diff. `scripts/check-pr-body-diff.mjs` owns that half.
+PLAN_HEADING = re.compile(r"^###\s+Plan conformance\s*$")
+PLAN_NO_SURFACE = re.compile(r"^\s*No DESIGN-governed surface\s*[—–-]\s*(?P<rest>\S.*)$")
+# `Design change — <reason>` is NOT a disposition: it declares the cutover class, and it belongs
+# to the operator's own DESIGN cutover (DESIGN A.6) and to nothing else. The reconciler refuses it
+# on a diff that changes no design surface, so it cannot be used to get an implementation past a
+# mismatch (opencharly/opencharly#1336).
+PLAN_DESIGN_CHANGE = re.compile(r"^\s*Design change\s*[—–-]\s*(?P<rest>\S.*)$")
+PLAN_WINNING = re.compile(r"^\s*\*\*Winning candidate:\*\*\s*(?P<rest>\S.*)$")
+PLAN_SEPARATOR = re.compile(r"^\s*\|?[\s|:-]+\|?\s*$")
+# `conforms` may carry the evidence after an em dash; `debt filed #N` likewise. What the
+# shape must NOT admit is a second DISPOSITION (a design edit), which PLAN_AMENDS names.
+PLAN_CONFORMS = re.compile(r"^conforms(?:\s+[\u2014\u2013-]\s*\S.*)?$", re.IGNORECASE)
+PLAN_AMENDS = re.compile(r"^amends DESIGN\b", re.IGNORECASE)
+PLAN_DEBT = re.compile(r"^debt filed\s+#(?P<n>\d+)(?:\s+[\u2014\u2013-]\s*\S.*)?$", re.IGNORECASE)
 HEAD = re.compile(r"\bHead\s+`([0-9a-f]{40})`")
 # The body's SECOND anchor form: a fence that runs `git rev-parse HEAD` and prints the commit
 # it names. The headline `Head:` line and this fence are the SAME claim about the same commit —
@@ -826,6 +861,127 @@ def ellipsis_findings(section: str, text: list[str]) -> list[str]:
     ]
 
 
+def plan_findings(rc: list[str], filed: list[str], body: str) -> list[str]:
+    """R11's plan conformance map — its PRESENCE and SHAPE, inside `## Rulebook compliance`.
+
+    One row per PLANNED CHANGE (a field, shape, kind, verb, capability, mechanism, dependency or
+    config key, or an emitted artifact), each naming the DESIGN requirement that governs it and
+    the sentence of it the change satisfies. R11 is CONFORMANCE: the disposition set is exactly
+    `conforms` and `debt filed #<n>`, and `amends DESIGN` is not a disposition at all — the design
+    is never edited to fit an implementation.
+
+    A body that touches no governed surface says so in one line. The ONE other form is
+    `Design change — <reason>`, the operator's own DESIGN cutover (DESIGN A.6); it requires the
+    design-check output in the body, and its maintainer sign-off is checked by the validator's T4
+    account rule, because a sign-off is a COMMENT and this linter reads the body.
+
+    The map's agreement with the DIFF is NOT judged here — that is
+    `scripts/check-pr-body-diff.mjs` in the umbrella, because only the umbrella reads a diff.
+    """
+    findings: list[str] = []
+    if not any(PLAN_HEADING.match(ln) for ln in rc):
+        return [
+            "plan: `## Rulebook compliance` carries no `### Plan conformance` map — R11's map is "
+            "required (the one-line `No DESIGN-governed surface — <reason>` form is enough when "
+            "the change touches none)"
+        ]
+    at = next(i for i, ln in enumerate(rc) if PLAN_HEADING.match(ln))
+    # The block is ONE paragraph. A blank line ends it once a table row has been read —
+    # markdown ends a table at a blank line, so a later table in the same section is a
+    # DIFFERENT table and not this block's rows (opencharly/marketplace#404's lesson: a
+    # reader that cannot tell two blocks apart reports a defect where there is none).
+    block: list[str] = []
+    for i in range(at + 1, len(rc)):
+        ln = rc[i]
+        if re.match(r"^#{1,3} ", ln):
+            break
+        if ln.strip() == "":
+            # A blank line inside the block is a PARAGRAPH break, and the real bodies use
+            # one between the heading and the `**Winning candidate:**` line. Two rules keep
+            # it honest: before any row a blank is internal only when the next non-blank
+            # line is still a plan line; after a row a blank ENDS the block, because markdown
+            # ends a table at a blank line and a later table is a different table
+            # (opencharly/marketplace#404's lesson).
+            has_row = any(x.strip().startswith("|") for x in block)
+            if has_row:
+                break
+            nxt = rc[i + 1].strip() if i + 1 < len(rc) else ""
+            if not (
+                nxt.startswith("|")
+                or PLAN_WINNING.match(nxt)
+                or PLAN_NO_SURFACE.match(nxt)
+                or PLAN_DESIGN_CHANGE.match(nxt)
+            ):
+                break
+        block.append(ln)
+
+    if not any(PLAN_WINNING.match(ln) for ln in block):
+        findings.append(
+            "plan: the map carries no `**Winning candidate:**` line — name the candidate the "
+            "`### Spike` round's `**Winner:**` names, or `N/A — <exemption>`"
+        )
+
+    def one_line(pattern, bare_start, label):
+        good = [m for m in (pattern.match(ln) for ln in block) if m]
+        for m in good:
+            if len(re.findall(r"[A-Za-z0-9_`]+", m.group("rest"))) < 2:
+                findings.append(f"plan: `{label}` is bare — give `{label} — <reason>`")
+        for ln in block:
+            if re.match(bare_start, ln) and not pattern.match(ln):
+                findings.append(f"plan: `{label}` is bare — give `{label} — <reason>`")
+        return bool(good or any(re.match(bare_start, ln) for ln in block))
+
+    if one_line(PLAN_NO_SURFACE, r"^\s*No DESIGN-governed surface\b", "No DESIGN-governed surface"):
+        return findings
+    if one_line(PLAN_DESIGN_CHANGE, r"^\s*Design change\b", "Design change"):
+        # The gate that makes the form safe: a design change is the operator's cutover and its
+        # proof is pasted. Its SIGN-OFF is a PR comment, checked by the validator's T4 account
+        # rule; this linter can only require the other half.
+        if not re.search(r"design-check: all controls pass", body):
+            findings.append(
+                "plan: a `Design change` cutover must paste the design-check output "
+                "(`design-check: all controls pass`) in the body, and carries a maintainer "
+                "sign-off that the validator checks"
+            )
+        return findings
+
+    rows = [ln for ln in block if ln.strip().startswith("|")]
+    data = [ln for ln in rows if not PLAN_SEPARATOR.match(ln)][1:]
+    if not data:
+        findings.append(
+            "plan: the map carries neither a table nor a `No DESIGN-governed surface — <reason>` line"
+        )
+        return findings
+
+    filed_nums = {m.group(1) for m in re.finditer(r"#(\d+)", "\n".join(filed))}
+    for ln in data:
+        cells = [c.strip() for c in ln.strip().strip("|").split("|")]
+        if len(cells) < 3:
+            findings.append(f"plan: map row has fewer than 3 cells: {ln.strip()[:80]!r}")
+            continue
+        disp = cells[2]
+        if PLAN_CONFORMS.match(disp):
+            continue
+        debt = PLAN_DEBT.match(disp)
+        if debt:
+            if debt.group("n") not in filed_nums:
+                findings.append(
+                    f"plan: `debt filed #{debt.group('n')}` is not listed under `## Filed issues`"
+                )
+            continue
+        if PLAN_AMENDS.match(disp):
+            findings.append(
+                "plan: a row may not `amends DESIGN` — R11 is conformance, and a design is never "
+                "edited to fit an implementation. Redesign the change; if it genuinely cannot "
+                "conform, STOP and put the deviation to the operator"
+            )
+            continue
+        findings.append(
+            f"plan: disposition {disp!r} is not `conforms` or `debt filed #<n>`"
+        )
+    return findings
+
+
 def lint(
     body: str,
     head: str | None,
@@ -896,6 +1052,10 @@ def lint(
             m = NA.search(ln)
             if m and len(re.findall(r"[A-Za-z0-9_`]+", m.group("rest"))) < 2:
                 findings.append(f"rules: {rule} is a bare N/A — give `N/A — <reason>`")
+
+    findings.extend(
+        plan_findings(secs.get("Rulebook compliance", []), secs.get("Filed issues", []), body)
+    )
 
     for name, body_lines in secs.items():
         bl = list(blocks(body_lines))
