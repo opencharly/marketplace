@@ -877,8 +877,8 @@ against the rule it now is.
       `charly/*_aliases.go` file and a declaration-form kit-alias line (`type X = kit.Y` /
       `var x = kit.Y`) tier-independently, fail-open — but it is **NOT wired under Claude
       Code**, where validators normally run (`.claude/settings.json` declares no
-      `PreToolUse` hooks). It is wired in `.reasonix/settings.json` and via
-      `~/.kimi-code/config.toml`. So under Claude Code this check is ENTIRELY your
+      `PreToolUse` hooks). It is wired via `~/.kimi-code/config.toml`. So under
+      Claude Code this check is ENTIRELY your
       judgment and nothing has pre-screened the diff — inspect every staged
       `charly/*.go` change yourself. Where the hook does run, a hook block is a HARD FAIL
       (never a workaround target), and a hook ALLOW still does NOT discharge your

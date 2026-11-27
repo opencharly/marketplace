@@ -13,7 +13,6 @@ There is **ONE watcher**, used by every harness: the umbrella's `scripts/gh/` to
 | Harness | How it runs the watcher | How the wake reaches the session |
 |---|---|---|
 | Claude Code, Codex, DeepSeek Harness | `node scripts/gh/cli.ts watch …` as a MANAGED background command | the harness's background-completion notice |
-| reasonix | its SessionStart hook prints the same command for the agent to run | the same |
 | pi | `.pi/extensions/watch.ts` spawns the CLI from `.pi/watch.items` and re-arms it | a user turn (`sendUserMessage`) |
 | OpenCode | `pr-watch.ts`, `tracker.ts` and `coord_watch` import `scripts/gh/lib/watch.ts` in-process | `ctx.session.synthetic` |
 

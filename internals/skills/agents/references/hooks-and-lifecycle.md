@@ -367,8 +367,8 @@ skills, loaded fresh by every agent at session start.
 
 The two gate scripts live in `.claude/hooks/` and are wired as `PreToolUse(Bash)`
 hooks in **every** harness that roots at this umbrella: `.claude/settings.json`
-(Claude Code, since umbrella commit `5e485a8`, 2026-08-28), `.reasonix/settings.json`,
-and `~/.kimi-code/config.toml`, which delegates to `.claude/hooks/` when the repo
+(Claude Code, since umbrella commit `5e485a8`, 2026-08-28), and
+`~/.kimi-code/config.toml`, which delegates to `.claude/hooks/` when the repo
 markers are present. Measured: both scripts block what they exist for (`git commit
 --no-verify`, a `core.hooksPath` override, `git push --force`, a direct push to
 `main` all exit 2). Branch protection covers `main` ALONE — no rulesets, no other
@@ -380,8 +380,8 @@ the hooks.
 
 | Hook | Event (where wired) | Role |
 |---|---|---|
-| `pre-commit-gate.sh` | `PreToolUse(Bash)` in `.claude/settings.json` (Claude Code), `.reasonix` / kimi | blocks hook bypass (`--no-verify`/`-n`/`core.hooksPath`), untokenizable commit commands, configured Go lint failures for staged Go modules, and a new-or-grown `charly/*_aliases.go` file or declaration-form kit-alias line (the ZERO-ALIASES gate) |
-| `pre-push-gate.sh` | `PreToolUse(Bash)` in `.claude/settings.json` (Claude Code), `.reasonix` / kimi | blocks force-push and a direct push to `main` |
+| `pre-commit-gate.sh` | `PreToolUse(Bash)` in `.claude/settings.json` (Claude Code), `~/.kimi-code/config.toml` (kimi) | blocks hook bypass (`--no-verify`/`-n`/`core.hooksPath`), untokenizable commit commands, configured Go lint failures for staged Go modules, and a new-or-grown `charly/*_aliases.go` file or declaration-form kit-alias line (the ZERO-ALIASES gate) |
+| `pre-push-gate.sh` | `PreToolUse(Bash)` in `.claude/settings.json` (Claude Code), `~/.kimi-code/config.toml` (kimi) | blocks force-push and a direct push to `main` |
 
 Attribution identity/confidence, change class, CHANGELOG coverage,
 architecture, and R0–R12 evidence belong exclusively to the fresh

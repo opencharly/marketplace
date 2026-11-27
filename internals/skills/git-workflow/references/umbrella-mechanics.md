@@ -315,14 +315,12 @@ and the producer-first leg order: `references/pin-intent-and-currency.md`.
   the paths it has no checkout for — only over the paths it cannot advance at
   all. See "`task sync` and the commit gate" below.
 - **A pin advance that brings in a NEW marketplace corpus family must bind it in
-  BOTH harness-config surfaces, in the same commit.** The umbrella binds the
-  corpus by hand in two places — `reasonix.toml`'s `[skills] paths` (one
-  `marketplace/<family>/skills` entry per skill-bearing family, plus
-  `<family>/agents` for the two roster dirs) and the tracked symlink farm
-  `.dsh/skills/<name>` -> `../../marketplace/<family>/skills/<name>` — and
-  `charly task verify`'s harness-config step FAILS while either is missing
-  (`missing: marketplace/<family>/skills`, then
-  `<N> corpus skills, missing: <family>:<name>`). Without them the family loads
+  the harness-config derivation, in the same commit.** The umbrella binds the
+  corpus with the tracked symlink farm
+  `.dsh/skills/<name>` -> `../../marketplace/<family>/skills/<name>`, re-derived
+  from the corpus by `scripts/sync-skill-bindings.mjs` on the pin advance — and
+  `charly task verify`'s harness-config step FAILS while it is missing
+  (`<N> corpus skills, missing: <family>:<name>`). Without it the family loads
   as ZERO skills: silent, and a capability loss nothing else reports. Measured on
   the wave that first pinned `marketplace/firecracker` — and note the follow-on
   signal: that gate's `--self-test` then reports *"the unmutated copy of this
