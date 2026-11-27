@@ -10,7 +10,7 @@ description: |-
 
 `check-sway-browser-vnc-pod` is the canonical **disposable** pod bed for the
 live-container test verbs (cdp / wl / vnc / dbus / mcp / record) on the Sway
-stack. It deploys the **shipping `/charly-selkies:sway-browser-vnc` image directly**
+stack. It deploys the **shipping image directly**
 — there is no separate check image. It sits alongside the other `check-*` smoke
 beds (`check-pod` — the combined image/layer/pod/deploy-target mechanism bed —
 and `check-local`) — all `disposable: true` deploys, top-level entries in their
@@ -90,7 +90,6 @@ operator-authored refs").
 
 ## Related Skills
 
-- `/charly-selkies:sway-browser-vnc` — the shipping image this bed deploys
 - `/charly-check:check` — the check framework + the disposable test-bed table
 - `/charly-check:cdp`, `/charly-check:wl`, `/charly-check:vnc`, `/charly-check:dbus`, `/charly-check:record`,
   `/charly-build:charly-mcp-cmd` — the live-container verbs this bed covers

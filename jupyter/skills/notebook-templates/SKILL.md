@@ -64,7 +64,6 @@ charly start jupyter
 ## Used In Boxes
 
 - `/charly-jupyter:jupyter`
-- `/charly-jupyter:jupyter-ml-notebook`
 
 ## Related Skills
 

@@ -46,7 +46,7 @@ At deploy time, `charly config` copies the staged data into the workspace volume
 
 The `env_require` declaration is stored as an OCI label (`ai.opencharly.env_require`). At `charly config` time, if `OPENROUTER_API_KEY` is not present in the resolved environment, a warning is printed:
 ```
-Warning: jupyter-ml-notebook requires OPENROUTER_API_KEY (API key for OpenRouter LLM inference) — not set
+Warning: <box> requires OPENROUTER_API_KEY (API key for OpenRouter LLM inference) — not set
 ```
 
 This is the first candy in the project to use the `env_require` feature.
@@ -88,7 +88,7 @@ The `OPENROUTER_API_KEY` must be injected into the container environment:
 
 ```bash
 # Via charly config (persisted in quadlet)
-charly config jupyter-ml-notebook -e OPENROUTER_API_KEY=sk-or-v1-...
+charly config <box> -e OPENROUTER_API_KEY=sk-or-v1-...
 
 # Via workspace .env file
 echo "OPENROUTER_API_KEY=sk-or-v1-..." >> ~/project/.env
@@ -99,29 +99,8 @@ charly secrets gpg set OPENROUTER_API_KEY sk-or-v1-...
 
 ## Usage
 
-```yaml
-# charly.yml
-jupyter-ml-notebook:
-  candy:
-    - jupyter-ml
-    - notebook-templates
-    - notebook-finetuning
-    - notebook-ollama
-    - notebook-llm-on-supercomputers
-    - notebook-openrouter
-    # ... other candies
-```
+Add `notebook-openrouter` to a Jupyter box's `candy:` list; with an `OPENROUTER_API_KEY` supplied it provides the `/openrouter/` notebook set.
 
-```bash
-# Deploy with API key
-charly config jupyter-ml-notebook -e OPENROUTER_API_KEY=sk-or-v1-...
-charly start jupyter-ml-notebook
-# Open http://localhost:8888 -> navigate to openrouter/
-```
-
-## Used In Boxes
-
-- `/charly-jupyter:jupyter-ml-notebook`
 
 ## Related Skills
 
@@ -132,7 +111,6 @@ charly start jupyter-ml-notebook
 - `/charly-jupyter:notebook-finetuning` — sibling data candy pattern (Unsloth fine-tuning notebooks)
 - `/charly-jupyter:notebook-templates` — sibling data candy pattern (starter notebooks)
 - `/charly-jupyter:notebook-llm-on-supercomputers` — sibling data candy pattern (TU Wien course notebooks)
-- `/charly-jupyter:jupyter-ml-notebook` — the box that includes this candy
 
 ## When to Use This Skill
 

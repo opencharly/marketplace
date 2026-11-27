@@ -42,7 +42,7 @@ Keyboard layout defaults to US. Override with `env_accept` vars:
 charly config sway-desktop -e XKB_DEFAULT_LAYOUT=de
 ```
 
-Sway reads `XKB_DEFAULT_LAYOUT` natively from the environment — no wrapper change needed. See `/charly-selkies:labwc` for full XKB var list (MODEL, OPTIONS).
+Sway reads `XKB_DEFAULT_LAYOUT` natively from the environment — no wrapper change needed.
 
 The supervisord `[program:sway]` environment sets `WLR_BACKENDS=headless` — headless output only. The `libinput` backend is **not** included by default because it requires a libseat session which fails in rootless containers.
 
@@ -66,7 +66,7 @@ my-desktop:
 
 XWayland is **enabled by default** (`xwayland enable` in the base config). The `xorg-x11-server-Xwayland` package is included in the sway candy. XWayland starts lazily — the Xwayland process only launches when the first X11 client connects (e.g., Steam, Heroic, Qt apps with xcb platform).
 
-X11 tools for interacting with XWayland windows (`xdotool`, `xprop`, `xwininfo`, `import`) are provided by the `/charly-selkies:wl-tools` candy.
+X11 tools for interacting with XWayland windows (`xdotool`, `xprop`, `xwininfo`, `import`) are provided by the desktop tools.
 
 ## Stale IPC Socket Cleanup
 
@@ -91,10 +91,7 @@ Transitive dependency via `chrome-sway` and `sway-desktop` in all desktop boxes.
 ## Related Candies
 
 - `/charly-infrastructure:dbus-layer` -- D-Bus session bus dependency
-- `/charly-selkies:chrome-sway` -- Chrome on Sway (depends on sway)
-- `/charly-selkies:sway-desktop` -- full desktop composition (VNC)
 - `/charly-selkies:wayvnc` -- VNC access to Sway display
-- `/charly-selkies:waybar` -- status bar (depends on sway)
 
 ## Related Commands
 

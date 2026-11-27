@@ -51,7 +51,6 @@ The user-phase tasks run after the pixi environment is established by the parent
 
 - `/charly-languages:python-ml` (via `python-ml` metalayer)
 - `/charly-immich:immich` (via `python-ml` metalayer)
-- `/charly-jupyter:jupyter-ml-notebook` (via `jupyter-ml` metalayer)
 
 ## When to Use This Skill
 

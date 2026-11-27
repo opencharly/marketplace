@@ -44,10 +44,6 @@ This candy has **no pixi.toml** and **no depends**. It installs pip packages int
 - `/charly-jupyter:llama-cpp` — llama.cpp binaries (often paired as sibling Tier 1 candy)
 - `/charly-languages:python-ml` — Core ML environment (Tier 2, uses vllm pip install in its own tasks: instead)
 
-## Used In Boxes
-
-- `/charly-jupyter:jupyter-ml-notebook` (via `jupyter-ml` metalayer)
-
 ## When to Use This Skill
 
 Use when the user asks about:

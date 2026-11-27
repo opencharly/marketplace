@@ -178,14 +178,14 @@ charly-marketplace:
             # replaces its "both harness-config surfaces" note with the single `.dsh/skills`
             # symlink-farm derivation. No other projection moves, and no trigger text
             # changed, so `DISPATCHER.md` and the catalogs are unchanged.
-            - '@github.com/opencharly/opencharly:v2026.331.0824'
+            - '@github.com/opencharly/opencharly:v2026.331.2112'
             # The two CONTRACT repos' skill shelves (opencharly/opencharly#611).
             # DIRECT, for the rule stated above. Both are Go MODULES, so their tags follow
             # the Go-module scheme
             # `v0.<YYYYDDD>.<HHMM with leading zeros stripped>` — not the superproject's
             # `v<YYYY.DDD.HHMM>`, which is not a valid Go module version. Each pin below
             # is the tag that repo's own merge minted.
-            - '@github.com/opencharly/spec:v0.2026331.1221'
+            - '@github.com/opencharly/spec:v0.2026331.1629'
             - '@github.com/opencharly/sdk:v0.2026331.837'
             # The `build` family's SIX owners, DIRECT (opencharly/marketplace#587).
             #
@@ -213,14 +213,14 @@ charly-marketplace:
             - '@github.com/opencharly/plugin-docs:v2026.328.0705'
             - '@github.com/opencharly/plugin-secrets:v2026.319.2321'
             - '@github.com/opencharly/plugin-settings:v2026.314.0715'
-            - '@github.com/opencharly/plugin-mcp:v2026.330.2215'
+            - '@github.com/opencharly/plugin-mcp:v2026.331.1630'
             # `layer-charly-check` ADVANCED to v2026.301.1748 (opencharly/layer-charly-check#55,
             # merged as ac220ea): that tag carries the `check` family's `beds-and-r10`
             # reference with the retired podman-era flag spelling replaced by the contract's
             # `--stage-parallelism` (opencharly/plugin-box#66 renamed the flag; the old tag
             # still published the pre-rename prose). The projection of this pin therefore
             # changes in this commit.
-            - '@github.com/opencharly/layer-charly-check:v2026.331.0823'
+            - '@github.com/opencharly/layer-charly-check:v2026.331.1630'
             # The Strata POD's split (opencharly/opencharly#1174): `layer-strata` now carries only
             # the ENGINE LAYER (`candy/strata`) and the `strata-layer` skill beside it, and the POD
             # — the image, the bed and the BOX SKILL — is `pod-strata`. Both are named here, and
@@ -236,7 +236,7 @@ charly-marketplace:
             - '@github.com/opencharly/plugin-quickshell/candy/plugin-quickshell:v2026.314.0715'
             # Serving-plugin command skills (2026-09-17 coverage campaign).
             - '@github.com/opencharly/plugin-cache/candy/plugin-cache:v2026.314.0712'
-            - '@github.com/opencharly/plugin-pod/candy/plugin-pod:v2026.329.1058'
+            - '@github.com/opencharly/plugin-pod/candy/plugin-pod:v2026.331.1625'
             - '@github.com/opencharly/plugin-review/candy/plugin-review:v2026.314.0715'
             - '@github.com/opencharly/plugin-agent/candy/plugin-agent:v2026.314.1057'
             - '@github.com/opencharly/plugin-candy/candy/plugin-candy:v2026.314.0712'
@@ -258,7 +258,7 @@ charly-marketplace:
             - '@github.com/opencharly/layer-chrome:v2026.330.2007'
             - '@github.com/opencharly/layer-python:v2026.314.0709'
             - '@github.com/opencharly/layer-gemini:v2026.329.0559'
-            - '@github.com/opencharly/layer-nvidia:v2026.330.1626'
+            - '@github.com/opencharly/layer-nvidia:v2026.331.1949'
             # layer-cdi owns the CDI doctrine skill (`/charly-distros:cdi`) and `cdi-layer`. It was
             # reached only transitively, at tags older than the doctrine the pod/deploy skills cite
             # (the mount_setattr measurement and the two legal userns shapes), so it is pinned
@@ -285,7 +285,7 @@ charly-marketplace:
             - '@github.com/opencharly/layer-rocm:v2026.314.0709'
             - '@github.com/opencharly/layer-rpmfusion:v2026.330.2000'
             - '@github.com/opencharly/layer-asciinema:v2026.330.1949'
-            - '@github.com/opencharly/layer-jupyter-mcp:v2026.330.2007'
+            - '@github.com/opencharly/layer-jupyter-mcp:v2026.331.1951'
             - '@github.com/opencharly/layer-rust:v2026.314.0709'
             - '@github.com/opencharly/layer-blogwatcher:v2026.314.0704'
             - '@github.com/opencharly/layer-k3s:v2026.314.0707'
@@ -302,20 +302,20 @@ charly-marketplace:
             - '@github.com/opencharly/pod-sshd:v2026.330.1954'
             - '@github.com/opencharly/layer-libnotify:v2026.330.1954'
             - '@github.com/opencharly/layer-summarize:v2026.314.0710'
-            - '@github.com/opencharly/layer-llama-cpp:v2026.330.1958'
+            - '@github.com/opencharly/layer-llama-cpp:v2026.331.1958'
             - '@github.com/opencharly/layer-tailscale:v2026.321.1210'
             - '@github.com/opencharly/pod-testapi:v2026.328.0734'
             - '@github.com/opencharly/layer-charly-tools:v2026.314.0704'
             - '@github.com/opencharly/pod-traefik:v2026.328.0723'
             - '@github.com/opencharly/layer-typst:v2026.314.0710'
             - '@github.com/opencharly/layer-mcporter:v2026.314.0707'
-            - '@github.com/opencharly/layer-unsloth:v2026.330.2000'
+            - '@github.com/opencharly/layer-unsloth:v2026.331.1939'
             - '@github.com/opencharly/layer-nano-pdf:v2026.314.0707'
             - '@github.com/opencharly/layer-uv:v2026.328.0726'
             - '@github.com/opencharly/pod-valkey:v2026.314.0718'
-            - '@github.com/opencharly/layer-notebook-llm-on-supercomputers:v2026.314.0707'
-            - '@github.com/opencharly/layer-notebook-templates:v2026.330.2248'
-            - '@github.com/opencharly/pod-ollama:v2026.331.0253'
+            - '@github.com/opencharly/layer-notebook-llm-on-supercomputers:v2026.331.1934'
+            - '@github.com/opencharly/layer-notebook-templates:v2026.331.2019'
+            - '@github.com/opencharly/pod-ollama:v2026.331.1947'
             - '@github.com/opencharly/pod-virtualization:v2026.328.0755'
             - '@github.com/opencharly/layer-vscode:v2026.314.0710'
             - '@github.com/opencharly/layer-openclaw:v2026.327.0200'
@@ -342,7 +342,7 @@ charly-marketplace:
             - '@github.com/opencharly/layer-google-cloud-npm:v2026.314.0706'
             - '@github.com/opencharly/layer-himalaya:v2026.314.0706'
             - '@github.com/opencharly/pod-immich:v2026.331.0448'
-            - '@github.com/opencharly/pod-jupyter:v2026.330.2006'
+            - '@github.com/opencharly/pod-jupyter:v2026.331.1717'
             - '@github.com/opencharly/vm-k3s-agent:v2026.320.0528'
             - '@github.com/opencharly/vm-k3s-server:v2026.320.0528'
             - '@github.com/opencharly/layer-language-runtimes:v2026.328.1639'
@@ -354,10 +354,10 @@ charly-marketplace:
             - '@github.com/opencharly/layer-vectorchord:v2026.328.2251'
             - '@github.com/opencharly/layer-container-nesting:v2026.321.0754'
             - '@github.com/opencharly/layer-hermes-playwright:v2026.314.0706'
-            - '@github.com/opencharly/layer-notebook-ollama:v2026.314.0707'
+            - '@github.com/opencharly/layer-notebook-ollama:v2026.331.2004'
             - '@github.com/opencharly/pod-github-runner:v2026.330.1220'
             - '@github.com/opencharly/pod-nested-podman-socket:v2026.314.0717'
-            - '@github.com/opencharly/layer-notebook-openrouter:v2026.314.0707'
+            - '@github.com/opencharly/layer-notebook-openrouter:v2026.331.1948'
             - '@github.com/opencharly/layer-punktfunk:v2026.330.1230'
             - '@github.com/opencharly/plugin-agentteams/candy/plugin-agentteams:v2026.330.1956'
             - '@github.com/opencharly/plugin-ollama/candy/plugin-ollama:v2026.314.0714'
@@ -438,7 +438,7 @@ charly-marketplace:
             # instead of through whichever tag a sibling happened to pin
             # (opencharly/plugin-marketplace#41).
             # ------------------------------------------------------------------
-            - '@github.com/opencharly/plugin-doctor:v2026.321.1528'
+            - '@github.com/opencharly/plugin-doctor:v2026.331.1633'
             - '@github.com/opencharly/plugin-alias:v2026.314.0711'
             - '@github.com/opencharly/plugin-enc:v2026.328.2052'
             - '@github.com/opencharly/plugin-status:v2026.331.0916'
@@ -446,9 +446,9 @@ charly-marketplace:
             - '@github.com/opencharly/plugin-tmux:v2026.322.2147'
             - '@github.com/opencharly/plugin-udev:v2026.322.2236'
             - '@github.com/opencharly/plugin-cmd:v2026.314.0712'
-            - '@github.com/opencharly/plugin-fleet:v2026.331.0847'
+            - '@github.com/opencharly/plugin-fleet:v2026.331.1625'
             - '@github.com/opencharly/plugin-ssh:v2026.314.0715'
-            - '@github.com/opencharly/plugin-deploy-pod:v2026.331.0349'
+            - '@github.com/opencharly/plugin-deploy-pod:v2026.331.2016'
             - '@github.com/opencharly/plugin-vm:v2026.319.0925'
             - '@github.com/opencharly/plugin-helm:v2026.314.0713'
             - '@github.com/opencharly/plugin-deploy-local:v2026.314.0712'
@@ -475,7 +475,11 @@ charly-marketplace:
             # that corrected the leaf's prose, and waiting for the pod to catch up would keep the
             # retired pods' names in the corpus until then. `pod-kde-vnc-cdp` owns `kde-vnc-cdp`
             # and both of its beds.
-            - '@github.com/opencharly/pod-kde-nested:v2026.331.1659'
+            - '@github.com/opencharly/pod-kde-nested:v2026.331.1717'
+            # Swept bodies: pod-sway/pod-wayvnc are now pinned DIRECT so their corrected
+            # skill bodies reach the corpus instead of a transitive old tag.
+            - '@github.com/opencharly/pod-sway:v2026.331.1956'
+            - '@github.com/opencharly/pod-wayvnc:v2026.331.1957'
             - '@github.com/opencharly/pod-kde-vnc:v2026.331.1657'
             - '@github.com/opencharly/pod-kde-vnc-cdp:v2026.331.1810'
         plan:

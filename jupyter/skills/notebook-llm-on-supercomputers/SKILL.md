@@ -106,10 +106,6 @@ The same `importlib.reload(ollama)` pattern from `/charly-jupyter:notebook-ollam
 - D1 series: `hf.co/NousResearch/Nous-Hermes-2-Mistral-7B-DPO-GGUF:Q4_K_M`
 - D2 series: `llama3.2:latest`
 
-## Used In Boxes
-
-- `/charly-jupyter:jupyter-ml-notebook`
-
 ## Related Skills
 
 - `/charly-image:layer` — data field documentation and candy authoring rules
@@ -118,7 +114,6 @@ The same `importlib.reload(ollama)` pattern from `/charly-jupyter:notebook-ollam
 - `/charly-jupyter:notebook-ollama` — sibling data candy (Ollama API tutorials)
 - `/charly-jupyter:notebook-templates` — sibling data candy (starter notebooks)
 - `/charly-ollama:ollama` — the Ollama server box (must be running for D0-D2 notebooks)
-- `/charly-jupyter:jupyter-ml-notebook` — the box that includes this candy
 
 ## When to Use This Skill
 

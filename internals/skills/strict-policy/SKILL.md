@@ -131,7 +131,7 @@ that as a finding manufactures confident conclusions about the product from evid
   from the execution PATH (`/usr/sbin` is not on the in-container PATH), a call in a stage where the endpoint
   does not resolve (`cdp:` needs the `browser` stage), or a step that executes in a DIFFERENT container than
   the one inspected. A `check:` step's venue is its TREE POSITION — a step in member `M`'s `plan:` runs on `M`
-  (`/charly-check:check`, `references/cross-deployment-probing.md`) — so a diagnostic placed at the wrong depth
+  (`/charly-check:check`) — so a diagnostic placed at the wrong depth
   measures the wrong member and reports its absence as the product's. Six consecutive probes died this way.
 
 **The procedure, in order.**

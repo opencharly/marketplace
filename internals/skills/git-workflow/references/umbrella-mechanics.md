@@ -223,7 +223,7 @@ while the gate judges the WHOLE declared path set. The remedy is the one the mes
 per-path and cheap:
 
 ```sh
-git submodule update --init plugin-marketplace plugin-adb plugin-spice   # …the paths it names
+git submodule update --init plugin-marketplace plugin-spice   # …the paths it names
 ```
 
 Do this BEFORE the first push rather than after a BLOCKED push — a blocked push costs a full gate run
