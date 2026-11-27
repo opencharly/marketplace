@@ -104,6 +104,11 @@ retired: [
 // (opencharly/plugin-marketplace#64). Their nodes survive only in the owners' OLD tags; without
 // this list a stale edge could republish them, and the docs generator would project them.
 retired_skills: [
+	// The stale jupyter-ml-notebook card: its owner (distro-fedora) deleted it at #137.
+	"jupyter/jupyter-ml-notebook",
+	// The AgentTeams phantoms: plugin-agentteams' main carries no skill; only old tags do.
+	"agentteams/agentteams",
+	"agentteams/agentteams-cli",
 	// Cards whose owner repo survives but whose node was removed by the same retirement.
 	"versa/versa",
 	"selkies/selkies-kde",

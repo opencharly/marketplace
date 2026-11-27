@@ -228,7 +228,7 @@ mapping. This skill's half is the lifecycle:
   operation").
 
 The command syntax, the wake lines and the exit codes: `/charly-internals:git-workflow`
-("Waiting — the ONE watcher", `references/watch-and-wake.md`).
+("Waiting — the ONE watcher").
 
 ## Command hygiene & context discipline
 

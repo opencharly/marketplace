@@ -137,7 +137,6 @@ Each check shows the binary path and version when available, or an install hint 
 - `/charly-core:start` — same auto-injection path at service-start time
 - `/charly-distros:nvidia` — NVIDIA GPU runtime support + DRINODE Auto-Injection section
 - `/charly-distros:rocm` — AMD ROCm runtime support + DRINODE/HSA_OVERRIDE_GFX_VERSION auto-detect table
-- `/charly-selkies:selkies` — Primary consumer of DRINODE for VAAPI H.264 encode
 
 ## Source
 

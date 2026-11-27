@@ -143,7 +143,6 @@ The `jupyter` MCP server name is **deliberately decoupled** from the candy name,
 ## Used In Boxes
 
 - `/charly-jupyter:jupyter`
-- `/charly-jupyter:jupyter-ml-notebook`
 
 ## Related Skills
 

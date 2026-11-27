@@ -867,12 +867,6 @@
       ]
     },
     {
-      "name": "jupyter-ml-notebook",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
       "name": "k3s",
       "files": [
         "SKILL.md"
