@@ -471,7 +471,7 @@ charly-marketplace:
             # surface. `kde-nested`'s skill rides pod-kde-vnc's closure (its session candy requires
             # pod-kde-nested); `pod-kde-vnc-cdp` owns `kde-vnc-cdp` and both of its beds.
             - '@github.com/opencharly/pod-kde-vnc:v2026.330.1628'
-            - '@github.com/opencharly/pod-kde-vnc-cdp:v2026.330.2042'
+            - '@github.com/opencharly/pod-kde-vnc-cdp:v2026.331.0427'
         plan:
             - check: the marketplace corpus source resolves via the charly binary
               exit_status: 0
