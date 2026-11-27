@@ -30,8 +30,7 @@ fedora-nonfree:
 - `/charly-distros:fedora-nonfree` (base for immich and other boxes needing nonfree packages)
 - `/charly-distros:fedora-builder` — applied **before** `build-toolchain` so cargo crates that
   need RPM Fusion free system libs (`libva-devel`, `x264-devel`, `ffmpeg-devel`) can install
-  via dnf in the builder stage. Required for building pixelflux from source — see
-  `/charly-selkies:selkies` (Patched pixelflux build pipeline).
+  via dnf in the builder stage. Required for building pixelflux from source.
 
 ## Related Candies
 - `/charly-selkies:ffmpeg` -- nonfree multimedia codecs installed from RPM Fusion

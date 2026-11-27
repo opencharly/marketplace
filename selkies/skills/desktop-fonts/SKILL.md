@@ -43,22 +43,8 @@ Included in desktop metalayers. Not typically added directly:
 - Provides `Symbols Nerd Font` and `Symbols Nerd Font Mono` for waybar icons and swaync
 - JetBrains Mono is the primary font for waybar and swaync Catppuccin Mocha theme
 
-## Used In
-
-- `/charly-selkies:sway-desktop` -- via metalayer composition
-- `/charly-selkies:selkies-desktop-layer` -- via metalayer composition
-
-## Used In Boxes
-
-- `/charly-selkies:sway-browser-vnc` (via `sway-desktop` metalayer)
-- `/charly-selkies:selkies-labwc` (via `selkies-desktop` metalayer)
-- `/charly-selkies:selkies-labwc-nvidia` (via `selkies-desktop` metalayer)
-
 ## Related Skills
 
-- `/charly-selkies:waybar` -- uses JetBrains Mono + Symbols Nerd Font
-- `/charly-selkies:waybar-labwc` -- same fonts
-- `/charly-selkies:swaync` -- uses JetBrains Mono
 - `/charly-check:check` -- declarative testing framework (Authoring Gotcha #8 on package renames)
 - `/charly-image:layer` -- candy authoring reference
 

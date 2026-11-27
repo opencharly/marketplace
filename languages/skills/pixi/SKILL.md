@@ -17,10 +17,10 @@ description: |-
 
 ## Environment Variables
 
-| Variable | Value |
-|----------|-------|
-| `PIXI_CACHE_DIR` | `~/.cache/pixi` |
-| `RATTLER_CACHE_DIR` | `~/.cache/rattler` |
+| Variable | Value | Note |
+|----------|-------|------|
+| `PIXI_CACHE_DIR` | `~/.cache/pixi` | the package cache: `pkgs/` (one dir per package) + `uv-cache/`; a non-frozen solve adds `repodata/` |
+| `RATTLER_CACHE_DIR` | *(not set)* | measured on pixi 0.70.2 AND 0.84.2: a `--frozen` install **never creates** this root, so the build stage no longer declares it |
 
 PATH additions: `~/.pixi/bin`, `~/.pixi/envs/default/bin`
 
@@ -55,7 +55,24 @@ against charly's content-hash/CalVer model). Candy `pixi.toml` files use the
 modern `[workspace]` table (the deprecated `[project]` form emits a warning under
 pixi ≥ 0.70 and is being removed upstream).
 
-## Committed `pixi.lock` → `pixi install --frozen`
+Current pin: **v0.84.2**. Measured on it: `--frozen` fetches **no repodata** (the lock
+is used, nothing is solved), and the package cache lands in `PIXI_CACHE_DIR` (`pkgs`,
+`uv-cache`). The build stage mounts that directory as a BuildKit cache
+(`--mount=type=cache,dst=/tmp/pixi-cache,uid=1000,gid=1000`); a controlled build that
+added one new package (`tzdata`) put it in `pkgs/` and a second build re-read it (`SIZE=4.4M`),
+so newly downloaded packages are retained across builds. The daemon prunes that cache by its own
+policy, so no fixed directory/byte count is stated here.
+
+## Committed `pixi.lock` → `pixi install --frozen` (the PREFERRED path)
+
+**Committing `pixi.lock` and building with `pixi install --frozen` is the preferred, and the expected,
+way to build a pixi candy.** The lock makes the build deterministic and replays it with no SAT solve over
+the conda + PyPI indexes.
+
+The fallback is supported but NOT preferred: a `pixi.toml` candy with no lock still builds via
+`pixi install` (a full solve on every cache miss), and the `install_command` map keeps that entry
+(`pixi.toml: pixi install`) alongside `pixi.toml+lock: pixi install --frozen`. Treat a missing lock as a
+gap to close, not as an equivalent option.
 
 Every pixi candy ships a committed `pixi.lock` next to its `pixi.toml`. When a
 lock is present, generation auto-flips the build stage from `pixi install` (a
@@ -67,15 +84,71 @@ the embedded build vocabulary (`charly/charly.yml`); no per-candy config.
 
 **Regenerate the lock whenever you change `pixi.toml`** — `--frozen` fails the
 build loudly if the lock is stale (no silent skew). Generate with the builder's
-own pixi so the lock format matches what installs it, e.g.:
+own pixi so the lock format matches what installs it.
 
-```bash
-charly shell fedora-builder --tag <calver> --bind workspace="$PWD/candy/<name>" \
-  -c 'grep -q system-requirements pixi.toml || printf "\n[system-requirements]\nlibc = { family = \"glibc\", version = \"2.39\" }\n" >> pixi.toml; pixi lock'
+### `--frozen` resolves a PLATFORM, and the lock must carry it
+
+`pixi install --frozen` does not solve; it installs the platform the **manifest**
+names. A `[system-requirements] libc = 2.39` table changes that platform to
+`linux-64-glibc-2-39`, so a lock resolved for a bare `linux-64` then fails:
+
+```
+Error: the lock file has no entry for platform 'linux-64-glibc-2-39' in environment 'default'
+help: Run `pixi lock` to resolve it for this platform.
 ```
 
-The `[system-requirements]` glibc fix mirrors what the build stage injects, so
-the committed lock resolves the same manylinux wheels the build installs.
+That is a real breakage observed on pixi 0.84.2 (the openwebui image build), not a
+hypothetical. The rule:
+
+- The `[system-requirements]` table is **DEPRECATED** in 0.84.2 (it prints a warning
+  pointing at virtual packages on `platforms`) but is still accepted.
+- **Whether it is required depends on the builder.** The build stage currently appends the
+  section when the manifest lacks it, which makes the effective platform
+  `linux-64-glibc-2-39`; under that behaviour a bare lock fails, so a candy declares the
+  section itself (the append becomes a no-op) and locks for the glibc platform.
+  Removing that append is tracked as `opencharly/charly#1290`; measured on 0.84.2, a
+  manifest with `platforms = ["linux-64"]` and no section locks and installs `--frozen`
+  cleanly **once the builder stops injecting it**. Until #1290 lands, declare the section.
+- If a candy declares the section itself — making the append a no-op — the lock **must** be
+  resolved for `linux-64-glibc-2-39`:
+
+```bash
+# in the candy dir, with the SAME pixi version the builder installs (0.84.2)
+PIXI_HOME=$PWD/.pixi-tmp pixi lock      # writes pixi.lock for the manifest's platform
+grep -m1 'name: linux-64' pixi.lock     # must name the platform the manifest resolves
+```
+
+A lock regenerated this way carries `linux-64-glibc-2-39` and `--frozen` matches.
+The invariant is the pairing: **the lock's platform must equal the platform the manifest
+resolves under the builder in use** — with the injection (today), that means declaring the
+section and locking for `linux-64-glibc-2-39`; without it (after `opencharly/charly#1290`), a
+bare `linux-64` lock is correct. Never declare the section and keep a bare lock.
+
+## Updating a `pixi.lock` — the procedure
+
+1. **Match the builder's pixi.** The lock is installed by the pixi binary the candy
+   pins (`var: PIXI_VERSION`), so regenerate with that exact release — check it with
+   `charly shell <builder> -c 'pixi --version'` — never a distro package and never
+   `releases/latest`. The lock format follows the pixi version.
+2. **Pick the platform the candy declares.**
+   - no `[system-requirements]` → `platforms = ["linux-64"]` locks for bare `linux-64` — **correct only
+     after `opencharly/charly#1290`** removes the builder's injection; today the builder appends the
+     section, so declare it and lock for `linux-64-glibc-2-39`;
+   - `[system-requirements] libc = 2.39` → the lock must name `linux-64-glibc-2-39`.
+   Never mix the two: a declared section with a bare lock fails `--frozen` (measured).
+3. **Regenerate in the candy directory**, keeping the pixi home on a scratch dir so a
+   developer's own environment is not touched:
+
+   ```bash
+   PIXI_HOME=$(mktemp -d) pixi lock
+   ```
+
+4. **Verify before committing:**
+   - `grep -m1 '^- name:' pixi.lock` names the expected platform;
+   - `PIXI_HOME=$(mktemp -d) pixi install --frozen` exits 0.
+5. **Commit `pixi.toml` and `pixi.lock` together.** Never hand-edit the lock, and never
+   commit one without the other — the build's `--frozen` fails loudly when they
+   disagree, which is the intended behaviour, not a defect.
 
 ## When to Use This Skill
 

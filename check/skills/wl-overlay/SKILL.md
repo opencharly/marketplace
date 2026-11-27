@@ -275,8 +275,5 @@ of the `wl:` map, beside `method: overlay-show` — NOT siblings of the step:
 - `/charly-check:wl` — Compositor-agnostic desktop automation via the `wl:` verb (screenshots, input, windows)
 - `/charly-check:record` — Terminal and desktop recording via the `record:` verb (overlays compose with the recording workflow)
 - `/charly-check:cdp` — Chrome DevTools Protocol via the `cdp:` verb (DOM-level interaction)
-- `/charly-selkies:wl-overlay-layer` — Layer reference (RPM packages, dependencies)
-- `/charly-selkies:sway-desktop` — Desktop metalayer (includes wl-overlay)
-- `/charly-selkies:selkies-desktop-layer` — Desktop metalayer (includes wl-overlay)
 
 Source: `candy/plugin-wl` (the out-of-process provider), `candy/wl-overlay/charly-overlay` (Python daemon/client).

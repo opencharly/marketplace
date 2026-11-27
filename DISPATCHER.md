@@ -2,7 +2,6 @@
 | Trigger (what the user said or you're about to do) | Skill to load |
 |---|---|
 | `charly tui` / agent TUI / interactively browse agent sessions | `/charly-agent:tui` |
-| `charly agentteams` controller management (workers / teams / humans) / the `verb:agentteams` check verb (`status`, `manager-running`, `worker-running`, `worker-list`) / hydrating a deployment with `charly agentteams apply -f` | `/charly-agentteams:agentteams-cli` |
 | `charly box set` / `charly box add-candy` / `charly box rm-candy` / `charly box write` / `charly box cat` / `charly box fetch` / `charly box refresh` | `/charly-authoring:authoring` |
 | `charly agent` / agent control plane / sessions / runs / terminal channels / `charly tui` / MCP routing / agent target routing | `/charly-automation:agent` |
 | host command alias / `charly alias` / wrapper script in a container | `/charly-automation:alias` |

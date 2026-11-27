@@ -88,10 +88,6 @@ my-image:
         candy: [sshd]
 ```
 
-## Used In Boxes
-
-- Composed into coder/dev and headless-desktop boxes that need an in-container SSH server (e.g. `/charly-selkies:selkies-labwc`), and applied to VM guests at deploy time
-
 ## Testing Notes
 
 - `/etc/sudoers.d/charly-user` (the NOPASSWD rule written by this candy) is
@@ -130,6 +126,10 @@ cleanly: `runuser -l user -s /bin/bash -c 'sudo -n -l'` prints nothing
 and exits 0, while `runuser -u user -- sudo -n -l` prints the full
 NOPASSWD listing. The candy was fixed to `-u … --` after this was
 caught during `charly-arch` bring-up. See `/charly-check:check` Authoring Gotcha #11.
+
+## Used In Boxes
+
+- Composed into coder/dev and headless-desktop boxes that need an in-container SSH server, and applied to VM guests at deploy time
 
 ## Related Skills
 

@@ -139,21 +139,17 @@ The `jupyter` MCP server name is **deliberately decoupled** from the candy name,
 ## Used In Candies
 
 - `/charly-jupyter:jupyter` — lightweight multi-arch JupyterLab (`candy: [jupyter-mcp]`)
-- `/charly-jupyter:jupyter-ml` — GPU ML JupyterLab (`candy: [llama-cpp, unsloth, jupyter-mcp]`)
 
 ## Used In Boxes
 
 - `/charly-jupyter:jupyter`
-- `/charly-jupyter:jupyter-ml`
 - `/charly-jupyter:jupyter-ml-notebook`
 
 ## Related Skills
 
 - `/charly-jupyter:jupyter` — lightweight Tier 2 parent candy
-- `/charly-jupyter:jupyter-ml` — GPU ML Tier 2 parent candy
 - `/charly-image:layer` — candy authoring rules (Tier 1 pattern)
 - `/charly-build:charly-mcp-cmd` — client-side verb for probing this server's tool catalog (ping, list-tools, call); use `charly check live jupyter --filter mcp` to see the tools this candy registers
-- `/charly-selkies:chrome-devtools-mcp` — sibling MCP-server-provider candy for Chrome DevTools (different domain, same `mcp_provide` pattern)
 - `/charly-hermes:hermes` — downstream MCP consumer (auto-discovers `jupyter` via `CHARLY_MCP_SERVERS`; uses the tools to read/edit/execute notebook cells programmatically)
 - `/charly-openwebui:openwebui` — downstream MCP consumer (sets `CODE_EXECUTION_ENGINE=jupyter` when this server is discovered, routing Open WebUI's in-chat code blocks to the Jupyter kernel)
 

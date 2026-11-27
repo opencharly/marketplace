@@ -54,9 +54,7 @@ charly shell python-ml
 ## Related Boxes
 
 - `/charly-distros:nvidia` — parent (GPU without ML packages)
-- `/charly-jupyter:jupyter-ml` — adds JupyterLab + collaboration + MCP + unsloth on top of ML stack
 - `/charly-jupyter:jupyter` — legacy Jupyter with ML stack (monolithic)
-- `/charly-jupyter:unsloth-studio` — fine-tuning UI with similar ML stack
 
 ## Verification
 

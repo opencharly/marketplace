@@ -229,7 +229,6 @@ step — tagged with the `context:` axis that selects when it runs:
 
 ## Related Candies
 
-- `/charly-jupyter:jupyter-ml` -- GPU-accelerated variant with full CUDA ML stack + same CRDT MCP server
 - `/charly-jupyter:jupyter-mcp` -- MCP server implementation (sub-candy, the tools for programmatic notebook access using `<noun>_<verb>` naming; clients don't manage CRDT rooms — the server auto-attaches)
 - `/charly-jupyter:notebook-templates` -- Starter notebooks (data candy, used alongside this candy in boxes)
 - `/charly-hermes:hermes` -- MCP consumer (auto-discovers via `CHARLY_MCP_SERVERS` env var; uses `jupyter` server tools to read/edit/execute cells)

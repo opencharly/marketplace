@@ -72,9 +72,8 @@ These live in **RPM Fusion free** (not in the base Fedora repos), which is why
 `libva-sys`, `x264-sys`, and `ffmpeg-sys-next` cargo crates against the system
 codec libraries.
 
-See `/charly-selkies:selkies` (Patched pixelflux build pipeline) for the consumer story —
-the selkies candy's `build.sh` clones pixelflux from a pinned commit, applies four
-inline source patches, and runs `pip install .` against this builder stage.
+The pixelflux build pipeline in a consuming image clones pixelflux from a pinned commit,
+applies four inline source patches, and runs `pip install .` against this builder stage.
 
 ## Cross-distro coverage
 
@@ -100,7 +99,6 @@ my-image:
 - `/charly-tools:yay` — Pairs in arch-builder for AUR builds
 - `/charly-coder:rust` — Disambiguates the builder-stage `rust`+`cargo` packages here from the runtime `rust` candy
 - `/charly-distros:rpmfusion` — Must be applied **before** this candy in fedora-builder so codec dev libs (`x264-devel`, `ffmpeg-devel`) can install
-- `/charly-selkies:selkies` — Primary consumer of all the new cargo/codec deps (Patched pixelflux build pipeline)
 
 ## Related Commands
 - `/charly-build:build` — Multi-stage builders consume this candy for pixi/npm/cargo builds

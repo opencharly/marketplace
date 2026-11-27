@@ -101,12 +101,6 @@ flags; the recording's embedded theme is used when `theme:` is unset.
 
 Also available via the `dev-tools` candy (which includes asciinema among many other tools). This standalone candy is for boxes that need terminal recording without the full dev-tools bundle.
 
-## Used In Boxes
-
-- `/charly-selkies:sway-browser-vnc` (via `sway-desktop` metalayer)
-- `/charly-selkies:selkies-labwc` (via `selkies-desktop` metalayer)
-- `/charly-selkies:selkies-labwc-nvidia` (via `selkies-desktop` metalayer)
-
 ## Related Commands
 
 - `/charly-check:record` — Terminal recording via asciinema (start, stop, cmd, gif)
