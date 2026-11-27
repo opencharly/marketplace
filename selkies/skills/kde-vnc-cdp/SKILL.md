@@ -41,15 +41,17 @@ declares none of its own.
 
 ## What works, and what does not
 
-- **Every `cdp:` method** against the browser EXCEPT `screenshot`: `status`, `list`, `open`,
-  `close`, `url`, `text`, `html`, `eval`, `axtree`, `wait`, `coords`, `raw`, `click`, `type`. Use
+- **Every `cdp:` method** against the browser: `status`, `list`, `open`, `close`, `url`, `text`,
+  `html`, `eval`, `axtree`, `wait`, `coords`, `raw`, `screenshot`, `click`, `type`. Use
   `context: [runtime]` in a bed; `deploy` is not a check mode and a `deploy`-scoped check step
   is skipped.
-- **`cdp: screenshot` is a measured GPU-Wayland limit here** (`opencharly/plugin-cdp#14`): the
-  surface capture never returns and the plugin's renderer-view fallback comes back uniformly white
-  on every attempt (4/4, 99 s). It is not asserted — a poll cannot fix a capture that is blank by
-  construction — and the visual claim belongs to the VNC frame (`vnc: screenshot` + host OCR),
-  which is what the streamed user actually sees.
+- **`cdp: screenshot` works here, with one platform quirk worth knowing.** On this GPU Wayland
+  Chrome the SURFACE capture (`fromSurface:true`) never returns, so the plugin bounds that attempt
+  and falls back to the renderer-VIEW capture, which returns a real PNG of the page — the bed reads
+  its text back with host OCR. **Do not assert `artifact_not_uniform` on a page capture**: it samples
+  100 pixels at a fixed stride, and a mostly-white page is white at every sample point while the
+  capture is perfectly good (that misreading is what opencharly/plugin-cdp#14 was, and it is closed
+  as not-a-defect). Assert CONTENT — OCR the artifact — or assert bytes/dimensions only.
 - **`cdp: spa-*` does NOT apply.** Those methods drive a Selkies SPA page (canvas + overlay input);
   this pod streams VNC. For desktop-level pointer work use `cdp: coords` for the LOCATE half and
   `vnc: click` / `vnc: type` for the DELIVER half.
@@ -81,11 +83,51 @@ Needs a host with a GPU exposed through CDI (the CPU-only sibling to run instead
 | VNC DRIVES the page | `vnc: click` at the maximized window's centre + `vnc: type` into a CDP-focused field, read back by `cdp: eval` |
 | `$BROWSER`, `chrome-restart` | `command:` `browser-open …`, `chrome-restart`, then `cdp: status` |
 | the MCP catalog | `mcp: ping`, `mcp: list-tools` |
+| a REAL external page (CDP surface only) | `cdp: open` `https://example.com/` → `tab: 1` is the page (the close-others step asserts it) → `title`/`text` needles from its live copy → `cdp: screenshot` + host OCR. Its VNC leg is deliberately OUT: measured, the streamed frame stayed stale for 3m20s after the restart cycle (opencharly/pod-kde-vnc-cdp#4), so only the pod's OWN marker page is asserted over the stream |
 
-The VNC frame is read by `tesseract` ON THE HOST (not in the image), driven from a host-side
-`command:` step because `vnc:` has no `artifact_contains_text`. The marker the frame carries is a
-SINGLE WORD (`CHARLYCDP`): a hyphenated token is the one thing OCR reliably mangles. Prove the
-assertion can fail (a word that is not on screen must go RED) before trusting a green one.
+**Host prerequisite for the OCR steps:** `tesseract` with English data. It runs on the HOST, not in
+the image, driven from a host-side `command:` step because `vnc:` has no `artifact_contains_text`;
+the frame is extracted from the recording (the last complete JPEG) and OCR'd at its native size — one
+marker word in large type reads directly, measured (`bed-vnc-shows-page`: 2 attempts, 10.2 s).
+
+The marker the frame carries is a SINGLE WORD (`CHARLYCDP`): a hyphenated token is the one thing OCR
+reliably mangles. Prove the assertion can fail (a word that is not on screen must go RED) before
+trusting a green one.
+
+The external-page steps need outbound HTTPS from the host's pod network, and they assert the live
+copy of `https://example.com/` — so a proxy, a captive portal, or a cached page fails them by
+design, visibly, naming egress rather than the pod's internals.
+
+### A single capture can carry a STALE frame — assert over the RECORDING
+
+Measured on this pod: after the supervised browser's `stop → browser-open → chrome-restart` cycle,
+presentation can stall. KWin still reports the window's title, geometry, desktop and activation; CDP
+still answers `title`, `text` and the target list; and a one-shot `vnc: screenshot` returns a
+**complete, coherent, but old** frame — a *New Tab* page from before the navigation. Six rounds of
+window/tab/activation assertions passed while the screen showed that old frame.
+
+| probe | stalled | healthy |
+|---|---|---|
+| `Page.captureScreenshot` `fromSurface:true` | hangs | hangs (a platform quirk) |
+| `Page.captureScreenshot` `fromSurface:false` | **hangs** | answers instantly |
+| first `vnc: screenshot` after the stall | old frame | current frame |
+| the next `vnc: screenshot` | current frame | current frame |
+
+It is **racy**: the same sequence left the renderer healthy on one attempt, and one bed run kept the
+frame stale for 3m20s. So a frame assertion must not pin one instant:
+
+1. **Assert over the pod's own VNC session recorder** — `vnc: {method: session, action: start,
+   session_id: …, fps: 2}` → an `eventually:` host-side OCR that reads the LAST COMPLETE FRAME of the
+   growing `/tmp/charly-session/<id>/frames.mjpeg` → `action: stop`. The engine re-reads as the
+   recording grows, which is what a viewer's stream actually is.
+2. **Drive first, record after.** Measured: with the recorder running before the VNC click/typing
+   steps, typing stopped reaching the page. Put the recorder after the driving steps.
+3. **Do not "fix" the stall by moving the window.** Measured: un-maximize + re-maximize unsticks the
+   renderer but rewrites Chrome's normal bounds to 913x1034 (the page slides out from under a
+   desktop-centre click), minimize/restore does not unstick at all, and a no-op `windowmove` can
+   cause the stall. The underlying defect is filed as opencharly/pod-kde-vnc-cdp#4.
+4. **The session also LOCKS itself after ~4 minutes idle** and the greeter covers everything
+   (opencharly/pod-kde-nested#6) — assert `org.freedesktop.ScreenSaver.GetActive` is `false`.
 
 ## The pod-to-pod cross-deployment CDP probe (`check-cross-kde-cdp-pod`)
 
