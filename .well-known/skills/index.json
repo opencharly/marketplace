@@ -1,12 +1,6 @@
 {
   "skills": [
     {
-      "name": "adb",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
       "name": "agent",
       "files": [
         "SKILL.md"
@@ -43,18 +37,6 @@
     },
     {
       "name": "alias",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "android",
-      "files": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "appium",
       "files": [
         "SKILL.md"
       ]
@@ -864,12 +846,6 @@
         "references/deploy-targets.md",
         "references/emit-opts-and-testing.md",
         "references/step-kinds.md"
-      ]
-    },
-    {
-      "name": "jetkvm",
-      "files": [
-        "SKILL.md"
       ]
     },
     {

@@ -48,7 +48,7 @@ The `cachyos` base and its derived boxes — `githubrunner`,
 **`opencharly/distro-cachyos`** submodule, discovered as
 `box/<name>/charly.yml` boxes. The main repo imports that submodule under the
 `cachyos` import namespace to reference the relocated boxes from its own
-`check`/`vm`/`local`/`kubernetes`/`android` entities:
+`check`/`vm`/`local`/`kubernetes` entities:
 
 ```yaml
 # main charly.yml

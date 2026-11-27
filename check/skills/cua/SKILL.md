@@ -15,7 +15,7 @@ inside a candy/box plan `check:`/`run:` step. It is NOT a host `charly check`
 subcommand: the verb's implementation lives in the out-of-tree
 `candy/plugin-cua` module, and at check time the host dispatches `cua:`
 through the provider registry to that out-of-process plugin (the same path
-`jetkvm:` / `wl:` / `record:` take).
+`wl:` / `record:` take).
 
 It drives a LIVE desktop through **Cua Driver** (trycua/cua) — the
 background computer-use driver that exposes its tools over MCP-over-stdio and
