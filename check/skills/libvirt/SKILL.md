@@ -14,7 +14,7 @@ description: |-
 a candy/box plan `check:`/`run:` step. It is **NOT a host `charly check`
 subcommand** — a declarative check verb served out-of-process by
 `candy/plugin-vm` (nested under `charly check` at runtime), parallel to the
-`kube:`/`adb:`/`appium:` plugin verbs. The VM/libvirt-API implementation (and
+`kube:` plugin verb. The VM/libvirt-API implementation (and
 the `go-libvirt` + `kata-containers/govmm` + `libvirt.org/go/libvirtxml`
 dependencies) lives entirely in that external plugin, NOT in charly's core; at
 check time the host dispatches `libvirt:` through the provider registry to the

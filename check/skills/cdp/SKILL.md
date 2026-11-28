@@ -13,7 +13,7 @@ description: |-
 The `cdp:` check verb connects to Chrome DevTools Protocol (CDP) on port 9222
 inside running containers. It is **NOT a host `charly check` subcommand** — it is
 a declarative check verb served out-of-process by its plugin (`candy/plugin-cdp`),
-parallel to the `mcp:`/`record:`/`adb:`/`appium:` plugin verbs. Author a `cdp:` step
+parallel to the `mcp:`/`record:` plugin verbs. Author a `cdp:` step
 in a candy/box plan and run it against a live deployment with
 `charly check live <image> --filter cdp`.
 
