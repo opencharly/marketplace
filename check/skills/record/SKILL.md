@@ -13,7 +13,7 @@ description: |-
 The `record:` check verb manages recording sessions inside running containers. It is
 **NOT a host `charly check` subcommand** — it is a declarative check verb served
 out-of-process by its plugin (`candy/plugin-record`), parallel to the
-`mcp:`/`adb:`/`appium:` plugin verbs. Author a `record:` step in a candy/box plan and
+`mcp:` plugin verb. Author a `record:` step in a candy/box plan and
 run it against a live deployment with `charly check live <image> --filter record`. It
 supports these modes:
 

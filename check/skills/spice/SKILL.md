@@ -17,7 +17,7 @@ library + its cgo opus/portaudio audio transitives) was dep-shed into the
 out-of-tree `candy/plugin-spice` plugin module; at check time the host
 dispatches `spice:` through the provider registry to that out-of-process
 plugin (the same path a bed's checks take via `charly check live` / `charly
-check run`). This mirrors the `adb:` / `appium:` / `kube:` externalizations
+check run`). This mirrors the `kube:` externalization
 (see charly/check_cmd.go).
 
 The verb *proves* the SPICE server is speaking the protocol correctly on the

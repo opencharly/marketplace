@@ -46,9 +46,9 @@ autodetect. Full detail: `references/beds-and-r10.md`.
 (`verify_checks.go` threads `in.VerifyOnly`; the live path sets it; the log prints
 `skipped — verify-only mode (mutating step)`). A live check proves the CURRENT
 state of a running deployment - it CANNOT create the state its check steps
-depend on. An appium/`vnc:`/`adb:` session instrument whose bracket is a
+depend on. A `vnc:` session instrument whose bracket is a
 `session-create` run step will therefore fail EVERY downstream find/assert step
-with "no Appium session ... author an `appium: session-create` step first".
+with a message that no session exists and a `session-create` step must run first.
 
 **The R10 gate is ALWAYS `charly check run <bed>`** (build -> check image -> deploy
 -> check live -> fresh update -> teardown on a `disposable: true` deploy), where

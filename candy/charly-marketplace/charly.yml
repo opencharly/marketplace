@@ -97,7 +97,7 @@ charly-marketplace:
             # projection agree byte for byte. The projection of this pin therefore changes
             # in this commit.
             - '@github.com/opencharly/plugin-marketplace:v2026.328.0918'
-            - '@github.com/opencharly/plugin-deploy-vm:v2026.314.0712'
+            - '@github.com/opencharly/plugin-deploy-vm:v2026.332.0355'
             # The UMBRELLA's OWN general-guidance skills (opencharly/opencharly#600,
             # AGENTS.md Part II #5): `agents`, `cutover-policy`, `root-cause-analyzer` have
             # no code, plugin or config behind them, so their home is the one repo every
@@ -216,19 +216,19 @@ charly-marketplace:
             # step 2 — a ref the project's own manifests name beats a twin that merely
             # arrived through the closure), and the authority is keyed by (repo, tag),
             # so the subpath of a ref does not matter here.
-            - '@github.com/opencharly/plugin-box:v2026.331.0902'
+            - '@github.com/opencharly/plugin-box:v2026.332.0347'
             - '@github.com/opencharly/plugin-migrate:v2026.326.2122'
             - '@github.com/opencharly/plugin-docs:v2026.328.0705'
             - '@github.com/opencharly/plugin-secrets:v2026.319.2321'
             - '@github.com/opencharly/plugin-settings:v2026.314.0715'
-            - '@github.com/opencharly/plugin-mcp:v2026.331.1630'
+            - '@github.com/opencharly/plugin-mcp:v2026.332.0351'
             # `layer-charly-check` ADVANCED to v2026.301.1748 (opencharly/layer-charly-check#55,
             # merged as ac220ea): that tag carries the `check` family's `beds-and-r10`
             # reference with the retired podman-era flag spelling replaced by the contract's
             # `--stage-parallelism` (opencharly/plugin-box#66 renamed the flag; the old tag
             # still published the pre-rename prose). The projection of this pin therefore
             # changes in this commit.
-            - '@github.com/opencharly/layer-charly-check:v2026.331.1630'
+            - '@github.com/opencharly/layer-charly-check:v2026.332.0350'
             # The Strata POD's split (opencharly/opencharly#1174): `layer-strata` now carries only
             # the ENGINE LAYER (`candy/strata`) and the `strata-layer` skill beside it, and the POD
             # — the image, the bed and the BOX SKILL — is `pod-strata`. Both are named here, and
@@ -402,14 +402,14 @@ charly-marketplace:
             # umbrella gate `scripts/check-harness-config.mjs` check 12.
             - '@github.com/opencharly/layer-qdrant:v2026.320.0515'
             - '@github.com/opencharly/plugin-qdrant/candy/plugin-qdrant:v2026.314.0715'
-            - '@github.com/opencharly/plugin-kubevirt/candy/plugin-kubevirt:v2026.318.2126'
+            - '@github.com/opencharly/plugin-kubevirt/candy/plugin-kubevirt:v2026.332.0351'
             # plugin-kube owns the `kubernetes` and `check-k8s` family skills. A
             # DIRECT ref, for the reason recorded above for plugin-mise/openclaw/
             # media: without one the corpus published those two bodies from
             # whichever old carrier tag a sibling pin happened to name (the stale
             # engine list in that transitive body proved it), instead of from the
             # repo that actually serves them.
-            - '@github.com/opencharly/plugin-kube/candy/plugin-kube:v2026.318.0341'
+            - '@github.com/opencharly/plugin-kube/candy/plugin-kube:v2026.332.0355'
             # the containerd integration (plan/nerdctl-integration.md): the layer that
             # installs the nerdctl CLI + containerd stack, plus the out-of-tree
             # engine:containerd plugin; each owns its harness skill.

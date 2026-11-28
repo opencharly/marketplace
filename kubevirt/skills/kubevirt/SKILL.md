@@ -9,7 +9,7 @@ description: |-
 # KubeVirt — the 7th charly deploy substrate
 
 `kubevirt:` is a **deploy SUBSTRATE**: it is the venue a deploy runs on, exactly
-like `pod:`, `vm:`, `kubernetes:`, `local:`, `android:`, and `kindcluster:`. It is
+like `pod:`, `vm:`, `kubernetes:`, `local:`, and `kindcluster:`. It is
 **NOT** a check verb. A `kind: kubevirt` entity is a template; a `kubevirt:`
 (or `target: kubevirt`) node is the deploy of it.
 

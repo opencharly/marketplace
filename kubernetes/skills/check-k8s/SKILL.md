@@ -18,7 +18,7 @@ out-of-process `candy/plugin-kube` module — the same way the bed's checks run
 under `charly check live` / `charly check run`. The Kubernetes
 cluster-probe implementation (and the `k8s.io/client-go` +
 `k8s.io/apimachinery` dependency) lives entirely in that external plugin, NOT
-in charly's core. This mirrors the `adb:` and `appium:` verbs (see
+in charly's core. This mirrors the other out-of-process plugin verbs (see
 charly/check_cmd.go).
 
 The cluster-probe verb is spelled `kube`; the deploy KIND is spelled
