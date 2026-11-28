@@ -41,7 +41,7 @@ OK_PLAN = (
     "**Winning candidate:** the fixture winner.\n"
     "| Planned change | DESIGN requirement | Disposition |\n"
     "|---|---|---|\n"
-    "| the fixture change | D-PAT-4 | conforms |\n"
+    "| the fixture change | D-PAT-4 | conforms — D-PAT-4's rule holds |\n"
 )
 
 # The bodies this repo merged BEFORE the `ellipsis` arm existed, and the elisions each
@@ -1096,7 +1096,7 @@ class PlanConformance(unittest.TestCase):
         plan = (
             "### Plan conformance\n"
             "| Planned change | DESIGN requirement | Disposition |\n|---|---|---|\n"
-            "| the change | D-PAT-4 | conforms |\n"
+            "| the change | D-PAT-4 | conforms — D-PAT-4 holds |\n"
         )
         f = run(body(plan=plan))
         self.assertTrue(any("no `**Winning candidate:**` line" in x for x in f), f)
@@ -1114,7 +1114,7 @@ class PlanConformance(unittest.TestCase):
         unfiled = (
             "### Plan conformance\n**Winning candidate:** the fix.\n"
             "| Planned change | DESIGN requirement | Disposition |\n|---|---|---|\n"
-            "| the change | D-PAT-4 | debt filed #1234 |\n"
+            "| the change | D-PAT-4 | debt filed #1234 — separable, D-PAT-1 retires it |\n"
         )
         f = run(body(plan=unfiled))
         self.assertTrue(any("is not listed under `## Filed issues`" in x for x in f), f)
@@ -1159,7 +1159,7 @@ class PlanConformance(unittest.TestCase):
             "\n"
             "| Planned change | DESIGN requirement | Disposition |\n"
             "|---|---|---|\n"
-            "| the change | D-PAT-4 | conforms |\n"
+            "| the change | D-PAT-4 | conforms — D-PAT-4 holds |\n"
         )
         self.assertEqual(run(body(plan=plan)), [])
 
@@ -1173,6 +1173,18 @@ class PlanConformance(unittest.TestCase):
         f = run(body(plan=plan + "\n## Filed issues\n\n- opencharly/opencharly#1234 — the debt\n"))
         self.assertEqual(f, [])
 
+    def test_a_bare_conforms_fails(self):
+        # R11 says "show that it CONFORMS", and the skill says the row names the sentence it
+        # satisfies. A bare `conforms` asserts without showing, which is the gap the org
+        # validator found on opencharly/marketplace#669 after this linter had passed it.
+        plan = (
+            "### Plan conformance\n**Winning candidate:** the fix.\n"
+            "| Planned change | DESIGN requirement | Disposition |\n|---|---|---|\n"
+            "| the change | D-PAT-4 | conforms |\n"
+        )
+        f = run(body(plan=plan))
+        self.assertTrue(any("with no evidence" in x for x in f), f)
+
     def test_the_requirement_cell_must_name_something(self):
         # A `—` in the requirement cell is the shape a map takes when the row was never really
         # mapped. The org validator caught exactly this on opencharly/marketplace#669, after
@@ -1180,7 +1192,7 @@ class PlanConformance(unittest.TestCase):
         plan = (
             "### Plan conformance\n**Winning candidate:** the fix.\n"
             "| Planned change | DESIGN requirement | Disposition |\n|---|---|---|\n"
-            "| the change | — | conforms |\n"
+            "| the change | — | conforms — the fixture holds |\n"
         )
         f = run(body(plan=plan))
         self.assertTrue(any("names no DESIGN requirement" in x for x in f), f)
@@ -1190,7 +1202,7 @@ class PlanConformance(unittest.TestCase):
             plan = (
                 "### Plan conformance\n**Winning candidate:** the fix.\n"
                 "| Planned change | DESIGN requirement | Disposition |\n|---|---|---|\n"
-                f"| the change | {req} | conforms |\n"
+                f"| the change | {req} | conforms — the fixture holds |\n"
             )
             self.assertEqual(run(body(plan=plan)), [], req)
 

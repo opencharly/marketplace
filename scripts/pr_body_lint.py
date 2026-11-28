@@ -148,11 +148,15 @@ PLAN_NO_SURFACE = re.compile(r"^\s*No DESIGN-governed surface\s*[—–-]\s*(?P<
 PLAN_DESIGN_CHANGE = re.compile(r"^\s*Design change\s*[—–-]\s*(?P<rest>\S.*)$")
 PLAN_WINNING = re.compile(r"^\s*\*\*Winning candidate:\*\*\s*(?P<rest>\S.*)$")
 PLAN_SEPARATOR = re.compile(r"^\s*\|?[\s|:-]+\|?\s*$")
-# `conforms` may carry the evidence after an em dash; `debt filed #N` likewise. What the
-# shape must NOT admit is a second DISPOSITION (a design edit), which PLAN_AMENDS names.
-PLAN_CONFORMS = re.compile(r"^conforms(?:\s+[\u2014\u2013-]\s*\S.*)?$", re.IGNORECASE)
+# A disposition must carry its EVIDENCE after an em dash. R11 says "show that it CONFORMS", and the
+# skill says the row names "the sentence of it the change satisfies" — so a bare `conforms` is not
+# the shape the rule describes. The first version made the evidence optional, and the org validator
+# caught the gap on opencharly/marketplace#669: the linter advertised a rule it did not enforce.
+PLAN_CONFORMS = re.compile(r"^conforms\s+[\u2014\u2013-]\s*\S.*$", re.IGNORECASE)
 PLAN_AMENDS = re.compile(r"^amends DESIGN\b", re.IGNORECASE)
-PLAN_DEBT = re.compile(r"^debt filed\s+#(?P<n>\d+)(?:\s+[\u2014\u2013-]\s*\S.*)?$", re.IGNORECASE)
+PLAN_DEBT = re.compile(
+    r"^debt filed\s+#(?P<n>\d+)\s+[\u2014\u2013-]\s*\S.*$", re.IGNORECASE
+)
 # A row's SECOND cell must NAME its requirement. The rule says "the DESIGN requirement that
 # governs it", and the legal names are the `D-<AREA>-<n>` id, a `§`, or a backticked DESIGN.cue
 # definition. A `—` there is the shape a map takes when the row was never really mapped — and
@@ -973,6 +977,12 @@ def plan_findings(rc: list[str], filed: list[str], body: str) -> list[str]:
             )
         disp = cells[2]
         if PLAN_CONFORMS.match(disp):
+            continue
+        if re.match(r"^conforms$", disp, re.IGNORECASE):
+            findings.append(
+                f"plan: {cells[0][:60]!r} says `conforms` with no evidence — give "
+                "`conforms — <the sentence of the requirement it satisfies>`"
+            )
             continue
         debt = PLAN_DEBT.match(disp)
         if debt:
