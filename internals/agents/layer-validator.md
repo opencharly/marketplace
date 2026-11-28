@@ -29,7 +29,7 @@ guessing.
   parser accepts only this compact shape; `charly migrate` converts legacy
   files, including the former named data/step child-node grammar). The only
   legal children beside the kind key are sub-ENTITY members, and ONLY under a
-  deployable kind (pod/vm/kubernetes/local/android/group) — a candy nests NO members,
+  deployable kind (pod/vm/kubernetes/local/group) — a candy nests NO members,
   so any second key under a candy entity is an error.
 - **No authored `version:`.** A per-entity `version:` was deleted by the
   schema-versioning removal cutover and the candy schema is CLOSED, so a candy
@@ -88,8 +88,7 @@ guessing.
 - Packages live ONLY in the `distro:` map (bare / versioned / compound
   distro keys) plus the optional cross-distro `package:` base list; `aur:`
   nests under `distro.arch`. A residual `rpm:` / `deb:` / `pac:` format key
-  is a hard load error. `apk:` is the device-scoped Android app-install
-  format (NOT installed into the image).
+  is a hard load error.
 - Volume names match `^[a-z0-9]+(-[a-z0-9]+)*$`; alias entries need `name` +
   `command`.
 

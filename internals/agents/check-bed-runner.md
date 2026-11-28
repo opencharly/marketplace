@@ -76,8 +76,8 @@ different things to the caller.
 
 1. Confirm the bed is a `disposable: true` deploy (it resolves like any
    deploy; `charly check run` will error cleanly if not). Note any host prereq the
-   bed needs (libvirt user session for VM beds, `/dev/kvm` for the android
-   bed) and report a missing prereq as a blocker, not a pass.
+   bed needs (libvirt user session for VM beds) and report a missing prereq as
+   a blocker, not a pass.
 2. Run `charly check run <bed>`; capture stdout/stderr and `$?`.
 3. Read `.check/<bed>/<calver>/summary.yml` for the structured per-step
    verdict. On any failing step, `tail` its `.log` in the same run dir.
@@ -106,7 +106,7 @@ FAILING-STEP LOG (tail, if any):
   full final-code bed test, pasted). The bed may also be run anytime during development to verify —
   only the commit is gated, never the act of running it.
 - From the `/verify-beds` workflow, one instance per SHORT bed (in parallel). A LONG bed
-  (`vm`/`android`, or last run ≥600s) is deferred by that workflow and owned by the
+  (`vm`, or last run ≥600s) is deferred by that workflow and owned by the
   persistent session as a `run_in_background` task — a sub-agent cannot own it.
 - As a teammate role in a bed-scoped agent team — one bed-owner per bed.
 - Whenever a caller needs a single bed proved on a fresh rebuild.
