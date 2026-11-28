@@ -3,7 +3,7 @@
   "owner": {
     "name": "opencharly"
   },
-  "description": "Claude Code, Codex, and Kimi plugins for OpenCharly — The agentic DevOps tool for you and your agents: runtime commands, schema authoring, contributor internals, and deployable image families.",
+  "description": "Claude Code, Codex, and Kimi plugins for OpenCharly — The Agentic DevOps Factory for you and your agents: runtime commands, schema authoring, contributor internals, and deployable image families.",
   "plugins": [
     {
       "name": "charly-agent",
