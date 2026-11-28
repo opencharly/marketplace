@@ -34,6 +34,15 @@ FOOTER = "*Assisted-by: Claude Code Anthropic Claude Opus 5.5 (documentation rev
 AGENT = "*Agent: `containerd-crabbox-program/w10` · Claude Code session `8b1c01cf-7f79-4a75-bff8-240415a06208`*"
 SESSION_FOOTER = AGENT + "\n" + FOOTER
 OK_RULES = "\n".join(f"- **{r}:** answered with how." for r in DEFAULT_RULES)
+# R11's plan conformance map (opencharly/opencharly#1336): the block every body carries, in
+# its GREEN form. The arms that judge a malformed one mutate this text.
+OK_PLAN = (
+    "\n### Plan conformance\n"
+    "**Winning candidate:** the fixture winner.\n"
+    "| Planned change | DESIGN requirement | Disposition |\n"
+    "|---|---|---|\n"
+    "| the fixture change | D-PAT-4 | conforms — D-PAT-4's rule holds |\n"
+)
 
 # The bodies this repo merged BEFORE the `ellipsis` arm existed, and the elisions each
 # one carries.  They are history — the arm cannot un-merge them — and the corpus is this
@@ -58,15 +67,15 @@ LEGACY_ELLIPSIS_BODIES = {
 
 
 def answer_predating(text: str) -> str:
-    """A recorded body that predates R11 (opencharly/opencharly#1119) and R12 (spike every
-    candidate solution, opencharly/opencharly#1278) answers R0–R10 only; its
-    `## Rulebook compliance` gains an R11 and an R12 line in memory, and the recorded file is
-    untouched."""
+    """A recorded body that predates R11 (opencharly/opencharly#1119), R12 (spike every
+    candidate solution, opencharly/opencharly#1278) and the R11 plan conformance map
+    (opencharly/opencharly#1336) answers R0–R10 only; its `## Rulebook compliance` gains the
+    R11/R12 answers and the map in memory, and the recorded file is untouched."""
     assert text.count("## Rulebook compliance\n") == 1
     return text.replace(
         "## Rulebook compliance\n",
         "## Rulebook compliance\n\n- **R11:** N/A — the body predates the rule.\n"
-        "- **R12:** N/A — the body predates the rule.\n",
+        "- **R12:** N/A — the body predates the rule.\n\n" + OK_PLAN,
     )
 
 
@@ -80,8 +89,11 @@ def charly_1039() -> str:
     return text.replace("Agent: charly\n", "*Agent: `charly` · Claude Code session `charly-1039`*\n")
 
 
-def body(how="x", rules=OK_RULES, footer=SESSION_FOOTER, classification="x"):
-    return f"## Summary\nx\n## How tested\n{how}\n## Rulebook compliance\n{rules}\n## Change classification\n{classification}\n\n{footer}\n"
+def body(how="x", rules=OK_RULES, footer=SESSION_FOOTER, classification="x", plan=OK_PLAN):
+    return (
+        f"## Summary\nx\n## How tested\n{how}\n## Rulebook compliance\n{rules}\n{plan}\n"
+        f"## Change classification\n{classification}\n\n{footer}\n"
+    )
 
 
 def run(text, head=None, diffstat=None, subject=None):
@@ -100,13 +112,14 @@ class Fixtures(unittest.TestCase):
 
     def test_clean_body_passes(self):
         # A merged PR body the validator PASSed. It predates the session line's harness, R11
-        # (opencharly/opencharly#1119) and R12 (opencharly/opencharly#1278), so those three are
-        # its ONLY findings.
+        # (opencharly/opencharly#1119), R12 (opencharly/opencharly#1278) and R11's plan
+        # conformance map (opencharly/opencharly#1336), so those four are its ONLY findings.
         f = run((HERE.parent / "CHANGELOG/2026.275.0418.md").read_text())
-        self.assertEqual(len(f), 3, f)
+        self.assertEqual(len(f), 4, f)
         self.assertTrue(any("is not the session line" in x for x in f), f)
         self.assertTrue(any("does not answer R11" in x for x in f), f)
         self.assertTrue(any("does not answer R12" in x for x in f), f)
+        self.assertTrue(any("carries no `### Plan conformance` map" in x for x in f), f)
         upgraded = answer_predating((HERE.parent / "CHANGELOG/2026.275.0418.md").read_text()).replace(
             "*Agent: `readme-truth` · session", "*Agent: `readme-truth` · Claude Code session"
         )
@@ -1056,6 +1069,142 @@ class BangMarker(unittest.TestCase):
         self.assertEqual(head_subject(Path(tmp), head), "feat(scope)!: the cutover")
         self.assertIsNone(head_subject(Path(tmp), "no-such-commit"))
         self.assertIsNone(head_subject(Path("/nonexistent-repo"), head))
+
+
+class PlanConformance(unittest.TestCase):
+    """R11's plan conformance map — presence and shape (opencharly/opencharly#1336).
+
+    The linter owns what a body can say about itself; the map's AGREEMENT with the diff is
+    `scripts/check-pr-body-diff.mjs`'s half, because only the umbrella reads a diff.
+    """
+
+    def test_the_map_is_required(self):
+        f = run(body(plan=""))
+        self.assertTrue(any("carries no `### Plan conformance` map" in x for x in f), f)
+        self.assertEqual(len(f), 1, f)
+
+    def test_the_no_surface_form_is_clean(self):
+        plan = "### Plan conformance\n**Winning candidate:** N/A — prose-only change.\nNo DESIGN-governed surface — prose only.\n"
+        self.assertEqual(run(body(plan=plan)), [])
+
+    def test_a_bare_no_surface_line_fails(self):
+        plan = "### Plan conformance\n**Winning candidate:** N/A — prose-only change.\nNo DESIGN-governed surface\n"
+        f = run(body(plan=plan))
+        self.assertTrue(any("`No DESIGN-governed surface` is bare" in x for x in f), f)
+
+    def test_the_winning_candidate_line_is_required(self):
+        plan = (
+            "### Plan conformance\n"
+            "| Planned change | DESIGN requirement | Disposition |\n|---|---|---|\n"
+            "| the change | D-PAT-4 | conforms — D-PAT-4 holds |\n"
+        )
+        f = run(body(plan=plan))
+        self.assertTrue(any("no `**Winning candidate:**` line" in x for x in f), f)
+
+    def test_a_disposition_outside_the_set_fails(self):
+        plan = (
+            "### Plan conformance\n**Winning candidate:** the fix.\n"
+            "| Planned change | DESIGN requirement | Disposition |\n|---|---|---|\n"
+            "| the change | D-PAT-4 | widens the gap |\n"
+        )
+        f = run(body(plan=plan))
+        self.assertTrue(any("is not `conforms`" in x for x in f), f)
+
+    def test_debt_must_name_an_issue_and_that_issue_must_be_filed(self):
+        unfiled = (
+            "### Plan conformance\n**Winning candidate:** the fix.\n"
+            "| Planned change | DESIGN requirement | Disposition |\n|---|---|---|\n"
+            "| the change | D-PAT-4 | debt filed #1234 — separable, D-PAT-1 retires it |\n"
+        )
+        f = run(body(plan=unfiled))
+        self.assertTrue(any("is not listed under `## Filed issues`" in x for x in f), f)
+        filed = unfiled + "\n## Filed issues\n\n- opencharly/opencharly#1234 — the debt\n"
+        self.assertEqual(run(body(plan=filed)), [])
+
+    def test_the_amends_form_is_not_a_disposition(self):
+        plan = (
+            "### Plan conformance\n**Winning candidate:** the fix.\n"
+            "| Planned change | DESIGN requirement | Disposition |\n|---|---|---|\n"
+            "| the change | D-PAT-4 | amends DESIGN (this diff) |\n"
+        )
+        f = run(body(plan=plan))
+        self.assertTrue(any("may not `amends DESIGN`" in x for x in f), f)
+
+    def test_the_design_change_form_is_accepted_only_with_the_design_check(self):
+        plan = "### Plan conformance\n**Winning candidate:** the fix.\nDesign change — D-LAW-8 names a new mechanism.\n"
+        f = run(body(plan=plan))
+        self.assertTrue(any("must paste the design-check output" in x for x in f), f)
+        checked = plan + "\n```\ndesign-check: all controls pass\n```\n"
+        self.assertFalse(any("must paste the design-check output" in x for x in run(body(plan=checked))))
+
+    def test_a_bare_design_change_line_fails(self):
+        plan = "### Plan conformance\n**Winning candidate:** the fix.\nDesign change\n"
+        f = run(body(plan=plan))
+        self.assertTrue(any("`Design change` is bare" in x for x in f), f)
+
+    def test_an_empty_map_fails(self):
+        plan = "### Plan conformance\n**Winning candidate:** the fix.\n"
+        f = run(body(plan=plan))
+        self.assertTrue(any("neither a table nor a" in x for x in f), f)
+
+    def test_a_blank_line_after_the_heading_still_parses(self):
+        # The shape every real body uses: a paragraph break between the heading and the
+        # winner line, then a paragraph break before the table. The first implementation
+        # ended the block at that first blank line and reported an EMPTY map — a false
+        # finding on the very body that introduced the rule.
+        plan = (
+            "### Plan conformance\n"
+            "\n"
+            "**Winning candidate:** the fix.\n"
+            "\n"
+            "| Planned change | DESIGN requirement | Disposition |\n"
+            "|---|---|---|\n"
+            "| the change | D-PAT-4 | conforms — D-PAT-4 holds |\n"
+        )
+        self.assertEqual(run(body(plan=plan)), [])
+
+    def test_the_evidence_may_follow_the_disposition(self):
+        plan = (
+            "### Plan conformance\n**Winning candidate:** the fix.\n"
+            "| Planned change | DESIGN requirement | Disposition |\n|---|---|---|\n"
+            "| the change | D-PAT-4 | conforms — D-PAT-4's second sentence |\n"
+            "| another | D-PAT-1 | debt filed #1234 — separable |\n"
+        )
+        f = run(body(plan=plan + "\n## Filed issues\n\n- opencharly/opencharly#1234 — the debt\n"))
+        self.assertEqual(f, [])
+
+    def test_a_bare_conforms_fails(self):
+        # R11 says "show that it CONFORMS", and the skill says the row names the sentence it
+        # satisfies. A bare `conforms` asserts without showing, which is the gap the org
+        # validator found on opencharly/marketplace#669 after this linter had passed it.
+        plan = (
+            "### Plan conformance\n**Winning candidate:** the fix.\n"
+            "| Planned change | DESIGN requirement | Disposition |\n|---|---|---|\n"
+            "| the change | D-PAT-4 | conforms |\n"
+        )
+        f = run(body(plan=plan))
+        self.assertTrue(any("with no evidence" in x for x in f), f)
+
+    def test_the_requirement_cell_must_name_something(self):
+        # A `—` in the requirement cell is the shape a map takes when the row was never really
+        # mapped. The org validator caught exactly this on opencharly/marketplace#669, after
+        # this linter had passed it — so the cell is checked here now.
+        plan = (
+            "### Plan conformance\n**Winning candidate:** the fix.\n"
+            "| Planned change | DESIGN requirement | Disposition |\n|---|---|---|\n"
+            "| the change | — | conforms — the fixture holds |\n"
+        )
+        f = run(body(plan=plan))
+        self.assertTrue(any("names no DESIGN requirement" in x for x in f), f)
+
+    def test_the_requirement_may_be_a_section_or_a_definition(self):
+        for req in ("§10.2", "`#Marketplace`", "D-PLUG-4"):
+            plan = (
+                "### Plan conformance\n**Winning candidate:** the fix.\n"
+                "| Planned change | DESIGN requirement | Disposition |\n|---|---|---|\n"
+                f"| the change | {req} | conforms — the fixture holds |\n"
+            )
+            self.assertEqual(run(body(plan=plan)), [], req)
 
 
 if __name__ == "__main__":
