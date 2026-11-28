@@ -178,7 +178,7 @@ charly-marketplace:
             # replaces its "both harness-config surfaces" note with the single `.dsh/skills`
             # symlink-farm derivation. No other projection moves, and no trigger text
             # changed, so `DISPATCHER.md` and the catalogs are unchanged.
-            - '@github.com/opencharly/opencharly:v2026.332.0115'
+            - '@github.com/opencharly/opencharly:v2026.332.0245'
             # The two CONTRACT repos' skill shelves (opencharly/opencharly#611).
             # DIRECT, for the rule stated above. Both are Go MODULES, so their tags follow
             # the Go-module scheme

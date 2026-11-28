@@ -317,7 +317,7 @@ the disposable deploys (`CheckBeds()`) — a bed is just a `disposable: true`
 deploy, so it shares the deploy namespace's global name-uniqueness and
 can't collide with another deploy by construction — and `validateCheckBeds`
 requires every bed to set `disposable: true` and to resolve to a substrate
-(pod / vm / local / android, with the referenced vm/local/android entity
+(pod / vm / local, with the referenced vm/local entity
 present). Distinct beds therefore get distinct `charly-<bed>`
 container/libvirt-domain names — a `vm:` bed's libvirt domain is keyed by
 the deploy name (`vmDomainIdentity`), not the shared `kind:vm` entity it
