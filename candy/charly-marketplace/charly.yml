@@ -402,7 +402,7 @@ charly-marketplace:
             # umbrella gate `scripts/check-harness-config.mjs` check 12.
             - '@github.com/opencharly/layer-qdrant:v2026.320.0515'
             - '@github.com/opencharly/plugin-qdrant/candy/plugin-qdrant:v2026.314.0715'
-            - '@github.com/opencharly/plugin-kubevirt/candy/plugin-kubevirt:v2026.332.0351'
+            - '@github.com/opencharly/plugin-kubevirt/candy/plugin-kubevirt:v2026.332.0421'
             # plugin-kube owns the `kubernetes` and `check-k8s` family skills. A
             # DIRECT ref, for the reason recorded above for plugin-mise/openclaw/
             # media: without one the corpus published those two bodies from
