@@ -33,8 +33,10 @@ The `charly` candy installs the binary from the **published per-distro package
 repos** (charly-{alpine,arch,fedora,ubuntu,debian,openwrt}) via the `distro:`
 `package:` + `repo:` entries above — the native package manager (apk add /
 pacman -S / dnf install / apt install) pulls the release binary + its OS deps.
-The `packaging:` section is the single metadata source those repos build from
-(`charly generate-packages`, sdk/packagekit).
+The metadata those repos build from is NOT declared here: it is
+`opencharly/charly`'s `packaging/charly.yml`, published as the
+`charly-candy-charly.yml` release asset (`charly generate-packages`,
+sdk/packagekit) and consumed by each package repo's own build workflow.
 
 The IN-DEVELOPMENT binary (the local working tree, built by
 `scripts/bootstrap-charly.sh`) installs via the **`charly-dev`** candy — the local-source

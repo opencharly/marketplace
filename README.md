@@ -1,6 +1,6 @@
 # OpenCharly Marketplace
 
-Claude Code, Codex, Kimi, and pi plugins for OpenCharly — the fully equipped factory floor for you and your agents.
+Claude Code, Codex, Kimi, and pi plugins for OpenCharly — the agentic DevOps Factory for you and your agents.
 
 This repository IS the marketplace: plugin families live at the repo root
 (`<family>/skills/…`, `<family>/agents/…`, per-family manifests), alongside the harness

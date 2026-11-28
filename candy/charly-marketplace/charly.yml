@@ -16,7 +16,15 @@ charly-marketplace:
             # referenced here … resolved to unknown candy" — described the pre-cutover SUBPATH
             # form's refusal and an older candy-resolution failure. Both are answered: the
             # subpath form stays refused by design, and the repo-root ref is now admitted.
-            - '@github.com/opencharly/pod-charly-hooks:v2026.327.0048'
+            - '@github.com/opencharly/pod-charly-hooks:v2026.332.0202'
+            # layer-charly owns the `charly` skill (family tools). It had NO direct pin here,
+            # so that skill was published from whatever tag a SIBLING pin's closure happened
+            # to name — the hazard this list's own rule names ("a source reachable ONLY
+            # through the closure is published from whatever tag a sibling pin happens to
+            # name, silently"). Pinned DIRECT so the body follows THIS list: the tagline
+            # cutover changed the skill's `packaging:` paragraph
+            # (opencharly/opencharly#1335, opencharly/layer-charly#30).
+            - '@github.com/opencharly/layer-charly:v2026.331.2340'
             # The distro-* image families own their OS/base skills (relocated from the
             # layer-charly-distros concept aggregator — this pin is the corpus source for
             # them). distro-arch is the first pinned; the rest follow in the same wave.
