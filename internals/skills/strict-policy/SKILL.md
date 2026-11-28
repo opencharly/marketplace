@@ -56,7 +56,8 @@ A violation of any R1–R5 rule (or any of R6–R12, or the "Prioritize Clean Ar
 4. **Record the result** of each candidate — works or fails — with its commands, outputs and exit codes, retained. Prove the instrument observes before trusting a negative (see "A diagnostic is an INSTRUMENT" below).
 5. **Pick the winner.** If several work, pick the best and say why (fewer moving parts, the canonical mechanism, the producer side). If none works, the RCA is refuted: stop and redo it.
 6. **Discard the spike code and beds.** Only the winning mechanism and the round's evidence are kept; the implementation is written fresh, in full, as the cutover the plan describes.
-7. **R10 proves the final code.** A spike pass never authorizes a commit and never replaces the change-class gate.
+7. **Carry the winner to the plan conformance pass.** The winner is not implemented until R11's pass over the plan is settled — every planned change mapped to the DESIGN requirement that governs it and shown to CONFORM — because a spike decides the mechanism, never its conformance. The pass is `/charly-internals:design` ("The plan conformance pass"). A plan that cannot be made to conform is redesigned; a deviation is the operator's decision, never an edit to the design inside the implementation.
+8. **R10 proves the final code.** A spike pass never authorizes a commit and never replaces the change-class gate.
 
 **The `### Spike` block** — pasted under `## How tested` in the PR body (and carried in a filed issue's RCA):
 
@@ -84,11 +85,14 @@ A violation of any R1–R5 rule (or any of R6–R12, or the "Prioritize Clean Ar
 | You are about to… | Pillar | Instrument | It is done when |
 |---|---|---|---|
 | implement a fix or a solution | RDD (R12) | the spike round above | a candidate works and is the one implemented |
+| build the winning candidate | R11 | the plan conformance pass (`/charly-internals:design`) | every planned change is shown to CONFORM (or is filed as debt); a plan that cannot conform is redesigned, and a deviation goes to the operator |
 | add or change an authored, transmitted or persisted shape | SDD | CUE first, then `charly task cue-gen` (and a schema spike when the shape is risky) | a clean regeneration is a no-op |
 | add or change a candy | ADE | its `description:` + `plan:`, run by `charly check run <bed>` | the plan runs green; a step that cannot fail is invalid |
 | land any of the above | R10 | the change-class gate (`/charly-check:check`) | it passes on the committed tree with zero warnings |
 
-The order is always R1 → R12 → SDD → implement → ADE/R10: the spike finds the mechanism, the schema fixes its shape, the plan and the gate prove its behaviour.
+The order is always R1 → R12 → R11 → SDD → implement → ADE/R10: the spike finds the mechanism, R11
+settles whether it may be built, the schema fixes its shape, and the plan and the gate prove its
+behaviour.
 
 ## RDD. Risk Driven Development — prove the highest-risk unknowns EARLY (the proactive twin of R1)
 

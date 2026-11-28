@@ -506,9 +506,10 @@ you skipped without deciding it inapplicable is an incomplete review (re-open it
      validated)*`), where `<Runtime>` is the runner identity. Do NOT accept a
      fabricated AI model name in the `<Provider Full Model Name>` slot, and do NOT
      accept an `N/A` placeholder — either the body is AI-authored (AI form) or
-     model-free (this form), never a hybrid. This form is defined by the A1
-     amendment in `opencharly/action-review:prompt/validator.md`; a 100%
-     human-authored body omits the line (per the template).
+     model-free (this form), never a hybrid. This form is defined by the A1 rules
+     in the committed `AI_REVIEW_PROMPT` (`action-review/charly.yml`, the org
+     variable's in-tree copy); a 100% human-authored body omits the line (per the
+     template).
 2. **Change class → gate (R10 / R7).** Classify the diff (docs-only vs code/config
    vs hook/workflow) per `/charly-check:check` "R10 gate by change class" and
    confirm the evidence matches that gate — a runtime-class change needs a pasted
@@ -673,11 +674,26 @@ against the rule it now is.
     suspicious-but-unverified R10 claim is a FAIL until your own run confirms it.
 
 11a. **R11 — conform to DESIGN (the ratchet).** A change that adds or reshapes a
-    field, shape, kind, verb, capability or mechanism conforms to the DESIGN
-    requirement that governs it, and the body names each D-id it touches as
-    conforming, amended, or filed design debt. A diff that contradicts a cited
-    D-id without amending DESIGN FAILS; a DESIGN amendment carries the
-    design-check output and a maintainer sign-off. Detail: `/charly-internals:design`.
+    field, shape, kind, verb, capability or mechanism was mapped to the DESIGN
+    requirement that governs it AFTER the spike round named its winner and BEFORE
+    the first implementation edit, and the body carries that map: a
+    `### Plan conformance` block under `## Rulebook compliance` with one row per
+    planned change, its `D-`id(s), and the sentence of the requirement it satisfies.
+    The map's disposition set is exactly `conforms` and `debt filed #<n>`; a
+    `debt filed` row must name an issue the body lists under `## Filed issues`. A
+    disposition of `amends DESIGN`, or any row that shows the change NOT conforming,
+    FAILS: R11 is conformance, and a design is never edited to fit an implementation.
+    A touched surface with no row FAILS, and a map saying "no DESIGN-governed surface"
+    over a diff that changes `DESIGN.md`/`DESIGN.cue`/`design/` FAILS. The map's
+    `**Winning candidate:**` must name the same candidate the `### Spike` block's
+    `**Winner:**` names — a spike decides the mechanism, never its conformance. A
+    diff that contradicts a cited D-id FAILS.
+    The ONE exception is the operator's own design-change cutover: a diff that changes
+    `DESIGN.md`/`DESIGN.cue`/`design/` carries the `Design change — <reason>` block form,
+    the design-check output on the final tree, and a maintainer sign-off comment (the T4
+    account rule); any of the three missing FAILS, and an implementation PR using that
+    form to get past a mismatch FAILS. Detail: `/charly-internals:design` ("The plan
+    conformance pass", "When the plan does not conform").
 
 11b. **R12 — spike every candidate solution before implementing.** A change that
     fixes or implements behaviour carries a `### Spike` block under `## How tested`:
@@ -689,6 +705,7 @@ against the rule it now is.
     than the winner or implements after a round in which nothing worked, when a
     "spike" only read docs or code, or when an exemption (typo, comment, prose-only,
     revert to a proven state, a pasted spike-equivalent) is unnamed or inapplicable.
+    The winner must be the one the R11 map's `**Winning candidate:**` names (item 11a).
     A spike never replaces R10. Detail: `/charly-internals:strict-policy`
     ("Spike-first").
 
